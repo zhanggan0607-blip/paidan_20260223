@@ -23,3 +23,17 @@ export interface FormField {
   inputType?: string
   editing: boolean
 }
+
+export interface ToastMessage {
+  id: string
+  type: 'success' | 'error' | 'warning' | 'info'
+  message: string
+  duration?: number
+}
+
+export interface ConfirmDialogOptions {
+  title: string
+  message: string
+  onConfirm: () => void
+  onCancel?: () => void
+}

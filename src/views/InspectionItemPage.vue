@@ -40,7 +40,7 @@
           />
         </div>
         <div
-          v-if="contextMenuVisible"
+          v-if="contextMenuVisible()"
           class="context-menu"
           :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
           @click.stop
@@ -452,8 +452,8 @@ export default defineComponent({
         if (nodes[i].id === id) {
           return nodes.splice(i, 1)[0]
         }
-        if (nodes[i].children && nodes[i].children.length > 0) {
-          const found = findAndRemoveNode(nodes[i].children, id)
+        if (nodes[i].children?.length) {
+          const found = findAndRemoveNode(nodes[i].children!, id)
           if (found) return found
         }
       }
@@ -466,8 +466,9 @@ export default defineComponent({
           nodes.splice(i + 1, 0, newNode)
           return true
         }
-        if (nodes[i].children && nodes[i].children.length > 0) {
-          if (insertNodeAfter(nodes[i].children, targetId, newNode)) return true
+        if (nodes[i].children?.length) {
+          const found = insertNodeAfter(nodes[i].children!, targetId, newNode)
+          if (found) return true
         }
       }
       return false

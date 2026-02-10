@@ -1,21 +1,24 @@
 <template>
   <div class="project-info-management">
+    <LoadingSpinner :visible="loading" text="加载中..." />
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+
     <div class="search-section">
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">项目名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" />
+          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" @input="handleSearch" />
         </div>
         <div class="search-item">
           <label class="search-label">客户名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" />
+          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" @input="handleSearch" />
         </div>
       </div>
-        <div class="search-actions">
-          <button class="btn btn-add" @click="openModal">
-            + 新增项目信息
-          </button>
-        </div>
+      <div class="search-actions">
+        <button class="btn btn-add" @click="openModal">
+          + 新增项目信息
+        </button>
+      </div>
     </div>
 
     <div class="table-section">
@@ -25,8 +28,8 @@
             <th>序号</th>
             <th>项目编号</th>
             <th>项目名称</th>
-            <th>开始日期</th>
-            <th>结束日期</th>
+            <th>项目开始日期</th>
+            <th>项目结束日期</th>
             <th>维保周期</th>
             <th>客户单位</th>
             <th>地址</th>
@@ -35,18 +38,18 @@
         </thead>
         <tbody>
           <tr v-for="(item, index) in projectData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
-            <td>{{ index + 1 }}</td>
-            <td>{{ item.id }}</td>
-            <td>{{ item.name }}</td>
-            <td>{{ item.completionDate }}</td>
-            <td>{{ item.maintenanceEndDate }}</td>
-            <td>{{ item.maintenancePeriod }}</td>
-            <td>{{ item.clientName }}</td>
+            <td>{{ startIndex + index + 1 }}</td>
+            <td>{{ item.project_id }}</td>
+            <td>{{ item.project_name }}</td>
+            <td>{{ formatDate(item.completion_date) }}</td>
+            <td>{{ formatDate(item.maintenance_end_date) }}</td>
+            <td>{{ item.maintenance_period }}</td>
+            <td>{{ item.client_name }}</td>
             <td>{{ item.address }}</td>
             <td class="action-cell">
-              <a href="#" class="action-link action-view" @click="handleView(item)">查看</a>
-              <a href="#" class="action-link action-edit" @click="handleEdit(item)">编辑</a>
-              <a href="#" class="action-link action-delete" @click="handleDelete(item)">删除</a>
+              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
+              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
             </td>
           </tr>
         </tbody>
@@ -55,25 +58,25 @@
 
     <div class="pagination-section">
       <div class="pagination-info">
-        共 {{ projectData.length }} 条记录
+        共 {{ totalElements }} 条记录
       </div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
+        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
           &lt;
         </button>
         <button
           v-for="page in totalPages"
           :key="page"
           class="page-btn page-num"
-          :class="{ active: page === currentPage }"
-          @click="currentPage = page"
+          :class="{ active: page === currentPage + 1 }"
+          @click="currentPage = page - 1"
         >
           {{ page }}
         </button>
-        <button class="page-btn page-nav" :disabled="currentPage === totalPages" @click="currentPage++">
+        <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
           &gt;
         </button>
-        <select class="page-select" v-model="pageSize">
+        <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
           <option value="10">10 条 / 页</option>
           <option value="20">20 条 / 页</option>
           <option value="50">50 条 / 页</option>
@@ -100,35 +103,35 @@
                 <label class="form-label">
                   <span class="required">*</span> 项目名称
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.projectName" maxlength="200" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_name" maxlength="200" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 项目编号
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.projectId" maxlength="20" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_id" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 开始日期
+                  <span class="required">*</span> 项目开始日期
                 </label>
-                <input type="date" class="form-input" v-model="formData.completionDate" />
+                <input type="date" class="form-input" v-model="formData.completion_date" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.clientUnit" maxlength="100" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_name" maxlength="100" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户联系人
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.clientContact" maxlength="50" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.clientContactPosition" maxlength="20" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact_position" maxlength="20" />
               </div>
             </div>
             <div class="form-column">
@@ -136,7 +139,7 @@
                 <label class="form-label">
                   <span class="required">*</span> 维保周期
                 </label>
-                <select class="form-input" v-model="formData.maintenancePeriod">
+                <select class="form-input" v-model="formData.maintenance_period">
                   <option value="">请选择</option>
                   <option value="每天">每天</option>
                   <option value="每周">每周</option>
@@ -149,48 +152,37 @@
                 <label class="form-label">
                   <span class="required">*</span> 项目目前简称
                 </label>
-                <div class="input-with-icon">
-                  <input 
-                    type="text" 
-                    class="form-input" 
-                    v-model="formData.projectAbbr" 
-                    @input="checkAbbrDuplicate(formData.projectAbbr)"
-                  />
-                  <span v-if="isAbbrDuplicate" class="icon-warning">!</span>
-                </div>
-                <span v-if="isAbbrDuplicate" class="form-error">简称重复</span>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_abbr" maxlength="10" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 结束日期
+                  <span class="required">*</span> 项目结束日期
                 </label>
-                <input type="date" class="form-input" v-model="formData.maintenanceEndDate" />
+                <input type="date" class="form-input" v-model="formData.maintenance_end_date" />
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户地址
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.clientAddress" maxlength="200" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.address" maxlength="200" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户联系方式
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.clientContactInfo" maxlength="50" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact_info" maxlength="50" />
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" @click="handleSave">保存</button>
+          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
         </div>
       </div>
-    </div>
-
-    <div v-if="saveSuccess" class="save-success-toast">
-      ✓ 保存成功
     </div>
 
     <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
@@ -204,41 +196,41 @@
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">项目名称</label>
-                <div class="form-value">{{ viewData.name || '-' }}</div>
+                <div class="form-value">{{ viewData.project_name || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.id || '-' }}</div>
+                <div class="form-value">{{ viewData.project_id || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">开始日期</label>
-                <div class="form-value">{{ viewData.completionDate || '-' }}</div>
+                <label class="form-label">项目开始日期</label>
+                <div class="form-value">{{ formatDate(viewData.completion_date) || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户单位</label>
-                <div class="form-value">{{ viewData.clientName || '-' }}</div>
+                <div class="form-value">{{ viewData.client_name || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人</label>
-                <div class="form-value">{{ viewData.clientContact || '-' }}</div>
+                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <div class="form-value">{{ viewData.clientContactPosition || '-' }}</div>
+                <div class="form-value">{{ viewData.client_contact_position || '-' }}</div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">维保周期</label>
-                <div class="form-value">{{ viewData.maintenancePeriod || '-' }}</div>
+                <div class="form-value">{{ viewData.maintenance_period || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">项目目前简称</label>
-                <div class="form-value">{{ viewData.projectAbbr || '-' }}</div>
+                <div class="form-value">{{ viewData.project_abbr || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">结束日期</label>
-                <div class="form-value">{{ viewData.maintenanceEndDate || '-' }}</div>
+                <label class="form-label">项目结束日期</label>
+                <div class="form-value">{{ formatDate(viewData.maintenance_end_date) || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户地址</label>
@@ -246,7 +238,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系方式</label>
-                <div class="form-value">{{ viewData.clientContactInfo || '-' }}</div>
+                <div class="form-value">{{ viewData.client_contact_info || '-' }}</div>
               </div>
             </div>
           </div>
@@ -270,35 +262,35 @@
                 <label class="form-label">
                   <span class="required">*</span> 项目名称
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.name" maxlength="200" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_name" maxlength="200" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 项目编号
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.id" maxlength="20" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 开始日期
+                  <span class="required">*</span> 项目开始日期
                 </label>
-                <input type="date" class="form-input" v-model="editData.completionDate" />
+                <input type="date" class="form-input" v-model="editData.completion_date" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.clientName" maxlength="100" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_name" maxlength="100" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户联系人
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.clientContact" maxlength="50" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.clientContactPosition" maxlength="20" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact_position" maxlength="20" />
               </div>
             </div>
             <div class="form-column">
@@ -306,7 +298,7 @@
                 <label class="form-label">
                   <span class="required">*</span> 维保周期
                 </label>
-                <select class="form-input" v-model="editData.maintenancePeriod">
+                <select class="form-input" v-model="editData.maintenance_period">
                   <option value="">请选择</option>
                   <option value="每天">每天</option>
                   <option value="每周">每周</option>
@@ -317,9 +309,9 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 结束日期
+                  <span class="required">*</span> 项目结束日期
                 </label>
-                <input type="date" class="form-input" v-model="editData.maintenanceEndDate" />
+                <input type="date" class="form-input" v-model="editData.maintenance_end_date" />
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
@@ -332,14 +324,16 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户联系方式
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.clientContactInfo" maxlength="50" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact_info" maxlength="50" />
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" @click="handleUpdate">保存</button>
+          <button class="btn btn-save" @click="handleUpdate" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
         </div>
       </div>
     </div>
@@ -347,188 +341,187 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch } from 'vue'
-
-export interface ProjectInfo {
-  id: string
-  name: string
-  completionDate: string
-  maintenanceEndDate: string
-  maintenancePeriod: string
-  clientName: string
-  address: string
-  projectAbbr?: string
-  clientContact?: string
-  clientContactPosition?: string
-  clientContactInfo?: string
-}
+import { defineComponent, reactive, ref, computed, watch, onMounted } from 'vue'
+import { projectInfoService, type ProjectInfo, type ProjectInfoCreate, type ProjectInfoUpdate } from '../services/projectInfo'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import Toast from '../components/Toast.vue'
 
 export default defineComponent({
   name: 'ProjectInfoManagement',
+  components: {
+    LoadingSpinner,
+    Toast
+  },
   setup() {
     const searchForm = reactive({
       projectName: '',
       clientName: ''
     })
 
-    const currentPage = ref(1)
+    const currentPage = ref(0)
     const pageSize = ref(10)
     const jumpPage = ref(1)
+    const loading = ref(false)
+    const saving = ref(false)
     const isModalOpen = ref(false)
-    const isAbbrDuplicate = ref(false)
-    const saveSuccess = ref(false)
     const isViewModalOpen = ref(false)
     const isEditModalOpen = ref(false)
-    const editingIndex = ref(-1)
-    const viewData = reactive({
-      id: '',
-      name: '',
-      completionDate: '',
-      maintenanceEndDate: '',
-      maintenancePeriod: '',
-      clientName: '',
-      address: '',
-      projectAbbr: '',
-      clientContact: '',
-      clientContactPosition: '',
-      clientContactInfo: ''
+    const editingId = ref<number | null>(null)
+    
+    const projectData = ref<ProjectInfo[]>([])
+    const totalElements = ref(0)
+    const totalPages = ref(0)
+
+    const toast = reactive({
+      visible: false,
+      message: '',
+      type: 'success' as 'success' | 'error' | 'warning' | 'info'
     })
-    const editData = reactive({
-      id: '',
-      name: '',
-      completionDate: '',
-      maintenanceEndDate: '',
-      maintenancePeriod: '',
-      clientName: '',
+
+    const viewData = reactive({
+      id: 0,
+      project_id: '',
+      project_name: '',
+      completion_date: '',
+      maintenance_end_date: '',
+      maintenance_period: '',
+      client_name: '',
       address: '',
-      clientContact: '',
-      clientContactPosition: '',
-      clientContactInfo: ''
+      project_abbr: '',
+      client_contact: '',
+      client_contact_position: '',
+      client_contact_info: ''
+    })
+
+    const editData = reactive({
+      id: 0,
+      project_id: '',
+      project_name: '',
+      completion_date: '',
+      maintenance_end_date: '',
+      maintenance_period: '',
+      client_name: '',
+      address: '',
+      project_abbr: '',
+      client_contact: '',
+      client_contact_position: '',
+      client_contact_info: ''
     })
 
     const formData = reactive({
-      projectName: '',
-      projectId: '',
-      completionDate: '',
-      clientUnit: '',
-      clientContact: '',
-      clientContactPosition: '',
-      maintenancePeriod: '',
-      projectAbbr: 'CXDP',
-      maintenanceEndDate: '',
-      clientAddress: '',
-      clientContactInfo: ''
+      project_name: '',
+      project_id: '',
+      completion_date: '',
+      client_name: '',
+      client_contact: '',
+      client_contact_position: '',
+      maintenance_period: '',
+      project_abbr: '',
+      maintenance_end_date: '',
+      address: '',
+      client_contact_info: ''
     })
 
-    const projectData = ref<ProjectInfo[]>([
-      {
-        id: 'PRJ-2025-001',
-        name: '上海中心大厦维保项目',
-        completionDate: '2024-12-31',
-        maintenanceEndDate: '2026-12-31',
-        maintenancePeriod: '每半年',
-        clientName: '上海城投（集团）有限公司',
-        address: '上海市浦东新区陆家嘴银城中路501号'
-      },
-      {
-        id: 'PRJ-2025-002',
-        name: '环球金融中心维保项目',
-        completionDate: '2023-06-30',
-        maintenanceEndDate: '2025-06-30',
-        maintenancePeriod: '每半年',
-        clientName: '上海建工集团股份有限公司',
-        address: '上海市浦东新区世纪大道100号'
-      },
-      {
-        id: 'PRJ-2025-003',
-        name: '金茂大厦维保项目',
-        completionDate: '2024-03-15',
-        maintenanceEndDate: '2025-03-15',
-        maintenancePeriod: '每季度',
-        clientName: '中国金茂控股集团有限公司',
-        address: '上海市浦东新区世纪大道88号'
-      },
-      {
-        id: 'PRJ-2025-004',
-        name: '东方明珠塔维保项目',
-        completionDate: '2024-09-01',
-        maintenanceEndDate: '2025-03-01',
-        maintenancePeriod: '每月',
-        clientName: '上海文化广播影视集团有限公司',
-        address: '上海市浦东新区世纪大道1号'
-      }
-    ])
+    const startIndex = computed(() => currentPage.value * pageSize.value)
 
-    const originalData = ref<ProjectInfo[]>([...projectData.value])
-
-    const totalPages = computed(() => Math.ceil(projectData.value.length / pageSize.value))
-
-    const handleSearch = () => {
-      const keyword = searchForm.projectName.toLowerCase().trim()
-      const clientKeyword = searchForm.clientName.toLowerCase().trim()
-
-      const filtered = originalData.value.filter(item => {
-        const nameMatch = !keyword || item.name.toLowerCase().includes(keyword)
-        const clientMatch = !clientKeyword || item.clientName.toLowerCase().includes(clientKeyword)
-        return nameMatch && clientMatch
-      })
-
-      projectData.value = filtered
-      currentPage.value = 1
+    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+      toast.message = message
+      toast.type = type
+      toast.visible = true
     }
 
-    watch(
-      () => [searchForm.projectName, searchForm.clientName],
-      () => {
-        handleSearch()
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return '-'
+      const date = new Date(dateStr)
+      return date.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+    }
+
+    const formatDateForAPI = (dateStr: string) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}T00:00:00`
+    }
+
+    const loadData = async () => {
+      console.log('🔄 [前端] 开始加载数据...')
+      loading.value = true
+      try {
+        console.log('📤 [前端] 请求参数:', {
+          page: currentPage.value,
+          size: pageSize.value,
+          project_name: searchForm.projectName || undefined,
+          client_name: searchForm.clientName || undefined
+        })
+        
+        const response = await projectInfoService.getList({
+          page: currentPage.value,
+          size: pageSize.value,
+          project_name: searchForm.projectName || undefined,
+          client_name: searchForm.clientName || undefined
+        })
+        
+        console.log('📥 [前端] 响应数据:', response)
+        
+        if (response.code === 200) {
+          console.log('✅ [前端] 数据加载成功，记录数:', response.data.content.length)
+          projectData.value = response.data.content
+          totalElements.value = response.data.totalElements
+          totalPages.value = response.data.totalPages
+          console.log('📋 [前端] 当前列表:', projectData.value)
+        } else {
+          console.error('❌ [前端] 数据加载失败:', response.message)
+          showToast(response.message || '加载数据失败', 'error')
+        }
+      } catch (error: any) {
+        console.error('❌ [前端] 加载数据异常:', error)
+        showToast(error.message || '加载数据失败，请检查网络连接', 'error')
+      } finally {
+        loading.value = false
       }
-    )
+    }
+
+    const handleSearch = () => {
+      currentPage.value = 0
+      loadData()
+    }
 
     const checkFormValid = (): boolean => {
-      if (!formData.projectName?.trim()) {
-        alert('请填写项目名称')
+      if (!formData.project_name?.trim()) {
+        showToast('请填写项目名称', 'warning')
         return false
       }
-      if (!formData.projectId?.trim()) {
-        alert('请填写项目编号')
+      if (!formData.project_id?.trim()) {
+        showToast('请填写项目编号', 'warning')
         return false
       }
-      if (!formData.completionDate) {
-        alert('请填写开始日期')
+      if (!formData.completion_date) {
+        showToast('请填写项目开始日期', 'warning')
         return false
       }
-      if (!formData.maintenanceEndDate) {
-        alert('请填写结束日期')
+      if (!formData.maintenance_end_date) {
+        showToast('请填写项目结束日期', 'warning')
         return false
       }
-      if (!formData.maintenancePeriod?.trim()) {
-        alert('请填写维保周期')
+      if (!formData.maintenance_period?.trim()) {
+        showToast('请填写维保周期', 'warning')
         return false
       }
-      if (!formData.clientUnit?.trim()) {
-        alert('请填写客户单位')
+      if (!formData.client_name?.trim()) {
+        showToast('请填写客户单位', 'warning')
         return false
       }
-      if (!formData.clientAddress?.trim()) {
-        alert('请填写客户地址')
-        return false
-      }
-      if (isAbbrDuplicate.value) {
-        alert('项目简称重复，请修改后保存')
+      if (!formData.address?.trim()) {
+        showToast('请填写客户地址', 'warning')
         return false
       }
       return true
-    }
-
-    const checkAbbrDuplicate = (abbr: string) => {
-      if (!abbr) {
-        isAbbrDuplicate.value = false
-        return
-      }
-      const existingAbbrs = projectData.value.map(item => item.name).map(name => {
-        return name.substring(0, Math.min(4, name.length)).toUpperCase()
-      })
-      isAbbrDuplicate.value = existingAbbrs.includes(abbr.toUpperCase())
     }
 
     const openModal = () => {
@@ -541,78 +534,98 @@ export default defineComponent({
     }
 
     const resetForm = () => {
-      formData.projectName = ''
-      formData.projectId = ''
-      formData.completionDate = ''
-      formData.clientUnit = ''
-      formData.clientContact = ''
-      formData.clientContactPosition = ''
-      formData.maintenancePeriod = ''
-      formData.projectAbbr = 'CXDP'
-      formData.maintenanceEndDate = ''
-      formData.clientAddress = ''
-      formData.clientContactInfo = ''
-      isAbbrDuplicate.value = false
+      formData.project_name = ''
+      formData.project_id = ''
+      formData.completion_date = ''
+      formData.client_name = ''
+      formData.client_contact = ''
+      formData.client_contact_position = ''
+      formData.maintenance_period = ''
+      formData.project_abbr = ''
+      formData.maintenance_end_date = ''
+      formData.address = ''
+      formData.client_contact_info = ''
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
+      console.log('🔄 [前端] 开始保存项目...')
       if (!checkFormValid()) {
+        console.log('❌ [前端] 表单验证失败')
         return
       }
 
-      const newItem: ProjectInfo = {
-        id: formData.projectId,
-        name: formData.projectName,
-        completionDate: formData.completionDate,
-        maintenanceEndDate: formData.maintenanceEndDate,
-        maintenancePeriod: formData.maintenancePeriod,
-        clientName: formData.clientUnit,
-        address: formData.clientAddress
+      saving.value = true
+      try {
+        const createData: ProjectInfoCreate = {
+          project_id: formData.project_id,
+          project_name: formData.project_name,
+          completion_date: formatDateForAPI(formData.completion_date),
+          maintenance_end_date: formatDateForAPI(formData.maintenance_end_date),
+          maintenance_period: formData.maintenance_period,
+          client_name: formData.client_name,
+          address: formData.address,
+          project_abbr: formData.project_abbr || undefined,
+          client_contact: formData.client_contact || undefined,
+          client_contact_position: formData.client_contact_position || undefined,
+          client_contact_info: formData.client_contact_info || undefined
+        }
+
+        console.log('📤 [前端] 创建数据:', createData)
+        const response = await projectInfoService.create(createData)
+        console.log('📥 [前端] 创建响应:', response)
+        
+        if (response.code === 200) {
+          console.log('✅ [前端] 创建成功')
+          showToast('创建成功', 'success')
+          closeModal()
+          resetForm()
+          
+          console.log('🔄 [前端] 重置到第一页并刷新数据...')
+          currentPage.value = 0
+          await loadData()
+        } else {
+          console.error('❌ [前端] 创建失败:', response.message)
+          showToast(response.message || '创建失败', 'error')
+        }
+      } catch (error: any) {
+        console.error('❌ [前端] 创建异常:', error)
+        showToast(error.message || '创建失败，请检查网络连接', 'error')
+      } finally {
+        saving.value = false
       }
-
-      projectData.value = [newItem, ...projectData.value]
-      originalData.value = [newItem, ...originalData.value]
-
-      closeModal()
-      resetForm()
-
-      saveSuccess.value = true
-      setTimeout(() => {
-        saveSuccess.value = false
-      }, 2000)
     }
 
-    const handleView = (item: ProjectInfo) => {
+    const handleView = async (item: ProjectInfo) => {
       viewData.id = item.id
-      viewData.name = item.name
-      viewData.completionDate = item.completionDate
-      viewData.maintenanceEndDate = item.maintenanceEndDate
-      viewData.maintenancePeriod = item.maintenancePeriod
-      viewData.clientName = item.clientName
+      viewData.project_id = item.project_id
+      viewData.project_name = item.project_name
+      viewData.completion_date = item.completion_date
+      viewData.maintenance_end_date = item.maintenance_end_date
+      viewData.maintenance_period = item.maintenance_period
+      viewData.client_name = item.client_name
       viewData.address = item.address
-      viewData.projectAbbr = ''
-      viewData.clientContact = ''
-      viewData.clientContactPosition = ''
-      viewData.clientContactInfo = ''
+      viewData.project_abbr = item.project_abbr || ''
+      viewData.client_contact = item.client_contact || ''
+      viewData.client_contact_position = item.client_contact_position || ''
+      viewData.client_contact_info = item.client_contact_info || ''
       isViewModalOpen.value = true
     }
 
     const handleEdit = (item: ProjectInfo) => {
-      const index = projectData.value.findIndex(p => p.id === item.id)
-      if (index > -1) {
-        editingIndex.value = index
-        editData.id = item.id
-        editData.name = item.name
-        editData.completionDate = item.completionDate
-        editData.maintenanceEndDate = item.maintenanceEndDate
-        editData.maintenancePeriod = item.maintenancePeriod
-        editData.clientName = item.clientName
-        editData.address = item.address
-        editData.clientContact = ''
-        editData.clientContactPosition = ''
-        editData.clientContactInfo = ''
-        isEditModalOpen.value = true
-      }
+      editingId.value = item.id
+      editData.id = item.id
+      editData.project_id = item.project_id
+      editData.project_name = item.project_name
+      editData.completion_date = item.completion_date
+      editData.maintenance_end_date = item.maintenance_end_date
+      editData.maintenance_period = item.maintenance_period
+      editData.client_name = item.client_name
+      editData.address = item.address
+      editData.project_abbr = item.project_abbr || ''
+      editData.client_contact = item.client_contact || ''
+      editData.client_contact_position = item.client_contact_position || ''
+      editData.client_contact_info = item.client_contact_info || ''
+      isEditModalOpen.value = true
     }
 
     const closeViewModal = () => {
@@ -621,86 +634,121 @@ export default defineComponent({
 
     const closeEditModal = () => {
       isEditModalOpen.value = false
-      editingIndex.value = -1
+      editingId.value = null
     }
 
     const checkEditFormValid = (): boolean => {
-      if (!editData.name?.trim()) {
-        alert('请填写项目名称')
+      if (!editData.project_name?.trim()) {
+        showToast('请填写项目名称', 'warning')
         return false
       }
-      if (!editData.id?.trim()) {
-        alert('请填写项目编号')
+      if (!editData.project_id?.trim()) {
+        showToast('请填写项目编号', 'warning')
         return false
       }
-      if (!editData.completionDate) {
-        alert('请填写开始日期')
+      if (!editData.completion_date) {
+        showToast('请填写项目开始日期', 'warning')
         return false
       }
-      if (!editData.maintenanceEndDate) {
-        alert('请填写结束日期')
+      if (!editData.maintenance_end_date) {
+        showToast('请填写项目结束日期', 'warning')
         return false
       }
-      if (!editData.maintenancePeriod?.trim()) {
-        alert('请填写维保周期')
+      if (!editData.maintenance_period?.trim()) {
+        showToast('请填写维保周期', 'warning')
         return false
       }
-      if (!editData.clientName?.trim()) {
-        alert('请填写客户单位')
+      if (!editData.client_name?.trim()) {
+        showToast('请填写客户单位', 'warning')
         return false
       }
       if (!editData.address?.trim()) {
-        alert('请填写客户地址')
+        showToast('请填写客户地址', 'warning')
         return false
       }
       return true
     }
 
-    const handleUpdate = () => {
-      if (!checkEditFormValid()) {
+    const handleUpdate = async () => {
+      if (!checkEditFormValid() || editingId.value === null) {
         return
       }
 
-      if (editingIndex.value > -1) {
-        projectData.value[editingIndex.value] = {
-          id: editData.id,
-          name: editData.name,
-          completionDate: editData.completionDate,
-          maintenanceEndDate: editData.maintenanceEndDate,
-          maintenancePeriod: editData.maintenancePeriod,
-          clientName: editData.clientName,
-          address: editData.address
+      saving.value = true
+      try {
+        const updateData: ProjectInfoUpdate = {
+          project_id: editData.project_id,
+          project_name: editData.project_name,
+          completion_date: formatDateForAPI(editData.completion_date),
+          maintenance_end_date: formatDateForAPI(editData.maintenance_end_date),
+          maintenance_period: editData.maintenance_period,
+          client_name: editData.client_name,
+          address: editData.address,
+          project_abbr: editData.project_abbr || undefined,
+          client_contact: editData.client_contact || undefined,
+          client_contact_position: editData.client_contact_position || undefined,
+          client_contact_info: editData.client_contact_info || undefined
         }
-        originalData.value[editingIndex.value] = { ...projectData.value[editingIndex.value] }
-      }
 
-      closeEditModal()
-      saveSuccess.value = true
-      setTimeout(() => {
-        saveSuccess.value = false
-      }, 2000)
+        const response = await projectInfoService.update(editingId.value, updateData)
+        
+        if (response.code === 200) {
+          showToast('更新成功', 'success')
+          closeEditModal()
+          await loadData()
+        } else {
+          showToast(response.message || '更新失败', 'error')
+        }
+      } catch (error: any) {
+        console.error('更新失败:', error)
+        showToast(error.message || '更新失败，请检查网络连接', 'error')
+      } finally {
+        saving.value = false
+      }
     }
 
-    const handleDelete = (item: ProjectInfo) => {
+    const handleDelete = async (item: ProjectInfo) => {
       if (!confirm('确定要删除该项目吗？')) {
         return
       }
-      const index = projectData.value.findIndex(p => p.id === item.id)
-      const originalIndex = originalData.value.findIndex(p => p.id === item.id)
-      if (index > -1) {
-        projectData.value.splice(index, 1)
-      }
-      if (originalIndex > -1) {
-        originalData.value.splice(originalIndex, 1)
+
+      loading.value = true
+      try {
+        const response = await projectInfoService.delete(item.id)
+        
+        if (response.code === 200) {
+          showToast('删除成功', 'success')
+          await loadData()
+        } else {
+          showToast(response.message || '删除失败', 'error')
+        }
+      } catch (error: any) {
+        console.error('删除失败:', error)
+        showToast(error.message || '删除失败，请检查网络连接', 'error')
+      } finally {
+        loading.value = false
       }
     }
 
     const handleJump = () => {
-      const page = parseInt(jumpPage.value)
+      const page = parseInt(jumpPage.value.toString())
       if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page
+        currentPage.value = page - 1
       }
     }
+
+    const handlePageSizeChange = () => {
+      currentPage.value = 0
+      loadData()
+    }
+
+    watch(currentPage, () => {
+      loadData()
+    })
+
+    onMounted(() => {
+      loadData()
+    })
 
     return {
       searchForm,
@@ -709,25 +757,30 @@ export default defineComponent({
       pageSize,
       totalPages,
       jumpPage,
+      totalElements,
+      startIndex,
       isModalOpen,
-      isAbbrDuplicate,
-      saveSuccess,
+      loading,
+      saving,
       isViewModalOpen,
       isEditModalOpen,
       viewData,
       editData,
       formData,
+      toast,
       openModal,
       closeModal,
+      handleSearch,
       handleSave,
+      handleUpdate,
       handleView,
       handleEdit,
       handleDelete,
       handleJump,
-      checkAbbrDuplicate,
+      handlePageSizeChange,
       closeViewModal,
       closeEditModal,
-      handleUpdate
+      formatDate
     }
   }
 })
@@ -794,7 +847,12 @@ export default defineComponent({
 
 .search-actions {
   display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
 }
 
 .btn {
@@ -808,12 +866,17 @@ export default defineComponent({
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .btn-add {
   background: #2E7D32;
   color: #fff;
 }
 
-.btn-add:hover {
+.btn-add:hover:not(:disabled) {
   background: #1B5E20;
 }
 
@@ -869,7 +932,12 @@ export default defineComponent({
 
 .action-cell {
   display: flex;
+  flex-wrap: nowrap;
   gap: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
 }
 
 .action-link {
@@ -908,8 +976,12 @@ export default defineComponent({
 
 .pagination-controls {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .page-btn {
@@ -1115,11 +1187,6 @@ export default defineComponent({
   color: #999;
 }
 
-.form-error {
-  font-size: 12px;
-  color: #D32F2F;
-}
-
 .form-value {
   padding: 8px 12px;
   background: #f5f5f5;
@@ -1130,31 +1197,6 @@ export default defineComponent({
   min-height: 36px;
   display: flex;
   align-items: center;
-}
-
-.input-with-icon {
-  position: relative;
-}
-
-.input-with-icon .form-input {
-  padding-right: 32px;
-}
-
-.icon-warning {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #FFA000;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .modal-footer {
@@ -1171,7 +1213,7 @@ export default defineComponent({
   border: 1px solid #e0e0e0;
 }
 
-.btn-cancel:hover {
+.btn-cancel:hover:not(:disabled) {
   background: #f5f5f5;
 }
 
@@ -1180,31 +1222,7 @@ export default defineComponent({
   color: #fff;
 }
 
-.btn-save:hover {
+.btn-save:hover:not(:disabled) {
   background: #1976D2;
-}
-
-.save-success-toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 14px 20px;
-  background: #43a047;
-  color: #fff;
-  border-radius: 3px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  animation: slideIn 0.25s ease-out;
-  z-index: 1001;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 </style>

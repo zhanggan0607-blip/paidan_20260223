@@ -2,7 +2,7 @@
   <div class="layout">
     <aside class="sidebar">
         <div class="sidebar-header">
-          <h1 class="system-title">天齐维保系统</h1>
+          <h1 class="system-title">SSTCP维保系统</h1>
         </div>
        <nav class="sidebar-nav">
          <div
@@ -16,6 +16,7 @@
            >
              <span class="menu-label">{{ menu.label }}</span>
              <span
+               v-if="menu.children"
                class="menu-arrow"
                :class="{ expanded: expandedMenus.includes(menu.id) }"
              >
@@ -79,10 +80,15 @@ export default defineComponent({
   setup() {
     const router = useRouter()
     const route = useRoute()
-    const expandedMenus = ref<string[]>(['maintenance', 'work-order'])
+    const expandedMenus = ref<string[]>(['statistics'])
     const activeMenu = ref<string>('project-info')
 
       const menuItems: MenuItem[] = [
+        {
+          id: 'statistics',
+          label: '统计分析',
+          path: '/statistics'
+        },
         {
           id: 'maintenance',
           label: '维保项目管理',
@@ -97,23 +103,24 @@ export default defineComponent({
           id: 'work-order',
           label: '工单管理',
           children: [
-            { id: 'regular-inspection', label: '定期巡检' },
-            { id: 'temporary-repair', label: '临时维修单' },
-            { id: 'sporadic-labor', label: '零星用工管理' }
+            { id: 'regular-inspection', label: '定期巡检', path: '/work-order/periodic-inspection' },
+            { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
+            { id: 'sporadic-labor', label: '零星用工管理', path: '/work-order/spot-work' }
           ]
         },
         {
           id: 'spare-parts',
-          label: '备件备品管理'
-        },
-        {
-          id: 'statistics',
-          label: '查询统计'
+          label: '备品备件管理',
+          children: [
+            { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
+            { id: 'spare-parts-stock', label: '备品备件入库', path: '/spare-parts/stock' }
+          ]
         },
         {
           id: 'system',
           label: '系统管理',
           children: [
+            { id: 'personnel', label: '人员管理', path: '/personnel' },
             { id: 'inspection-item', label: '巡检事项管理', path: '/inspection-item' }
           ]
         }
@@ -121,6 +128,13 @@ export default defineComponent({
 
     const currentBreadcrumb = computed(() => {
       const path = route.path
+      if (path === '/statistics') {
+        return {
+          level1: '统计分析',
+          level2: '数据看板',
+          full: '统计分析 / 数据看板'
+        }
+      }
       for (const menu of menuItems) {
         if (menu.children) {
           const child = menu.children.find(c => c.path === path)
@@ -133,6 +147,41 @@ export default defineComponent({
           }
         }
       }
+      if (path === '/work-order/temporary-repair') {
+        return {
+          level1: '工单管理',
+          level2: '临时维修单查询',
+          full: '工单管理 / 临时维修单查询'
+        }
+      }
+      if (path === '/work-order/spot-work') {
+        return {
+          level1: '工单管理',
+          level2: '零星用工管理',
+          full: '工单管理 / 零星用工管理'
+        }
+      }
+      if (path === '/spare-parts/issue') {
+        return {
+          level1: '备品备件管理',
+          level2: '备品备件领用',
+          full: '备品备件管理 / 备品备件领用'
+        }
+      }
+      if (path === '/spare-parts/stock') {
+        return {
+          level1: '备品备件管理',
+          level2: '备品备件入库',
+          full: '备品备件管理 / 备品备件入库'
+        }
+      }
+      if (path === '/spare-parts') {
+        return {
+          level1: '备品备件管理',
+          level2: '备品备件管理',
+          full: '备品备件管理'
+        }
+      }
       return {
         level1: '维保项目管理',
         level2: '项目信息管理',
@@ -141,17 +190,21 @@ export default defineComponent({
     })
 
     const toggleMenu = (menuId: string) => {
-      const index = expandedMenus.value.indexOf(menuId)
-      if (index > -1) {
-        expandedMenus.value.splice(index, 1)
+      if (expandedMenus.value.includes(menuId)) {
+        expandedMenus.value = []
       } else {
-        expandedMenus.value.push(menuId)
+        expandedMenus.value = [menuId]
       }
     }
 
     const handleMenuClick = (item: MenuItem) => {
       activeMenu.value = item.id
-      // Debug: log navigation intent
+      const parentMenu = menuItems.find(menu => menu.children && menu.children.some(child => child.id === item.id))
+      if (parentMenu && parentMenu.id) {
+        if (!expandedMenus.value.includes(parentMenu.id)) {
+          expandedMenus.value = [...expandedMenus.value, parentMenu.id]
+        }
+      }
       console.log('Navigate to', item.id, 'path=', item.path)
       if (item.path) {
         router.push({ path: item.path })
@@ -220,7 +273,7 @@ export default defineComponent({
   cursor: pointer;
   transition: background 0.15s;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .menu-title:hover {
@@ -265,7 +318,7 @@ export default defineComponent({
   padding: 8px 16px 8px 36px;
   cursor: pointer;
   transition: background 0.15s;
-  font-size: 18px;
+  font-size: 16px;
   text-align: left;
   display: flex;
   justify-content: space-between;

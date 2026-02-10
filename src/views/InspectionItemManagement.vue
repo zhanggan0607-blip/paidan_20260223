@@ -42,8 +42,14 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in filteredData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
-            <td>{{ index + 1 }}</td>
+          <tr v-if="loading">
+            <td colspan="7" style="text-align: center; padding: 20px;">加载中...</td>
+          </tr>
+          <tr v-else-if="tableData.length === 0">
+            <td colspan="7" style="text-align: center; padding: 20px;">暂无数据</td>
+          </tr>
+          <tr v-else v-for="(item, index) in tableData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <td>{{ startIndex + index }}</td>
             <td>{{ item.itemCode }}</td>
             <td>{{ item.itemName }}</td>
             <td>{{ item.itemType }}</td>
@@ -61,7 +67,7 @@
 
     <div class="pagination-section">
       <div class="pagination-info">
-        共 {{ filteredData.length }} 条记录
+        共 {{ totalElements }} 条记录
       </div>
       <div class="pagination-controls">
         <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
@@ -138,7 +144,9 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" @click="handleSave">保存</button>
+          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
         </div>
       </div>
     </div>
@@ -186,7 +194,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed } from 'vue'
+import { defineComponent, reactive, ref, computed, onMounted } from 'vue'
+import { inspectionItemService, type InspectionItem as InspectionItemType } from '../services/inspectionItem'
 
 export interface InspectionItem {
   id: string
@@ -206,12 +215,14 @@ export default defineComponent({
       itemType: ''
     })
 
-    const currentPage = ref(1)
+    const currentPage = ref(0)
     const pageSize = ref(10)
     const isModalOpen = ref(false)
     const isViewModalOpen = ref(false)
     const isEdit = ref(false)
-    const editingId = ref('')
+    const editingId = ref<number | null>(null)
+    const loading = ref(false)
+    const saving = ref(false)
 
     const formData = reactive({
       itemCode: '',
@@ -229,73 +240,58 @@ export default defineComponent({
       checkStandard: ''
     })
 
-    const tableData = ref<InspectionItem[]>([
-      {
-        id: '1',
-        itemCode: 'XC-001',
-        itemName: '电梯运行检查',
-        itemType: '定期巡检',
-        checkContent: '检查电梯运行是否正常，有无异常声响',
-        checkStandard: '电梯运行平稳，无异常声响，门开关灵活'
-      },
-      {
-        id: '2',
-        itemCode: 'XC-002',
-        itemName: '消防设施检查',
-        itemType: '定期巡检',
-        checkContent: '检查消防设施是否完好有效',
-        checkStandard: '灭火器在有效期内，压力正常'
-      },
-      {
-        id: '3',
-        itemCode: 'XC-003',
-        itemName: '空调系统检查',
-        itemType: '定期巡检',
-        checkContent: '检查空调制冷制热功能是否正常',
-        checkStandard: '空调运行正常，温度调节有效'
-      },
-      {
-        id: '4',
-        itemCode: 'XC-004',
-        itemName: '照明系统检查',
-        itemType: '定期巡检',
-        checkContent: '检查各区域照明是否正常',
-        checkStandard: '所有照明设备正常工作，无闪烁'
+    const tableData = ref<InspectionItem[]>([])
+    const totalElements = ref(0)
+    const totalPages = ref(0)
+
+    const loadData = async () => {
+      loading.value = true
+      try {
+        const params: any = {
+          page: currentPage.value,
+          size: pageSize.value
+        }
+        
+        if (searchForm.itemCode.trim()) {
+          params.keyword = searchForm.itemCode.trim()
+        } else if (searchForm.itemName.trim()) {
+          params.keyword = searchForm.itemName.trim()
+        }
+        
+        if (searchForm.itemType) {
+          params.itemType = searchForm.itemType
+        }
+
+        const response = await inspectionItemService.getList(params)
+        
+        if (response.code === 200) {
+          tableData.value = response.data.content.map((item: InspectionItemType) => ({
+            id: String(item.id),
+            itemCode: item.item_code,
+            itemName: item.item_name,
+            itemType: item.item_type,
+            checkContent: item.check_content || '',
+            checkStandard: item.check_standard || ''
+          }))
+          totalElements.value = response.data.totalElements
+          totalPages.value = response.data.totalPages
+        }
+      } catch (error) {
+        console.error('加载巡检事项失败:', error)
+        alert('加载巡检事项失败，请稍后重试')
+      } finally {
+        loading.value = false
       }
-    ])
-
-    const originalData = [...tableData.value]
-
-    const filteredData = computed(() => {
-      let result = originalData
-
-      if (searchForm.itemCode.trim()) {
-        result = result.filter(item =>
-          item.itemCode.toLowerCase().includes(searchForm.itemCode.toLowerCase().trim())
-        )
-      }
-
-      if (searchForm.itemName.trim()) {
-        result = result.filter(item =>
-          item.itemName.toLowerCase().includes(searchForm.itemName.toLowerCase().trim())
-        )
-      }
-
-      if (searchForm.itemType) {
-        result = result.filter(item => item.itemType === searchForm.itemType)
-      }
-
-      return result
-    })
-
-    const totalPages = computed(() => Math.ceil(filteredData.value.length / pageSize.value))
+    }
 
     const handleSearch = () => {
-      currentPage.value = 1
+      currentPage.value = 0
+      loadData()
     }
 
     const handleAdd = () => {
       isEdit.value = false
+      editingId.value = null
       formData.itemCode = ''
       formData.itemName = ''
       formData.itemType = ''
@@ -308,7 +304,7 @@ export default defineComponent({
       isModalOpen.value = false
     }
 
-    const handleSave = () => {
+    const handleSave = async () => {
       if (!formData.itemCode.trim()) {
         alert('请填写事项编号')
         return
@@ -330,36 +326,47 @@ export default defineComponent({
         return
       }
 
-      if (isEdit.value) {
-        const index = tableData.value.findIndex(p => p.id === editingId.value)
-        if (index > -1) {
-          tableData.value[index] = {
-            id: editingId.value,
-            itemCode: formData.itemCode,
-            itemName: formData.itemName,
-            itemType: formData.itemType,
-            checkContent: formData.checkContent,
-            checkStandard: formData.checkStandard
+      saving.value = true
+      try {
+        if (isEdit.value && editingId.value !== null) {
+          const response = await inspectionItemService.update(editingId.value, {
+            item_code: formData.itemCode,
+            item_name: formData.itemName,
+            item_type: formData.itemType,
+            check_content: formData.checkContent,
+            check_standard: formData.checkStandard
+          })
+          
+          if (response.code === 200) {
+            alert('更新成功')
+            closeModal()
+            loadData()
+          } else {
+            alert(response.message || '更新失败')
+          }
+        } else {
+          const response = await inspectionItemService.create({
+            item_code: formData.itemCode,
+            item_name: formData.itemName,
+            item_type: formData.itemType,
+            check_content: formData.checkContent,
+            check_standard: formData.checkStandard
+          })
+          
+          if (response.code === 200) {
+            alert('创建成功')
+            closeModal()
+            loadData()
+          } else {
+            alert(response.message || '创建失败')
           }
         }
-        const origIndex = originalData.findIndex(p => p.id === editingId.value)
-        if (origIndex > -1) {
-          originalData[origIndex] = { ...tableData.value[index] }
-        }
-      } else {
-        const newItem: InspectionItem = {
-          id: String(tableData.value.length + 1),
-          itemCode: formData.itemCode,
-          itemName: formData.itemName,
-          itemType: formData.itemType,
-          checkContent: formData.checkContent,
-          checkStandard: formData.checkStandard
-        }
-        tableData.value = [newItem, ...tableData.value]
-        originalData.unshift(newItem)
+      } catch (error) {
+        console.error('保存失败:', error)
+        alert('保存失败，请稍后重试')
+      } finally {
+        saving.value = false
       }
-
-      closeModal()
     }
 
     const handleView = (item: InspectionItem) => {
@@ -377,7 +384,7 @@ export default defineComponent({
 
     const handleEdit = (item: InspectionItem) => {
       isEdit.value = true
-      editingId.value = item.id
+      editingId.value = Number(item.id)
       formData.itemCode = item.itemCode
       formData.itemName = item.itemName
       formData.itemType = item.itemType
@@ -386,31 +393,47 @@ export default defineComponent({
       isModalOpen.value = true
     }
 
-    const handleDelete = (item: InspectionItem) => {
+    const handleDelete = async (item: InspectionItem) => {
       if (!confirm('确定要删除该巡查事项吗？')) {
         return
       }
-      const index = tableData.value.findIndex(p => p.id === item.id)
-      const origIndex = originalData.findIndex(p => p.id === item.id)
-      if (index > -1) {
-        tableData.value.splice(index, 1)
-      }
-      if (origIndex > -1) {
-        originalData.splice(origIndex, 1)
+      
+      try {
+        const response = await inspectionItemService.delete(Number(item.id))
+        
+        if (response.code === 200) {
+          alert('删除成功')
+          loadData()
+        } else {
+          alert(response.message || '删除失败')
+        }
+      } catch (error) {
+        console.error('删除失败:', error)
+        alert('删除失败，请稍后重试')
       }
     }
 
+    const startIndex = computed(() => currentPage.value * pageSize.value + 1)
+
+    onMounted(() => {
+      loadData()
+    })
+
     return {
       searchForm,
-      filteredData,
+      tableData,
       currentPage,
       pageSize,
       totalPages,
+      totalElements,
+      startIndex,
       isModalOpen,
       isViewModalOpen,
       isEdit,
       formData,
       viewData,
+      loading,
+      saving,
       handleSearch,
       handleAdd,
       closeModal,
@@ -490,7 +513,12 @@ export default defineComponent({
 
 .search-actions {
   display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
 }
 
 .btn {
@@ -565,7 +593,12 @@ export default defineComponent({
 
 .action-cell {
   display: flex;
+  flex-wrap: nowrap;
   gap: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
 }
 
 .action-link {
@@ -604,8 +637,12 @@ export default defineComponent({
 
 .pagination-controls {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .page-btn {

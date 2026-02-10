@@ -27,7 +27,7 @@
               <th>项目编号</th>
               <th>项目名称</th>
               <th>工单类型</th>
-              <th>计划开始日期</th>
+              <th>开始日期</th>
               <th>提醒类型</th>
               <th>执行人员</th>
               <th>操作</th>
@@ -43,8 +43,8 @@
               <td>{{ row.planDate }}</td>
               <td>临期</td>
               <td>刘启智</td>
-              <td>
-                <button class="btn btn-success" @click="viewDetail(row)">查看</button>
+              <td class="action-cell">
+                <a href="#" class="action-link action-view" @click="viewDetail(row)">查看</a>
               </td>
             </tr>
           </tbody>
@@ -107,7 +107,7 @@
                 <div class="form-value">{{ viewData.workOrderType || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划开始日期</label>
+                <label class="form-label">开始日期</label>
                 <div class="form-value">{{ viewData.planStartDate || '-' }}</div>
               </div>
               <div class="form-item">
@@ -193,9 +193,13 @@ export default defineComponent({
 
 .filters {
   display: flex;
+  flex-wrap: nowrap;
   gap: 16px;
   align-items: center;
   margin-bottom: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .filters label {
@@ -283,12 +287,40 @@ export default defineComponent({
   background: #218838;
 }
 
+.action-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
+}
+
+.action-link {
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.action-link:hover {
+  opacity: 0.8;
+}
+
+.action-view {
+  color: #2E7D32;
+}
+
 .pagination-area {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   margin-top: 16px;
   padding: 16px 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .page-btn {

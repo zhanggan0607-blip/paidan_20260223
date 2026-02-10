@@ -1,13 +1,20 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import Layout from '@/components/Layout.vue'
 import ProjectInfoManagement from '@/views/ProjectInfoManagement.vue'
-import MaintenancePlanManagement from '@/views/Maintenance-plan-management.vue'
+import MaintenancePlanManagement from '@/views/MaintenancePlanManagement.vue'
 import OverdueAlert from '@/views/OverdueAlert.vue'
 import InspectionItemPage from '@/views/InspectionItemPage.vue'
 import NearExpiryReminders from '@/views/NearExpiryReminders.vue'
 import TemporaryRepairDetail from '@/views/TemporaryRepairDetail.vue'
-import PeriodicInspectionDetail from '@/views/PeriodicInspectionDetail.vue'
+import PeriodicInspectionQuery from '@/views/PeriodicInspectionQuery.vue'
 import SpotWorkDetail from '@/views/SpotWorkDetail.vue'
+import PersonnelManagement from '@/views/PersonnelManagement.vue'
+import StatisticsPage from '@/views/StatisticsPage.vue'
+import TemporaryRepairQuery from '@/views/TemporaryRepairQuery.vue'
+import SpotWorkManagement from '@/views/SpotWorkManagement.vue'
+import SparePartsManagement from '@/views/SparePartsManagement.vue'
+import SparePartsIssue from '@/views/SparePartsIssue.vue'
+import SparePartsStock from '@/views/SparePartsStock.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -17,6 +24,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: '',
         redirect: '/project-info'
+      },
+      {
+        path: '/statistics',
+        component: StatisticsPage
       },
       {
         path: '/project-info',
@@ -33,23 +44,38 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/inspection-item',
         component: InspectionItemPage
-      }
-      ,
+      },
+      {
+        path: '/personnel',
+        component: PersonnelManagement
+      },
       {
         path: '/near-expiry-alert',
         component: NearExpiryReminders
       },
       {
         path: '/work-order/temporary-repair',
-        component: TemporaryRepairDetail
+        component: TemporaryRepairQuery
       },
       {
         path: '/work-order/periodic-inspection',
-        component: PeriodicInspectionDetail
+        component: PeriodicInspectionQuery
       },
       {
         path: '/work-order/spot-work',
-        component: SpotWorkDetail
+        component: SpotWorkManagement
+      },
+      {
+        path: '/spare-parts',
+        component: SparePartsManagement
+      },
+      {
+        path: '/spare-parts/issue',
+        component: SparePartsIssue
+      },
+      {
+        path: '/spare-parts/stock',
+        component: SparePartsStock
       }
     ]
   }

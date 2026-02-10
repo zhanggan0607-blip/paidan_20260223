@@ -28,8 +28,8 @@
             <th>序号</th>
             <th>项目编号</th>
             <th>项目名称</th>
-            <th>计划开始日期</th>
-            <th>计划结束日期</th>
+            <th>开始日期</th>
+            <th>结束日期</th>
             <th>维保计划数</th>
             <th>客户单位</th>
             <th>地址</th>
@@ -37,9 +37,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in planData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
-            <td>{{ index + 1 }}</td>
-            <td>{{ item.id }}</td>
+          <tr v-if="loading">
+            <td colspan="9" style="text-align: center; padding: 20px;">加载中...</td>
+          </tr>
+          <tr v-else-if="planData.length === 0">
+            <td colspan="9" style="text-align: center; padding: 20px;">暂无数据</td>
+          </tr>
+          <tr v-else v-for="(item, index) in planData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+            <td>{{ item.planId }}</td>
             <td>{{ item.projectName }}</td>
             <td>{{ item.startDate }}</td>
             <td>{{ item.endDate }}</td>
@@ -58,7 +64,7 @@
 
     <div class="pagination-section">
       <div class="pagination-info">
-        共 {{ planData.length }} 条记录
+        共 {{ totalElements }} 条记录
       </div>
       <div class="pagination-controls">
         <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
@@ -148,8 +154,8 @@
                 <thead>
                   <tr>
                     <th>计划编号</th>
-                    <th>计划开始日期</th>
-                    <th>计划结束日期</th>
+                    <th>开始日期</th>
+                    <th>结束日期</th>
                     <th>维保人员</th>
                     <th>备注</th>
                     <th>操作</th>
@@ -276,8 +282,8 @@
                 <thead>
                   <tr>
                     <th>计划编号</th>
-                    <th>计划开始日期</th>
-                    <th>计划结束日期</th>
+                    <th>开始日期</th>
+                    <th>结束日期</th>
                     <th>维保人员</th>
                     <th>备注</th>
                     <th>操作</th>
@@ -366,7 +372,7 @@
                   <div class="form-value">{{ viewData.projectName || '-' }}</div>
                 </div>
                 <div class="form-item">
-                  <label class="form-label">计划开始日期</label>
+                  <label class="form-label">开始日期</label>
                   <div class="form-value">{{ viewData.startDate || '-' }}</div>
                 </div>
                 <div class="form-item">
@@ -380,7 +386,7 @@
                   <div class="form-value">{{ viewData.planCount || '-' }}</div>
                 </div>
                 <div class="form-item">
-                  <label class="form-label">计划结束日期</label>
+                  <label class="form-label">结束日期</label>
                   <div class="form-value">{{ viewData.endDate || '-' }}</div>
                 </div>
                 <div class="form-item">
@@ -400,8 +406,8 @@
                 <thead>
                   <tr>
                     <th>计划编号</th>
-                    <th>计划开始日期</th>
-                    <th>计划结束日期</th>
+                    <th>开始日期</th>
+                    <th>结束日期</th>
                     <th>维保人员</th>
                     <th>备注</th>
                   </tr>
@@ -452,22 +458,25 @@
         </div>
       </div>
     </div>
+
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <ConfirmDialog 
+      :visible="confirmDialog.visible" 
+      :title="confirmDialog.title" 
+      :message="confirmDialog.message"
+      @confirm="confirmDialog.onConfirm"
+      @cancel="confirmDialog.visible = false"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch } from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted } from 'vue'
 import type { ProjectInfo } from '@/types'
-
-export interface MaintenancePlan {
-  id: string
-  projectName: string
-  startDate: string
-  endDate: string
-  planCount: number
-  clientName: string
-  address: string
-}
+import { maintenancePlanService, type MaintenancePlan, type MaintenancePlanDisplay } from '../services/maintenancePlan'
+import { projectInfoService } from '../services/projectInfo'
+import Toast from '../components/Toast.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 export interface PlanRow {
   id: string
@@ -502,6 +511,35 @@ export default defineComponent({
     const isViewModalOpen = ref(false)
     const editingId = ref('')
 
+    const toast = reactive({
+      visible: false,
+      message: '',
+      type: 'info' as 'success' | 'error' | 'warning' | 'info'
+    })
+
+    const confirmDialog = reactive({
+      visible: false,
+      title: '确认',
+      message: '',
+      onConfirm: () => {},
+      onCancel: () => {}
+    })
+
+    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+      toast.message = message
+      toast.type = type
+      toast.visible = true
+      setTimeout(() => {
+        toast.visible = false
+      }, 3000)
+    }
+
+    const showConfirm = (message: string, onConfirm: () => void) => {
+      confirmDialog.message = message
+      confirmDialog.onConfirm = onConfirm
+      confirmDialog.visible = true
+    }
+
     const viewData = reactive({
       id: '',
       projectName: '',
@@ -514,44 +552,26 @@ export default defineComponent({
       itemRows: [] as ItemRow[]
     })
 
-    const projectOptions = ref<ProjectInfo[]>([
-      {
-        id: 'PRJ-2025-001',
-        name: '上海中心大厦维保项目',
-        completionDate: '2024-12-31',
-        maintenanceEndDate: '2026-12-31',
-        maintenancePeriod: '每半年',
-        clientName: '上海城投（集团）有限公司',
-        address: '上海市浦东新区陆家嘴银城中路501号'
-      },
-      {
-        id: 'PRJ-2025-002',
-        name: '环球金融中心维保项目',
-        completionDate: '2023-06-30',
-        maintenanceEndDate: '2025-06-30',
-        maintenancePeriod: '每半年',
-        clientName: '上海建工集团股份有限公司',
-        address: '上海市浦东新区世纪大道100号'
-      },
-      {
-        id: 'PRJ-2025-003',
-        name: '金茂大厦维保项目',
-        completionDate: '2024-03-15',
-        maintenanceEndDate: '2025-03-15',
-        maintenancePeriod: '每季度',
-        clientName: '中国金茂控股集团有限公司',
-        address: '上海市浦东新区世纪大道88号'
-      },
-      {
-        id: 'PRJ-2025-004',
-        name: '东方明珠塔维保项目',
-        completionDate: '2024-09-01',
-        maintenanceEndDate: '2025-03-01',
-        maintenancePeriod: '每月',
-        clientName: '上海文化广播影视集团有限公司',
-        address: '上海市浦东新区世纪大道1号'
+    const projectOptions = ref<ProjectInfo[]>([])
+
+    const loadProjectOptions = async () => {
+      try {
+        const response = await projectInfoService.getAll()
+        if (response.code === 200) {
+          projectOptions.value = response.data.map((project: any) => ({
+            id: String(project.id),
+            name: project.project_name,
+            completionDate: project.completion_date,
+            maintenanceEndDate: project.maintenance_end_date,
+            maintenancePeriod: project.maintenance_period,
+            clientName: project.client_name,
+            address: project.address
+          }))
+        }
+      } catch (error) {
+        console.error('加载项目选项失败:', error)
       }
-    ])
+    }
 
     const maintenancePersons = ref(['刘园智', '晋海龙', '张伟', '李明', '王芳', '赵强'])
 
@@ -577,67 +597,80 @@ export default defineComponent({
       itemRows: [] as ItemRow[]
     })
 
-    const planData = ref<MaintenancePlan[]>([
-      {
-        id: 'PLAN-2025-001',
-        projectName: '上海中心大厦维保项目',
-        startDate: '2025-01-01',
-        endDate: '2025-12-31',
-        planCount: 12,
-        clientName: '上海城投（集团）有限公司',
-        address: '上海市浦东新区陆家嘴银城中路501号'
-      },
-      {
-        id: 'PLAN-2025-002',
-        projectName: '环球金融中心维保项目',
-        startDate: '2025-01-01',
-        endDate: '2025-06-30',
-        planCount: 6,
-        clientName: '上海建工集团股份有限公司',
-        address: '上海市浦东新区世纪大道100号'
-      },
-      {
-        id: 'PLAN-2025-003',
-        projectName: '金茂大厦维保项目',
-        startDate: '2025-03-01',
-        endDate: '2025-09-30',
-        planCount: 7,
-        clientName: '中国金茂控股集团有限公司',
-        address: '上海市浦东新区世纪大道88号'
-      },
-      {
-        id: 'PLAN-2025-004',
-        projectName: '东方明珠塔维保项目',
-        startDate: '2025-02-01',
-        endDate: '2025-08-31',
-        planCount: 7,
-        clientName: '上海文化广播影视集团有限公司',
-        address: '上海市浦东新区世纪大道1号'
+    const planData = ref<MaintenancePlanDisplay[]>([])
+    const totalElements = ref(0)
+    const totalPages = ref(0)
+    const loading = ref(false)
+
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const loadData = async () => {
+      loading.value = true
+      try {
+        const params: any = {
+          page: currentPage.value - 1,
+          size: pageSize.value
+        }
+        
+        if (searchForm.projectName.trim()) {
+          params.plan_name = searchForm.projectName.trim()
+        }
+        
+        if (searchForm.clientName.trim()) {
+          params.responsible_department = searchForm.clientName.trim()
+        }
+
+        const response = await maintenancePlanService.getList(params)
+        
+        if (response.code === 200) {
+          planData.value = response.data.content.map((item: MaintenancePlan) => ({
+            id: String(item.id),
+            planId: item.plan_id,
+            projectName: item.plan_name,
+            startDate: formatDate(item.plan_start_date),
+            endDate: formatDate(item.plan_end_date),
+            planCount: 1,
+            clientName: item.responsible_department || '',
+            address: item.equipment_location || '',
+            originalData: item
+          }))
+          totalElements.value = response.data.totalElements
+          totalPages.value = response.data.totalPages
+        }
+      } catch (error) {
+        console.error('加载维保计划失败:', error)
+        showToast('加载维保计划失败，请稍后重试', 'error')
+      } finally {
+        loading.value = false
       }
-    ])
-
-    const originalData = [...planData.value]
-
-    const totalPages = computed(() => Math.ceil(planData.value.length / pageSize.value))
+    }
 
     const handleSearch = () => {
-      const keyword = searchForm.projectName.toLowerCase().trim()
-      const clientKeyword = searchForm.clientName.toLowerCase().trim()
-
-      const filtered = originalData.filter(item => {
-        const nameMatch = !keyword || item.projectName.toLowerCase().includes(keyword)
-        const clientMatch = !clientKeyword || item.clientName.toLowerCase().includes(clientKeyword)
-        return nameMatch && clientMatch
-      })
-
-      planData.value = filtered
       currentPage.value = 1
+      loadData()
     }
+
+    const debounce = (fn: Function, delay: number) => {
+      let timeoutId: any
+      return (...args: any[]) => {
+        clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => fn(...args), delay)
+      }
+    }
+
+    const debouncedSearch = debounce(handleSearch, 300)
 
     watch(
       () => [searchForm.projectName, searchForm.clientName],
       () => {
-        handleSearch()
+        debouncedSearch()
       }
     )
 
@@ -711,10 +744,9 @@ export default defineComponent({
     }
 
     const deletePlanRow = (index: number) => {
-      if (!confirm('确定要删除该计划吗？')) {
-        return
-      }
-      addForm.planRows.splice(index, 1)
+      showConfirm('确定要删除该计划吗？', () => {
+        addForm.planRows.splice(index, 1)
+      })
     }
 
     const addItemRow = () => {
@@ -728,35 +760,35 @@ export default defineComponent({
     }
 
     const deleteItemRow = (index: number) => {
-      if (!confirm('确定要删除该事项吗？')) {
-        return
-      }
-      addForm.itemRows.splice(index, 1)
+      showConfirm('确定要删除该事项吗？', () => {
+        addForm.itemRows.splice(index, 1)
+      })
     }
 
     const handleSaveAdd = () => {
       if (!addForm.projectName) {
-        alert('请选择项目名称')
+        showToast('请选择项目名称', 'warning')
         return
       }
 
-      const newPlan: MaintenancePlan = {
+      const newPlan: MaintenancePlanDisplay = {
         id: `PLAN-2025-${String(planData.value.length + 1).padStart(3, '0')}`,
+        planId: `MP-2025-${String(planData.value.length + 1).padStart(3, '0')}`,
         projectName: addForm.projectName,
         startDate: addForm.endDate,
         endDate: addForm.endDate,
         planCount: addForm.planRows.length,
         clientName: addForm.clientUnit,
-        address: addForm.projectAddress
+        address: addForm.projectAddress,
+        originalData: {} as MaintenancePlan
       }
 
       planData.value = [newPlan, ...planData.value]
-      originalData.unshift(newPlan)
-
+      showToast('添加成功', 'success')
       closeAddModal()
     }
 
-    const handleView = (item: MaintenancePlan) => {
+    const handleView = (item: MaintenancePlanDisplay) => {
       viewData.id = item.id
       viewData.projectName = item.projectName
       viewData.startDate = item.startDate
@@ -786,10 +818,10 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
-    const handleEdit = (item: MaintenancePlan) => {
+    const handleEdit = (item: MaintenancePlanDisplay) => {
       editingId.value = item.id
       editForm.projectName = item.projectName
-      editForm.projectId = item.id
+      editForm.projectId = item.planId
       editForm.projectAddress = item.address
       editForm.endDate = item.endDate
       editForm.clientUnit = item.clientName
@@ -818,7 +850,7 @@ export default defineComponent({
 
     const handleUpdateEdit = () => {
       if (!editForm.projectName) {
-        alert('请选择项目名称')
+        showToast('请选择项目名称', 'warning')
         return
       }
 
@@ -826,15 +858,17 @@ export default defineComponent({
       if (index > -1) {
         planData.value[index] = {
           id: editingId.value,
+          planId: planData.value[index].planId,
           projectName: editForm.projectName,
           startDate: editForm.planRows[0]?.startDate || editForm.endDate,
           endDate: editForm.endDate,
           planCount: editForm.planRows.length,
           clientName: editForm.clientUnit,
-          address: editForm.projectAddress
+          address: editForm.projectAddress,
+          originalData: {} as MaintenancePlan
         }
       }
-
+      showToast('更新成功', 'success')
       closeEditModal()
     }
 
@@ -855,10 +889,9 @@ export default defineComponent({
     }
 
     const deleteEditPlanRow = (index: number) => {
-      if (!confirm('确定要删除该计划吗？')) {
-        return
-      }
-      editForm.planRows.splice(index, 1)
+      showConfirm('确定要删除该计划吗？', () => {
+        editForm.planRows.splice(index, 1)
+      })
     }
 
     const addEditItemRow = () => {
@@ -872,28 +905,31 @@ export default defineComponent({
     }
 
     const deleteEditItemRow = (index: number) => {
-      if (!confirm('确定要删除该事项吗？')) {
-        return
-      }
-      editForm.itemRows.splice(index, 1)
+      showConfirm('确定要删除该事项吗？', () => {
+        editForm.itemRows.splice(index, 1)
+      })
     }
 
-    const handleDelete = (item: MaintenancePlan) => {
-      if (!confirm('确定要删除该维保计划吗？')) {
-        return
-      }
-      const index = planData.value.findIndex(p => p.id === item.id)
-      const originalIndex = originalData.findIndex(p => p.id === item.id)
-      if (index > -1) {
-        planData.value.splice(index, 1)
-      }
-      if (originalIndex > -1) {
-        originalData.splice(originalIndex, 1)
-      }
+    const handleDelete = async (item: MaintenancePlanDisplay) => {
+      showConfirm('确定要删除该维保计划吗？', async () => {
+        try {
+          const response = await maintenancePlanService.delete(Number(item.id))
+          
+          if (response.code === 200) {
+            showToast('删除成功', 'success')
+            loadData()
+          } else {
+            showToast(response.message || '删除失败', 'error')
+          }
+        } catch (error) {
+          console.error('删除失败:', error)
+          showToast('删除失败，请稍后重试', 'error')
+        }
+      })
     }
 
     const handleJump = () => {
-      const page = parseInt(jumpPage.value)
+      const page = jumpPage.value
       if (page >= 1 && page <= totalPages.value) {
         currentPage.value = page
       }
@@ -902,9 +938,11 @@ export default defineComponent({
     return {
       searchForm,
       planData,
+      loading,
       currentPage,
       pageSize,
       totalPages,
+      totalElements,
       jumpPage,
       isAddModalOpen,
       isEditModalOpen,
@@ -914,6 +952,9 @@ export default defineComponent({
       addForm,
       editForm,
       viewData,
+      toast,
+      confirmDialog,
+      formatDate,
       handleSearch,
       handleAdd,
       closeAddModal,
@@ -935,6 +976,11 @@ export default defineComponent({
       handleDelete,
       handleJump
     }
+
+    onMounted(() => {
+      loadData()
+      loadProjectOptions()
+    })
   }
 })
 </script>
@@ -999,7 +1045,12 @@ export default defineComponent({
 
 .search-actions {
   display: flex;
+  flex-wrap: nowrap;
   gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
 }
 
 .btn {
@@ -1080,7 +1131,11 @@ export default defineComponent({
 
 .action-cell {
   display: flex;
+  flex-wrap: nowrap;
   gap: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
   align-items: center;
 }
 
@@ -1122,8 +1177,12 @@ export default defineComponent({
 
 .pagination-controls {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .page-btn {

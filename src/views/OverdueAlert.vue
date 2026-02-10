@@ -1,5 +1,6 @@
 <template>
   <div class="overdue-alert-page">
+    <LoadingSpinner :visible="loading" text="加载中..." />
     <div class="main-wrapper">
       <div class="content-area">
         <div class="search-section">
@@ -36,7 +37,7 @@
                 <th>项目编号</th>
                 <th>项目名称</th>
                 <th>工单类型</th>
-                <th>计划结束日期</th>
+                <th>结束日期</th>
                 <th>提醒类型</th>
                 <th>已超期（天）</th>
                 <th>执行人员</th>
@@ -58,8 +59,8 @@
                 </td>
                 <td>{{ item.executor }}</td>
                 <td>{{ item.workOrderStatus }}</td>
-                <td>
-                  <button class="btn-action" @click="handleView(item)">查看</button>
+                <td class="action-cell">
+                  <a href="#" class="action-link action-view" @click="handleView(item)">查看</a>
                 </td>
               </tr>
             </tbody>
@@ -73,7 +74,7 @@
           <div class="pagination-info">
             共 {{ filteredData.length }} 条记录
           </div>
-          <div class="pagination-controls">
+          <div class="pagination-controls" v-if="totalPages > 0">
             <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
               &lt;
             </button>
@@ -96,7 +97,7 @@
             </select>
             <div class="page-jump">
               <span>跳至</span>
-              <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+              <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages || 1" />
               <span>页</span>
             </div>
           </div>
@@ -140,7 +141,7 @@
                 <div class="form-value">{{ viewData.workOrderType || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划结束日期</label>
+                <label class="form-label">结束日期</label>
                 <div class="form-value">{{ viewData.planEndDate || '-' }}</div>
               </div>
               <div class="form-item">
@@ -167,23 +168,15 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed } from 'vue'
-
-export interface OverdueItem {
-  id: string
-  workOrderNo: string
-  projectId: string
-  projectName: string
-  customerName: string
-  workOrderType: string
-  planEndDate: string
-  workOrderStatus: string
-  overdueDays: number
-  executor: string
-}
+import { defineComponent, reactive, ref, computed, onMounted } from 'vue'
+import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
 
 export default defineComponent({
   name: 'OverdueAlert',
+  components: {
+    LoadingSpinner
+  },
   setup() {
     const searchForm = reactive({
       projectName: '',
@@ -194,6 +187,7 @@ export default defineComponent({
     const currentPage = ref(1)
     const pageSize = ref(10)
     const jumpPage = ref(1)
+    const loading = ref(false)
     const isViewModalOpen = ref(false)
     const viewData = reactive({
       workOrderNo: '',
@@ -207,138 +201,46 @@ export default defineComponent({
       executor: ''
     })
 
-    const calculateOverdueDays = (planEndDate: string): number => {
-      const today = new Date()
-      const endDate = new Date(planEndDate)
-      const diffTime = today.getTime() - endDate.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      return diffDays > 0 ? diffDays : 0
+    const allData = ref<OverdueItem[]>([])
+
+    const loadData = async () => {
+      loading.value = true
+      try {
+        const params: any = {}
+        if (searchForm.projectName.trim()) {
+          params.project_name = searchForm.projectName.trim()
+        }
+        if (searchForm.customerName.trim()) {
+          params.client_name = searchForm.customerName.trim()
+        }
+        if (searchForm.workOrderType) {
+          params.work_order_type = searchForm.workOrderType
+        }
+
+        const response = await overdueAlertService.getOverdueAlerts(params)
+        if (response.code === 200 && response.data) {
+          allData.value = response.data.items
+        }
+      } catch (error) {
+        console.error('加载超期提醒数据失败:', error)
+      } finally {
+        loading.value = false
+      }
     }
 
-    const allData = ref<OverdueItem[]>([
-      {
-        id: '1',
-        workOrderNo: 'GD-2025-001',
-        projectId: 'PRJ-2025-001',
-        projectName: '上海中心大厦维保项目',
-        customerName: '上海城投（集团）有限公司',
-        workOrderType: '定期巡检',
-        planEndDate: '2025-01-15',
-        workOrderStatus: '未确认',
-        overdueDays: 0,
-        executor: '刘园智'
-      },
-      {
-        id: '2',
-        workOrderNo: 'GD-2025-002',
-        projectId: 'PRJ-2025-002',
-        projectName: '环球金融中心维保项目',
-        customerName: '上海建工集团股份有限公司',
-        workOrderType: '临时维修',
-        planEndDate: '2025-01-14',
-        workOrderStatus: '进行中',
-        overdueDays: 0,
-        executor: '晋海龙'
-      },
-      {
-        id: '3',
-        workOrderNo: 'GD-2025-003',
-        projectId: 'PRJ-2025-003',
-        projectName: '金茂大厦维保项目',
-        customerName: '中国金茂控股集团有限公司',
-        workOrderType: '定期巡检',
-        planEndDate: '2025-01-09',
-        workOrderStatus: '未进行',
-        overdueDays: 0,
-        executor: '张伟'
-      },
-      {
-        id: '4',
-        workOrderNo: 'GD-2025-004',
-        projectId: 'PRJ-2025-004',
-        projectName: '东方明珠塔维保项目',
-        customerName: '上海文化广播影视集团有限公司',
-        workOrderType: '零星用工',
-        planEndDate: '2025-01-09',
-        workOrderStatus: '未确认',
-        overdueDays: 0,
-        executor: '李明'
-      }
-    ])
-
-    allData.value = allData.value.map(item => ({
-      ...item,
-      overdueDays: calculateOverdueDays(item.planEndDate)
-    }))
-
-    const validStatuses = ['未确认', '未下发', '未进行', '进行中', '待确认', '已退回']
-
     const filteredData = computed(() => {
-      let result = allData.value
-
-      if (searchForm.projectName.trim()) {
-        result = result.filter(item =>
-          item.projectName.toLowerCase().includes(searchForm.projectName.toLowerCase().trim())
-        )
-      }
-
-      if (searchForm.customerName.trim()) {
-        result = result.filter(item =>
-          item.customerName.toLowerCase().includes(searchForm.customerName.toLowerCase().trim())
-        )
-      }
-
-      if (searchForm.workOrderType) {
-        result = result.filter(item => item.workOrderType === searchForm.workOrderType)
-      }
-
-      result = result.filter(item => validStatuses.includes(item.workOrderStatus))
-
-      result = result.filter(item => {
-        const today = new Date()
-        const endDate = new Date(item.planEndDate)
-        return endDate < today
-      })
-
-      result = result.filter(item => item.overdueDays > 0)
-
       const start = (currentPage.value - 1) * pageSize.value
       const end = start + pageSize.value
-      return result.slice(start, end)
+      return allData.value.slice(start, end)
     })
 
     const totalPages = computed(() => {
-      let result = allData.value
-
-      if (searchForm.projectName.trim()) {
-        result = result.filter(item =>
-          item.projectName.toLowerCase().includes(searchForm.projectName.toLowerCase().trim())
-        )
-      }
-
-      if (searchForm.customerName.trim()) {
-        result = result.filter(item =>
-          item.customerName.toLowerCase().includes(searchForm.customerName.toLowerCase().trim())
-        )
-      }
-
-      if (searchForm.workOrderType) {
-        result = result.filter(item => item.workOrderType === searchForm.workOrderType)
-      }
-
-      result = result.filter(item => validStatuses.includes(item.workOrderStatus))
-      result = result.filter(item => {
-        const today = new Date()
-        const endDate = new Date(item.planEndDate)
-        return endDate < today
-      })
-      result = result.filter(item => item.overdueDays > 0)
-
-      return Math.ceil(result.length / pageSize.value)
+      return Math.ceil(allData.value.length / pageSize.value)
     })
 
     const handleSearch = () => {
       currentPage.value = 1
+      loadData()
     }
 
     const handleView = (item: OverdueItem) => {
@@ -358,6 +260,10 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
+    onMounted(() => {
+      loadData()
+    })
+
     return {
       searchForm,
       filteredData,
@@ -365,6 +271,7 @@ export default defineComponent({
       pageSize,
       totalPages,
       jumpPage,
+      loading,
       handleSearch,
       handleView,
       closeViewModal,
@@ -534,20 +441,28 @@ export default defineComponent({
   display: inline-block;
 }
 
-.btn-action {
-  padding: 6px 12px;
-  background: #2E7D32;
-  color: #fff;
-  border: none;
-  border-radius: 3px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
+.action-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
 }
 
-.btn-action:hover {
-  background: #1B5E20;
+.action-link {
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.action-link:hover {
+  opacity: 0.8;
+}
+
+.action-view {
+  color: #2E7D32;
 }
 
 .empty-state {
@@ -577,8 +492,12 @@ export default defineComponent({
 
 .pagination-controls {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
 }
 
 .page-btn {
