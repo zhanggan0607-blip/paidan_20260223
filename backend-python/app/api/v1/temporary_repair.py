@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.temporary_repair import TemporaryRepairService
 from app.schemas.common import ApiResponse
+from app.auth import get_current_user
 
 
 router = APIRouter(prefix="/temporary-repair", tags=["Temporary Repair Management"])
@@ -11,7 +12,8 @@ router = APIRouter(prefix="/temporary-repair", tags=["Temporary Repair Managemen
 
 @router.get("/all/list")
 def get_all_temporary_repairs(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = TemporaryRepairService(db)
     items = service.get_all_unpaginated()
@@ -29,7 +31,8 @@ def get_temporary_repairs_list(
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = TemporaryRepairService(db)
     items, total = service.get_all(
@@ -54,7 +57,8 @@ def get_temporary_repairs_list(
 @router.get("/{id}")
 def get_temporary_repair_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = TemporaryRepairService(db)
     repair = service.get_by_id(id)
@@ -68,7 +72,8 @@ def get_temporary_repair_by_id(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_temporary_repair(
     dto: dict,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     from app.services.temporary_repair import TemporaryRepairCreate
     service = TemporaryRepairService(db)
@@ -84,7 +89,8 @@ def create_temporary_repair(
 def update_temporary_repair(
     id: int,
     dto: dict,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     from app.services.temporary_repair import TemporaryRepairUpdate
     service = TemporaryRepairService(db)
@@ -99,7 +105,8 @@ def update_temporary_repair(
 @router.delete("/{id}")
 def delete_temporary_repair(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = TemporaryRepairService(db)
     service.delete(id)

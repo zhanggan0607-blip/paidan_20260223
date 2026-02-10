@@ -4,19 +4,21 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.personnel import PersonnelService
 from app.schemas.personnel import (
-    PersonnelCreate, 
-    PersonnelUpdate, 
-    PersonnelResponse, 
+    PersonnelCreate,
+    PersonnelUpdate,
+    PersonnelResponse,
     PaginatedResponse,
     ApiResponse
 )
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/personnel", tags=["Personnel Management"])
 
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_personnel(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PersonnelService(db)
     items = service.get_all_unpaginated()
@@ -31,7 +33,8 @@ def get_personnel_list(
     department: Optional[str] = Query(None, description="Department (fuzzy search)"),
     current_user_role: Optional[str] = Query(None, description="Current user role"),
     current_user_department: Optional[str] = Query(None, description="Current user department"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PersonnelService(db)
     items, total = service.get_all(
@@ -45,7 +48,8 @@ def get_personnel_list(
 @router.get("/{id}", response_model=ApiResponse)
 def get_personnel_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PersonnelService(db)
     personnel = service.get_by_id(id)
@@ -55,7 +59,8 @@ def get_personnel_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_personnel(
     dto: PersonnelCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PersonnelService(db)
     personnel = service.create(dto)
@@ -66,7 +71,8 @@ def create_personnel(
 def update_personnel(
     id: int,
     dto: PersonnelUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PersonnelService(db)
     personnel = service.update(id, dto)
@@ -76,7 +82,8 @@ def update_personnel(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_personnel(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PersonnelService(db)
     service.delete(id)

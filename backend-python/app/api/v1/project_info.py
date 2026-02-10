@@ -4,12 +4,13 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.project_info import ProjectInfoService
 from app.schemas.project_info import (
-    ProjectInfoCreate, 
-    ProjectInfoUpdate, 
-    ProjectInfoResponse, 
+    ProjectInfoCreate,
+    ProjectInfoUpdate,
+    ProjectInfoResponse,
     PaginatedResponse,
     ApiResponse
 )
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/project-info", tags=["项目信息管理"])
 
@@ -20,7 +21,8 @@ def get_project_info_list(
     size: int = Query(10, ge=1, le=100, description="每页大小"),
     project_name: Optional[str] = Query(None, description="项目名称（模糊查询）"),
     client_name: Optional[str] = Query(None, description="客户名称（模糊查询）"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     获取项目信息列表，支持分页和条件查询
@@ -34,7 +36,8 @@ def get_project_info_list(
 @router.get("/{id}", response_model=ApiResponse)
 def get_project_info_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     根据ID获取项目信息
@@ -47,16 +50,17 @@ def get_project_info_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_project_info(
     dto: ProjectInfoCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     创建新的项目信息
     """
     print(f"📥 [创建项目] 接收到的数据: {dto.model_dump_json()}")
-    
+
     service = ProjectInfoService(db)
     project_info = service.create(dto)
-    
+
     print(f"✅ [创建项目] 创建成功: id={project_info.id}, project_id={project_info.project_id}")
     return ApiResponse.success(project_info.to_dict(), "创建成功")
 
@@ -65,7 +69,8 @@ def create_project_info(
 def update_project_info(
     id: int,
     dto: ProjectInfoUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     根据ID更新项目信息
@@ -78,7 +83,8 @@ def update_project_info(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_project_info(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     根据ID删除项目信息
@@ -90,7 +96,8 @@ def delete_project_info(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_project_info(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     获取所有项目信息列表，不分页

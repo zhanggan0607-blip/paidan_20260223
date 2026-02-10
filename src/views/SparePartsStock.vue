@@ -216,12 +216,21 @@
         </div>
       </div>
     </div>
+
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+      @update:visible="toast.visible = $event"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, watch } from 'vue'
+import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
+import type { ApiResponse, PaginatedResponse, SparePartsStockQueryParams } from '@/types/api'
+import Toast from '@/components/Toast.vue'
 
 interface InboundRecord {
   id: number
@@ -269,14 +278,36 @@ export default defineComponent({
     })
     const userList = ref<User[]>([])
 
+    // Toast state
+    const toast = ref({
+      visible: false,
+      message: '',
+      type: 'info' as 'success' | 'error' | 'warning' | 'info'
+    })
+
+    // AbortController for request cancellation
+    let abortController: AbortController | null = null
+
     const totalPages = computed(() => {
       return Math.ceil(total.value / pageSize.value)
     })
 
+    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+      toast.value = { visible: true, message, type }
+    }
+
     const loadRecords = async () => {
+      // Cancel previous request if exists
+      if (abortController) {
+        abortController.abort()
+      }
+
+      // Create new AbortController for this request
+      abortController = new AbortController()
+
       loading.value = true
       try {
-        const params: any = {
+        const params: SparePartsStockQueryParams = {
           page: currentPage.value - 1,
           pageSize: pageSize.value
         }
@@ -286,13 +317,21 @@ export default defineComponent({
         if (filters.value.user) {
           params.user = filters.value.user
         }
-        const response = await apiClient.get('/spare-parts/inbound-records', { params })
+        const response = await apiClient.get<ApiResponse<PaginatedResponse<InboundRecord>>>(
+          '/spare-parts/inbound-records',
+          { params, signal: abortController.signal }
+        ) as unknown as ApiResponse<PaginatedResponse<InboundRecord>>
         if (response && response.code === 200 && response.data) {
           recordList.value = response.data.items || []
           total.value = response.data.total || 0
         }
       } catch (error) {
+        // Ignore error if request was aborted
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         console.error('加载入库记录失败:', error)
+        showToast('加载入库记录失败', 'error')
       } finally {
         loading.value = false
       }
@@ -300,7 +339,7 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list')
+        const response = await apiClient.get('/personnel/all/list') as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
           userList.value = (response.data || []).filter((user: User) => user && user.role === '材料员')
         }
@@ -311,31 +350,31 @@ export default defineComponent({
 
     const handleInboundSubmit = async () => {
       if (!inboundForm.value.productName) {
-        alert('请输入产品名称')
+        showToast('请输入产品名称', 'warning')
         return
       }
       if (!inboundForm.value.quantity || inboundForm.value.quantity <= 0) {
-        alert('请输入有效的入库数量')
+        showToast('请输入有效的入库数量', 'warning')
         return
       }
       if (!inboundForm.value.userName) {
-        alert('请选择入库人')
+        showToast('请选择入库人', 'warning')
         return
       }
       submitting.value = true
       try {
-        const response = await apiClient.post('/spare-parts/inbound', inboundForm.value)
+        const response = await apiClient.post('/spare-parts/inbound', inboundForm.value) as ApiResponse<any>
         if (response && response.code === 200) {
-          alert('入库单提交成功！')
+          showToast('入库单提交成功！', 'success')
           handleResetForm()
           showAddModal.value = false
           loadRecords()
         } else {
-          alert('入库单提交失败：' + (response?.message || '未知错误'))
+          showToast('入库单提交失败：' + (response?.message || '未知错误'), 'error')
         }
       } catch (error) {
         console.error('提交入库单失败:', error)
-        alert('入库单提交失败，请稍后重试')
+        showToast('入库单提交失败，请稍后重试', 'error')
       } finally {
         submitting.value = false
       }
@@ -377,6 +416,13 @@ export default defineComponent({
       loadRecords()
     })
 
+    onUnmounted(() => {
+      // Clean up pending requests when component unmounts
+      if (abortController) {
+        abortController.abort()
+      }
+    })
+
     return {
       loading,
       submitting,
@@ -389,6 +435,7 @@ export default defineComponent({
       inboundForm,
       filters,
       userList,
+      toast,
       handleInboundSubmit,
       handleResetForm,
       handleSearch,

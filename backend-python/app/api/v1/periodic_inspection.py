@@ -4,19 +4,21 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.periodic_inspection import PeriodicInspectionService
 from app.schemas.periodic_inspection import (
-    PeriodicInspectionCreate, 
-    PeriodicInspectionUpdate, 
-    PeriodicInspectionResponse, 
+    PeriodicInspectionCreate,
+    PeriodicInspectionUpdate,
+    PeriodicInspectionResponse,
     PaginatedResponse,
     ApiResponse
 )
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/periodic-inspection", tags=["Periodic Inspection Management"])
 
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_periodic_inspection(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PeriodicInspectionService(db)
     items = service.get_all_unpaginated()
@@ -30,7 +32,8 @@ def get_periodic_inspection_list(
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PeriodicInspectionService(db)
     items, total = service.get_all(
@@ -43,7 +46,8 @@ def get_periodic_inspection_list(
 @router.get("/{id}", response_model=ApiResponse)
 def get_periodic_inspection_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PeriodicInspectionService(db)
     inspection = service.get_by_id(id)
@@ -53,7 +57,8 @@ def get_periodic_inspection_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_periodic_inspection(
     dto: PeriodicInspectionCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PeriodicInspectionService(db)
     inspection = service.create(dto)
@@ -64,7 +69,8 @@ def create_periodic_inspection(
 def update_periodic_inspection(
     id: int,
     dto: PeriodicInspectionUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PeriodicInspectionService(db)
     inspection = service.update(id, dto)
@@ -74,7 +80,8 @@ def update_periodic_inspection(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_periodic_inspection(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = PeriodicInspectionService(db)
     service.delete(id)

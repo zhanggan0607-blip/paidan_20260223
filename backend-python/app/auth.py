@@ -10,7 +10,9 @@ from app.config import get_settings
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-SECRET_KEY = "your-secret-key-here-change-in-production"
+# 从配置中获取 SECRET_KEY
+settings = get_settings()
+SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

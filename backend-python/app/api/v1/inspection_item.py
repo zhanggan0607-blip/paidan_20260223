@@ -5,11 +5,15 @@ from app.database import get_db
 from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate, InspectionItem
 from app.services.inspection_item import InspectionItemService
 from app.schemas.common import ApiResponse, PaginatedResponse
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/inspection-item", tags=["巡检事项管理"])
 
 @router.get("/all/list", response_model=ApiResponse)
-def get_all_inspection_items(db: Session = Depends(get_db)):
+def get_all_inspection_items(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     service = InspectionItemService(db)
     items = service.get_all_items()
     return ApiResponse(code=200, message="获取成功", data=items)
@@ -19,7 +23,8 @@ def get_inspection_item_list(
     page: int = 0,
     size: int = 10,
     keyword: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     service = InspectionItemService(db)
     if keyword:
@@ -30,7 +35,7 @@ def get_inspection_item_list(
     else:
         items, total = service.get_paginated_items(skip=page * size, limit=size)
         paginated_items = items
-    
+
     return PaginatedResponse(
         code=200,
         message="获取成功",
@@ -46,7 +51,11 @@ def get_inspection_item_list(
     )
 
 @router.get("/{id}", response_model=ApiResponse)
-def get_inspection_item_by_id(id: int, db: Session = Depends(get_db)):
+def get_inspection_item_by_id(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     service = InspectionItemService(db)
     item = service.get_item_by_id(id)
     if not item:
@@ -54,7 +63,11 @@ def get_inspection_item_by_id(id: int, db: Session = Depends(get_db)):
     return ApiResponse(code=200, message="获取成功", data=item)
 
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
-def create_inspection_item(item_data: InspectionItemCreate, db: Session = Depends(get_db)):
+def create_inspection_item(
+    item_data: InspectionItemCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     service = InspectionItemService(db)
     try:
         item = service.create_item(item_data)
@@ -63,7 +76,12 @@ def create_inspection_item(item_data: InspectionItemCreate, db: Session = Depend
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.put("/{id}", response_model=ApiResponse)
-def update_inspection_item(id: int, item_data: InspectionItemUpdate, db: Session = Depends(get_db)):
+def update_inspection_item(
+    id: int,
+    item_data: InspectionItemUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     service = InspectionItemService(db)
     try:
         item = service.update_item(id, item_data)
@@ -74,7 +92,11 @@ def update_inspection_item(id: int, item_data: InspectionItemUpdate, db: Session
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.delete("/{id}", response_model=ApiResponse)
-def delete_inspection_item(id: int, db: Session = Depends(get_db)):
+def delete_inspection_item(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     service = InspectionItemService(db)
     success = service.delete_item(id)
     if not success:

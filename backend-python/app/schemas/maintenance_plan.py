@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, Union, List, Any
+from app.schemas.common import ApiResponse, PaginatedResponse
 
 
 class MaintenancePlanBase(BaseModel):
@@ -26,7 +27,7 @@ class MaintenancePlanBase(BaseModel):
     execution_status: str = Field(..., max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
     remarks: Optional[str] = Field(None, description="备注")
-    
+
     @field_validator('plan_type')
     @classmethod
     def validate_plan_type(cls, v):
@@ -34,7 +35,7 @@ class MaintenancePlanBase(BaseModel):
         if v not in valid_types:
             raise ValueError(f'计划类型必须是以下之一: {", ".join(valid_types)}')
         return v
-    
+
     @field_validator('plan_status')
     @classmethod
     def validate_plan_status(cls, v):
@@ -42,7 +43,7 @@ class MaintenancePlanBase(BaseModel):
         if v not in valid_statuses:
             raise ValueError(f'计划状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
-    
+
     @field_validator('execution_status')
     @classmethod
     def validate_execution_status(cls, v):
@@ -50,7 +51,7 @@ class MaintenancePlanBase(BaseModel):
         if v not in valid_statuses:
             raise ValueError(f'执行状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
-    
+
     @field_validator('plan_start_date', 'plan_end_date', 'execution_date', 'next_maintenance_date')
     @classmethod
     def validate_dates(cls, v):
@@ -138,42 +139,6 @@ class MaintenancePlanResponse(BaseModel):
     remarks: Optional[str]
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
-
-
-class ApiResponse(BaseModel):
-    code: int = 200
-    message: str = "success"
-    data: Optional[Union[dict, List[Any]]] = None
-    
-    @classmethod
-    def success(cls, data=None, message="success"):
-        return cls(code=200, message=message, data=data)
-    
-    @classmethod
-    def error(cls, message="error", code=500):
-        return cls(code=code, message=message, data=None)
-
-
-class PaginatedResponse(BaseModel):
-    code: int = 200
-    message: str = "success"
-    data: dict
-    
-    @classmethod
-    def success(cls, items, total, page, size, message="success"):
-        return cls(
-            code=200,
-            message=message,
-            data={
-                'content': items,
-                'totalElements': total,
-                'totalPages': (total + size - 1) // size,
-                'size': size,
-                'number': page,
-                'first': page == 0,
-                'last': page >= (total + size - 1) // size - 1,
-            }
-        )

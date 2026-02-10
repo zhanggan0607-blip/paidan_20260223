@@ -5,6 +5,7 @@ from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.spare_parts_inbound import SparePartsInbound
 from app.models.spare_parts_stock import SparePartsStock
+from app.auth import get_current_user
 from datetime import datetime
 import random
 import string
@@ -30,21 +31,22 @@ def create_inbound(
     unit: str = "件",
     user_name: str = "",
     remarks: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """创建入库单"""
     if not product_name:
         return ApiResponse(code=400, message="产品名称不能为空", data=None)
-    
+
     if quantity <= 0:
         return ApiResponse(code=400, message="入库数量必须大于0", data=None)
-    
+
     if not user_name:
         return ApiResponse(code=400, message="入库人不能为空", data=None)
-    
+
     try:
         inbound_no = generate_inbound_no()
-        
+
         inbound = SparePartsInbound(
             inbound_no=inbound_no,
             product_name=product_name,
@@ -57,13 +59,13 @@ def create_inbound(
             remarks=remarks
         )
         db.add(inbound)
-        
+
         stock = db.query(SparePartsStock).filter(
             SparePartsStock.product_name == product_name,
             SparePartsStock.brand == (brand or ''),
             SparePartsStock.model == (model or '')
         ).first()
-        
+
         if stock:
             stock.quantity += quantity
         else:
@@ -75,9 +77,9 @@ def create_inbound(
                 quantity=quantity
             )
             db.add(stock)
-        
+
         db.commit()
-        
+
         return ApiResponse(
             code=200,
             message="入库单创建成功",
@@ -94,22 +96,23 @@ def get_inbound_records(
     user: Optional[str] = Query(None, description="入库人"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
     pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """查询入库记录"""
     query = db.query(SparePartsInbound)
-    
+
     if product:
         query = query.filter(SparePartsInbound.product_name.like(f'%{product}%'))
-    
+
     if user:
         query = query.filter(SparePartsInbound.user_name.like(f'%{user}%'))
-    
+
     total = query.count()
     items = query.order_by(SparePartsInbound.created_at.desc()).offset(page * pageSize).limit(pageSize).all()
-    
+
     result_items = [item.to_dict() for item in items]
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -123,17 +126,18 @@ def get_inbound_records(
 @router.get("/stock")
 def get_stock(
     product_name: Optional[str] = Query(None, description="产品名称"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """查询库存"""
     query = db.query(SparePartsStock)
-    
+
     if product_name:
         query = query.filter(SparePartsStock.product_name.like(f'%{product_name}%'))
-    
+
     items = query.all()
     result_items = [item.to_dict() for item in items]
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -143,17 +147,18 @@ def get_stock(
 @router.get("/products")
 def get_products(
     product_name: Optional[str] = Query(None, description="产品名称"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """获取备品备件列表（用于表单选择）"""
     query = db.query(SparePartsStock)
-    
+
     if product_name:
         query = query.filter(SparePartsStock.product_name.like(f'%{product_name}%'))
-    
+
     items = query.order_by(SparePartsStock.product_name.asc()).all()
     result_items = []
-    
+
     for item in items:
         result_items.append({
             'id': item.id,
@@ -162,7 +167,7 @@ def get_products(
             'model': item.model,
             'unit': item.unit
         })
-    
+
     return ApiResponse(
         code=200,
         message="success",

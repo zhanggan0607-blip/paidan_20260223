@@ -128,8 +128,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed } from 'vue'
+import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
+import type { ApiResponse, PaginatedResponse, SparePartsIssueQueryParams } from '@/types/api'
 
 interface SparePartsIssueItem {
   id: number
@@ -147,6 +148,7 @@ interface SparePartsIssueItem {
 interface User {
   id: number
   name: string
+  role: string
 }
 
 interface Project {
@@ -172,14 +174,25 @@ export default defineComponent({
     const userList = ref<User[]>([])
     const projectList = ref<Project[]>([])
 
+    // AbortController for request cancellation
+    let abortController: AbortController | null = null
+
     const totalPages = computed(() => {
       return Math.ceil(total.value / pageSize.value)
     })
 
     const loadData = async () => {
+      // Cancel previous request if exists
+      if (abortController) {
+        abortController.abort()
+      }
+
+      // Create new AbortController for this request
+      abortController = new AbortController()
+
       loading.value = true
       try {
-        const params: any = {
+        const params: SparePartsIssueQueryParams = {
           page: currentPage.value - 1,
           pageSize: pageSize.value
         }
@@ -193,12 +206,19 @@ export default defineComponent({
           params.project = filters.value.project
         }
 
-        const response = await apiClient.get('/spare-parts/usage', { params })
+        const response = await apiClient.get<ApiResponse<PaginatedResponse<SparePartsIssueItem>>>(
+          '/spare-parts/usage',
+          { params, signal: abortController.signal }
+        ) as unknown as ApiResponse<PaginatedResponse<SparePartsIssueItem>>
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || []
           total.value = response.data.total || 0
         }
       } catch (error) {
+        // Ignore error if request was aborted
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         console.error('加载备品备件领用数据失败:', error)
       } finally {
         loading.value = false
@@ -225,7 +245,7 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list')
+        const response = await apiClient.get('/personnel/all/list') as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
           userList.value = (response.data || []).filter((user: User) => user && user.role === '材料员')
         }
@@ -236,9 +256,9 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } })
+        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } }) as ApiResponse<Project[]>
         if (response && response.code === 200 && response.data) {
-          projectList.value = (response.data.content || []).filter((project: Project) => project && project.id && project.name)
+          projectList.value = (response.data || []).filter((project: Project) => project && project.id && project.name)
         }
       } catch (error) {
         console.error('加载项目列表失败:', error)
@@ -249,6 +269,13 @@ export default defineComponent({
       loadUsers()
       loadProjects()
       loadData()
+    })
+
+    onUnmounted(() => {
+      // Clean up pending requests when component unmounts
+      if (abortController) {
+        abortController.abort()
+      }
     })
 
     return {

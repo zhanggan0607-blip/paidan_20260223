@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, List, Union
+from app.schemas.common import ApiResponse, PaginatedResponse
 
 
 class ProjectInfoBase(BaseModel):
@@ -15,7 +16,7 @@ class ProjectInfoBase(BaseModel):
     client_contact: Optional[str] = Field(None, max_length=50, description="客户联系人")
     client_contact_position: Optional[str] = Field(None, max_length=20, description="客户联系人职位")
     client_contact_info: Optional[str] = Field(None, max_length=50, description="客户联系方式")
-    
+
     @field_validator('maintenance_period')
     @classmethod
     def validate_maintenance_period(cls, v):
@@ -23,7 +24,7 @@ class ProjectInfoBase(BaseModel):
         if v not in valid_periods:
             raise ValueError(f'维保周期必须是以下之一: {", ".join(valid_periods)}')
         return v
-    
+
     @field_validator('completion_date', 'maintenance_end_date')
     @classmethod
     def validate_dates(cls, v):
@@ -78,42 +79,6 @@ class ProjectInfoResponse(BaseModel):
     client_contact_info: Optional[str]
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
-
-
-class ApiResponse(BaseModel):
-    code: int = 200
-    message: str = "success"
-    data: Optional[Union[dict, List]] = None
-    
-    @classmethod
-    def success(cls, data=None, message="success"):
-        return cls(code=200, message=message, data=data)
-    
-    @classmethod
-    def error(cls, message="error", code=500):
-        return cls(code=code, message=message, data=None)
-
-
-class PaginatedResponse(BaseModel):
-    code: int = 200
-    message: str = "success"
-    data: dict
-    
-    @classmethod
-    def success(cls, items, total, page, size, message="success"):
-        return cls(
-            code=200,
-            message=message,
-            data={
-                'content': items,
-                'totalElements': total,
-                'totalPages': (total + size - 1) // size,
-                'size': size,
-                'number': page,
-                'first': page == 0,
-                'last': page >= (total + size - 1) // size - 1,
-            }
-        )
