@@ -19,7 +19,7 @@ class MaintenancePlan(Base):
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
     execution_date = Column(DateTime, comment="执行日期")
     next_maintenance_date = Column(DateTime, comment="下次维保日期")
-    responsible_person_id = Column(BigInteger, ForeignKey('personnel.id', ondelete='RESTRICT'), nullable=False, comment="负责人ID")
+    responsible_person = Column(String(50), nullable=False, comment="负责人")
     responsible_department = Column(String(100), comment="负责部门")
     contact_info = Column(String(50), comment="联系方式")
     maintenance_content = Column(Text, nullable=False, comment="维保内容")
@@ -31,14 +31,6 @@ class MaintenancePlan(Base):
     remarks = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    created_by = Column(BigInteger, comment="创建人ID")
-    updated_by = Column(BigInteger, comment="更新人ID")
-    is_deleted = Column(Boolean, default=False, nullable=False, comment="是否删除")
-    deleted_at = Column(DateTime, comment="删除时间")
-    deleted_by = Column(BigInteger, comment="删除人ID")
-    
-    project = relationship("ProjectInfo", backref="maintenance_plans")
-    responsible_person = relationship("Personnel", backref="maintenance_plans")
     
     __table_args__ = (
         Index('idx_maintenance_plan_id', 'plan_id'),
