@@ -1,4 +1,5 @@
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -10,6 +11,8 @@ from app.schemas.project_info import (
     PaginatedResponse,
     ApiResponse
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/project-info", tags=["项目信息管理"])
 
@@ -52,12 +55,12 @@ def create_project_info(
     """
     创建新的项目信息
     """
-    print(f"📥 [创建项目] 接收到的数据: {dto.model_dump_json()}")
+    logger.info(f"📥 [创建项目] 接收到的数据: {dto.model_dump_json()}")
 
     service = ProjectInfoService(db)
     project_info = service.create(dto)
 
-    print(f"✅ [创建项目] 创建成功: id={project_info.id}, project_id={project_info.project_id}")
+    logger.info(f"✅ [创建项目] 创建成功: id={project_info.id}, project_id={project_info.project_id}")
     return ApiResponse.success(project_info.to_dict(), "创建成功")
 
 

@@ -1,9 +1,12 @@
 from typing import List, Optional
+import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.project_info import ProjectInfo
 from app.repositories.project_info import ProjectInfoRepository
 from app.schemas.project_info import ProjectInfoCreate, ProjectInfoUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class ProjectInfoService:
@@ -38,15 +41,15 @@ class ProjectInfoService:
         return project_info
     
     def create(self, dto: ProjectInfoCreate) -> ProjectInfo:
-        print(f"📥 [Service] 开始创建项目: project_id={dto.project_id}, project_name={dto.project_name}")
-        
+        logger.info(f"📥 [Service] 开始创建项目: project_id={dto.project_id}, project_name={dto.project_name}")
+
         if self.repository.exists_by_project_id(dto.project_id):
-            print(f"❌ [Service] 项目编号已存在: {dto.project_id}")
+            logger.error(f"❌ [Service] 项目编号已存在: {dto.project_id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="项目编号已存在"
             )
-        
+
         project_info = ProjectInfo(
             project_id=dto.project_id,
             project_name=dto.project_name,
@@ -60,10 +63,10 @@ class ProjectInfoService:
             client_contact_position=dto.client_contact_position,
             client_contact_info=dto.client_contact_info
         )
-        
-        print(f"📥 [Service] 准备保存到数据库: project_id={project_info.project_id}, project_name={project_info.project_name}")
+
+        logger.info(f"📥 [Service] 准备保存到数据库: project_id={project_info.project_id}, project_name={project_info.project_name}")
         result = self.repository.create(project_info)
-        print(f"✅ [Service] 数据库保存成功: id={result.id}, project_id={result.project_id}")
+        logger.info(f"✅ [Service] 数据库保存成功: id={result.id}, project_id={result.project_id}")
         return result
     
     def update(self, id: int, dto: ProjectInfoUpdate) -> ProjectInfo:

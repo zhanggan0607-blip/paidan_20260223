@@ -3,13 +3,13 @@ from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.spot_work import SpotWorkService
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, PaginatedResponse
 
 
 router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
 
 
-@router.get("/all/list")
+@router.get("/all/list", response_model=ApiResponse)
 def get_all_spot_works(
     db: Session = Depends(get_db)
 ):
@@ -22,7 +22,7 @@ def get_all_spot_works(
     )
 
 
-@router.get("")
+@router.get("", response_model=ApiResponse)
 def get_spot_works_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=100, description="Page size"),
@@ -51,7 +51,7 @@ def get_spot_works_list(
     )
 
 
-@router.get("/{id}")
+@router.get("/{id}", response_model=ApiResponse)
 def get_spot_work_by_id(
     id: int,
     db: Session = Depends(get_db)
@@ -65,7 +65,7 @@ def get_spot_work_by_id(
     )
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_spot_work(
     dto: dict,
     db: Session = Depends(get_db)
@@ -80,7 +80,7 @@ def create_spot_work(
     )
 
 
-@router.put("/{id}")
+@router.put("/{id}", response_model=ApiResponse)
 def update_spot_work(
     id: int,
     dto: dict,
@@ -96,7 +96,7 @@ def update_spot_work(
     )
 
 
-@router.delete("/{id}")
+@router.delete("/{id}", response_model=ApiResponse)
 def delete_spot_work(
     id: int,
     db: Session = Depends(get_db)

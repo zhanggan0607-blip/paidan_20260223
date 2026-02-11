@@ -8,7 +8,7 @@ from app.schemas.common import ApiResponse
 router = APIRouter(prefix="/overdue-alert", tags=["Overdue Alert"])
 
 
-@router.get("")
+@router.get("", response_model=ApiResponse)
 def get_overdue_alerts(
     project_name: Optional[str] = Query(None, description="项目名称"),
     client_name: Optional[str] = Query(None, description="客户名称"),

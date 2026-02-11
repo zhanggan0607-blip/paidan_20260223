@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.common import ApiResponse
@@ -20,7 +20,7 @@ def generate_inbound_no() -> str:
     return f"IN{timestamp}{random_str}"
 
 
-@router.post("/inbound")
+@router.post("/inbound", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_inbound(
     product_name: str,
     quantity: int,
@@ -88,7 +88,7 @@ def create_inbound(
         return ApiResponse(code=500, message=f"入库失败: {str(e)}", data=None)
 
 
-@router.get("/inbound-records")
+@router.get("/inbound-records", response_model=ApiResponse)
 def get_inbound_records(
     product: Optional[str] = Query(None, description="产品名称"),
     user: Optional[str] = Query(None, description="入库人"),
@@ -120,7 +120,7 @@ def get_inbound_records(
     )
 
 
-@router.get("/stock")
+@router.get("/stock", response_model=ApiResponse)
 def get_stock(
     product_name: Optional[str] = Query(None, description="产品名称"),
     db: Session = Depends(get_db)
@@ -140,7 +140,7 @@ def get_stock(
         data={'items': result_items, 'total': len(result_items)}
     )
 
-@router.get("/products")
+@router.get("/products", response_model=ApiResponse)
 def get_products(
     product_name: Optional[str] = Query(None, description="产品名称"),
     db: Session = Depends(get_db)

@@ -10,7 +10,7 @@ from datetime import datetime
 router = APIRouter(prefix="/spare-parts", tags=["Spare Parts Management"])
 
 
-@router.get("/usage")
+@router.get("/usage", response_model=ApiResponse)
 def get_spare_parts_usage(
     user: Optional[str] = Query(None, description="领用人员"),
     product: Optional[str] = Query(None, description="产品名称"),

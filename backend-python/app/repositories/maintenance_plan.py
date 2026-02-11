@@ -130,15 +130,15 @@ class MaintenancePlanRepository:
 
     def create(self, maintenance_plan: MaintenancePlan) -> MaintenancePlan:
         try:
-            print(f"📥 [Repository] 准备插入数据: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
+            logger.info(f"📥 [Repository] 准备插入数据: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
 
             self.db.add(maintenance_plan)
             self.db.commit()
             self.db.refresh(maintenance_plan)
-            print(f"✅ [Repository] 数据库插入成功: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
+            logger.info(f"✅ [Repository] 数据库插入成功: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
             return maintenance_plan
         except Exception as e:
-            print(f"❌ [Repository] 数据库插入失败: {str(e)}")
+            logger.error(f"❌ [Repository] 数据库插入失败: {str(e)}")
             self.db.rollback()
             logger.error(f"创建维保计划失败: {str(e)}")
             raise

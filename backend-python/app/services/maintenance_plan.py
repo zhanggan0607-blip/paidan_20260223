@@ -1,10 +1,13 @@
 from typing import List, Optional, Union
+import logging
 from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.maintenance_plan import MaintenancePlan
 from app.repositories.maintenance_plan import MaintenancePlanRepository
 from app.schemas.maintenance_plan import MaintenancePlanCreate, MaintenancePlanUpdate
+
+logger = logging.getLogger(__name__)
 
 
 class MaintenancePlanService:
@@ -73,15 +76,15 @@ class MaintenancePlanService:
         return self.repository.find_by_date_range(start_date, end_date)
     
     def create(self, dto: MaintenancePlanCreate) -> MaintenancePlan:
-        print(f"📥 [Service] 开始创建维保计划: plan_id={dto.plan_id}, plan_name={dto.plan_name}")
-        
+        logger.info(f"📥 [Service] 开始创建维保计划: plan_id={dto.plan_id}, plan_name={dto.plan_name}")
+
         if self.repository.exists_by_plan_id(dto.plan_id):
-            print(f"❌ [Service] 计划编号已存在: {dto.plan_id}")
+            logger.error(f"❌ [Service] 计划编号已存在: {dto.plan_id}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="计划编号已存在"
             )
-        
+
         maintenance_plan = MaintenancePlan(
             plan_id=dto.plan_id,
             plan_name=dto.plan_name,
@@ -106,10 +109,10 @@ class MaintenancePlanService:
             completion_rate=dto.completion_rate,
             remarks=dto.remarks
         )
-        
-        print(f"📥 [Service] 准备保存到数据库: plan_id={maintenance_plan.plan_id}, plan_name={maintenance_plan.plan_name}")
+
+        logger.info(f"📥 [Service] 准备保存到数据库: plan_id={maintenance_plan.plan_id}, plan_name={maintenance_plan.plan_name}")
         result = self.repository.create(maintenance_plan)
-        print(f"✅ [Service] 数据库保存成功: id={result.id}, plan_id={result.plan_id}")
+        logger.info(f"✅ [Service] 数据库保存成功: id={result.id}, plan_id={result.plan_id}")
         return result
     
     def update(self, id: int, dto: MaintenancePlanUpdate) -> MaintenancePlan:

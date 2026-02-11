@@ -65,15 +65,15 @@ class ProjectInfoRepository:
 
     def create(self, project_info: ProjectInfo) -> ProjectInfo:
         try:
-            print(f"📥 [Repository] 准备插入数据: id={project_info.id}, project_id={project_info.project_id}")
+            logger.info(f"📥 [Repository] 准备插入数据: id={project_info.id}, project_id={project_info.project_id}")
 
             self.db.add(project_info)
             self.db.commit()
             self.db.refresh(project_info)
-            print(f"✅ [Repository] 数据库插入成功: id={project_info.id}, project_id={project_info.project_id}")
+            logger.info(f"✅ [Repository] 数据库插入成功: id={project_info.id}, project_id={project_info.project_id}")
             return project_info
         except Exception as e:
-            print(f"❌ [Repository] 数据库插入失败: {str(e)}")
+            logger.error(f"❌ [Repository] 数据库插入失败: {str(e)}")
             self.db.rollback()
             logger.error(f"创建项目信息失败: {str(e)}")
             raise
