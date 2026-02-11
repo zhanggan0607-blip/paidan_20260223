@@ -28,13 +28,13 @@ def get_statistics_overview(
     # 统计定期巡检单
     regular_inspection_count = len([
         item for item in year_data
-        if item.status == '已完成'
+        if hasattr(item, 'status') and item.status == '已完成'
     ])
     
     # 统计临时维修单
     temporary_repair_count = len([
         item for item in year_data
-        if item.status == '已完成'
+        if hasattr(item, 'status') and item.status == '已完成'
     ])
     
     # 统计零星用工单
@@ -43,7 +43,7 @@ def get_statistics_overview(
     ).all()
     spot_work_count = len([
         item for item in spot_work_data
-        if item.status == '已完成'
+        if hasattr(item, 'status') and item.status == '已完成'
     ])
     
     # 统计维保计划
@@ -52,7 +52,7 @@ def get_statistics_overview(
     ).all()
     maintenance_plan_count = len([
         item for item in maintenance_plan_data
-        if item.plan_status == '已完成'
+        if hasattr(item, 'plan_status') and item.plan_status == '已完成'
     ])
     
     return ApiResponse.success({
@@ -158,8 +158,8 @@ def get_completion_rate(
     # 统计准时完成数量
     on_time_count = len([
         item for item in year_data
-        if item.status == '已完成' and item.plan_end_date
-        and item.actual_end_date
+        if hasattr(item, 'status') and item.status == '已完成' and hasattr(item, 'plan_end_date') and hasattr(item, 'actual_end_date')
+        and item.plan_end_date
         and item.actual_end_date <= item.plan_end_date
     ])
     
@@ -188,9 +188,9 @@ def get_top_projects(
     # 按项目统计工单数量
     project_stats = {}
     for item in year_data:
-        if item.project_id not in project_stats:
+        if hasattr(item, 'project_id') and item.project_id not in project_stats:
             project_stats[item.project_id] = 0
-        if item.status == '已完成':
+        if hasattr(item, 'status') and item.status == '已完成':
             project_stats[item.project_id] += 1
     
     # 排序并取前五
