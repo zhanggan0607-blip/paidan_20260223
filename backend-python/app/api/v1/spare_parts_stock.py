@@ -1,11 +1,12 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, Body
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.spare_parts_inbound import SparePartsInbound
 from app.models.spare_parts_stock import SparePartsStock
 from datetime import datetime
+from pydantic import BaseModel, Field
 import random
 import string
 
@@ -20,26 +21,32 @@ def generate_inbound_no() -> str:
     return f"IN{timestamp}{random_str}"
 
 
+class SparePartsInboundCreate(BaseModel):
+    product_name: str = Field(..., min_length=1, max_length=200, description="产品名称")
+    quantity: int = Field(..., gt=0, description="入库数量")
+    brand: Optional[str] = Field(None, max_length=100, description="品牌")
+    model: Optional[str] = Field(None, max_length=100, description="产品型号")
+    supplier: Optional[str] = Field(None, max_length=200, description="供应商")
+    unit: str = Field("件", max_length=20, description="单位")
+    user_name: Optional[str] = Field(None, max_length=100, description="入库人")
+    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+
+
 @router.post("/inbound", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_inbound(
-    product_name: str,
-    quantity: int,
-    brand: Optional[str] = None,
-    model: Optional[str] = None,
-    supplier: Optional[str] = None,
-    unit: str = "件",
-    user_name: str = "",
-    remarks: Optional[str] = None,
+    data: SparePartsInboundCreate,
     db: Session = Depends(get_db)
 ):
     """创建入库单"""
-    if not product_name:
+    print(f"接收到的数据: {data}")
+    
+    if not data.product_name or not data.product_name.strip():
         return ApiResponse(code=400, message="产品名称不能为空", data=None)
 
-    if quantity <= 0:
+    if data.quantity <= 0:
         return ApiResponse(code=400, message="入库数量必须大于0", data=None)
 
-    if not user_name:
+    if not data.user_name or not data.user_name.strip():
         return ApiResponse(code=400, message="入库人不能为空", data=None)
 
     try:
@@ -47,32 +54,32 @@ def create_inbound(
 
         inbound = SparePartsInbound(
             inbound_no=inbound_no,
-            product_name=product_name,
-            brand=brand,
-            model=model,
-            quantity=quantity,
-            supplier=supplier,
-            unit=unit,
-            user_name=user_name,
-            remarks=remarks
+            product_name=data.product_name,
+            brand=data.brand,
+            model=data.model,
+            quantity=data.quantity,
+            supplier=data.supplier,
+            unit=data.unit,
+            user_name=data.user_name,
+            remarks=data.remarks
         )
         db.add(inbound)
 
         stock = db.query(SparePartsStock).filter(
-            SparePartsStock.product_name == product_name,
-            SparePartsStock.brand == (brand or ''),
-            SparePartsStock.model == (model or '')
+            SparePartsStock.product_name == data.product_name,
+            SparePartsStock.brand == (data.brand or ''),
+            SparePartsStock.model == (data.model or '')
         ).first()
 
         if stock:
-            stock.quantity += quantity
+            stock.quantity += data.quantity
         else:
             stock = SparePartsStock(
-                product_name=product_name,
-                brand=brand or '',
-                model=model or '',
-                unit=unit,
-                quantity=quantity
+                product_name=data.product_name,
+                brand=data.brand or '',
+                model=data.model or '',
+                unit=data.unit,
+                quantity=data.quantity
             )
             db.add(stock)
 

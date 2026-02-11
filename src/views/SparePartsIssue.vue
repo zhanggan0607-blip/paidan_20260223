@@ -258,7 +258,7 @@ export default defineComponent({
       try {
         const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } })
         if (response && response.code === 200 && response.data) {
-          projectList.value = (Array.isArray(response.data) ? response.data : []).filter((project: Project) => project && project.id && project.name)
+          projectList.value = (response.data.content || []).filter((project: Project) => project && project.id && project.name)
         }
       } catch (error) {
         console.error('加载项目列表失败:', error)

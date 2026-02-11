@@ -117,13 +117,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">维保周期</label>
-                <select class="form-input" v-model="formData.maintenance_period">
-                  <option value="">请选择</option>
-                  <option value="每周">每周</option>
-                  <option value="每月">每月</option>
-                  <option value="每季度">每季度</option>
-                  <option value="每半年">每半年</option>
-                </select>
+                <input type="text" class="form-input form-input-readonly" v-model="formData.maintenance_period" readonly />
               </div>
               <div class="form-item">
                 <label class="form-label">项目地址</label>

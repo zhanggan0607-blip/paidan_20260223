@@ -1,6 +1,7 @@
 from sqlalchemy import Column, BigInteger, String, DateTime, Index
 from sqlalchemy.sql import func
 from app.database import Base
+from datetime import datetime
 
 
 class ProjectInfo(Base):
@@ -18,8 +19,8 @@ class ProjectInfo(Base):
     client_contact = Column(String(50), comment="客户联系人")
     client_contact_position = Column(String(20), comment="客户联系人职位")
     client_contact_info = Column(String(50), comment="客户联系方式")
-    created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+    created_at = Column(DateTime, comment="创建时间")
+    updated_at = Column(DateTime, comment="更新时间")
     
     __table_args__ = (
         Index('idx_project_info_id', 'project_id'),

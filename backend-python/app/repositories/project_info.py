@@ -2,6 +2,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_
 from app.models.project_info import ProjectInfo
+from datetime import datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -49,8 +50,7 @@ class ProjectInfoRepository:
                 query = query.filter(ProjectInfo.client_name.like(f"%{client_name}%"))
 
             total = query.count()
-            items = query.order_by(ProjectInfo.created_at.desc()).offset(page * size).limit(size).all()
-
+            items = query.order_by(ProjectInfo.id.asc()).offset(page * size).limit(size).all()
             return items, total
         except Exception as e:
             logger.error(f"查询项目信息列表失败: {str(e)}")
@@ -65,8 +65,10 @@ class ProjectInfoRepository:
 
     def create(self, project_info: ProjectInfo) -> ProjectInfo:
         try:
+            now = datetime.now()
+            project_info.created_at = now
+            project_info.updated_at = now
             logger.info(f"📥 [Repository] 准备插入数据: id={project_info.id}, project_id={project_info.project_id}")
-
             self.db.add(project_info)
             self.db.commit()
             self.db.refresh(project_info)

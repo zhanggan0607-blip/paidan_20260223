@@ -58,6 +58,11 @@ const routes: RouteRecordRaw[] = [
         component: TemporaryRepairQuery
       },
       {
+        path: '/work-order/temporary-repair/detail',
+        name: 'TemporaryRepairDetail',
+        component: TemporaryRepairDetail
+      },
+      {
         path: '/work-order/periodic-inspection',
         component: PeriodicInspectionQuery
       },

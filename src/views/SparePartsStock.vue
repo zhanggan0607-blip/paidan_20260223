@@ -363,7 +363,17 @@ export default defineComponent({
       }
       submitting.value = true
       try {
-        const response = await apiClient.post('/spare-parts/inbound', inboundForm.value) as ApiResponse<any>
+        const requestData = {
+          product_name: inboundForm.value.productName,
+          brand: inboundForm.value.brand || null,
+          model: inboundForm.value.model || null,
+          quantity: inboundForm.value.quantity,
+          supplier: inboundForm.value.supplier || null,
+          unit: inboundForm.value.unit,
+          user_name: inboundForm.value.userName || null,
+          remarks: inboundForm.value.remarks || null
+        }
+        const response = await apiClient.post('/spare-parts/inbound', requestData) as ApiResponse<any>
         if (response && response.code === 200) {
           showToast('入库单提交成功！', 'success')
           handleResetForm()

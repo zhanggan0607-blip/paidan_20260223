@@ -5,11 +5,11 @@
         <div class="search-form">
           <div class="search-item">
             <label class="search-label">项目名称：</label>
-            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" />
+            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.project_name" />
           </div>
           <div class="search-item">
             <label class="search-label">客户名称：</label>
-            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" />
+            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.client_name" />
           </div>
         </div>
         <div class="action-buttons">
@@ -27,15 +27,15 @@
           <thead>
             <tr>
               <th>序号</th>
-              <th>自动编号</th>
+              <th>项目编号</th>
               <th>项目名称</th>
               <th>零星用工编号</th>
               <th>计划开始日期</th>
               <th>计划结束日期</th>
               <th>客户单位</th>
-              <th>实际人员</th>
+              <th>运维人员</th>
               <th>状态</th>
-              <th>说明</th>
+              <th>备注</th>
               <th>操作</th>
             </tr>
           </thead>
@@ -48,13 +48,13 @@
             </tr>
             <tr v-else v-for="(item, index) in workData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-              <td>{{ item.autoId }}</td>
-              <td>{{ item.projectName }}</td>
-              <td>{{ item.workId }}</td>
-              <td>{{ formatDate(item.startDate) }}</td>
-              <td>{{ formatDate(item.endDate) }}</td>
-              <td>{{ item.clientName || '-' }}</td>
-              <td>{{ item.actualPerson || '-' }}</td>
+              <td>{{ item.project_id }}</td>
+              <td>{{ item.project_name }}</td>
+              <td>{{ item.work_id }}</td>
+              <td>{{ formatDate(item.plan_start_date) }}</td>
+              <td>{{ formatDate(item.plan_end_date) }}</td>
+              <td>{{ item.client_name || '-' }}</td>
+              <td>{{ item.maintenance_personnel || '-' }}</td>
               <td>
                 <span v-if="item.status === '未进行'" class="status-tag status-pending">未进行</span>
                 <span v-else-if="item.status === '待确认'" class="status-tag status-waiting">待确认</span>
@@ -62,7 +62,7 @@
                 <span v-else-if="item.status === '已完成'" class="status-tag status-completed">已完成</span>
                 <span v-else class="status-tag">{{ item.status }}</span>
               </td>
-              <td>{{ item.remark || '-' }}</td>
+              <td>{{ item.remarks || '-' }}</td>
               <td class="action-cell">
                 <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
                 <a href="#" v-if="item.status === '未进行'" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
@@ -116,24 +116,27 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent, ref, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { spotWorkService, type SpotWork } from '@/services/spotWork'
 
 interface WorkItem {
   id: number
-  autoId: string
-  projectName: string
-  workId: string
-  startDate: string
-  endDate: string
-  clientName: string
-  actualPerson: string
+  work_id: string
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  client_name: string
+  maintenance_personnel: string
   status: string
-  remark: string
+  remarks?: string
 }
 
 export default defineComponent({
   name: 'SpotWorkManagement',
   setup() {
+    const router = useRouter()
     const currentPage = ref(1)
     const pageSize = ref(10)
     const jumpPage = ref(1)
@@ -142,63 +145,11 @@ export default defineComponent({
     const totalPages = ref(1)
 
     const searchForm = ref({
-      projectName: '',
-      clientName: ''
+      project_name: '',
+      client_name: ''
     })
 
-    const workData = ref<WorkItem[]>([
-      {
-        id: 1,
-        autoId: 'ZD-2023-116A-SH',
-        projectName: '曹杨项目维保',
-        workId: 'LX-CYDP-20251101',
-        startDate: '2025-01-15',
-        endDate: '2025-01-20',
-        clientName: '曹杨街道',
-        actualPerson: '张三',
-        status: '未进行',
-        remark: '待安排人员'
-      },
-      {
-        id: 2,
-        autoId: 'ZD-2023-117B-SH',
-        projectName: '曹杨项目维保',
-        workId: 'LX-CYDP-20251102',
-        startDate: '2025-01-18',
-        endDate: '2025-01-25',
-        clientName: '曹杨街道',
-        actualPerson: '李四',
-        status: '待确认',
-        remark: '待确认'
-      },
-      {
-        id: 3,
-        autoId: 'ZD-2023-118C-SH',
-        projectName: '曹杨项目维保',
-        workId: 'LX-CYDP-20251103',
-        startDate: '2025-01-20',
-        endDate: '2025-01-28',
-        clientName: '曹杨街道',
-        actualPerson: '王五',
-        status: '已完成',
-        remark: '已完成'
-      },
-      {
-        id: 4,
-        autoId: 'ZD-2023-119D-SH',
-        projectName: '曹杨项目维保',
-        workId: 'LX-CYDP-20251104',
-        startDate: '2025-01-22',
-        endDate: '2025-01-30',
-        clientName: '曹杨街道',
-        actualPerson: '赵六',
-        status: '进行中',
-        remark: '进行中'
-      }
-    ])
-
-    totalElements.value = workData.value.length
-    totalPages.value = Math.ceil(totalElements.value / pageSize.value)
+    const workData = ref<WorkItem[]>([])
 
     const formatDate = (dateStr: string) => {
       if (!dateStr) return '-'
@@ -206,8 +157,31 @@ export default defineComponent({
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     }
 
+    const loadData = async () => {
+      loading.value = true
+      try {
+        const response = await spotWorkService.getList({
+          page: currentPage.value - 1,
+          size: pageSize.value,
+          project_name: searchForm.value.project_name || undefined,
+          client_name: searchForm.value.client_name || undefined
+        })
+        
+        if (response.code === 200) {
+          workData.value = response.data.content
+          totalElements.value = response.data.totalElements
+          totalPages.value = response.data.totalPages
+        }
+      } catch (error: any) {
+        console.error('加载数据失败:', error)
+      } finally {
+        loading.value = false
+      }
+    }
+
     const handleSearch = () => {
-      console.log('Search:', searchForm.value)
+      currentPage.value = 1
+      loadData()
     }
 
     const handleAdd = () => {
@@ -215,19 +189,34 @@ export default defineComponent({
     }
 
     const handleView = (item: WorkItem) => {
-      console.log('View:', item)
+      router.push({
+        name: 'SpotWorkDetail',
+        query: { id: item.id }
+      })
     }
 
     const handleEdit = (item: WorkItem) => {
       console.log('Edit:', item)
     }
 
-    const handleDelete = (item: WorkItem) => {
-      console.log('Delete:', item)
+    const handleDelete = async (item: WorkItem) => {
+      if (confirm(`确定要删除用工单 ${item.work_id} 吗？`)) {
+        try {
+          await spotWorkService.delete(item.id)
+          loadData()
+        } catch (error) {
+          console.error('删除失败:', error)
+        }
+      }
     }
 
-    const handleConfirm = (item: WorkItem) => {
-      console.log('Confirm:', item)
+    const handleConfirm = async (item: WorkItem) => {
+      try {
+        await spotWorkService.update(item.id, { status: '进行中' })
+        loadData()
+      } catch (error) {
+        console.error('确认失败:', error)
+      }
     }
 
     const handleJump = () => {
@@ -236,6 +225,14 @@ export default defineComponent({
         currentPage.value = page
       }
     }
+
+    watch([currentPage, pageSize], () => {
+      loadData()
+    })
+
+    onMounted(() => {
+      loadData()
+    })
 
     return {
       currentPage,
