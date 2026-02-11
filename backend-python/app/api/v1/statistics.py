@@ -79,7 +79,7 @@ def get_work_by_person(
     # 按人员分组统计定期巡检单
     inspection_by_person = {}
     for item in year_data:
-        if item.status == '已完成':
+        if hasattr(item, 'status') and item.status == '已完成':
             if item.maintenance_personnel not in inspection_by_person:
                 inspection_by_person[item.maintenance_personnel] = 0
             inspection_by_person[item.maintenance_personnel] += 1
@@ -90,7 +90,7 @@ def get_work_by_person(
     ).all()
     repair_by_person = {}
     for item in repair_data:
-        if item.status == '已完成':
+        if hasattr(item, 'status') and item.status == '已完成':
             if item.maintenance_personnel not in repair_by_person:
                 repair_by_person[item.maintenance_personnel] = 0
             repair_by_person[item.maintenance_personnel] += 1
@@ -101,7 +101,7 @@ def get_work_by_person(
     ).all()
     labor_by_person = {}
     for item in spot_work_data:
-        if item.status == '已完成':
+        if hasattr(item, 'status') and item.status == '已完成':
             if item.maintenance_personnel not in labor_by_person:
                 labor_by_person[item.maintenance_personnel] = 0
             labor_by_person[item.maintenance_personnel] += 1
