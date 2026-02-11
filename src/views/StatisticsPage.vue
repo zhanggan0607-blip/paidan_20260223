@@ -16,6 +16,21 @@
           </option>
         </select>
       </div>
+      <div class="edit-controls" v-if="isEditMode">
+        <button class="btn btn-cancel" @click="cancelEdit">取消</button>
+        <button class="btn btn-save" @click="saveConfig" :disabled="saving">
+          {{ saving ? '保存中...' : '保存配置' }}
+        </button>
+      </div>
+      <div class="edit-controls" v-else>
+        <button class="btn btn-edit" @click="enableEditMode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M11 4H4a2 2 0 0 0 0-2 2v14a2 2 0 0 0 0 2 2h14a2 2 0 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1 4"></path>
+          </svg>
+          编辑布局
+        </button>
+      </div>
       <div class="user-info">
         <div class="user-avatar">MO</div>
         <span class="user-name">momo.zxy</span>
@@ -23,94 +38,82 @@
     </div>
 
     <div class="content" v-if="!loading">
-      <div class="cards-section">
-        <div class="stat-card card-near-expiry">
-          <div class="card-label">临期工单</div>
-          <div class="card-value">{{ currentData.nearExpiry }}</div>
-        </div>
-        <div class="stat-card card-overdue">
-          <div class="card-label">超期工单</div>
-          <div class="card-value">{{ currentData.overdue }}</div>
-        </div>
-        <div class="stat-card card-completed">
-          <div class="card-label">本年完成</div>
-          <div class="card-value">{{ currentData.completed }}</div>
-        </div>
-        <div class="stat-card card-regular">
-          <div class="card-label">定期巡检单</div>
-          <div class="card-value">{{ currentData.regularInspection }}</div>
-        </div>
-        <div class="stat-card card-temporary">
-          <div class="card-label">临时维修单</div>
-          <div class="card-value">{{ currentData.temporaryRepair }}</div>
-        </div>
-        <div class="stat-card card-sporadic">
-          <div class="card-label">零星用工单</div>
-          <div class="card-value">{{ currentData.sporadicLabor }}</div>
+      <div class="cards-section" :class="{ 'edit-mode': isEditMode }">
+        <div 
+          v-for="card in visibleCards" 
+          :key="card.id" 
+          class="stat-card"
+          :class="getCardClass(card.id)"
+          :draggable="isEditMode"
+          @dragstart="handleDragStart($event, card, 'card')"
+          @dragover="handleDragOver($event)"
+          @drop="handleDrop($event, card, 'card')"
+        >
+          <div class="card-actions" v-if="isEditMode">
+            <button class="action-btn" @click="toggleCardVisibility(card.id)">
+              {{ card.visible ? '隐藏' : '显示' }}
+            </button>
+          </div>
+          <div class="card-label">{{ getCardLabel(card.id) }}</div>
+          <div class="card-value">{{ currentData[getCardDataKey(card.id)] }}</div>
         </div>
       </div>
 
-      <div class="charts-section">
-        <div class="chart-row">
-          <div class="chart-container">
-            <h3 class="chart-title">本年度工单数量（{{ selectedYear }}）</h3>
-            <div class="bar-chart horizontal-bar-chart">
-              <div v-for="(item, index) in currentData.workOrderByPerson" :key="index" class="bar-item">
-                <div class="bar-label">{{ item.name }}</div>
+      <div class="charts-section" :class="{ 'edit-mode': isEditMode }">
+        <div class="chart-row" v-for="(chart, rowIndex) in chartRows" :key="rowIndex">
+          <div 
+            v-for="item in chart" 
+            :key="item.id" 
+            class="chart-container"
+            :class="{ 'hidden': !item.visible }"
+            :draggable="isEditMode"
+            @dragstart="handleDragStart($event, item, 'chart')"
+            @dragover="handleDragOver($event)"
+            @drop="handleDrop($event, item, 'chart')"
+          >
+            <div class="chart-actions" v-if="isEditMode">
+              <button class="action-btn" @click="toggleChartVisibility(item.id)">
+                {{ item.visible ? '隐藏' : '显示' }}
+              </button>
+            </div>
+            <h3 class="chart-title">{{ getChartTitle(item.id) }}</h3>
+            <div v-if="item.id === 'workByPerson'" class="bar-chart horizontal-bar-chart">
+              <div v-for="(dataItem, index) in currentData.workOrderByPerson" :key="index" class="bar-item">
+                <div class="bar-label">{{ dataItem.name }}</div>
                 <div class="bar-wrapper">
-                  <div class="bar" :style="{ width: (item.value / maxValue * 100) + '%' }"></div>
-                  <div class="bar-value">{{ item.value }}</div>
+                  <div class="bar" :style="{ width: (dataItem.value / maxValue * 100) + '%' }"></div>
+                  <div class="bar-value">{{ dataItem.value }}</div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="chart-row">
-          <div class="chart-container">
-            <h3 class="chart-title">定期巡检单完成数量（{{ selectedYear }}）</h3>
-            <div class="bar-chart horizontal-bar-chart">
-              <div v-for="(item, index) in currentData.inspectionByPerson" :key="index" class="bar-item">
-                <div class="bar-label">{{ item.name }}</div>
+            <div v-if="item.id === 'inspectionByPerson'" class="bar-chart horizontal-bar-chart">
+              <div v-for="(dataItem, index) in currentData.inspectionByPerson" :key="index" class="bar-item">
+                <div class="bar-label">{{ dataItem.name }}</div>
                 <div class="bar-wrapper">
-                  <div class="bar" :style="{ width: (item.value / maxValue * 100) + '%' }"></div>
-                  <div class="bar-value">{{ item.value }}</div>
+                  <div class="bar" :style="{ width: (dataItem.value / maxValue * 100) + '%' }"></div>
+                  <div class="bar-value">{{ dataItem.value }}</div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="chart-row">
-          <div class="chart-container">
-            <h3 class="chart-title">临时维修单完成数量（{{ selectedYear }}）</h3>
-            <div class="bar-chart horizontal-bar-chart">
-              <div v-for="(item, index) in currentData.repairByPerson" :key="index" class="bar-item">
-                <div class="bar-label">{{ item.name }}</div>
+            <div v-if="item.id === 'repairByPerson'" class="bar-chart horizontal-bar-chart">
+              <div v-for="(dataItem, index) in currentData.repairByPerson" :key="index" class="bar-item">
+                <div class="bar-label">{{ dataItem.name }}</div>
                 <div class="bar-wrapper">
-                  <div class="bar" :style="{ width: (item.value / maxValue * 100) + '%' }"></div>
-                  <div class="bar-value">{{ item.value }}</div>
+                  <div class="bar" :style="{ width: (dataItem.value / maxValue * 100) + '%' }"></div>
+                  <div class="bar-value">{{ dataItem.value }}</div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="chart-row">
-          <div class="chart-container">
-            <h3 class="chart-title">零星用工单完成数量（{{ selectedYear }}）</h3>
-            <div class="bar-chart horizontal-bar-chart">
-              <div v-for="(item, index) in currentData.laborByPerson" :key="index" class="bar-item">
-                <div class="bar-label">{{ item.name }}</div>
+            <div v-if="item.id === 'laborByPerson'" class="bar-chart horizontal-bar-chart">
+              <div v-for="(dataItem, index) in currentData.laborByPerson" :key="index" class="bar-item">
+                <div class="bar-label">{{ dataItem.name }}</div>
                 <div class="bar-wrapper">
-                  <div class="bar" :style="{ width: (item.value / maxValue * 100) + '%' }"></div>
-                  <div class="bar-value">{{ item.value }}</div>
+                  <div class="bar" :style="{ width: (dataItem.value / maxValue * 100) + '%' }"></div>
+                  <div class="bar-value">{{ dataItem.value }}</div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="chart-row">
-          <div class="chart-container">
-            <h3 class="chart-title">准时完成情况分布（{{ selectedYear }}）</h3>
-            <div class="pie-chart">
+            <div v-if="item.id === 'completionRate'" class="pie-chart">
               <div class="pie-chart-container">
                 <svg viewBox="0 0 100 100" class="pie-svg">
                   <circle cx="50" cy="50" r="40" fill="none" stroke-width="20"
@@ -136,19 +139,14 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="chart-row">
-          <div class="chart-container">
-            <h3 class="chart-title">临时维修年度前五（{{ selectedYear }}）</h3>
-            <div class="bar-chart vertical-bar-chart">
+            <div v-if="item.id === 'topProjects'" class="bar-chart vertical-bar-chart">
               <div class="vertical-bars">
-                <div v-for="(item, index) in currentData.topProjects" :key="index" class="vertical-bar-item">
+                <div v-for="(dataItem, index) in currentData.topProjects" :key="index" class="vertical-bar-item">
                   <div class="vertical-bar-wrapper">
-                    <div class="vertical-bar" :style="{ height: (item.value / maxProjectValue * 100) + '%' }"></div>
-                    <div class="vertical-bar-value">{{ item.value }}</div>
+                    <div class="vertical-bar" :style="{ height: (dataItem.value / maxProjectValue * 100) + '%' }"></div>
+                    <div class="vertical-bar-value">{{ dataItem.value }}</div>
                   </div>
-                  <div class="vertical-bar-label">{{ item.name }}</div>
+                  <div class="vertical-bar-label">{{ dataItem.name }}</div>
                 </div>
               </div>
             </div>
@@ -165,11 +163,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { statisticsService, StatisticsOverview, WorkByPerson, CompletionRate, TopProject } from '@/services/statistics'
+import { userDashboardConfigService, type DashboardConfig } from '@/services/userDashboardConfig'
+import Toast from '@/components/Toast.vue'
 
 export default defineComponent({
   name: 'StatisticsPage',
+  components: {
+    Toast
+  },
   setup() {
     const selectedYear = ref<number>(new Date().getFullYear())
     const availableYears = [2024, 2025, 2026, 2027, 2028]
@@ -178,9 +181,9 @@ export default defineComponent({
       nearExpiry: 0,
       overdue: 0,
       completed: 0,
-      regularInspection: 0,
-      temporaryRepair: 0,
-      sporadicLabor: 0,
+      regularInspectionCount: 0,
+      temporaryRepairCount: 0,
+      spotWorkCount: 0,
       workOrderByPerson: [] as WorkByPerson[],
       inspectionByPerson: [] as WorkByPerson[],
       repairByPerson: [] as WorkByPerson[],
@@ -190,8 +193,108 @@ export default defineComponent({
     })
     const loading = ref<boolean>(false)
     const maxProjectValue = ref<number>(0)
+    const isEditMode = ref<boolean>(false)
+    const saving = ref<boolean>(false)
+    const toast = ref({
+      visible: false,
+      message: '',
+      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+    })
+
+    const dashboardConfig = ref<DashboardConfig>({
+      cards: [
+        { id: 'nearExpiry', visible: true, position: 0 },
+        { id: 'overdue', visible: true, position: 1 },
+        { id: 'completed', visible: true, position: 2 },
+        { id: 'regularInspection', visible: true, position: 3 },
+        { id: 'temporaryRepair', visible: true, position: 4 },
+        { id: 'spotWork', visible: true, position: 5 }
+      ],
+      charts: [
+        { id: 'workByPerson', visible: true, position: 0 },
+        { id: 'inspectionByPerson', visible: true, position: 1 },
+        { id: 'repairByPerson', visible: true, position: 2 },
+        { id: 'laborByPerson', visible: true, position: 3 },
+        { id: 'completionRate', visible: true, position: 4 },
+        { id: 'topProjects', visible: true, position: 5 }
+      ],
+      layout: 'grid'
+    })
+
+    const visibleCards = computed(() => {
+      return dashboardConfig.value.cards.filter(c => c.visible).sort((a, b) => a.position - b.position)
+    })
+
+    const chartRows = computed(() => {
+      const charts = dashboardConfig.value.charts.filter(c => c.visible).sort((a, b) => a.position - b.position)
+      const rows = []
+      for (let i = 0; i < charts.length; i += 2) {
+        rows.push(charts.slice(i, i + 2))
+      }
+      return rows
+    })
+
+    const maxValue = computed(() => {
+      const allValues = [
+        ...currentData.value.workOrderByPerson.map(p => p.value),
+        ...currentData.value.inspectionByPerson.map(p => p.value),
+        ...currentData.value.repairByPerson.map(p => p.value),
+        ...currentData.value.laborByPerson.map(p => p.value)
+      ]
+      return Math.max(...allValues, 1)
+    })
+
+    const getCardClass = (id: string) => {
+      const classMap: Record<string, string> = {
+        nearExpiry: 'card-near-expiry',
+        overdue: 'card-overdue',
+        completed: 'card-completed',
+        regularInspection: 'card-regular',
+        temporaryRepair: 'card-temporary',
+        spotWork: 'card-sporadic'
+      }
+      return classMap[id] || ''
+    }
+
+    const getCardLabel = (id: string) => {
+      const labelMap: Record<string, string> = {
+        nearExpiry: '临期工单',
+        overdue: '超期工单',
+        completed: '本年完成',
+        regularInspection: '定期巡检单',
+        temporaryRepair: '临时维修单',
+        spotWork: '零星用工单'
+      }
+      return labelMap[id] || ''
+    }
+
+    const getCardDataKey = (id: string) => {
+      const keyMap: Record<string, string> = {
+        nearExpiry: 'nearExpiry',
+        overdue: 'overdue',
+        completed: 'completed',
+        regularInspection: 'regularInspectionCount',
+        temporaryRepair: 'temporaryRepairCount',
+        spotWork: 'spotWorkCount'
+      }
+      return keyMap[id] || ''
+    }
+
+    const getChartTitle = (id: string) => {
+      const titleMap: Record<string, string> = {
+        workByPerson: `本年度工单数量（${selectedYear.value}）`,
+        inspectionByPerson: `定期巡检单完成数量（${selectedYear.value}）`,
+        repairByPerson: `临时维修单完成数量（${selectedYear.value}）`,
+        laborByPerson: `零星用工单完成数量（${selectedYear.value}）`,
+        completionRate: `准时完成情况分布（${selectedYear.value}）`,
+        topProjects: `临时维修年度前五（${selectedYear.value}）`
+      }
+      return titleMap[id] || ''
+    }
 
     let abortController: AbortController | null = null
+    let draggedItem: any = null
+    let draggedType: string = ''
 
     const toggleSidebar = () => {
     }
@@ -214,9 +317,9 @@ export default defineComponent({
           nearExpiry: overview.nearExpiry,
           overdue: overview.overdue,
           completed: overview.completed,
-          regularInspection: overview.regularInspectionCount,
-          temporaryRepair: overview.temporaryRepairCount,
-          sporadicLabor: overview.spotWorkCount,
+          regularInspectionCount: overview.regularInspectionCount,
+          temporaryRepairCount: overview.temporaryRepairCount,
+          spotWorkCount: overview.spotWorkCount,
           workOrderByPerson: workByPerson,
           inspectionByPerson: workByPerson,
           repairByPerson: workByPerson,
@@ -235,6 +338,88 @@ export default defineComponent({
       }
     }
 
+    const enableEditMode = async () => {
+      try {
+        const response = await userDashboardConfigService.getConfig('statistics')
+        if (response.code === 200 && response.data) {
+          dashboardConfig.value = response.data
+        }
+        isEditMode.value = true
+      } catch (error) {
+        showToast('加载配置失败', 'error')
+      }
+    }
+
+    const cancelEdit = () => {
+      isEditMode.value = false
+      draggedItem = null
+      draggedType = ''
+    }
+
+    const saveConfig = async () => {
+      saving.value = true
+      try {
+        await userDashboardConfigService.saveConfig('statistics', dashboardConfig.value, 'momo.zxy')
+        showToast('配置保存成功', 'success')
+        isEditMode.value = false
+      } catch (error) {
+        showToast('保存配置失败', 'error')
+      } finally {
+        saving.value = false
+      }
+    }
+
+    const toggleCardVisibility = (id: string) => {
+      const card = dashboardConfig.value.cards.find(c => c.id === id)
+      if (card) {
+        card.visible = !card.visible
+      }
+    }
+
+    const toggleChartVisibility = (id: string) => {
+      const chart = dashboardConfig.value.charts.find(c => c.id === id)
+      if (chart) {
+        chart.visible = !chart.visible
+      }
+    }
+
+    const handleDragStart = (event: DragEvent, item: any, type: string) => {
+      draggedItem = item
+      draggedType = type
+      event.dataTransfer!.effectAllowed = 'move'
+    }
+
+    const handleDragOver = (event: DragEvent) => {
+      event.preventDefault()
+      event.dataTransfer!.dropEffect = 'move'
+    }
+
+    const handleDrop = (event: DragEvent, targetItem: any, type: string) => {
+      event.preventDefault()
+      if (!draggedItem || draggedType !== type) return
+
+      const list = type === 'card' ? dashboardConfig.value.cards : dashboardConfig.value.charts
+      const draggedIndex = list.findIndex(i => i.id === draggedItem.id)
+      const targetIndex = list.findIndex(i => i.id === targetItem.id)
+
+      if (draggedIndex !== -1 && targetIndex !== -1) {
+        const [removed] = list.splice(draggedIndex, 1)
+        list.splice(targetIndex, 0, removed)
+      }
+
+      draggedItem = null
+      draggedType = ''
+    }
+
+    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+      toast.value.message = message
+      toast.value.type = type
+      toast.value.visible = true
+      setTimeout(() => {
+        toast.value.visible = false
+      }, 3000)
+    }
+
     onMounted(() => {
       handleYearChange()
     })
@@ -251,8 +436,27 @@ export default defineComponent({
       currentData,
       loading,
       maxProjectValue,
+      isEditMode,
+      saving,
+      toast,
+      dashboardConfig,
+      visibleCards,
+      chartRows,
+      maxValue,
       toggleSidebar,
-      handleYearChange
+      handleYearChange,
+      enableEditMode,
+      cancelEdit,
+      saveConfig,
+      toggleCardVisibility,
+      toggleChartVisibility,
+      handleDragStart,
+      handleDragOver,
+      handleDrop,
+      getCardClass,
+      getCardLabel,
+      getCardDataKey,
+      getChartTitle
     }
   }
 })
@@ -306,6 +510,57 @@ export default defineComponent({
   background: white;
 }
 
+.edit-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-edit {
+  background: #1976d2;
+  color: white;
+}
+
+.btn-edit:hover {
+  background: #1565c0;
+}
+
+.btn-save {
+  background: #4caf50;
+  color: white;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #45a049;
+}
+
+.btn-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+  border: 1px solid #ddd;
+}
+
+.btn-cancel:hover {
+  background: #e0e0e0;
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -342,17 +597,55 @@ export default defineComponent({
   gap: 15px;
 }
 
+.cards-section.edit-mode {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
 .stat-card {
   background: white;
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  min-height: 120px;
 }
 
 .stat-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card.edit-mode {
+  cursor: move;
+  border: 2px dashed #1976d2;
+}
+
+.stat-card.edit-mode:hover {
+  border-color: #1565c0;
+}
+
+.card-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  font-size: 12px;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.action-btn:hover {
+  background: #1565c0;
 }
 
 .card-label {
@@ -397,6 +690,10 @@ export default defineComponent({
   gap: 20px;
 }
 
+.charts-section.edit-mode {
+  gap: 25px;
+}
+
 .chart-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -408,6 +705,28 @@ export default defineComponent({
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+
+.chart-container.edit-mode {
+  border: 2px dashed #1976d2;
+  cursor: move;
+}
+
+.chart-container.edit-mode:hover {
+  border-color: #1565c0;
+}
+
+.chart-container.hidden {
+  display: none;
+}
+
+.chart-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 5px;
 }
 
 .chart-title {
