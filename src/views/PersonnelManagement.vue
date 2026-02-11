@@ -212,7 +212,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted } from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { personnelService, type Personnel, type PersonnelCreate, type PersonnelUpdate } from '../services/personnel'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
@@ -258,6 +258,8 @@ export default defineComponent({
       address: '',
       remarks: ''
     })
+
+    let abortController: AbortController | null = null
 
     const currentUserRole = ref('管理员')
     const currentUserDepartment = ref('')
@@ -318,6 +320,11 @@ export default defineComponent({
     }
 
     const loadData = async () => {
+      if (abortController) {
+        abortController.abort()
+      }
+      abortController = new AbortController()
+
       loading.value = true
       try {
         const response = await personnelService.getList({
@@ -337,7 +344,9 @@ export default defineComponent({
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
-        console.error('加载数据异常:', error)
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
         loading.value = false
@@ -505,12 +514,23 @@ export default defineComponent({
       loadData()
     }
 
-    watch(currentPage, () => {
-      loadData()
+    watchEffect((onCleanup) => {
+      const unwatch = watch(currentPage, () => {
+        loadData()
+      })
+      onCleanup(() => {
+        unwatch()
+      })
     })
 
     onMounted(() => {
       loadData()
+    })
+
+    onUnmounted(() => {
+      if (abortController) {
+        abortController.abort()
+      }
     })
 
     return {

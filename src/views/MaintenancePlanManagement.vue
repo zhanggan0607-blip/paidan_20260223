@@ -508,7 +508,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted } from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { maintenancePlanService, type MaintenancePlan, type MaintenancePlanCreate, type MaintenancePlanUpdate } from '../services/maintenancePlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
@@ -586,6 +586,8 @@ export default defineComponent({
       planList: [] as PlanItem[],
       itemList: [] as InspectionItem[]
     })
+
+    let abortController: AbortController | null = null
 
     const viewData = reactive({
       id: 0,
@@ -721,6 +723,11 @@ export default defineComponent({
     }
 
     const loadData = async () => {
+      if (abortController) {
+        abortController.abort()
+      }
+      abortController = new AbortController()
+
       loading.value = true
       try {
         const response = await maintenancePlanService.getList({
@@ -738,6 +745,9 @@ export default defineComponent({
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
         loading.value = false
@@ -1043,13 +1053,24 @@ export default defineComponent({
       loadData()
     }
 
-    watch(currentPage, () => {
-      loadData()
+    watchEffect((onCleanup) => {
+      const unwatch = watch(currentPage, () => {
+        loadData()
+      })
+      onCleanup(() => {
+        unwatch()
+      })
     })
 
     onMounted(() => {
       loadData()
       loadPersonnel()
+    })
+
+    onUnmounted(() => {
+      if (abortController) {
+        abortController.abort()
+      }
     })
 
     return {

@@ -341,7 +341,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { projectInfoService, type ProjectInfo, type ProjectInfoCreate, type ProjectInfoUpdate } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
@@ -730,8 +730,13 @@ export default defineComponent({
       loadData()
     }
 
-    watch(currentPage, () => {
-      loadData()
+    watchEffect((onCleanup) => {
+      const unwatch = watch(currentPage, () => {
+        loadData()
+      })
+      onCleanup(() => {
+        unwatch()
+      })
     })
 
     onMounted(() => {

@@ -160,7 +160,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted } from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
@@ -210,6 +210,8 @@ export default defineComponent({
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
+    let abortController: AbortController | null = null
+
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
       toast.message = message
       toast.type = type
@@ -246,6 +248,11 @@ export default defineComponent({
     }
 
     const loadData = async () => {
+      if (abortController) {
+        abortController.abort()
+      }
+      abortController = new AbortController()
+
       loading.value = true
       try {
         const response = await periodicInspectionService.getList({
@@ -263,6 +270,9 @@ export default defineComponent({
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         console.error('加载数据异常:', error)
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
@@ -311,12 +321,23 @@ export default defineComponent({
       loadData()
     }
 
-    watch(currentPage, () => {
-      loadData()
+    watchEffect((onCleanup) => {
+      const unwatch = watch(currentPage, () => {
+        loadData()
+      })
+      onCleanup(() => {
+        unwatch()
+      })
     })
 
     onMounted(() => {
       loadData()
+    })
+
+    onUnmounted(() => {
+      if (abortController) {
+        abortController.abort()
+      }
     })
 
     return {
