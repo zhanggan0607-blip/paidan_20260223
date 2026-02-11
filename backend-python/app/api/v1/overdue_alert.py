@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.overdue_alert import OverdueAlertService
 from app.schemas.common import ApiResponse
-from app.auth import get_current_user
 
 router = APIRouter(prefix="/overdue-alert", tags=["Overdue Alert"])
 
@@ -16,8 +15,7 @@ def get_overdue_alerts(
     work_order_type: Optional[str] = Query(None, description="工单类型"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
     size: int = Query(10, ge=1, le=100, description="每页数量"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = OverdueAlertService(db)
     items, total = service.get_overdue_items(

@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.spot_work import SpotWorkService
 from app.schemas.common import ApiResponse
-from app.auth import get_current_user
 
 
 router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
@@ -12,8 +11,7 @@ router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
 
 @router.get("/all/list")
 def get_all_spot_works(
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = SpotWorkService(db)
     items = service.get_all_unpaginated()
@@ -31,8 +29,7 @@ def get_spot_works_list(
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = SpotWorkService(db)
     items, total = service.get_all(
@@ -57,8 +54,7 @@ def get_spot_works_list(
 @router.get("/{id}")
 def get_spot_work_by_id(
     id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = SpotWorkService(db)
     work = service.get_by_id(id)
@@ -72,8 +68,7 @@ def get_spot_work_by_id(
 @router.post("", status_code=status.HTTP_201_CREATED)
 def create_spot_work(
     dto: dict,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     from app.services.spot_work import SpotWorkCreate
     service = SpotWorkService(db)
@@ -89,8 +84,7 @@ def create_spot_work(
 def update_spot_work(
     id: int,
     dto: dict,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     from app.services.spot_work import SpotWorkUpdate
     service = SpotWorkService(db)
@@ -105,8 +99,7 @@ def update_spot_work(
 @router.delete("/{id}")
 def delete_spot_work(
     id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = SpotWorkService(db)
     service.delete(id)

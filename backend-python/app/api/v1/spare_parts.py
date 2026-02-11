@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.temporary_repair import TemporaryRepair
-from app.auth import get_current_user
 from datetime import datetime
 
 
@@ -18,8 +17,7 @@ def get_spare_parts_usage(
     project: Optional[str] = Query(None, description="项目名称"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
     pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     query = db.query(TemporaryRepair)
 

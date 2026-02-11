@@ -5,7 +5,6 @@ from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.spare_parts_inbound import SparePartsInbound
 from app.models.spare_parts_stock import SparePartsStock
-from app.auth import get_current_user
 from datetime import datetime
 import random
 import string
@@ -31,8 +30,7 @@ def create_inbound(
     unit: str = "件",
     user_name: str = "",
     remarks: Optional[str] = None,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """创建入库单"""
     if not product_name:
@@ -96,8 +94,7 @@ def get_inbound_records(
     user: Optional[str] = Query(None, description="入库人"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
     pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """查询入库记录"""
     query = db.query(SparePartsInbound)
@@ -126,8 +123,7 @@ def get_inbound_records(
 @router.get("/stock")
 def get_stock(
     product_name: Optional[str] = Query(None, description="产品名称"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """查询库存"""
     query = db.query(SparePartsStock)
@@ -147,8 +143,7 @@ def get_stock(
 @router.get("/products")
 def get_products(
     product_name: Optional[str] = Query(None, description="产品名称"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     """获取备品备件列表（用于表单选择）"""
     query = db.query(SparePartsStock)

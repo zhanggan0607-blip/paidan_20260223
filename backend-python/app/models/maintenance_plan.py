@@ -1,8 +1,7 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Text, Integer, Float, Index, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, Text, Integer, Float, Index, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
-
 
 class MaintenancePlan(Base):
     __tablename__ = "maintenance_plan"
@@ -10,7 +9,7 @@ class MaintenancePlan(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), nullable=False, unique=True, comment="计划编号")
     plan_name = Column(String(200), nullable=False, comment="计划名称")
-    project_id = Column(String(50), nullable=False, comment="关联项目编号")
+    project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='RESTRICT'), nullable=False, comment="关联项目编号")
     plan_type = Column(String(20), nullable=False, comment="计划类型")
     equipment_id = Column(String(50), nullable=False, comment="设备编号")
     equipment_name = Column(String(200), nullable=False, comment="设备名称")
@@ -20,7 +19,7 @@ class MaintenancePlan(Base):
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
     execution_date = Column(DateTime, comment="执行日期")
     next_maintenance_date = Column(DateTime, comment="下次维保日期")
-    responsible_person = Column(String(50), nullable=False, comment="负责人")
+    responsible_person_id = Column(BigInteger, ForeignKey('personnel.id', ondelete='RESTRICT'), nullable=False, comment="负责人ID")
     responsible_department = Column(String(100), comment="负责部门")
     contact_info = Column(String(50), comment="联系方式")
     maintenance_content = Column(Text, nullable=False, comment="维保内容")
@@ -32,6 +31,14 @@ class MaintenancePlan(Base):
     remarks = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+    created_by = Column(BigInteger, comment="创建人ID")
+    updated_by = Column(BigInteger, comment="更新人ID")
+    is_deleted = Column(Boolean, default=False, nullable=False, comment="是否删除")
+    deleted_at = Column(DateTime, comment="删除时间")
+    deleted_by = Column(BigInteger, comment="删除人ID")
+    
+    project = relationship("ProjectInfo", backref="maintenance_plans")
+    responsible_person = relationship("Personnel", backref="maintenance_plans")
     
     __table_args__ = (
         Index('idx_maintenance_plan_id', 'plan_id'),

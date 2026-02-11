@@ -11,7 +11,6 @@ from app.schemas.maintenance_plan import (
     PaginatedResponse,
     ApiResponse
 )
-from app.auth import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,8 +20,7 @@ router = APIRouter(prefix="/maintenance-plan", tags=["Maintenance Plan Managemen
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_maintenance_plan(
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     items = service.get_all_unpaginated()
@@ -32,8 +30,7 @@ def get_all_maintenance_plan(
 @router.get("/project/{project_id}", response_model=ApiResponse)
 def get_maintenance_plan_by_project(
     project_id: str,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     items = service.get_by_project_id(project_id)
@@ -43,8 +40,7 @@ def get_maintenance_plan_by_project(
 @router.get("/upcoming/list", response_model=ApiResponse)
 def get_upcoming_maintenance(
     days: int = Query(7, ge=1, le=365, description="Query days"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     items = service.get_upcoming_maintenance(days)
@@ -55,8 +51,7 @@ def get_upcoming_maintenance(
 def get_maintenance_plan_by_date_range(
     start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     try:
         start = datetime.fromisoformat(start_date)
@@ -84,8 +79,7 @@ def get_maintenance_plan_list(
     responsible_person: Optional[str] = Query(None, description="Responsible person (fuzzy search)"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     items, total = service.get_all(
@@ -100,8 +94,7 @@ def get_maintenance_plan_list(
 @router.get("/{id}", response_model=ApiResponse)
 def get_maintenance_plan_by_id(
     id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     maintenance_plan = service.get_by_id(id)
@@ -111,8 +104,7 @@ def get_maintenance_plan_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_maintenance_plan(
     dto: MaintenancePlanCreate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     logger.info(f"Creating maintenance plan: plan_id={dto.plan_id}, plan_name={dto.plan_name}")
 
@@ -127,8 +119,7 @@ def create_maintenance_plan(
 def update_maintenance_plan(
     id: int,
     dto: MaintenancePlanUpdate,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     maintenance_plan = service.update(id, dto)
@@ -138,8 +129,7 @@ def update_maintenance_plan(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_maintenance_plan(
     id: int,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     service.delete(id)
@@ -150,8 +140,7 @@ def delete_maintenance_plan(
 def update_execution_status(
     id: int,
     status: str = Query(..., description="Execution status"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     maintenance_plan = service.update_execution_status(id, status)
@@ -162,8 +151,7 @@ def update_execution_status(
 def update_completion_rate(
     id: int,
     rate: int = Query(..., ge=0, le=100, description="Completion rate (0-100)"),
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
+    db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     maintenance_plan = service.update_completion_rate(id, rate)
