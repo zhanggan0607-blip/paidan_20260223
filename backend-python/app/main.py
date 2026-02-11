@@ -51,6 +51,7 @@ app.include_router(spot_work.router, prefix=settings.api_prefix)
 app.include_router(spare_parts.router, prefix=settings.api_prefix)
 app.include_router(spare_parts_stock.router, prefix=settings.api_prefix)
 app.include_router(statistics.router, prefix=settings.api_prefix)
+app.include_router(statistics.router, prefix=settings.api_prefix)
 
 
 @app.get("/")
