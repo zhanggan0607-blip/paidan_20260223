@@ -22,7 +22,7 @@
       </div>
     </div>
 
-    <div class="content">
+    <div class="content" v-if="!loading">
       <div class="cards-section">
         <div class="stat-card card-near-expiry">
           <div class="card-label">临期工单</div>
@@ -64,6 +64,8 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="chart-row">
           <div class="chart-container">
             <h3 class="chart-title">定期巡检单完成数量（{{ selectedYear }}）</h3>
             <div class="bar-chart horizontal-bar-chart">
@@ -77,7 +79,6 @@
             </div>
           </div>
         </div>
-
         <div class="chart-row">
           <div class="chart-container">
             <h3 class="chart-title">临时维修单完成数量（{{ selectedYear }}）</h3>
@@ -91,6 +92,8 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="chart-row">
           <div class="chart-container">
             <h3 class="chart-title">零星用工单完成数量（{{ selectedYear }}）</h3>
             <div class="bar-chart horizontal-bar-chart">
@@ -104,7 +107,6 @@
             </div>
           </div>
         </div>
-
         <div class="chart-row">
           <div class="chart-container">
             <h3 class="chart-title">准时完成情况分布（{{ selectedYear }}）</h3>
@@ -135,6 +137,8 @@
               </div>
             </div>
           </div>
+        </div>
+        <div class="chart-row">
           <div class="chart-container">
             <h3 class="chart-title">临时维修年度前五（{{ selectedYear }}）</h3>
             <div class="bar-chart vertical-bar-chart">
@@ -152,211 +156,89 @@
         </div>
       </div>
     </div>
+
+    <div class="loading" v-else>
+      <div class="loading-spinner"></div>
+      <p>加载中...</p>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
-
-interface WorkOrderItem {
-  name: string
-  value: number
-}
-
-interface YearData {
-  nearExpiry: number
-  overdue: number
-  completed: number
-  regularInspection: number
-  temporaryRepair: number
-  sporadicLabor: number
-  workOrderByPerson: WorkOrderItem[]
-  inspectionByPerson: WorkOrderItem[]
-  repairByPerson: WorkOrderItem[]
-  laborByPerson: WorkOrderItem[]
-  onTimeRate: number
-  topProjects: WorkOrderItem[]
-}
-
-interface MockData {
-  [key: number]: YearData
-}
+import { defineComponent, ref, onMounted } from 'vue'
+import { statisticsService, StatisticsOverview, WorkByPerson, CompletionRate, TopProject } from '@/services/statistics'
 
 export default defineComponent({
   name: 'StatisticsPage',
   setup() {
-    const selectedYear = ref<number>(2026)
+    const selectedYear = ref<number>(new Date().getFullYear())
     const availableYears = [2024, 2025, 2026, 2027, 2028]
+    const currentData = ref<StatisticsOverview>({
+      year: selectedYear.value,
+      nearExpiry: 0,
+      overdue: 0,
+      completed: 0,
+      regularInspection: 0,
+      temporaryRepair: 0,
+      sporadicLabor: 0,
+      workOrderByPerson: [] as WorkByPerson[],
+      inspectionByPerson: [] as WorkByPerson[],
+      repairByPerson: [] as WorkByPerson[],
+      laborByPerson: [] as WorkByPerson[],
+      onTimeRate: 0,
+      topProjects: [] as TopProject[]
+    })
+    const loading = ref<boolean>(false)
+    const maxProjectValue = ref<number>(0)
 
-    const mockData: MockData = {
-      2026: {
-        nearExpiry: 12,
-        overdue: 3,
-        completed: 221,
-        regularInspection: 2223,
-        temporaryRepair: 1123,
-        sporadicLabor: 193,
-        workOrderByPerson: [
-          { name: '晋海龙', value: 45 },
-          { name: '王五', value: 38 },
-          { name: '李四', value: 52 },
-          { name: '张三', value: 41 },
-          { name: '刘启智', value: 35 }
-        ],
-        inspectionByPerson: [
-          { name: '晋海龙', value: 520 },
-          { name: '王五', value: 480 },
-          { name: '李四', value: 550 },
-          { name: '张三', value: 490 },
-          { name: '刘启智', value: 183 }
-        ],
-        repairByPerson: [
-          { name: '晋海龙', value: 280 },
-          { name: '王五', value: 240 },
-          { name: '李四', value: 300 },
-          { name: '张三', value: 250 },
-          { name: '刘启智', value: 53 }
-        ],
-        laborByPerson: [
-          { name: '晋海龙', value: 50 },
-          { name: '王五', value: 45 },
-          { name: '李四', value: 48 },
-          { name: '张三', value: 40 },
-          { name: '刘启智', value: 10 }
-        ],
-        onTimeRate: 0.68,
-        topProjects: [
-          { name: '项目A', value: 85 },
-          { name: '项目B', value: 72 },
-          { name: '项目C', value: 65 },
-          { name: '项目D', value: 58 },
-          { name: '项目E', value: 45 }
-        ]
-      },
-      2025: {
-        nearExpiry: 8,
-        overdue: 2,
-        completed: 198,
-        regularInspection: 1950,
-        temporaryRepair: 980,
-        sporadicLabor: 165,
-        workOrderByPerson: [
-          { name: '晋海龙', value: 40 },
-          { name: '王五', value: 35 },
-          { name: '李四', value: 45 },
-          { name: '张三', value: 38 },
-          { name: '刘启智', value: 30 }
-        ],
-        inspectionByPerson: [
-          { name: '晋海龙', value: 450 },
-          { name: '王五', value: 420 },
-          { name: '李四', value: 480 },
-          { name: '张三', value: 430 },
-          { name: '刘启智', value: 170 }
-        ],
-        repairByPerson: [
-          { name: '晋海龙', value: 250 },
-          { name: '王五', value: 210 },
-          { name: '李四', value: 270 },
-          { name: '张三', value: 220 },
-          { name: '刘启智', value: 30 }
-        ],
-        laborByPerson: [
-          { name: '晋海龙', value: 45 },
-          { name: '王五', value: 40 },
-          { name: '李四', value: 42 },
-          { name: '张三', value: 35 },
-          { name: '刘启智', value: 8 }
-        ],
-        onTimeRate: 0.72,
-        topProjects: [
-          { name: '项目A', value: 75 },
-          { name: '项目B', value: 65 },
-          { name: '项目C', value: 58 },
-          { name: '项目D', value: 52 },
-          { name: '项目E', value: 40 }
-        ]
-      },
-      2024: {
-        nearExpiry: 5,
-        overdue: 1,
-        completed: 175,
-        regularInspection: 1680,
-        temporaryRepair: 850,
-        sporadicLabor: 140,
-        workOrderByPerson: [
-          { name: '晋海龙', value: 35 },
-          { name: '王五', value: 30 },
-          { name: '李四', value: 40 },
-          { name: '张三', value: 32 },
-          { name: '刘启智', value: 25 }
-        ],
-        inspectionByPerson: [
-          { name: '晋海龙', value: 380 },
-          { name: '王五', value: 350 },
-          { name: '李四', value: 410 },
-          { name: '张三', value: 370 },
-          { name: '刘启智', value: 170 }
-        ],
-        repairByPerson: [
-          { name: '晋海龙', value: 220 },
-          { name: '王五', value: 180 },
-          { name: '李四', value: 240 },
-          { name: '张三', value: 190 },
-          { name: '刘启智', value: 20 }
-        ],
-        laborByPerson: [
-          { name: '晋海龙', value: 38 },
-          { name: '王五', value: 35 },
-          { name: '李四', value: 38 },
-          { name: '张三', value: 30 },
-          { name: '刘启智', value: 6 }
-        ],
-        onTimeRate: 0.75,
-        topProjects: [
-          { name: '项目A', value: 65 },
-          { name: '项目B', value: 58 },
-          { name: '项目C', value: 52 },
-          { name: '项目D', value: 45 },
-          { name: '项目E', value: 35 }
-        ]
+    const toggleSidebar = () => {
+      console.log('切换侧边栏')
+    }
+
+    const handleYearChange = async () => {
+      loading.value = true
+      try {
+        const overview = await statisticsService.getStatisticsOverview(selectedYear.value)
+        const workByPerson = await statisticsService.getWorkByPerson(selectedYear.value)
+        const completionRate = await statisticsService.getCompletionRate(selectedYear.value)
+        const topProjects = await statisticsService.getTopProjects(selectedYear.value)
+
+        currentData.value = {
+          year: selectedYear.value,
+          nearExpiry: overview.nearExpiry,
+          overdue: overview.overdue,
+          completed: overview.completed,
+          regularInspection: overview.regularInspectionCount,
+          temporaryRepair: overview.temporaryRepairCount,
+          sporadicLabor: overview.spotWorkCount,
+          workOrderByPerson: workByPerson,
+          inspectionByPerson: workByPerson,
+          repairByPerson: workByPerson,
+          laborByPerson: workByPerson,
+          onTimeRate: completionRate.onTimeRate,
+          topProjects: topProjects
+        }
+
+        maxProjectValue.value = Math.max(...topProjects.map(p => p.value), 0)
+      } catch (error) {
+        console.error('加载统计数据失败:', error)
+      } finally {
+        loading.value = false
       }
     }
 
-    const currentData = computed(() => {
-      return mockData[selectedYear.value] || mockData[2026]
+    onMounted(() => {
+      handleYearChange()
     })
-
-    const maxValue = computed(() => {
-      const allValues = [
-        ...currentData.value.workOrderByPerson.map((item: WorkOrderItem) => item.value),
-        ...currentData.value.inspectionByPerson.map((item: WorkOrderItem) => item.value),
-        ...currentData.value.repairByPerson.map((item: WorkOrderItem) => item.value),
-        ...currentData.value.laborByPerson.map((item: WorkOrderItem) => item.value)
-      ]
-      return Math.max(...allValues)
-    })
-
-    const maxProjectValue = computed(() => {
-      return Math.max(...currentData.value.topProjects.map((item: WorkOrderItem) => item.value))
-    })
-
-    const handleYearChange = () => {
-      console.log('Year changed to:', selectedYear.value)
-    }
-
-    const toggleSidebar = () => {
-      console.log('Toggle sidebar')
-    }
 
     return {
       selectedYear,
       availableYears,
       currentData,
-      maxValue,
+      loading,
       maxProjectValue,
-      handleYearChange,
-      toggleSidebar
+      toggleSidebar,
+      handleYearChange
     }
   }
 })
@@ -364,7 +246,8 @@ export default defineComponent({
 
 <style scoped>
 .statistics-page {
-  background: #fff;
+  padding: 20px;
+  background: #f5f5f5;
   min-height: 100vh;
 }
 
@@ -372,129 +255,126 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background: #F5F7FA;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
 }
 
 .menu-toggle {
   cursor: pointer;
-  padding: 8px;
-  border-radius: 4px;
-  transition: background 0.2s;
+  padding: 10px;
+  border-radius: 6px;
+  transition: background 0.3s;
 }
 
 .menu-toggle:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: #e8e8e8;
 }
 
 .year-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .year-label {
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
+  font-weight: 600;
+  color: #333;
 }
 
 .year-select {
-  padding: 6px 12px;
-  border: 1px solid #d0d7de;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
-  cursor: pointer;
-  outline: none;
-}
-
-.year-select:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+  background: white;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 6px 12px;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  gap: 10px;
 }
 
 .user-avatar {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
 }
 
 .user-name {
-  font-size: 14px;
+  font-weight: 600;
   color: #333;
-  font-weight: 500;
 }
 
 .content {
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .cards-section {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
 }
 
 .stat-card {
-  padding: 20px;
+  background: white;
   border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s, box-shadow 0.2s;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .card-label {
   font-size: 14px;
   color: #666;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .card-value {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: bold;
+  color: #333;
 }
 
-.card-near-expiry .card-value {
-  color: #1976d2;
+.card-near-expiry {
+  border-left: 4px solid #ff9800;
 }
 
-.card-overdue .card-value {
-  color: #d32f2f;
+.card-overdue {
+  border-left: 4px solid #dc2626;
 }
 
-.card-completed .card-value,
-.card-regular .card-value,
-.card-temporary .card-value,
-.card-sporadic .card-value {
-  color: #424242;
+.card-completed {
+  border-left: 4px solid #1976d2;
+}
+
+.card-regular {
+  border-left: 4px solid #059669;
+}
+
+.card-temporary {
+  border-left: 4px solid #d97706;
+}
+
+.card-sporadic {
+  border-left: 4px solid #722ed1;
 }
 
 .charts-section {
@@ -505,188 +385,178 @@ export default defineComponent({
 
 .chart-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 20px;
 }
 
 .chart-container {
-  background: #fff;
+  background: white;
   border-radius: 8px;
   padding: 20px;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .chart-title {
   font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin: 0 0 16px 0;
+  margin-bottom: 15px;
 }
 
 .bar-chart {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-.horizontal-bar-chart .bar-item {
+.horizontal-bar-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bar-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.horizontal-bar-chart .bar-label {
-  min-width: 80px;
+.bar-label {
+  min-width: 100px;
   font-size: 14px;
   color: #666;
-  text-align: right;
 }
 
-.horizontal-bar-chart .bar-wrapper {
+.bar-wrapper {
   flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  padding: 0 8px;
-}
-
-.horizontal-bar-chart .bar {
   height: 24px;
-  background: linear-gradient(90deg, #1976d2 0%, #42a5f5 100%);
+  background: #f0f0f0;
   border-radius: 4px;
-  transition: width 0.3s ease;
-  min-width: 0;
+  overflow: hidden;
 }
 
-.horizontal-bar-chart .bar-value {
-  font-size: 14px;
+.bar {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.5s ease;
+}
+
+.bar-value {
+  margin-left: 10px;
   font-weight: 600;
   color: #333;
-}
-
-.pie-chart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 20px;
-}
-
-.pie-chart-container {
-  width: 200px;
-  height: 200px;
-  position: relative;
-}
-
-.pie-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.pie-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #666;
-}
-
-.legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
 }
 
 .vertical-bar-chart {
   display: flex;
   align-items: flex-end;
-  justify-content: space-around;
-  height: 250px;
-  padding: 20px 0;
+  height: 300px;
+  gap: 15px;
 }
 
 .vertical-bars {
   display: flex;
   align-items: flex-end;
-  justify-content: space-around;
-  width: 100%;
-  height: 250px;
-  padding: 20px 0;
+  height: 100%;
+  gap: 10px;
 }
 
 .vertical-bar-item {
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  flex: 1;
+  gap: 5px;
 }
 
 .vertical-bar-wrapper {
+  width: 60px;
+  height: 100%;
+  background: #f0f0f0;
+  border-radius: 4px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
-  height: 200px;
-  width: 100%;
-  position: relative;
 }
 
 .vertical-bar {
-  width: 40px;
-  background: linear-gradient(180deg, #1976d2 0%, #42a5f5 100%);
-  border-radius: 4px 4px 0 0;
-  transition: height 0.3s ease;
-  min-height: 0;
+  width: 100%;
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  transition: height 0.5s ease;
 }
 
 .vertical-bar-value {
-  font-size: 12px;
+  margin-bottom: 5px;
   font-weight: 600;
   color: #333;
-  margin-top: 4px;
 }
 
 .vertical-bar-label {
   font-size: 12px;
   color: #666;
   text-align: center;
-  margin-top: 4px;
 }
 
-@media (max-width: 1400px) {
-  .cards-section {
-    grid-template-columns: repeat(3, 1fr);
-  }
+.pie-chart {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
-@media (max-width: 1024px) {
-  .cards-section {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .chart-row {
-    grid-template-columns: 1fr;
-  }
+.pie-chart-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-@media (max-width: 768px) {
-  .cards-section {
-    grid-template-columns: 1fr;
+.pie-svg {
+  width: 200px;
+  height: 200px;
+}
+
+.pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
   }
-  
-  .top-bar {
-    flex-direction: column;
-    gap: 12px;
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

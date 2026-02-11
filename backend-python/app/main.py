@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
-from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, inspection_item, overdue_alert, temporary_repair, spot_work, spare_parts, spare_parts_stock
+from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, inspection_item, overdue_alert, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics
 from app.database import Base, engine
 import logging
 
@@ -50,6 +50,7 @@ app.include_router(temporary_repair.router, prefix=settings.api_prefix)
 app.include_router(spot_work.router, prefix=settings.api_prefix)
 app.include_router(spare_parts.router, prefix=settings.api_prefix)
 app.include_router(spare_parts_stock.router, prefix=settings.api_prefix)
+app.include_router(statistics.router, prefix=settings.api_prefix)
 
 
 @app.get("/")
