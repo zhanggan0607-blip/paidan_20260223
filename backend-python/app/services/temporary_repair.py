@@ -1,9 +1,9 @@
 from typing import List, Optional, Union
-from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.temporary_repair import TemporaryRepairRepository
+from app.exceptions import NotFoundException, DuplicateException
 from pydantic import BaseModel
 
 
@@ -65,27 +65,18 @@ class TemporaryRepairService:
     def get_by_id(self, id: int) -> TemporaryRepair:
         repair = self.repository.find_by_id(id)
         if not repair:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="维修单不存在"
-            )
+            raise NotFoundException("维修单不存在")
         return repair
     
     def get_by_repair_id(self, repair_id: str) -> TemporaryRepair:
         repair = self.repository.find_by_repair_id(repair_id)
         if not repair:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="维修单不存在"
-            )
+            raise NotFoundException("维修单不存在")
         return repair
     
     def create(self, dto: TemporaryRepairCreate) -> TemporaryRepair:
         if self.repository.exists_by_repair_id(dto.repair_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="维修单编号已存在"
-            )
+            raise DuplicateException("维修单编号已存在")
         
         repair = TemporaryRepair(
             repair_id=dto.repair_id,

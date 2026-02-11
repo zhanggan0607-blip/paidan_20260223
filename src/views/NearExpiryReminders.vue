@@ -159,7 +159,6 @@ export default defineComponent({
     })
 
     const search = () => {
-      console.log('search', filters.value)
     }
 
     const viewDetail = (row: Row) => {

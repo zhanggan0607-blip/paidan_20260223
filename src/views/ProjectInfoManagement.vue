@@ -450,16 +450,8 @@ export default defineComponent({
     }
 
     const loadData = async () => {
-      console.log('🔄 [前端] 开始加载数据...')
       loading.value = true
       try {
-        console.log('📤 [前端] 请求参数:', {
-          page: currentPage.value,
-          size: pageSize.value,
-          project_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined
-        })
-        
         const response = await projectInfoService.getList({
           page: currentPage.value,
           size: pageSize.value,
@@ -467,20 +459,14 @@ export default defineComponent({
           client_name: searchForm.clientName || undefined
         })
         
-        console.log('📥 [前端] 响应数据:', response)
-        
         if (response.code === 200) {
-          console.log('✅ [前端] 数据加载成功，记录数:', response.data.content.length)
           projectData.value = response.data.content
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
-          console.log('📋 [前端] 当前列表:', projectData.value)
         } else {
-          console.error('❌ [前端] 数据加载失败:', response.message)
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
-        console.error('❌ [前端] 加载数据异常:', error)
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
         loading.value = false
@@ -548,9 +534,7 @@ export default defineComponent({
     }
 
     const handleSave = async () => {
-      console.log('🔄 [前端] 开始保存项目...')
       if (!checkFormValid()) {
-        console.log('❌ [前端] 表单验证失败')
         return
       }
 
@@ -570,25 +554,19 @@ export default defineComponent({
           client_contact_info: formData.client_contact_info || undefined
         }
 
-        console.log('📤 [前端] 创建数据:', createData)
         const response = await projectInfoService.create(createData)
-        console.log('📥 [前端] 创建响应:', response)
         
         if (response.code === 200) {
-          console.log('✅ [前端] 创建成功')
           showToast('创建成功', 'success')
           closeModal()
           resetForm()
           
-          console.log('🔄 [前端] 重置到第一页并刷新数据...')
           currentPage.value = 0
           await loadData()
         } else {
-          console.error('❌ [前端] 创建失败:', response.message)
           showToast(response.message || '创建失败', 'error')
         }
       } catch (error: any) {
-        console.error('❌ [前端] 创建异常:', error)
         showToast(error.message || '创建失败，请检查网络连接', 'error')
       } finally {
         saving.value = false

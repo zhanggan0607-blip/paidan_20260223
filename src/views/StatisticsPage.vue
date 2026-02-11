@@ -192,7 +192,6 @@ export default defineComponent({
     const maxProjectValue = ref<number>(0)
 
     const toggleSidebar = () => {
-      console.log('切换侧边栏')
     }
 
     const handleYearChange = async () => {

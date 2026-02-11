@@ -185,7 +185,6 @@ export default defineComponent({
     }
 
     const handleAdd = () => {
-      console.log('Add new work order')
     }
 
     const handleView = (item: WorkItem) => {
@@ -196,7 +195,6 @@ export default defineComponent({
     }
 
     const handleEdit = (item: WorkItem) => {
-      console.log('Edit:', item)
     }
 
     const handleDelete = async (item: WorkItem) => {

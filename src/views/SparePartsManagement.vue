@@ -201,7 +201,6 @@ export default defineComponent({
     }
 
     const handleSearch = () => {
-      console.log('Search:', searchForm.value)
     }
 
     const handleJump = () => {

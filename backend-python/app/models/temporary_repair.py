@@ -1,5 +1,6 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index
+from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 
@@ -8,7 +9,7 @@ class TemporaryRepair(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     repair_id = Column(String(50), unique=True, nullable=False, comment="维修单编号")
-    project_id = Column(String(50), nullable=False, comment="项目编号")
+    project_id = Column(String(50), ForeignKey('project_info.project_id'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
     plan_start_date = Column(DateTime, nullable=False, comment="计划开始日期")
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
@@ -18,6 +19,8 @@ class TemporaryRepair(Base):
     remarks = Column(String(500), comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+    
+    project = relationship("ProjectInfo", back_populates="temporary_repairs")
     
     __table_args__ = (
         Index('idx_temp_repair_id', 'repair_id'),

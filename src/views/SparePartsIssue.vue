@@ -130,7 +130,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
-import type { ApiResponse, PaginatedResponse, SparePartsIssueQueryParams } from '@/types/api'
+import type { ApiResponse, PaginatedResponse } from '@/types/api'
 
 interface SparePartsIssueItem {
   id: number

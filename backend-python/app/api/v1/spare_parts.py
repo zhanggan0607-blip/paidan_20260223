@@ -3,8 +3,11 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.common import ApiResponse
-from app.models.temporary_repair import TemporaryRepair
-from datetime import datetime
+from app.models.spare_parts_usage import SparePartsUsage
+from app.services.spare_parts_usage import SparePartsUsageService
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/spare-parts", tags=["Spare Parts Management"])
@@ -19,35 +22,35 @@ def get_spare_parts_usage(
     pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
     db: Session = Depends(get_db)
 ):
-    query = db.query(TemporaryRepair)
-
-    if user:
-        query = query.filter(TemporaryRepair.maintenance_personnel.like(f'%{user}%'))
-
-    if product:
-        query = query.filter(TemporaryRepair.remarks.like(f'%{product}%'))
-
-    if project:
-        query = query.filter(TemporaryRepair.project_name.like(f'%{project}%'))
-
-    total = query.count()
-    items = query.offset(page * pageSize).limit(pageSize).all()
-
+    """查询备品备件领用记录"""
+    logger.info(f"查询备品备件领用记录: user={user}, product={product}, project={project}, page={page}, pageSize={pageSize}")
+    
+    service = SparePartsUsageService(db)
+    items, total = service.get_all(
+        page=page, 
+        size=pageSize, 
+        user=user, 
+        product=product, 
+        project=project
+    )
+    
     result_items = []
     for item in items:
         result_items.append({
             'id': item.id,
-            'projectId': item.project_id,
-            'projectName': item.project_name,
-            'productName': item.remarks or '',
-            'brand': '',
-            'model': '',
-            'quantity': 1,
-            'userName': item.maintenance_personnel or '',
-            'issueTime': item.created_at.strftime('%Y-%m-%d %H:%M:%S') if item.created_at else '',
-            'unit': '件'
+            'projectId': item.project_id or '',
+            'projectName': item.project_name or '',
+            'productName': item.product_name,
+            'brand': item.brand or '',
+            'model': item.model or '',
+            'quantity': item.quantity,
+            'userName': item.user_name,
+            'issueTime': item.issue_time,
+            'unit': item.unit
         })
 
+    logger.info(f"查询成功: 返回{len(result_items)}条记录，总计{total}条")
+    
     return ApiResponse(
         code=200,
         message="success",

@@ -269,13 +269,6 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        console.log('📤 [前端] 请求参数:', {
-          page: currentPage.value - 1,
-          size: pageSize.value,
-          project_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined
-        })
-        
         const response = await temporaryRepairService.getList({
           page: currentPage.value - 1,
           size: pageSize.value,
@@ -283,20 +276,14 @@ export default defineComponent({
           client_name: searchForm.value.client_name || undefined
         })
         
-        console.log('📥 [前端] 响应数据:', response)
-        
         if (response.code === 200) {
-          console.log('✅ [前端] 数据加载成功，记录数:', response.data.content.length)
           repairData.value = response.data.content
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
-          console.log('📋 [前端] 当前列表:', repairData.value)
         } else {
-          console.error('❌ [前端] 数据加载失败:', response.message)
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
-        console.error('❌ [前端] 加载数据异常:', error)
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
         loading.value = false

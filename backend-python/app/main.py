@@ -3,10 +3,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import HTTPConnection
 from app.config import get_settings
 from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, inspection_item, overdue_alert, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics
 from app.database import Base, engine
+from app.exceptions import BusinessException
 import logging
+import time
+import uuid
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -40,6 +44,39 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """记录请求日志中间件"""
+    start_time = time.time()
+    request_id = str(uuid.uuid4())
+    
+    request.state.request_id = request_id
+    request.state.start_time = start_time
+    
+    logger.info(f"[{request_id}] {request.method} {request.url.path} - 开始")
+    
+    try:
+        response = await call_next(request)
+        
+        process_time = (time.time() - start_time) * 1000
+        status_code = response.status_code
+        
+        logger.info(
+            f"[{request_id}] {request.method} {request.url.path} - "
+            f"状态码: {status_code}, "
+            f"处理时间: {process_time:.2f}ms"
+        )
+        
+        return response
+    except Exception as e:
+        process_time = (time.time() - start_time) * 1000
+        logger.error(
+            f"[{request_id}] {request.method} {request.url.path} - "
+            f"异常: {str(e)}, "
+            f"处理时间: {process_time:.2f}ms"
+        )
+        raise
+
 app.include_router(project_info.router, prefix=settings.api_prefix)
 app.include_router(maintenance_plan.router, prefix=settings.api_prefix)
 app.include_router(personnel.router, prefix=settings.api_prefix)
@@ -66,6 +103,15 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.exception_handler(BusinessException)
+async def business_exception_handler(request: Request, exc: BusinessException):
+    """处理业务异常"""
+    return JSONResponse(
+        status_code=exc.code,
+        content={"code": exc.code, "message": exc.message, "data": None},
+    )
 
 
 @app.exception_handler(StarletteHTTPException)
