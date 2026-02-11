@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.temporary_repair import TemporaryRepairRepository
 from app.exceptions import NotFoundException, DuplicateException
+from app.utils.dictionary_helper import get_default_temporary_repair_status
 from pydantic import BaseModel
-
 
 class TemporaryRepairCreate(BaseModel):
     repair_id: str
@@ -15,7 +15,7 @@ class TemporaryRepairCreate(BaseModel):
     plan_end_date: Union[str, datetime]
     client_name: str
     maintenance_personnel: Optional[str] = None
-    status: str = "未进行"
+    status: Optional[str] = None
     remarks: Optional[str] = None
 
 
@@ -78,6 +78,8 @@ class TemporaryRepairService:
         if self.repository.exists_by_repair_id(dto.repair_id):
             raise DuplicateException("维修单编号已存在")
         
+        default_status = get_default_temporary_repair_status(self.repository._TemporaryRepairRepository__db)
+        
         repair = TemporaryRepair(
             repair_id=dto.repair_id,
             project_id=dto.project_id,
@@ -86,7 +88,7 @@ class TemporaryRepairService:
             plan_end_date=self._parse_date(dto.plan_end_date),
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
-            status=dto.status,
+            status=dto.status or default_status,
             remarks=dto.remarks
         )
         

@@ -32,7 +32,7 @@ class PeriodicInspectionCreate(BaseModel):
     plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: Optional[str] = Field(None, max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
 

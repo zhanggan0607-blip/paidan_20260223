@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.periodic_inspection import PeriodicInspection
 from app.repositories.periodic_inspection import PeriodicInspectionRepository
 from app.schemas.periodic_inspection import PeriodicInspectionCreate, PeriodicInspectionUpdate
+from app.utils.dictionary_helper import get_default_periodic_inspection_status
 
 
 class PeriodicInspectionService:
@@ -63,6 +64,8 @@ class PeriodicInspectionService:
                 detail="巡检单编号已存在"
             )
         
+        default_status = get_default_periodic_inspection_status(self.repository._PeriodicInspectionRepository__db)
+        
         inspection = PeriodicInspection(
             inspection_id=dto.inspection_id,
             project_id=dto.project_id,
@@ -71,7 +74,7 @@ class PeriodicInspectionService:
             plan_end_date=self._parse_date(dto.plan_end_date),
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
-            status=dto.status,
+            status=dto.status or default_status,
             remarks=dto.remarks
         )
         

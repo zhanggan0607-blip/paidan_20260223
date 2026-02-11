@@ -382,11 +382,9 @@
                 </label>
                 <select class="form-input" v-model="editData.plan_type">
                   <option value="">请选择</option>
-                  <option value="定期维保">定期维保</option>
-                  <option value="预防性维保">预防性维保</option>
-                  <option value="故障维修">故障维修</option>
-                  <option value="巡检">巡检</option>
-                  <option value="其他">其他</option>
+                  <option v-for="option in planTypeOptions" :key="option.dict_key" :value="option.dict_value">
+                    {{ option.dict_label }}
+                  </option>
                 </select>
               </div>
               <div class="form-item">
@@ -451,11 +449,9 @@
                 </label>
                 <select class="form-input" v-model="editData.plan_status">
                   <option value="">请选择</option>
-                  <option value="待执行">待执行</option>
-                  <option value="执行中">执行中</option>
-                  <option value="已完成">已完成</option>
-                  <option value="已取消">已取消</option>
-                  <option value="已延期">已延期</option>
+                  <option v-for="option in planStatusOptions" :key="option.dict_key" :value="option.dict_value">
+                    {{ option.dict_label }}
+                  </option>
                 </select>
               </div>
               <div class="form-item">
@@ -464,11 +460,9 @@
                 </label>
                 <select class="form-input" v-model="editData.execution_status">
                   <option value="">请选择</option>
-                  <option value="未开始">未开始</option>
-                  <option value="进行中">进行中</option>
-                  <option value="已完成">已完成</option>
-                  <option value="已取消">已取消</option>
-                  <option value="异常">异常</option>
+                  <option v-for="option in executionStatusOptions" :key="option.dict_key" :value="option.dict_value">
+                    {{ option.dict_label }}
+                  </option>
                 </select>
               </div>
               <div class="form-item">
@@ -512,6 +506,7 @@ import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted
 import { maintenancePlanService, type MaintenancePlan, type MaintenancePlanCreate, type MaintenancePlanUpdate } from '../services/maintenancePlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
+import { dictionaryService, dictionaryTypes, type Dictionary } from '../services/dictionary'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 
@@ -542,6 +537,9 @@ export default defineComponent({
     const totalPages = ref(0)
     const projectList = ref<ProjectInfo[]>([])
     const personnelList = ref<string[]>([])
+    const planTypeOptions = ref<Dictionary[]>([])
+    const planStatusOptions = ref<Dictionary[]>([])
+    const executionStatusOptions = ref<Dictionary[]>([])
 
     const toast = reactive({
       visible: false,
@@ -557,6 +555,28 @@ export default defineComponent({
         }
       } catch (error) {
         console.error('加载人员选项失败:', error)
+      }
+    }
+
+    const loadDictionary = async () => {
+      try {
+        const [planTypeRes, planStatusRes, executionStatusRes] = await Promise.all([
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_PLAN_TYPE),
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_PLAN_STATUS),
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_EXECUTION_STATUS)
+        ])
+        
+        if (planTypeRes.code === 200 && planTypeRes.data) {
+          planTypeOptions.value = planTypeRes.data
+        }
+        if (planStatusRes.code === 200 && planStatusRes.data) {
+          planStatusOptions.value = planStatusRes.data
+        }
+        if (executionStatusRes.code === 200 && executionStatusRes.data) {
+          executionStatusOptions.value = executionStatusRes.data
+        }
+      } catch (error) {
+        console.error('加载字典数据失败:', error)
       }
     }
 
@@ -1065,6 +1085,7 @@ export default defineComponent({
     onMounted(() => {
       loadData()
       loadPersonnel()
+      loadDictionary()
     })
 
     onUnmounted(() => {
@@ -1093,6 +1114,9 @@ export default defineComponent({
       toast,
       projectList,
       personnelList,
+      planTypeOptions,
+      planStatusOptions,
+      executionStatusOptions,
       openModal,
       closeModal,
       handleSave,

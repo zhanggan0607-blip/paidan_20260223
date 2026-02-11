@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.spot_work import SpotWork
 from app.repositories.spot_work import SpotWorkRepository
+from app.utils.dictionary_helper import get_default_spot_work_status
 from pydantic import BaseModel
 
 
@@ -15,7 +16,7 @@ class SpotWorkCreate(BaseModel):
     plan_end_date: Union[str, datetime]
     client_name: str
     maintenance_personnel: Optional[str] = None
-    status: str = "未进行"
+    status: Optional[str] = None
     remarks: Optional[str] = None
 
 
@@ -87,6 +88,8 @@ class SpotWorkService:
                 detail="用工单编号已存在"
             )
         
+        default_status = get_default_spot_work_status(self.repository._SpotWorkRepository__db)
+        
         work = SpotWork(
             work_id=dto.work_id,
             project_id=dto.project_id,
@@ -95,7 +98,7 @@ class SpotWorkService:
             plan_end_date=self._parse_date(dto.plan_end_date),
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
-            status=dto.status,
+            status=dto.status or default_status,
             remarks=dto.remarks
         )
         

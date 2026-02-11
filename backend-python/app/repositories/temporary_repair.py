@@ -8,7 +8,11 @@ logger = logging.getLogger(__name__)
 
 class TemporaryRepairRepository:
     def __init__(self, db: Session):
-        self.db = db
+        self._db = db
+    
+    @property
+    def db(self):
+        return self._db
 
     def find_all(
         self,
