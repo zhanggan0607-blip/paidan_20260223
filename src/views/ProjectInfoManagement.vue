@@ -341,7 +341,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted } from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { projectInfoService, type ProjectInfo, type ProjectInfoCreate, type ProjectInfoUpdate } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
@@ -422,6 +422,8 @@ export default defineComponent({
       client_contact_info: ''
     })
 
+    let abortController: AbortController | null = null
+
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
@@ -450,6 +452,11 @@ export default defineComponent({
     }
 
     const loadData = async () => {
+      if (abortController) {
+        abortController.abort()
+      }
+      abortController = new AbortController()
+
       loading.value = true
       try {
         const response = await projectInfoService.getList({
@@ -467,6 +474,9 @@ export default defineComponent({
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
         loading.value = false
@@ -726,6 +736,12 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+    })
+
+    onUnmounted(() => {
+      if (abortController) {
+        abortController.abort()
+      }
     })
 
     return {

@@ -165,7 +165,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
 import { statisticsService, StatisticsOverview, WorkByPerson, CompletionRate, TopProject } from '@/services/statistics'
 
 export default defineComponent({
@@ -191,10 +191,17 @@ export default defineComponent({
     const loading = ref<boolean>(false)
     const maxProjectValue = ref<number>(0)
 
+    let abortController: AbortController | null = null
+
     const toggleSidebar = () => {
     }
 
     const handleYearChange = async () => {
+      if (abortController) {
+        abortController.abort()
+      }
+      abortController = new AbortController()
+
       loading.value = true
       try {
         const overview = await statisticsService.getStatisticsOverview(selectedYear.value)
@@ -220,7 +227,9 @@ export default defineComponent({
 
         maxProjectValue.value = Math.max(...topProjects.map(p => p.value), 0)
       } catch (error) {
-        console.error('加载统计数据失败:', error)
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
       } finally {
         loading.value = false
       }
@@ -228,6 +237,12 @@ export default defineComponent({
 
     onMounted(() => {
       handleYearChange()
+    })
+
+    onUnmounted(() => {
+      if (abortController) {
+        abortController.abort()
+      }
     })
 
     return {
