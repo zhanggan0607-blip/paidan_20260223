@@ -245,9 +245,9 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list') as ApiResponse<User[]>
+        const response = await apiClient.get('/personnel/all/list')
         if (response && response.code === 200 && response.data) {
-          userList.value = (response.data || []).filter((user: User) => user && user.role === '材料员')
+          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === '材料员')
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)
@@ -256,9 +256,9 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } }) as ApiResponse<Project[]>
+        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } })
         if (response && response.code === 200 && response.data) {
-          projectList.value = (response.data || []).filter((project: Project) => project && project.id && project.name)
+          projectList.value = (Array.isArray(response.data) ? response.data : []).filter((project: Project) => project && project.id && project.name)
         }
       } catch (error) {
         console.error('加载项目列表失败:', error)
