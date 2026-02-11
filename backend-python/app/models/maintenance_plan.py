@@ -32,6 +32,8 @@ class MaintenancePlan(Base):
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
+    project = relationship("ProjectInfo", back_populates="maintenance_plans")
+    
     __table_args__ = (
         Index('idx_maintenance_plan_id', 'plan_id'),
         Index('idx_maintenance_project_id', 'project_id'),

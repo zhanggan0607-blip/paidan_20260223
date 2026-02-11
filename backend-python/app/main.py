@@ -27,7 +27,7 @@ async def startup_event():
     """应用启动时创建数据库表"""
     logger.info("正在创建数据库表...")
     try:
-        Base.metadata.create_all(bind=engine, checkfirst=True)
+        Base.metadata.create_all(bind=engine, checkfirst=False)
         logger.info("数据库表创建成功")
     except Exception as e:
         if "already exists" not in str(e).lower():
