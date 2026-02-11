@@ -4,7 +4,7 @@ const API_BASE_URL = 'http://localhost:8080/api/v1'
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -18,37 +18,18 @@ apiClient.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${token}`
     }
     
-    console.log('📤 API请求:', {
-      url: `${config.baseURL}${config.url}`,
-      method: config.method?.toUpperCase(),
-      headers: config.headers,
-      data: config.data
-    })
-    
     return config
   },
   (error) => {
-    console.error('❌ 请求拦截器错误:', error)
     return Promise.reject(error)
   }
 )
 
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log('✅ API响应:', {
-      status: response.status,
-      statusText: response.statusText,
-      data: response.data
-    })
     return response.data
   },
   (error) => {
-    console.error('❌ 响应拦截器错误:', {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data
-    })
-    
     if (error.response) {
       const { status, data } = error.response
       
