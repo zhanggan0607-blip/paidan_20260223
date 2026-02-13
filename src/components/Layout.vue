@@ -122,6 +122,7 @@ export default defineComponent({
           label: '系统管理',
           children: [
             { id: 'personnel', label: '人员管理', path: '/personnel' },
+            { id: 'customer', label: '客户管理', path: '/customer' },
             { id: 'inspection-item', label: '巡检事项管理', path: '/inspection-item' }
           ]
         }

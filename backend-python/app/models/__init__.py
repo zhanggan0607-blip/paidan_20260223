@@ -8,6 +8,7 @@ from app.models.inspection_item import InspectionItem
 from app.models.spare_parts_stock import SparePartsStock
 from app.models.spare_parts_inbound import SparePartsInbound
 from app.models.work_plan import WorkPlan
+from app.models.customer import Customer
 
 __all__ = [
     'PeriodicInspection',
@@ -19,5 +20,6 @@ __all__ = [
     'InspectionItem',
     'SparePartsStock',
     'SparePartsInbound',
-    'WorkPlan'
+    'WorkPlan',
+    'Customer'
 ]

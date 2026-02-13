@@ -1,22 +1,22 @@
 <template>
-  <div class="personnel-management">
+  <div class="customer-management">
     <LoadingSpinner :visible="loading" text="加载中..." />
     <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
 
     <div class="search-section">
       <div class="search-form">
         <div class="search-item">
-          <label class="search-label">姓名：</label>
+          <label class="search-label">客户单位：</label>
           <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.name" />
         </div>
         <div class="search-item">
-          <label class="search-label">部门：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.department" />
+          <label class="search-label">客户联系人：</label>
+          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.contact_person" />
         </div>
       </div>
       <div class="search-actions">
         <button class="btn btn-add" @click="openModal">
-          + 新增人员
+          + 新增客户
         </button>
         <button class="btn btn-search" @click="handleSearch">
           搜索
@@ -29,26 +29,26 @@
         <thead>
           <tr>
             <th>序号</th>
-            <th>姓名</th>
-            <th>性别</th>
-            <th>部门</th>
-            <th>角色</th>
-            <th>联系电话</th>
+            <th>客户单位</th>
+            <th>客户地址</th>
+            <th>客户联系人</th>
+            <th>客户联系方式</th>
+            <th>客户联系人职位</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in personnelData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+          <tr v-for="(item, index) in customerData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.name }}</td>
-            <td>{{ item.gender }}</td>
-            <td>{{ item.department || '-' }}</td>
-            <td :class="getRoleClass(item.role)">{{ item.role }}</td>
+            <td>{{ item.address || '-' }}</td>
+            <td>{{ item.contact_person || '-' }}</td>
             <td>{{ item.phone || '-' }}</td>
+            <td>{{ item.contact_position || '-' }}</td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)" v-if="canEdit(item)">编辑</a>
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)" v-if="canDelete(item)">删除</a>
+              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
+              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
             </td>
           </tr>
         </tbody>
@@ -92,7 +92,7 @@
     <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">{{ isEditMode ? '编辑人员' : '新增人员' }}</h3>
+          <h3 class="modal-title">{{ isEditMode ? '编辑客户' : '新增客户' }}</h3>
           <button class="modal-close" @click="closeModal">×</button>
         </div>
         <div class="modal-body">
@@ -100,46 +100,31 @@
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 姓名
+                  <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.name" maxlength="50" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.name" maxlength="100" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 性别
+                  <span class="required">*</span> 客户联系人
                 </label>
-                <select class="form-input" v-model="formData.gender">
-                  <option value="">请选择</option>
-                  <option value="男">男</option>
-                  <option value="女">女</option>
-                  <option value="其他">其他</option>
-                </select>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.contact_person" maxlength="50" />
               </div>
               <div class="form-item">
-                <label class="form-label">联系电话</label>
-                <input type="text" class="form-input" placeholder="请输入手机号码" v-model="formData.phone" maxlength="11" />
+                <label class="form-label">客户联系人职位</label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.contact_position" maxlength="50" />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">所属部门</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.department" maxlength="100" />
+                <label class="form-label">客户地址</label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.address" maxlength="200" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 角色
+                  <span class="required">*</span> 客户联系方式
                 </label>
-                <select class="form-input" v-model="formData.role" :disabled="!canEditRole()">
-                  <option value="">请选择</option>
-                  <option value="管理员">管理员</option>
-                  <option value="部门经理">部门经理</option>
-                  <option value="材料员">材料员</option>
-                  <option value="员工">员工</option>
-                </select>
-              </div>
-              <div class="form-item">
-                <label class="form-label">地址</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.address" maxlength="200" />
+                <input type="text" class="form-input" placeholder="请输入手机号码" v-model="formData.phone" maxlength="11" />
               </div>
             </div>
           </div>
@@ -160,41 +145,33 @@
     <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">查看人员</h3>
+          <h3 class="modal-title">查看客户</h3>
           <button class="modal-close" @click="closeViewModal">×</button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">姓名</label>
+                <label class="form-label">客户单位</label>
                 <div class="form-value">{{ viewData.name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">性别</label>
-                <div class="form-value">{{ viewData.gender || '-' }}</div>
+                <label class="form-label">客户联系人</label>
+                <div class="form-value">{{ viewData.contact_person || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">联系电话</label>
-                <div class="form-value">{{ viewData.phone || '-' }}</div>
+                <label class="form-label">客户联系人职位</label>
+                <div class="form-value">{{ viewData.contact_position || '-' }}</div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">所属部门</label>
-                <div class="form-value">{{ viewData.department || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">角色</label>
-                <div class="form-value" :class="getRoleClass(viewData.role)">{{ viewData.role || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">地址</label>
+                <label class="form-label">客户地址</label>
                 <div class="form-value">{{ viewData.address || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">备注</label>
-                <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+                <label class="form-label">客户联系方式</label>
+                <div class="form-value">{{ viewData.phone || '-' }}</div>
               </div>
             </div>
           </div>
@@ -213,12 +190,13 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
-import { personnelService, type Personnel, type PersonnelCreate, type PersonnelUpdate } from '../services/personnel'
+import { ElMessageBox } from 'element-plus'
+import { customerService, type Customer, type CustomerCreate, type CustomerUpdate } from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 
 export default defineComponent({
-  name: 'PersonnelManagement',
+  name: 'CustomerManagement',
   components: {
     LoadingSpinner,
     Toast
@@ -226,7 +204,7 @@ export default defineComponent({
   setup() {
     const searchForm = reactive({
       name: '',
-      department: ''
+      contact_person: ''
     })
 
     const currentPage = ref(0)
@@ -239,7 +217,7 @@ export default defineComponent({
     const isEditMode = ref(false)
     const editingId = ref<number | null>(null)
     
-    const personnelData = ref<Personnel[]>([])
+    const customerData = ref<Customer[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
 
@@ -251,27 +229,22 @@ export default defineComponent({
 
     const formData = reactive({
       name: '',
-      gender: '',
-      phone: '',
-      department: '',
-      role: '员工',
       address: '',
+      contact_person: '',
+      phone: '',
+      contact_position: '',
       remarks: ''
     })
 
     let abortController: AbortController | null = null
 
-    const currentUserRole = ref('管理员')
-    const currentUserDepartment = ref('')
-
     const viewData = reactive({
       id: 0,
       name: '',
-      gender: '',
-      phone: '',
-      department: '',
-      role: '',
       address: '',
+      contact_person: '',
+      phone: '',
+      contact_position: '',
       remarks: ''
     })
 
@@ -283,42 +256,6 @@ export default defineComponent({
       toast.visible = true
     }
 
-    const getRoleClass = (role: string) => {
-      switch (role) {
-        case '管理员':
-          return 'role-admin'
-        case '部门经理':
-          return 'role-manager'
-        case '材料员':
-          return 'role-material'
-        case '员工':
-          return 'role-employee'
-        default:
-          return ''
-      }
-    }
-
-    const canEdit = (item: Personnel) => {
-      if (currentUserRole.value === '管理员') {
-        return true
-      }
-      if (currentUserRole.value === '部门经理' && item.department === currentUserDepartment.value) {
-        return true
-      }
-      return false
-    }
-
-    const canDelete = (item: Personnel) => {
-      if (currentUserRole.value === '管理员') {
-        return true
-      }
-      return false
-    }
-
-    const canEditRole = () => {
-      return currentUserRole.value === '管理员'
-    }
-
     const loadData = async () => {
       if (abortController) {
         abortController.abort()
@@ -327,17 +264,15 @@ export default defineComponent({
 
       loading.value = true
       try {
-        const response = await personnelService.getList({
+        const response = await customerService.getList({
           page: currentPage.value,
           size: pageSize.value,
           name: searchForm.name || undefined,
-          department: searchForm.department || undefined,
-          current_user_role: currentUserRole.value,
-          current_user_department: currentUserDepartment.value || undefined
+          contact_person: searchForm.contact_person || undefined
         })
         
         if (response.code === 200) {
-          personnelData.value = response.data.content
+          customerData.value = response.data.content
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
         } else {
@@ -360,23 +295,21 @@ export default defineComponent({
 
     const checkFormValid = (): boolean => {
       if (!formData.name?.trim()) {
-        showToast('请填写姓名', 'warning')
+        showToast('请填写客户单位', 'warning')
         return false
       }
-      if (!formData.gender?.trim()) {
-        showToast('请选择性别', 'warning')
+      if (!formData.contact_person?.trim()) {
+        showToast('请填写客户联系人', 'warning')
         return false
       }
-      if (!formData.role?.trim()) {
-        showToast('请选择角色', 'warning')
+      if (!formData.phone?.trim()) {
+        showToast('请填写客户联系方式', 'warning')
         return false
       }
-      if (formData.phone && formData.phone.trim()) {
-        const phonePattern = /^1[3-9]\d{9}$/
-        if (!phonePattern.test(formData.phone.trim())) {
-          showToast('请输入有效的手机号码', 'warning')
-          return false
-        }
+      const phonePattern = /^1[3-9]\d{9}$/
+      if (!phonePattern.test(formData.phone.trim())) {
+        showToast('请输入有效的手机号码', 'warning')
+        return false
       }
       return true
     }
@@ -393,11 +326,10 @@ export default defineComponent({
 
     const resetForm = () => {
       formData.name = ''
-      formData.gender = ''
-      formData.phone = ''
-      formData.department = ''
-      formData.role = '员工'
       formData.address = ''
+      formData.contact_person = ''
+      formData.phone = ''
+      formData.contact_position = ''
       formData.remarks = ''
     }
 
@@ -409,17 +341,16 @@ export default defineComponent({
       saving.value = true
       try {
         if (isEditMode.value && editingId.value !== null) {
-          const updateData: PersonnelUpdate = {
+          const updateData: CustomerUpdate = {
             name: formData.name,
-            gender: formData.gender,
-            phone: formData.phone || undefined,
-            department: formData.department || undefined,
-            role: formData.role,
             address: formData.address || undefined,
+            contact_person: formData.contact_person || undefined,
+            phone: formData.phone || undefined,
+            contact_position: formData.contact_position || undefined,
             remarks: formData.remarks || undefined
           }
 
-          const response = await personnelService.update(editingId.value, updateData)
+          const response = await customerService.update(editingId.value, updateData)
 
           if (response.code === 200) {
             showToast('更新成功', 'success')
@@ -429,17 +360,16 @@ export default defineComponent({
             showToast(response.message || '更新失败', 'error')
           }
         } else {
-          const createData: PersonnelCreate = {
+          const createData: CustomerCreate = {
             name: formData.name,
-            gender: formData.gender,
-            phone: formData.phone || undefined,
-            department: formData.department || undefined,
-            role: formData.role,
             address: formData.address || undefined,
+            contact_person: formData.contact_person || undefined,
+            phone: formData.phone || undefined,
+            contact_position: formData.contact_position || undefined,
             remarks: formData.remarks || undefined
           }
 
-          const response = await personnelService.create(createData)
+          const response = await customerService.create(createData)
 
           if (response.code === 200) {
             showToast('创建成功', 'success')
@@ -457,26 +387,24 @@ export default defineComponent({
       }
     }
 
-    const handleView = (item: Personnel) => {
+    const handleView = (item: Customer) => {
       viewData.id = item.id
       viewData.name = item.name
-      viewData.gender = item.gender
-      viewData.phone = item.phone || ''
-      viewData.department = item.department || ''
-      viewData.role = item.role
       viewData.address = item.address || ''
+      viewData.contact_person = item.contact_person || ''
+      viewData.phone = item.phone || ''
+      viewData.contact_position = item.contact_position || ''
       viewData.remarks = item.remarks || ''
       isViewModalOpen.value = true
     }
 
-    const handleEdit = (item: Personnel) => {
+    const handleEdit = (item: Customer) => {
       editingId.value = item.id
       formData.name = item.name
-      formData.gender = item.gender
-      formData.phone = item.phone || ''
-      formData.department = item.department || ''
-      formData.role = item.role
       formData.address = item.address || ''
+      formData.contact_person = item.contact_person || ''
+      formData.phone = item.phone || ''
+      formData.contact_position = item.contact_position || ''
       formData.remarks = item.remarks || ''
       isEditMode.value = true
       isModalOpen.value = true
@@ -486,24 +414,58 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
-    const handleDelete = async (item: Personnel) => {
-      if (!confirm('确定要删除该人员吗？')) {
+    const handleDelete = async (item: Customer) => {
+      try {
+        await ElMessageBox.confirm('确定要删除该客户吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+      } catch {
         return
       }
 
       loading.value = true
       try {
-        const response = await personnelService.delete(item.id)
+        const response = await customerService.delete(item.id)
         
         if (response.code === 200) {
-          showToast('删除成功', 'success')
+          showToast(response.message || '删除成功', 'success')
           await loadData()
         } else {
           showToast(response.message || '删除失败', 'error')
         }
       } catch (error: any) {
         console.error('删除失败:', error)
-        showToast(error.message || '删除失败，请检查网络连接', 'error')
+        if (error.status === 400 && error.message && error.message.includes('请确认是否级联删除')) {
+          ElMessageBox.confirm(error.message + '\n\n是否确认删除客户及其所有关联数据？', '提示', {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }).then(async () => {
+            loading.value = true
+            try {
+              const cascadeResponse = await customerService.delete(item.id, true)
+              if (cascadeResponse.code === 200) {
+                showToast(cascadeResponse.message || '删除成功', 'success')
+                await loadData()
+              } else {
+                showToast(cascadeResponse.message || '删除失败', 'error')
+              }
+            } catch (cascadeError: any) {
+              console.error('级联删除失败:', cascadeError)
+              showToast(cascadeError.message || '删除失败', 'error')
+            } finally {
+              loading.value = false
+            }
+          }).catch(() => {
+            loading.value = false
+          })
+        } else if (error.status === 400 && error.message) {
+          showToast(error.message, 'warning')
+        } else {
+          showToast(error.message || '删除失败，请检查网络连接', 'error')
+        }
       } finally {
         loading.value = false
       }
@@ -542,7 +504,7 @@ export default defineComponent({
 
     return {
       searchForm,
-      personnelData,
+      customerData,
       currentPage,
       pageSize,
       totalPages,
@@ -557,8 +519,6 @@ export default defineComponent({
       viewData,
       formData,
       toast,
-      currentUserRole,
-      currentUserDepartment,
       openModal,
       closeModal,
       handleSave,
@@ -568,18 +528,14 @@ export default defineComponent({
       handleJump,
       handlePageSizeChange,
       closeViewModal,
-      handleSearch,
-      getRoleClass,
-      canEdit,
-      canDelete,
-      canEditRole
+      handleSearch
     }
   }
 })
 </script>
 
 <style scoped>
-.personnel-management {
+.customer-management {
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -692,7 +648,7 @@ export default defineComponent({
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px;
+  min-width: 1000px;
 }
 
 .data-table thead {
@@ -755,26 +711,6 @@ export default defineComponent({
 
 .action-delete {
   color: #D32F2F;
-}
-
-.role-admin {
-  color: #D32F2F;
-  font-weight: 600;
-}
-
-.role-manager {
-  color: #1976D2;
-  font-weight: 600;
-}
-
-.role-employee {
-  color: #666;
-  font-weight: 500;
-}
-
-.role-material {
-  color: #FF9800;
-  font-weight: 600;
 }
 
 .pagination-section {
@@ -902,7 +838,7 @@ export default defineComponent({
 .modal-container {
   background: #fff;
   border-radius: 8px;
-  width: 1000px;
+  width: 800px;
   max-width: 95vw;
   max-height: 90vh;
   overflow-y: auto;
@@ -962,7 +898,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 90px;
+  min-height: 80px;
   padding: 4px 0;
 }
 

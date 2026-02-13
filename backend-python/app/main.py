@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
-from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, inspection_item, overdue_alert, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan
+from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, inspection_item, overdue_alert, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer
 from app.database import Base, engine
 from app.exceptions import BusinessException
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -97,6 +97,7 @@ app.include_router(statistics.router, prefix=settings.api_prefix)
 app.include_router(dictionary.router, prefix=settings.api_prefix)
 app.include_router(user_dashboard_config.router, prefix=settings.api_prefix)
 app.include_router(work_plan.router, prefix=settings.api_prefix)
+app.include_router(customer.router, prefix=settings.api_prefix)
 
 
 @app.get("/")

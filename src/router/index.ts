@@ -17,6 +17,7 @@ import SparePartsIssue from '@/views/SparePartsIssue.vue'
 import SparePartsStock from '@/views/SparePartsStock.vue'
 import SparePartsInventory from '@/views/SparePartsInventory.vue'
 import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
+import CustomerManagement from '@/views/CustomerManagement.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -91,6 +92,10 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/work-plan',
         component: WorkPlanManagement
+      },
+      {
+        path: '/customer',
+        component: CustomerManagement
       }
     ]
   }

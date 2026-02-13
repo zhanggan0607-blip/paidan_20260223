@@ -52,7 +52,6 @@
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
               <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑计划</a>
-              <a href="#" class="action-link action-maintenance" @click.prevent="handleMaintenance(item)">事项维护</a>
               <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
             </td>
           </tr>
@@ -1523,10 +1522,6 @@ export default defineComponent({
       })
     }
 
-    const handleMaintenance = (item: MaintenancePlan) => {
-      showToast('事项维护功能开发中', 'info')
-    }
-
     const handleJump = () => {
       const page = jumpPage.value
       if (page >= 1 && page <= totalPages.value) {
@@ -1595,7 +1590,6 @@ export default defineComponent({
       handleDelete,
       handleConfirm,
       handleCancelConfirm,
-      handleMaintenance,
       handleSearch,
       handleUpdate,
       handleJump,
@@ -1793,10 +1787,6 @@ export default defineComponent({
 
 .action-edit {
   color: #2196F3;
-}
-
-.action-maintenance {
-  color: #FF9800;
 }
 
 .action-delete {

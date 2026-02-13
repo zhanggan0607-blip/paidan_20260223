@@ -145,7 +145,7 @@
                 <label class="form-label">
                   <span class="required">*</span> 维修单编号
                 </label>
-                <input type="text" class="form-input" placeholder="请输入维修单编号" v-model="formData.repair_id" maxlength="50" />
+                <input type="text" class="form-input form-input-readonly" placeholder="请输入维修单编号" v-model="formData.repair_id" readonly />
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -179,7 +179,9 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">维修内容</label>
+                <label class="form-label">
+                  <span class="required">*</span> 维修内容
+                </label>
                 <input type="text" class="form-input" placeholder="请输入维修内容" v-model="formData.remarks" maxlength="500" />
               </div>
             </div>
@@ -338,11 +340,36 @@ export default defineComponent({
       }
     }
 
-    const handleProjectChange = () => {
+    const handleProjectChange = async () => {
       const selectedProject = projectList.value.find(p => p.project_name === formData.value.project_name)
       if (selectedProject) {
         formData.value.project_id = selectedProject.project_id
         formData.value.client_name = selectedProject.client_name
+        formData.value.maintenance_personnel = selectedProject.project_manager || ''
+        await generateRepairId()
+      }
+    }
+
+    const generateRepairId = async () => {
+      if (!formData.value.project_id) return
+      
+      try {
+        const response = await temporaryRepairService.getList({
+          page: 0,
+          size: 1000,
+          project_name: formData.value.project_name
+        })
+        
+        if (response.code === 200) {
+          const existingRepairs = response.data.content.filter(
+            item => item.project_id === formData.value.project_id
+          )
+          const nextNumber = existingRepairs.length + 1
+          formData.value.repair_id = `${formData.value.project_id}_BX_${String(nextNumber).padStart(3, '0')}`
+        }
+      } catch (error) {
+        console.error('生成维修单编号失败:', error)
+        formData.value.repair_id = `${formData.value.project_id}_BX_001`
       }
     }
 
@@ -381,6 +408,32 @@ export default defineComponent({
 
     const handleSave = async () => {
       console.log('Save:', formData.value)
+      
+      if (!formData.value.project_name) {
+        showToast('请选择项目名称', 'error')
+        return
+      }
+      if (!formData.value.repair_id) {
+        showToast('维修单编号不能为空', 'error')
+        return
+      }
+      if (!formData.value.plan_start_date) {
+        showToast('请选择计划开始日期', 'error')
+        return
+      }
+      if (!formData.value.plan_end_date) {
+        showToast('请选择计划结束日期', 'error')
+        return
+      }
+      if (!formData.value.maintenance_personnel) {
+        showToast('请选择运维人员', 'error')
+        return
+      }
+      if (!formData.value.remarks) {
+        showToast('请输入维修内容', 'error')
+        return
+      }
+      
       saving.value = true
       
       try {

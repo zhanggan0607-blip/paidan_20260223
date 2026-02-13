@@ -8,7 +8,8 @@ from app.models import (
     temporary_repair,
     spot_work,
     spare_parts_inbound,
-    spare_parts_stock
+    spare_parts_stock,
+    customer
 )
 import logging
 
