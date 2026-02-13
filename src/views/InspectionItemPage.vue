@@ -1,713 +1,633 @@
 <template>
   <div class="inspection-item-page">
-    <div class="breadcrumb-section">
-      <div class="breadcrumb">
-        <span class="breadcrumb-item">系统管理</span>
-        <span class="breadcrumb-separator">/</span>
-        <span class="breadcrumb-item active">巡检事项管理</span>
-      </div>
-    </div>
-
     <div class="content-body">
       <div class="tree-section">
-        <div class="tree-search-wrapper">
-          <div class="tree-search-box">
-            <span class="search-icon">🔍</span>
-            <input
-              type="text"
-              class="search-input"
-              placeholder="请输入内容"
-              v-model="searchKeyword"
-              @input="handleSearch"
-            />
-            <span v-if="searchKeyword" class="clear-icon" @click="clearSearch">×</span>
+        <div class="section-header">
+          <div class="section-title">
+            <span>巡检事项分类</span>
+          </div>
+          <div class="section-actions">
+            <el-button size="small" @click="handleExpandAll">
+              全部展开
+            </el-button>
+            <el-button size="small" @click="handleCollapseAll">
+              全部收起
+            </el-button>
           </div>
         </div>
-        <div class="tree-content" ref="treeContainer" @click="closeContextMenu">
-          <TreeNode
-            v-for="node in treeData"
-            :key="node.id"
-            :node="node"
-            :searchKeyword="searchKeyword"
-            :depth="0"
-            @select="handleNodeSelect"
-            @toggle="handleNodeToggle"
-            @drag="handleNodeDrag"
-            @add="handleAddNode"
-            @delete="handleDeleteNode"
-            @rename="handleRenameNode"
-            @contextmenu="handleContextMenu"
+
+        <div class="tree-toolbar">
+          <el-input
+            v-model="filterText"
+            placeholder="搜索分类..."
+            clearable
+            @clear="handleSearchClear"
           />
+          
+          <div class="toolbar-actions">
+            <el-checkbox v-model="showCheckbox" @change="handleCheckboxChange">
+              多选模式
+            </el-checkbox>
+            <el-button 
+              v-if="showCheckbox && checkedNodes.length > 0"
+              size="small" 
+              type="danger"
+              @click="handleBatchDelete"
+            >
+              批量删除 ({{ checkedNodes.length }})
+            </el-button>
+          </div>
         </div>
+
+        <div class="tree-content" @contextmenu.prevent>
+          <div v-if="loading" class="loading-container">
+            <el-icon class="is-loading"><Loading /></el-icon>
+            <span>加载中...</span>
+          </div>
+          <el-tree
+            v-else
+            ref="treeRef"
+            :data="treeData"
+            :props="defaultProps"
+            :filter-node-method="filterNode"
+            :highlight-current="true"
+            :expand-on-click-node="false"
+            :check-on-click-node="showCheckbox"
+            :show-checkbox="showCheckbox"
+            :check-strictly="false"
+            :draggable="true"
+            :allow-drop="allowDrop"
+            :allow-drag="allowDrag"
+            node-key="id"
+            :indent="24"
+            @node-click="handleNodeClick"
+            @node-contextmenu="handleContextMenu"
+            @check="handleCheck"
+            @node-drop="handleDrop"
+          >
+            <template #default="{ node, data }">
+              <div class="custom-tree-node">
+                <div class="node-content">
+                  <el-icon class="node-icon" :class="`level-${data.level}`">
+                    <component :is="getNodeIcon(data.level)" />
+                  </el-icon>
+                  <span class="node-label" :title="node.label">{{ node.label }}</span>
+                  <el-tag 
+                    v-if="data.level === 3 && data.check_content" 
+                    size="small" 
+                    type="success"
+                    class="node-tag"
+                  >
+                    已配置
+                  </el-tag>
+                </div>
+                <div class="node-actions" @click.stop>
+                  <el-button
+                    v-if="data.level < 3"
+                    type="primary"
+                    size="small"
+                    text
+                    @click.stop="handleAdd(data)"
+                  >
+                    新增
+                  </el-button>
+                  <el-button
+                    type="primary"
+                    size="small"
+                    text
+                    @click.stop="handleEdit(data)"
+                  >
+                    编辑
+                  </el-button>
+                  <el-button
+                    v-if="data.level !== 1"
+                    type="danger"
+                    size="small"
+                    text
+                    @click.stop="handleDelete(data)"
+                  >
+                    删除
+                  </el-button>
+                </div>
+              </div>
+            </template>
+          </el-tree>
+        </div>
+
         <div
-          v-if="contextMenuVisible()"
+          v-if="contextMenuVisible"
           class="context-menu"
           :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
           @click.stop
         >
-          <div class="context-menu-item" @click="handleAddFromMenu">新增子节点</div>
-          <div class="context-menu-item" @click="handleRenameFromMenu">重命名</div>
-          <div class="context-menu-item context-menu-delete" @click="handleDeleteFromMenu" v-if="!isRootNode">删除节点</div>
+          <div class="context-menu-item" @click="handleAddFromMenu">
+            新增子节点
+          </div>
+          <div class="context-menu-item" @click="handleAddSiblingFromMenu">
+            新增同级节点
+          </div>
+          <div class="context-menu-item" @click="handleEditFromMenu">
+            重命名
+          </div>
+          <div class="context-menu-item" v-if="contextMenuNode && contextMenuNode.level !== 1" @click="handleDeleteFromMenu">
+            删除节点
+          </div>
         </div>
       </div>
 
       <div class="divider"></div>
 
       <div class="form-section">
-        <template v-if="selectedNode && selectedNode.level >= 3">
-          <div class="form-title-row">
-            <span class="form-title">详细检查要求</span>
-            <span class="form-hint">（最多1000字符）</span>
-          </div>
-          <div class="textarea-wrapper" :class="{ 'textarea-error': isOverLimit }">
-            <textarea
-              class="form-textarea"
-              placeholder="请输入多行文本"
-              v-model="checkRequirement"
-              @input="handleTextareaInput"
-              @keydown="handleTextareaKeydown"
-            ></textarea>
-            <div class="char-count" :class="{ 'char-count-error': isOverLimit }">
-              {{ checkRequirement.length }}字 / 1000字
+        <template v-if="selectedNode && selectedNode.level === 3">
+          <div class="form-header">
+            <div class="form-title">
+              <span>详细检查要求</span>
+            </div>
+            <div class="form-subtitle">
+              当前选中：{{ selectedNode.item_name }}
             </div>
           </div>
+          
+          <div class="form-content">
+            <el-form :model="formData" label-position="top">
+              <el-form-item label="检查内容">
+                <el-input
+                  v-model="formData.check_content"
+                  type="textarea"
+                  :rows="5"
+                  placeholder="请输入检查内容..."
+                  maxlength="1000"
+                  show-word-limit
+                />
+              </el-form-item>
+              <el-form-item label="检查标准">
+                <el-input
+                  v-model="formData.check_standard"
+                  type="textarea"
+                  :rows="5"
+                  placeholder="请输入检查标准..."
+                  maxlength="1000"
+                  show-word-limit
+                />
+              </el-form-item>
+            </el-form>
+          </div>
+
           <div class="form-actions">
-            <button
-              class="btn btn-save"
-              @click="handleSave"
-              :disabled="isSaveDisabled || isOverLimit"
-            >
+            <el-button @click="handleCancel">取消</el-button>
+            <el-button type="primary" @click="handleSave" :loading="saving">
               保存
-            </button>
-          </div>
-          <div v-if="saveSuccess" class="save-success-toast">
-            ✓ 保存成功
-          </div>
-          <div v-if="showEmptyAlert" class="save-error-toast">
-            ⚠ 请输入检查要求
+            </el-button>
           </div>
         </template>
+        
         <template v-else>
-          <div class="no-selection-tip">请选择三级及以上节点</div>
+          <div class="empty-state">
+            <el-empty description="请选择三级检查项进行编辑">
+              <template #image>
+                <el-icon :size="64" color="#dcdfe6"><Document /></el-icon>
+              </template>
+            </el-empty>
+            <div class="empty-hint">
+              <el-alert
+                title="提示"
+                type="info"
+                :closable="false"
+              >
+                一、二级节点仅作为分类使用，无法编辑检查要求
+              </el-alert>
+            </div>
+          </div>
         </template>
       </div>
     </div>
+
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="400px"
+      @close="handleDialogClose"
+    >
+      <el-form :model="dialogForm" label-width="80px">
+        <el-form-item label="节点名称">
+          <el-input
+            v-model="dialogForm.item_name"
+            placeholder="请输入节点名称"
+            maxlength="50"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="事项类型">
+          <el-input
+            v-model="dialogForm.item_type"
+            placeholder="请输入事项类型"
+            maxlength="50"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleDialogConfirm" :loading="dialogLoading">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
+<script lang="ts" setup>
+import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import type { ElTree } from 'element-plus'
+import type Node from 'element-plus/es/components/tree/src/model/node'
+import { inspectionItemService, type InspectionItem } from '@/services/inspectionItem'
 
-interface TreeNodeData {
-  id: string
+interface TreeNodeData extends InspectionItem {
   label: string
-  level: number
-  expanded?: boolean
-  selected?: boolean
-  matched?: boolean
-  checkRequirement?: string
   children?: TreeNodeData[]
 }
 
-interface ContextMenuData {
-  visible: boolean
-  x: number
-  y: number
-  node: TreeNodeData | null
+interface TreeProps {
+  label: string
+  children?: string
+  disabled?: boolean
+  isLeaf?: boolean
 }
 
-const TreeNode = defineComponent({
-  name: 'TreeNode',
-  props: {
-    node: {
-      type: Object as () => TreeNodeData,
-      required: true
-    },
-    searchKeyword: {
-      type: String,
-      default: ''
-    },
-    depth: {
-      type: Number,
-      default: 0
-    }
-  },
-  emits: ['select', 'toggle', 'drag', 'add', 'delete', 'rename', 'contextmenu'],
-  setup(props: { node: TreeNodeData; searchKeyword: string; depth: number }, { emit }) {
-    const hasChildren = computed(() => props.node.children && props.node.children.length > 0)
-    const isLeaf = computed(() => !hasChildren.value)
-    const showChildren = computed(() => props.node.expanded && hasChildren.value)
-    const indentWidth = computed(() => {
-      if (props.depth === 0) return 0
-      if (props.depth === 1) return 24
-      return 24 + (props.depth - 1) * 24
-    })
+const treeRef = ref<InstanceType<typeof ElTree>>()
+const filterText = ref('')
+const showCheckbox = ref(false)
+const checkedNodes = ref<TreeNodeData[]>([])
+const selectedNode = ref<TreeNodeData | null>(null)
+const saving = ref(false)
+const loading = ref(false)
 
-    const handleSelect = (e: MouseEvent) => {
-      e.stopPropagation()
-      emit('select', props.node)
-    }
+const contextMenuVisible = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const contextMenuNode = ref<TreeNodeData | null>(null)
 
-    const handleToggle = (e: MouseEvent) => {
-      e.stopPropagation()
-      emit('toggle', props.node)
-    }
-
-    const handleDragStart = (e: DragEvent) => {
-      if (e.dataTransfer) {
-        e.dataTransfer.setData('nodeId', props.node.id)
-        e.dataTransfer.effectAllowed = 'move'
-      }
-    }
-
-    const handleDragOver = (e: DragEvent) => {
-      e.preventDefault()
-      if (e.dataTransfer) {
-        e.dataTransfer.dropEffect = 'move'
-      }
-    }
-
-    const handleDrop = (e: DragEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      const draggedId = e.dataTransfer?.getData('nodeId')
-      if (draggedId && draggedId !== props.node.id) {
-        emit('drag', draggedId, props.node.id)
-      }
-    }
-
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault()
-      e.stopPropagation()
-      emit('contextmenu', props.node, e)
-    }
-
-    return {
-      hasChildren,
-      isLeaf,
-      showChildren,
-      indentWidth,
-      handleSelect,
-      handleToggle,
-      handleDragStart,
-      handleDragOver,
-      handleDrop,
-      handleContextMenu
-    }
-  },
-  template: `
-    <div class="tree-node-wrapper">
-      <div
-        class="node-content"
-        :class="{
-          'node-selected': node.selected,
-          'node-matched': node.matched,
-          'node-level-0': depth === 0,
-          'node-level-1': depth === 1,
-          'node-level-2': depth >= 2
-        }"
-        :draggable="true"
-        :style="{ paddingLeft: indentWidth + 'px' }"
-        @click="handleSelect"
-        @dragstart="handleDragStart"
-        @dragover="handleDragOver"
-        @drop="handleDrop"
-        @contextmenu="handleContextMenu"
-      >
-        <span class="node-connector" v-if="depth >= 1">
-          <span class="connector-line"></span>
-        </span>
-        <span
-          class="node-toggle"
-          :class="{ 'has-children': hasChildren }"
-          @click.stop="handleToggle"
-          v-if="hasChildren"
-        >
-          {{ node.expanded ? '▼' : '▶' }}
-        </span>
-        <span class="node-toggle node-no-children" v-else>·</span>
-        <span class="node-label">{{ node.label }}</span>
-      </div>
-      <div v-if="showChildren" class="node-children">
-        <TreeNode
-          v-for="child in node.children"
-          :key="child.id"
-          :node="child"
-          :searchKeyword="searchKeyword"
-          :depth="depth + 1"
-          @select="$emit('select', $event)"
-          @toggle="$emit('toggle', $event)"
-          @drag="$emit('drag', $event)"
-          @add="$emit('add', $event)"
-          @delete="$emit('delete', $event)"
-          @rename="$emit('rename', $event)"
-          @contextmenu="$emit('contextmenu', $event)"
-        />
-      </div>
-    </div>
-  `
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const dialogLoading = ref(false)
+const dialogForm = reactive({
+  item_name: '',
+  item_type: '',
+  type: '' as '' | 'add' | 'edit' | 'addSibling',
+  parentNode: null as TreeNodeData | null,
+  currentNode: null as TreeNodeData | null
 })
 
-export default defineComponent({
-  name: 'InspectionItemPage',
-  components: { TreeNode },
-  setup() {
-    const searchKeyword = ref('')
-    const selectedNode = ref<TreeNodeData | null>(null)
-    const checkRequirement = ref('')
-    const treeContainer = ref<HTMLElement | null>(null)
-    const saveSuccess = ref(false)
-    const showEmptyAlert = ref(false)
-    const isOverLimit = ref(false)
-    const contextMenu = reactive<ContextMenuData>({
-      visible: false,
-      x: 0,
-      y: 0,
-      node: null
+const formData = reactive({
+  check_content: '',
+  check_standard: ''
+})
+
+const defaultProps: TreeProps = {
+  label: 'label',
+  children: 'children'
+}
+
+const treeData = ref<TreeNodeData[]>([])
+
+const loadTreeData = async () => {
+  loading.value = true
+  try {
+    const response = await inspectionItemService.getTree()
+    if (response.code === 200 && response.data) {
+      treeData.value = transformToTreeData(response.data)
+    }
+  } catch (error) {
+    console.error('加载巡检事项树失败:', error)
+    ElMessage.error('加载数据失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const transformToTreeData = (items: InspectionItem[]): TreeNodeData[] => {
+  return items.map(item => ({
+    ...item,
+    label: item.item_name,
+    children: item.children ? transformToTreeData(item.children) : []
+  }))
+}
+
+watch(filterText, (val) => {
+  treeRef.value?.filter(val)
+})
+
+const getNodeIcon = (level: number) => {
+  const icons: Record<number, string> = {
+    1: 'FolderOpened',
+    2: 'Folder',
+    3: 'Document'
+  }
+  return icons[level] || 'Document'
+}
+
+const filterNode = (value: string, data: TreeNodeData) => {
+  if (!value) return true
+  return data.label.toLowerCase().includes(value.toLowerCase())
+}
+
+const handleSearchClear = () => {
+  filterText.value = ''
+}
+
+const handleExpandAll = () => {
+  const nodes = treeRef.value?.store?.nodesMap
+  if (nodes) {
+    Object.values(nodes).forEach((node: any) => {
+      node.expanded = true
     })
+  }
+}
 
-    const treeData = reactive<TreeNodeData[]>([
-      {
-        id: '1',
-        label: '弱电项目',
-        level: 1,
-        expanded: true,
-        children: [
-          {
-            id: '1-1',
-            label: '门禁系统',
-            level: 2,
-            expanded: false,
-            children: []
-          },
-          {
-            id: '1-2',
-            label: '综合布线系统',
-            level: 2,
-            expanded: true,
-            children: [
-              {
-                id: '1-2-1',
-                label: '云台摄像头',
-                level: 3,
-                expanded: true,
-                checkRequirement: '',
-                children: [
-                  {
-                    id: '1-2-1-1',
-                    label: '机房内环境检查',
-                    level: 4,
-                    checkRequirement: '检查机房温度、湿度、洁净度是否在规定范围内',
-                    children: []
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            id: '1-3',
-            label: 'XXX项目',
-            level: 2,
-            expanded: false,
-            children: []
-          },
-          {
-            id: '1-4',
-            label: 'A医院菜单3',
-            level: 2,
-            expanded: false,
-            children: []
-          },
-          {
-            id: '1-5',
-            label: 'A医院菜单4',
-            level: 2,
-            expanded: false,
-            children: []
-          },
-          {
-            id: '1-6',
-            label: 'A医院菜单5',
-            level: 2,
-            expanded: false,
-            children: []
-          },
-          {
-            id: '1-7',
-            label: 'A医院菜单6',
-            level: 2,
-            expanded: false,
-            children: []
-          }
-        ]
-      }
-    ])
-
-    const isRootNode = computed(() => contextMenu.node?.level === 1)
-    const isSaveDisabled = computed(() => !selectedNode.value || selectedNode.value.level < 3)
-
-    const clearSearch = () => {
-      searchKeyword.value = ''
-      clearMatchedState(treeData)
-    }
-
-    const clearMatchedState = (nodes: TreeNodeData[]) => {
-      for (const node of nodes) {
-        node.matched = false
-        if (node.children && node.children.length > 0) {
-          clearMatchedState(node.children)
-        }
-      }
-    }
-
-    const findNodeById = (nodes: TreeNodeData[], id: string): TreeNodeData | null => {
-      for (const node of nodes) {
-        if (node.id === id) return node
-        if (node.children && node.children.length > 0) {
-          const found = findNodeById(node.children, id)
-          if (found) return found
-        }
-      }
-      return null
-    }
-
-    const clearSelection = (nodes: TreeNodeData[]) => {
-      for (const node of nodes) {
-        node.selected = false
-        if (node.children && node.children.length > 0) {
-          clearSelection(node.children)
-        }
-      }
-    }
-
-    const expandToPath = (nodes: TreeNodeData[], targetId: string): boolean => {
-      for (const node of nodes) {
-        if (node.id === targetId) {
-          return true
-        }
-        if (node.children?.some(child => child.id.startsWith(node.id))) {
-          node.expanded = true
-          if (node.children) {
-            expandToPath(node.children, targetId)
-          }
-          return true
-        }
-      }
-      return false
-    }
-
-    const setMatchedState = (nodes: TreeNodeData[], keyword: string): boolean => {
-      let hasMatch = false
-      for (const node of nodes) {
-        const nodeMatch = node.label.toLowerCase().includes(keyword.toLowerCase())
-        const childMatch = node.children ? setMatchedState(node.children, keyword) : false
-
-        if (nodeMatch || childMatch) {
-          node.matched = true
-          hasMatch = true
-          if (node.children) {
-            for (const child of node.children) {
-              if (child.matched) {
-                node.expanded = true
-                break
-              }
-            }
-          }
-        } else {
-          node.matched = false
-        }
-      }
-      return hasMatch
-    }
-
-    const handleSearch = () => {
-      if (searchKeyword.value.length < 2) {
-        clearMatchedState(treeData)
-        return
-      }
-
-      const keyword = searchKeyword.value.toLowerCase()
-      setMatchedState(treeData, keyword)
-
-      for (const node of treeData) {
-        if (node.matched) {
-          expandToPath(treeData, node.id)
-        }
-      }
-    }
-
-    const handleNodeSelect = (node: TreeNodeData) => {
-      clearSelection(treeData)
-      node.selected = true
-      selectedNode.value = node
-      checkRequirement.value = node.checkRequirement || ''
-    }
-
-    const handleNodeToggle = (node: TreeNodeData) => {
-      node.expanded = !node.expanded
-    }
-
-    const findAndRemoveNode = (nodes: TreeNodeData[], id: string): TreeNodeData | null => {
-      for (let i = 0; i < nodes.length; i++) {
-        if (nodes[i].id === id) {
-          return nodes.splice(i, 1)[0]
-        }
-        if (nodes[i].children?.length) {
-          const found = findAndRemoveNode(nodes[i].children!, id)
-          if (found) return found
-        }
-      }
-      return null
-    }
-
-    const insertNodeAfter = (nodes: TreeNodeData[], targetId: string, newNode: TreeNodeData): boolean => {
-      for (let i = 0; i < nodes.length; i++) {
-        if (nodes[i].id === targetId) {
-          nodes.splice(i + 1, 0, newNode)
-          return true
-        }
-        if (nodes[i].children?.length) {
-          const found = insertNodeAfter(nodes[i].children!, targetId, newNode)
-          if (found) return true
-        }
-      }
-      return false
-    }
-
-    const handleNodeDrag = (draggedId: string, targetId: string) => {
-      const draggedNode = findAndRemoveNode(treeData, draggedId)
-      if (draggedNode) {
-        const targetNode = findNodeById(treeData, targetId)
-        if (targetNode && draggedNode.level === targetNode.level) {
-          insertNodeAfter(treeData, targetId, draggedNode)
-        }
-      }
-    }
-
-    const generateId = () => `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-    const handleAddNode = (parentNode: TreeNodeData) => {
-      if (!parentNode.children) {
-        parentNode.children = []
-      }
-      parentNode.expanded = true
-
-      const newNode: TreeNodeData = {
-        id: generateId(),
-        label: '新节点',
-        level: parentNode.level + 1,
-        checkRequirement: '',
-        expanded: false,
-        children: []
-      }
-
-      parentNode.children.push(newNode)
-    }
-
-    const handleDeleteNode = (node: TreeNodeData) => {
-      if (node.level === 1) return
-      if (node.children && node.children.length > 0) {
-        if (!confirm('删除该节点将同时删除所有子节点，确定要删除吗？')) return
-      }
-      const removed = findAndRemoveNode(treeData, node.id)
-      if (removed && selectedNode.value?.id === node.id) {
-        selectedNode.value = null
-        checkRequirement.value = ''
-      }
-    }
-
-    const handleRenameNode = (node: TreeNodeData) => {
-      const newLabel = prompt('请输入新名称：', node.label)
-      if (newLabel && newLabel.trim()) {
-        node.label = newLabel.trim()
-      }
-    }
-
-    const handleContextMenu = (node: TreeNodeData, e: MouseEvent) => {
-      contextMenu.node = node
-      contextMenu.x = e.clientX
-      contextMenu.y = e.clientY
-      contextMenu.visible = true
-    }
-
-    const closeContextMenu = () => {
-      contextMenu.visible = false
-    }
-
-    const handleAddFromMenu = () => {
-      if (contextMenu.node) {
-        handleAddNode(contextMenu.node)
-      }
-      closeContextMenu()
-    }
-
-    const handleRenameFromMenu = () => {
-      if (contextMenu.node) {
-        handleRenameNode(contextMenu.node)
-      }
-      closeContextMenu()
-    }
-
-    const handleDeleteFromMenu = () => {
-      if (contextMenu.node) {
-        handleDeleteNode(contextMenu.node)
-      }
-      closeContextMenu()
-    }
-
-    const handleTextareaInput = () => {
-      if (checkRequirement.value.length > 1000) {
-        checkRequirement.value = checkRequirement.value.substring(0, 1000)
-      }
-      isOverLimit.value = checkRequirement.value.length > 1000
-    }
-
-    const handleTextareaKeydown = (e: KeyboardEvent) => {
-      if (e.key === 'Tab') {
-        e.preventDefault()
-        const textarea = e.target as HTMLTextAreaElement
-        const start = textarea.selectionStart
-        const end = textarea.selectionEnd
-        textarea.value = textarea.value.substring(0, start) + '  ' + textarea.value.substring(end)
-        textarea.selectionStart = textarea.selectionEnd = start + 2
-      }
-    }
-
-    const handleSave = () => {
-      if (!checkRequirement.value.trim()) {
-        showEmptyAlert.value = true
-        setTimeout(() => {
-          showEmptyAlert.value = false
-        }, 3000)
-        return
-      }
-
-      if (selectedNode.value) {
-        selectedNode.value.checkRequirement = checkRequirement.value
-        saveSuccess.value = true
-        setTimeout(() => {
-          saveSuccess.value = false
-        }, 3000)
-      }
-    }
-
-    const handleGlobalKeydown = (e: KeyboardEvent) => {
-      if (e.ctrlKey) {
-        if (e.key === 'a' || e.key === 'A') {
-          e.preventDefault()
-          const allNodes: TreeNodeData[] = []
-          const collectNodes = (nodes: TreeNodeData[]) => {
-            for (const node of nodes) {
-              allNodes.push(node)
-              if (node.children) collectNodes(node.children)
-            }
-          }
-          collectNodes(treeData)
-          clearSelection(treeData)
-          if (allNodes.length > 0) {
-            allNodes[0].selected = true
-            selectedNode.value = allNodes[0]
-            checkRequirement.value = allNodes[0].checkRequirement || ''
-          }
-        } else if (e.key === '+' || e.key === '=') {
-          e.preventDefault()
-          const expandAll = (nodes: TreeNodeData[]) => {
-            for (const node of nodes) {
-              node.expanded = true
-              if (node.children) expandAll(node.children)
-            }
-          }
-          expandAll(treeData)
-        } else if (e.key === '-' || e.key === '_') {
-          e.preventDefault()
-          const collapseAll = (nodes: TreeNodeData[]) => {
-            for (const node of nodes) {
-              node.expanded = false
-              if (node.children) collapseAll(node.children)
-            }
-          }
-          collapseAll(treeData)
-        }
-      }
-    }
-
-    onMounted(() => {
-      document.addEventListener('click', closeContextMenu)
-      document.addEventListener('keydown', handleGlobalKeydown)
+const handleCollapseAll = () => {
+  const nodes = treeRef.value?.store?.nodesMap
+  if (nodes) {
+    Object.values(nodes).forEach((node: any) => {
+      node.expanded = false
     })
+  }
+}
 
-    onUnmounted(() => {
-      document.removeEventListener('click', closeContextMenu)
-      document.removeEventListener('keydown', handleGlobalKeydown)
+const handleCheckboxChange = (val: boolean) => {
+  if (!val) {
+    checkedNodes.value = []
+    treeRef.value?.setCheckedKeys([])
+  }
+}
+
+const handleCheck = (data: TreeNodeData, { checkedNodes: nodes }: any) => {
+  checkedNodes.value = nodes
+}
+
+const handleNodeClick = (data: TreeNodeData, node: Node) => {
+  selectedNode.value = data
+  if (data.level === 3) {
+    formData.check_content = data.check_content || ''
+    formData.check_standard = data.check_standard || ''
+  }
+}
+
+const handleContextMenu = (e: MouseEvent, data: TreeNodeData, node: Node, element: any) => {
+  e.preventDefault()
+  contextMenuNode.value = data
+  contextMenuX.value = e.clientX
+  contextMenuY.value = e.clientY
+  contextMenuVisible.value = true
+}
+
+const closeContextMenu = () => {
+  contextMenuVisible.value = false
+}
+
+const handleAdd = (data: TreeNodeData) => {
+  dialogTitle.value = '新增子节点'
+  dialogForm.type = 'add'
+  dialogForm.parentNode = data
+  dialogForm.currentNode = null
+  dialogForm.item_name = ''
+  dialogForm.item_type = data.item_type
+  dialogVisible.value = true
+}
+
+const handleAddFromMenu = () => {
+  if (contextMenuNode.value) {
+    handleAdd(contextMenuNode.value)
+  }
+  closeContextMenu()
+}
+
+const handleAddSibling = (data: TreeNodeData) => {
+  dialogTitle.value = '新增同级节点'
+  dialogForm.type = 'addSibling'
+  dialogForm.parentNode = null
+  dialogForm.currentNode = data
+  dialogForm.item_name = ''
+  dialogForm.item_type = data.item_type
+  dialogVisible.value = true
+}
+
+const handleAddSiblingFromMenu = () => {
+  if (contextMenuNode.value) {
+    handleAddSibling(contextMenuNode.value)
+  }
+  closeContextMenu()
+}
+
+const handleEdit = (data: TreeNodeData) => {
+  dialogTitle.value = '编辑节点'
+  dialogForm.type = 'edit'
+  dialogForm.parentNode = null
+  dialogForm.currentNode = data
+  dialogForm.item_name = data.item_name
+  dialogForm.item_type = data.item_type
+  dialogVisible.value = true
+}
+
+const handleEditFromMenu = () => {
+  if (contextMenuNode.value) {
+    handleEdit(contextMenuNode.value)
+  }
+  closeContextMenu()
+}
+
+const handleDelete = async (data: TreeNodeData) => {
+  const hasChildren = data.children && data.children.length > 0
+  const message = hasChildren 
+    ? '删除该节点将同时删除所有子节点，确定要删除吗？' 
+    : '确定要删除该节点吗？'
+  
+  try {
+    await ElMessageBox.confirm(message, '确认删除', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
     })
-
-    return {
-      searchKeyword,
-      selectedNode,
-      checkRequirement,
-      treeData,
-      treeContainer,
-      saveSuccess,
-      showEmptyAlert,
-      isOverLimit,
-      isRootNode,
-      isSaveDisabled,
-      contextMenuVisible: () => contextMenu.visible,
-      contextMenuX: () => contextMenu.x,
-      contextMenuY: () => contextMenu.y,
-      clearSearch,
-      handleSearch,
-      handleNodeSelect,
-      handleNodeToggle,
-      handleNodeDrag,
-      handleAddNode,
-      handleDeleteNode,
-      handleRenameNode,
-      handleContextMenu,
-      closeContextMenu,
-      handleAddFromMenu,
-      handleRenameFromMenu,
-      handleDeleteFromMenu,
-      handleTextareaInput,
-      handleTextareaKeydown,
-      handleSave
+    
+    await inspectionItemService.delete(data.id)
+    ElMessage.success('删除成功')
+    await loadTreeData()
+    
+    if (selectedNode.value?.id === data.id) {
+      selectedNode.value = null
+      formData.check_content = ''
+      formData.check_standard = ''
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '删除失败')
     }
   }
+}
+
+const handleDeleteFromMenu = () => {
+  if (contextMenuNode.value) {
+    handleDelete(contextMenuNode.value)
+  }
+  closeContextMenu()
+}
+
+const handleBatchDelete = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${checkedNodes.value.length} 个节点吗？`,
+      '批量删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    for (const node of checkedNodes.value) {
+      if (node.level !== 1) {
+        await inspectionItemService.delete(node.id)
+      }
+    }
+    
+    checkedNodes.value = []
+    treeRef.value?.setCheckedKeys([])
+    ElMessage.success('批量删除成功')
+    await loadTreeData()
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error(error.message || '批量删除失败')
+    }
+  }
+}
+
+const handleDialogClose = () => {
+  dialogForm.item_name = ''
+  dialogForm.item_type = ''
+  dialogForm.type = ''
+  dialogForm.parentNode = null
+  dialogForm.currentNode = null
+}
+
+const handleDialogConfirm = async () => {
+  if (!dialogForm.item_name.trim()) {
+    ElMessage.warning('请输入节点名称')
+    return
+  }
+  
+  dialogLoading.value = true
+  try {
+    if (dialogForm.type === 'add' && dialogForm.parentNode) {
+      const newItem = {
+        item_code: `ITEM-${Date.now()}`,
+        item_name: dialogForm.item_name.trim(),
+        item_type: dialogForm.item_type || dialogForm.parentNode.item_type,
+        level: dialogForm.parentNode.level + 1,
+        parent_id: dialogForm.parentNode.id
+      }
+      await inspectionItemService.create(newItem)
+      ElMessage.success('新增成功')
+    } else if (dialogForm.type === 'addSibling' && dialogForm.currentNode) {
+      const newItem = {
+        item_code: `ITEM-${Date.now()}`,
+        item_name: dialogForm.item_name.trim(),
+        item_type: dialogForm.item_type || dialogForm.currentNode.item_type,
+        level: dialogForm.currentNode.level,
+        parent_id: dialogForm.currentNode.parent_id
+      }
+      await inspectionItemService.create(newItem)
+      ElMessage.success('新增同级节点成功')
+    } else if (dialogForm.type === 'edit' && dialogForm.currentNode) {
+      await inspectionItemService.update(dialogForm.currentNode.id, {
+        item_name: dialogForm.item_name.trim(),
+        item_type: dialogForm.item_type
+      })
+      ElMessage.success('编辑成功')
+    }
+    
+    dialogVisible.value = false
+    await loadTreeData()
+  } catch (error: any) {
+    ElMessage.error(error.message || '操作失败')
+  } finally {
+    dialogLoading.value = false
+  }
+}
+
+const handleCancel = () => {
+  if (selectedNode.value) {
+    selectedNode.value = null
+    formData.check_content = ''
+    formData.check_standard = ''
+  }
+}
+
+const handleSave = async () => {
+  if (!selectedNode.value) return
+  
+  saving.value = true
+  try {
+    await inspectionItemService.update(selectedNode.value.id, {
+      check_content: formData.check_content,
+      check_standard: formData.check_standard
+    })
+    selectedNode.value.check_content = formData.check_content
+    selectedNode.value.check_standard = formData.check_standard
+    ElMessage.success('保存成功')
+    await loadTreeData()
+  } catch (error: any) {
+    ElMessage.error(error.message || '保存失败')
+  } finally {
+    saving.value = false
+  }
+}
+
+const allowDrop = (draggingNode: Node, dropNode: Node, type: 'prev' | 'inner' | 'next') => {
+  if (type === 'inner') {
+    return dropNode.data.level < 3
+  }
+  return true
+}
+
+const allowDrag = (draggingNode: Node) => {
+  return draggingNode.data.level !== 1
+}
+
+const handleDrop = async (draggingNode: Node, dropNode: Node, dropType: string, ev: DragEvent) => {
+  const draggingData = draggingNode.data as TreeNodeData
+  const dropData = dropNode.data as TreeNodeData
+  
+  let newParentId: number | null = null
+  
+  if (dropType === 'inner') {
+    newParentId = dropData.id
+  } else {
+    newParentId = dropData.parent_id
+  }
+  
+  try {
+    await inspectionItemService.update(draggingData.id, {
+      parent_id: newParentId
+    })
+    ElMessage.success(`节点已移动`)
+  } catch (error) {
+    ElMessage.error('移动失败')
+    await loadTreeData()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeContextMenu)
+  loadTreeData()
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeContextMenu)
 })
 </script>
 
 <style scoped>
 .inspection-item-page {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: #f5f7fa;
   padding: 20px;
-}
-
-.breadcrumb-section {
-  margin-bottom: 20px;
-  padding: 12px 20px;
-  background: #F5F7FA;
-  border-radius: 4px;
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.breadcrumb-item {
-  color: #666;
-}
-
-.breadcrumb-item.active {
-  color: #333;
-  font-weight: 500;
-}
-
-.breadcrumb-separator {
-  color: #999;
 }
 
 .content-body {
@@ -715,374 +635,217 @@ export default defineComponent({
   gap: 0;
   background: #fff;
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
   min-height: calc(100vh - 160px);
 }
 
 .tree-section {
-  width: 60%;
-  height: calc(100vh - 200px);
+  width: 320px;
+  min-width: 320px;
   display: flex;
   flex-direction: column;
   background: #fff;
+  border-right: 1px solid #dcdfe6;
 }
 
-.tree-search-wrapper {
-  padding: 16px 16px 0 16px;
-  flex-shrink: 0;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ebeef5;
+  background: #fafafa;
 }
 
-.tree-search-box {
-  width: 100%;
-  height: 40px;
-  border: 1px solid #D9D9D9;
-  border-radius: 4px;
+.section-title {
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  box-sizing: border-box;
-  transition: all 0.2s;
-}
-
-.tree-search-box:focus-within {
-  border-color: #1890FF;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
-.search-icon {
+  gap: 8px;
   font-size: 16px;
-  color: #999999;
-  margin-right: 8px;
-  flex-shrink: 0;
+  font-weight: 600;
+  color: #303133;
 }
 
-.search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  font-size: 14px;
-  color: #333333;
-  background: transparent;
-}
-
-.search-input::placeholder {
-  color: #999999;
-}
-
-.clear-icon {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #999999;
-  color: #fff;
-  font-size: 14px;
+.section-actions {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: background 0.2s;
+  gap: 8px;
 }
 
-.clear-icon:hover {
-  background: #666666;
+.tree-toolbar {
+  padding: 16px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toolbar-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .tree-content {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 16px;
+  padding: 8px;
 }
 
-.tree-node-wrapper {
-  min-height: 32px;
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 8px;
+  color: #909399;
+}
+
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
 }
 
 .node-content {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 3px;
-  transition: background 0.15s;
-  min-height: 32px;
-  box-sizing: border-box;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
-.node-content:hover {
-  background: #F5F5F5;
-}
-
-.node-content.node-selected {
-  background: #E6F7FF;
-}
-
-.node-content.node-matched {
-  background: #E6F7FF;
-}
-
-.node-content.node-selected.node-matched {
-  background: #BAE7FF;
-}
-
-.node-connector {
-  width: 24px;
+.node-icon {
+  font-size: 16px;
   flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.connector-line {
-  width: 1px;
-  height: 16px;
-  background: #D9D9D9;
+.node-icon.level-1 {
+  color: #409eff;
 }
 
-.node-toggle {
-  width: 24px;
-  flex-shrink: 0;
-  color: #666666;
-  font-size: 12px;
-  text-align: center;
-  user-select: none;
+.node-icon.level-2 {
+  color: #67c23a;
 }
 
-.node-toggle.has-children {
-  cursor: pointer;
-}
-
-.node-toggle.node-no-children {
-  color: transparent;
+.node-icon.level-3 {
+  color: #909399;
 }
 
 .node-label {
   flex: 1;
-  font-size: 14px;
-  color: #333333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.node-selected .node-label {
-  color: #1890FF;
+.node-tag {
+  margin-left: 8px;
+  flex-shrink: 0;
 }
 
-.node-children {
-  margin-left: 0;
+.node-actions {
+  display: none;
+  gap: 4px;
+}
+
+.custom-tree-node:hover .node-actions {
+  display: flex;
 }
 
 .context-menu {
   position: fixed;
-  width: 120px;
   background: #fff;
-  border: 1px solid #D9D9D9;
+  border: 1px solid #ebeef5;
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
   padding: 4px 0;
+  min-width: 140px;
 }
 
 .context-menu-item {
   padding: 8px 16px;
   font-size: 14px;
-  color: #333333;
+  color: #606266;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .context-menu-item:hover {
-  background: #F5F5F5;
-}
-
-.context-menu-delete {
-  color: #F5222D;
+  background: #f5f7fa;
+  color: #409eff;
 }
 
 .divider {
   width: 1px;
-  background: #E8E8E8;
-  margin: 24px 0;
+  background: #dcdfe6;
+  flex-shrink: 0;
 }
 
 .form-section {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 24px 32px;
+  background: #fafafa;
   min-width: 0;
-  width: 40%;
-  box-sizing: border-box;
 }
 
-.form-title-row {
-  display: flex;
-  align-items: baseline;
-  margin-bottom: 8px;
+.form-header {
+  padding: 20px 32px 16px;
+  background: #fff;
+  border-bottom: 1px solid #ebeef5;
 }
 
 .form-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333333;
-}
-
-.form-hint {
-  font-size: 12px;
-  color: #999999;
-  margin-left: 8px;
-}
-
-.textarea-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.form-textarea {
-  flex: 1;
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #D9D9D9;
-  border-radius: 4px;
-  font-size: 14px;
-  color: #333333;
-  background: #fff;
-  resize: none;
-  font-family: inherit;
-  line-height: 1.5;
-  transition: all 0.2s;
-  box-sizing: border-box;
-}
-
-.form-textarea:focus {
-  outline: none;
-  border-color: #1890FF;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
-}
-
-.form-textarea::placeholder {
-  color: #999999;
-}
-
-.textarea-error .form-textarea {
-  border-color: #F5222D;
-}
-
-.char-count {
-  position: absolute;
-  bottom: 8px;
-  right: 12px;
-  font-size: 12px;
-  color: #999999;
-  background: #fff;
-  padding: 0 4px;
-}
-
-.char-count-error {
-  color: #F5222D;
-}
-
-.no-selection-tip {
-  flex: 1;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: #999999;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.form-subtitle {
+  font-size: 13px;
+  color: #909399;
+  padding-left: 24px;
+}
+
+.form-content {
+  flex: 1;
+  padding: 20px 32px;
+  overflow-y: auto;
 }
 
 .form-actions {
-  padding-top: 24px;
   display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 32px;
+  background: #fff;
+  border-top: 1px solid #ebeef5;
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  padding: 40px;
 }
 
-.btn {
-  width: 100px;
-  height: 40px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-save {
-  background: #1890FF;
-  color: #fff;
-}
-
-.btn-save:hover:not(:disabled) {
-  background: #40A9FF;
-}
-
-.btn-save:active:not(:disabled) {
-  background: #096DD9;
-}
-
-.btn-save:disabled {
-  background: #A6CFFF;
-  color: #FFFFFF;
-  cursor: not-allowed;
-}
-
-.save-success-toast {
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
-  padding: 12px 20px;
-  background: #52C41A;
-  color: #fff;
-  border-radius: 4px;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease;
-  z-index: 1001;
-}
-
-.save-error-toast {
-  position: fixed;
-  bottom: 40px;
-  right: 40px;
-  padding: 12px 20px;
-  background: #F5222D;
-  color: #fff;
-  border-radius: 4px;
-  font-size: 14px;
-  animation: fadeIn 0.3s ease;
-  z-index: 1001;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #F5F5F5;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #CBCBCB;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #A0A0A0;
+.empty-hint {
+  margin-top: 20px;
+  max-width: 400px;
 }
 </style>

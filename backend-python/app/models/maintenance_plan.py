@@ -9,7 +9,7 @@ class MaintenancePlan(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), nullable=False, unique=True, comment="计划编号")
     plan_name = Column(String(200), nullable=False, comment="计划名称")
-    project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='RESTRICT'), nullable=False, comment="关联项目编号")
+    project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="关联项目编号")
     plan_type = Column(String(20), nullable=False, comment="计划类型")
     equipment_id = Column(String(50), nullable=False, comment="设备编号")
     equipment_name = Column(String(200), nullable=False, comment="设备名称")

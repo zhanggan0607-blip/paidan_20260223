@@ -177,7 +177,7 @@ curl -X GET "http://localhost:8080/api/project-info/1"
 | project_name | string | Yes | 200 | 项目名称 |
 | completion_date | datetime | Yes | - | 开始日期（ISO 8601格式） |
 | maintenance_end_date | datetime | Yes | - | 结束日期（ISO 8601格式） |
-| maintenance_period | string | Yes | 20 | 维保周期（每天/每周/每月/每季度/每半年） |
+| maintenance_period | string | Yes | 20 | 维保频率（每天/每周/每月/每季度/每半年） |
 | client_unit | string | Yes | 100 | 客户单位名称 |
 | client_address | string | Yes | 200 | 客户地址 |
 | project_abbr | string | No | 10 | 项目简称 |
@@ -261,7 +261,7 @@ curl -X POST "http://localhost:8080/api/project-info" \
 | project_name | string | Yes | 200 | 项目名称 |
 | completion_date | datetime | Yes | - | 开始日期（ISO 8601格式） |
 | maintenance_end_date | datetime | Yes | - | 结束日期（ISO 8601格式） |
-| maintenance_period | string | Yes | 20 | 维保周期（每天/每周/每月/每季度/每半年） |
+| maintenance_period | string | Yes | 20 | 维保频率（每天/每周/每月/每季度/每半年） |
 | client_name | string | Yes | 100 | 客户单位名称 |
 | address | string | Yes | 200 | 客户地址 |
 | project_abbr | string | No | 10 | 项目简称 |
@@ -410,7 +410,7 @@ curl -X GET "http://localhost:8080/api/project-info/all/list"
     "errors": [
       {
         "field": "maintenance_period",
-        "message": "维保周期必须是以下之一: 每天, 每周, 每月, 每季度, 每半年",
+        "message": "维保频率必须是以下之一: 每天, 每周, 每月, 每季度, 每半年",
         "type": "value_error"
       }
     ]

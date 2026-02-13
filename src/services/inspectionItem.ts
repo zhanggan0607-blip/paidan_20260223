@@ -5,8 +5,12 @@ export interface InspectionItem {
   item_code: string
   item_name: string
   item_type: string
+  level: number
+  parent_id: number | null
   check_content: string | null
   check_standard: string | null
+  sort_order: number
+  children?: InspectionItem[]
   created_at: string
   updated_at: string
 }
@@ -15,16 +19,22 @@ export interface InspectionItemCreate {
   item_code: string
   item_name: string
   item_type: string
+  level?: number
+  parent_id?: number | null
   check_content?: string
   check_standard?: string
+  sort_order?: number
 }
 
 export interface InspectionItemUpdate {
   item_code?: string
   item_name?: string
   item_type?: string
+  level?: number
+  parent_id?: number | null
   check_content?: string
   check_standard?: string
+  sort_order?: number
 }
 
 export interface ApiResponse<T = any> {
@@ -48,6 +58,10 @@ export interface PaginatedResponse {
 }
 
 export const inspectionItemService = {
+  async getTree(): Promise<ApiResponse<InspectionItem[]>> {
+    return await apiClient.get('/inspection-item/tree')
+  },
+
   async getAll(): Promise<ApiResponse<InspectionItem[]>> {
     return await apiClient.get('/inspection-item/all/list')
   },

@@ -49,7 +49,7 @@
               <tr v-for="(item, index) in filteredData" :key="item.id" class="table-row">
                 <td>{{ index + 1 }}</td>
                 <td>{{ item.workOrderNo }}</td>
-                <td>{{ item.projectId }}</td>
+                <td>{{ item.project_id }}</td>
                 <td>{{ item.projectName }}</td>
                 <td>{{ item.workOrderType }}</td>
                 <td>{{ item.planEndDate }}</td>
@@ -120,7 +120,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.projectId || '-' }}</div>
+                <div class="form-value">{{ viewData.project_id || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">项目名称</label>
@@ -191,7 +191,7 @@ export default defineComponent({
     const isViewModalOpen = ref(false)
     const viewData = reactive({
       workOrderNo: '',
-      projectId: '',
+      project_id: '',
       projectName: '',
       customerName: '',
       workOrderType: '',
@@ -245,7 +245,7 @@ export default defineComponent({
 
     const handleView = (item: OverdueItem) => {
       viewData.workOrderNo = item.workOrderNo
-      viewData.projectId = item.projectId
+      viewData.project_id = item.project_id
       viewData.projectName = item.projectName
       viewData.customerName = item.customerName
       viewData.workOrderType = item.workOrderType

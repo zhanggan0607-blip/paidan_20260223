@@ -70,7 +70,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
 
 ## 访问地址
 
-- 前端开发服务器: http://localhost:5173
+- 前端开发服务器: http://localhost:3000
 - 后端API服务: http://localhost:8080
 - API文档: http://localhost:8080/docs
 

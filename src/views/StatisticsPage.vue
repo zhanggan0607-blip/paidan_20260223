@@ -1,13 +1,6 @@
 <template>
   <div class="statistics-page">
     <div class="top-bar">
-      <div class="menu-toggle" @click="toggleSidebar">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-      </div>
       <div class="year-selector">
         <label class="year-label">年度选择：</label>
         <select class="year-select" v-model="selectedYear" @change="handleYearChange">
@@ -24,16 +17,16 @@
       </div>
       <div class="edit-controls" v-else>
         <button class="btn btn-edit" @click="enableEditMode">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M11 4H4a2 2 0 0 0 0-2 2v14a2 2 0 0 0 0 2 2h14a2 2 0 0 0 0 2-2v-7"></path>
-            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1 4"></path>
-          </svg>
           编辑布局
         </button>
       </div>
-      <div class="user-info">
-        <div class="user-avatar">MO</div>
-        <span class="user-name">momo.zxy</span>
+      <div class="refresh-controls">
+        <button class="btn btn-refresh" @click="handleYearChange">
+          刷新
+        </button>
+        <button class="btn btn-fullscreen" @click="toggleFullscreen">
+          {{ isFullscreen ? '退出全屏' : '全屏' }}
+        </button>
       </div>
     </div>
 
@@ -118,23 +111,23 @@
                 <svg viewBox="0 0 100 100" class="pie-svg">
                   <circle cx="50" cy="50" r="40" fill="none" stroke-width="20"
                     :stroke-dasharray="`${currentData.onTimeRate * 251.2} ${251.2 - currentData.onTimeRate * 251.2}`"
-                    stroke="#1976d2"
+                    stroke="#4CAF50"
                     transform="rotate(-90 50 50)"
                   />
                   <circle cx="50" cy="50" r="40" fill="none" stroke-width="20"
                     :stroke-dasharray="`${(1 - currentData.onTimeRate) * 251.2} ${251.2 - (1 - currentData.onTimeRate) * 251.2}`"
-                    stroke="#ff9800"
+                    stroke="#FF6B6B"
                     transform="rotate(-90 50 50)"
                   />
                 </svg>
               </div>
               <div class="pie-legend">
                 <div class="legend-item">
-                  <div class="legend-color" style="background: #ff9800;"></div>
+                  <div class="legend-color legend-color-delayed"></div>
                   <span>延期完成（{{ Math.round((1 - currentData.onTimeRate) * 100) }}%）</span>
                 </div>
                 <div class="legend-item">
-                  <div class="legend-color" style="background: #1976d2;"></div>
+                  <div class="legend-color legend-color-ontime"></div>
                   <span>预期完成（{{ Math.round(currentData.onTimeRate * 100) }}%）</span>
                 </div>
               </div>
@@ -159,6 +152,12 @@
       <div class="loading-spinner"></div>
       <p>加载中...</p>
     </div>
+
+    <div class="toast" v-if="toast.visible">
+      <div class="toast-content" :class="toast.type">
+        {{ toast.message }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -166,13 +165,9 @@
 import { defineComponent, ref, onMounted, onUnmounted, computed } from 'vue'
 import { statisticsService, StatisticsOverview, WorkByPerson, CompletionRate, TopProject } from '@/services/statistics'
 import { userDashboardConfigService, type DashboardConfig } from '@/services/userDashboardConfig'
-import Toast from '@/components/Toast.vue'
 
 export default defineComponent({
   name: 'StatisticsPage',
-  components: {
-    Toast
-  },
   setup() {
     const selectedYear = ref<number>(new Date().getFullYear())
     const availableYears = [2024, 2025, 2026, 2027, 2028]
@@ -194,6 +189,7 @@ export default defineComponent({
     const loading = ref<boolean>(false)
     const maxProjectValue = ref<number>(0)
     const isEditMode = ref<boolean>(false)
+    const isFullscreen = ref<boolean>(false)
     const saving = ref<boolean>(false)
     const toast = ref({
       visible: false,
@@ -222,10 +218,16 @@ export default defineComponent({
     })
 
     const visibleCards = computed(() => {
+      if (!dashboardConfig.value || !dashboardConfig.value.cards) {
+        return []
+      }
       return dashboardConfig.value.cards.filter(c => c.visible).sort((a, b) => a.position - b.position)
     })
 
     const chartRows = computed(() => {
+      if (!dashboardConfig.value || !dashboardConfig.value.charts) {
+        return []
+      }
       const charts = dashboardConfig.value.charts.filter(c => c.visible).sort((a, b) => a.position - b.position)
       const rows = []
       for (let i = 0; i < charts.length; i += 2) {
@@ -299,6 +301,15 @@ export default defineComponent({
     const toggleSidebar = () => {
     }
 
+    const toggleFullscreen = () => {
+      isFullscreen.value = !isFullscreen.value
+      if (isFullscreen.value) {
+        document.documentElement.requestFullscreen()
+      } else {
+        document.exitFullscreen()
+      }
+    }
+
     const handleYearChange = async () => {
       if (abortController) {
         abortController.abort()
@@ -342,7 +353,7 @@ export default defineComponent({
       try {
         const response = await userDashboardConfigService.getConfig('statistics')
         if (response.code === 200 && response.data) {
-          dashboardConfig.value = response.data
+          dashboardConfig.value = response.data.config || dashboardConfig.value
         }
         isEditMode.value = true
       } catch (error) {
@@ -437,6 +448,7 @@ export default defineComponent({
       loading,
       maxProjectValue,
       isEditMode,
+      isFullscreen,
       saving,
       toast,
       dashboardConfig,
@@ -444,6 +456,7 @@ export default defineComponent({
       chartRows,
       maxValue,
       toggleSidebar,
+      toggleFullscreen,
       handleYearChange,
       enableEditMode,
       cancelEdit,
@@ -464,61 +477,67 @@ export default defineComponent({
 
 <style scoped>
 .statistics-page {
-  padding: 20px;
-  background: #f5f5f5;
+  padding: 240px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   min-height: 100vh;
+  font-family: 'Inter', '思源黑体', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-sizing: border-box;
 }
 
 .top-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 16px 24px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-}
-
-.menu-toggle {
-  cursor: pointer;
-  padding: 10px;
-  border-radius: 6px;
-  transition: background 0.3s;
-}
-
-.menu-toggle:hover {
-  background: #e8e8e8;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 24px;
 }
 
 .year-selector {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .year-label {
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: #333;
 }
 
 .year-select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
   font-size: 14px;
   background: white;
+  color: #333;
+  outline: none;
+}
+
+.year-select:focus {
+  border-color: #4CAF50;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
 .edit-controls {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+}
+
+.refresh-controls {
+  display: flex;
+  gap: 8px;
 }
 
 .btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -526,20 +545,19 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 6px;
+  color: white;
 }
 
 .btn-edit {
-  background: #1976d2;
-  color: white;
+  background: #4CAF50;
 }
 
 .btn-edit:hover {
-  background: #1565c0;
+  background: #45a049;
 }
 
 .btn-save {
-  background: #4caf50;
-  color: white;
+  background: #4CAF50;
 }
 
 .btn-save:hover:not(:disabled) {
@@ -552,169 +570,171 @@ export default defineComponent({
 }
 
 .btn-cancel {
-  background: #f5f5f5;
+  background: #e0e0e0;
   color: #666;
-  border: 1px solid #ddd;
 }
 
 .btn-cancel:hover {
-  background: #e0e0e0;
+  background: #d0d0d0;
 }
 
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.btn-refresh {
+  background: #4CAF50;
 }
 
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: bold;
-  font-size: 16px;
+.btn-refresh:hover {
+  background: #45a049;
 }
 
-.user-name {
-  font-weight: 600;
-  color: #333;
+.btn-fullscreen {
+  background: #4CAF50;
+}
+
+.btn-fullscreen:hover {
+  background: #45a049;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  flex: 1;
 }
 
 .cards-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 16px;
 }
 
 .cards-section.edit-mode {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
 }
 
 .stat-card {
   background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
-  position: relative;
-  min-height: 120px;
+  border-radius: 12px;
+  padding: 32px 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 160px;
+  text-align: center;
 }
 
 .stat-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card.edit-mode {
   cursor: move;
-  border: 2px dashed #1976d2;
+  border: 2px dashed #4CAF50;
 }
 
 .stat-card.edit-mode:hover {
-  border-color: #1565c0;
+  border-color: #45a049;
 }
 
 .card-actions {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   display: flex;
-  gap: 5px;
+  gap: 6px;
 }
 
 .action-btn {
-  padding: 4px 8px;
+  padding: 6px 12px;
   font-size: 12px;
-  background: #1976d2;
+  background: #4CAF50;
   color: white;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .action-btn:hover {
-  background: #1565c0;
+  background: #45a049;
 }
 
 .card-label {
   font-size: 14px;
   color: #666;
-  margin-bottom: 10px;
+  font-weight: 500;
 }
 
 .card-value {
-  font-size: 32px;
-  font-weight: bold;
+  font-size: 56px;
+  font-weight: 700;
   color: #333;
+  line-height: 1;
 }
 
 .card-near-expiry {
-  border-left: 4px solid #ff9800;
+  border-left: 4px solid #FF6B6B;
 }
 
 .card-overdue {
-  border-left: 4px solid #dc2626;
+  border-left: 4px solid #DC2626;
 }
 
 .card-completed {
-  border-left: 4px solid #1976d2;
+  border-left: 4px solid #4CAF50;
 }
 
 .card-regular {
-  border-left: 4px solid #059669;
+  border-left: 4px solid #2196F3;
 }
 
 .card-temporary {
-  border-left: 4px solid #d97706;
+  border-left: 4px solid #FF9800;
 }
 
 .card-sporadic {
-  border-left: 4px solid #722ed1;
+  border-left: 4px solid #722ED1;
 }
 
 .charts-section {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  flex: 1;
 }
 
 .charts-section.edit-mode {
-  gap: 25px;
+  gap: 28px;
 }
 
 .chart-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
 }
 
 .chart-container {
   background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-container.edit-mode {
-  border: 2px dashed #1976d2;
+  border: 2px dashed #4CAF50;
   cursor: move;
 }
 
 .chart-container.edit-mode:hover {
-  border-color: #1565c0;
+  border-color: #45a049;
 }
 
 .chart-container.hidden {
@@ -723,46 +743,49 @@ export default defineComponent({
 
 .chart-actions {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 12px;
+  right: 12px;
   display: flex;
-  gap: 5px;
+  gap: 6px;
 }
 
 .chart-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 15px;
+  margin-bottom: 24px;
 }
 
 .bar-chart {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  flex: 1;
 }
 
 .horizontal-bar-chart {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 16px;
+  flex: 1;
 }
 
 .bar-item {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
 }
 
 .bar-label {
   min-width: 100px;
   font-size: 14px;
   color: #666;
+  font-weight: 500;
 }
 
 .bar-wrapper {
   flex: 1;
-  height: 24px;
+  height: 40px;
   background: #f0f0f0;
   border-radius: 4px;
   overflow: hidden;
@@ -770,28 +793,32 @@ export default defineComponent({
 
 .bar {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  transition: width 0.5s ease;
+  background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+  transition: width 0.3s ease;
 }
 
 .bar-value {
-  margin-left: 10px;
+  margin-left: 16px;
   font-weight: 600;
+  font-size: 18px;
   color: #333;
+  min-width: 60px;
 }
 
 .vertical-bar-chart {
   display: flex;
   align-items: flex-end;
-  height: 300px;
-  gap: 15px;
+  height: 350px;
+  gap: 24px;
+  flex: 1;
 }
 
 .vertical-bars {
   display: flex;
   align-items: flex-end;
   height: 100%;
-  gap: 10px;
+  gap: 24px;
+  flex: 1;
 }
 
 .vertical-bar-item {
@@ -799,11 +826,12 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
 }
 
 .vertical-bar-wrapper {
-  width: 60px;
+  width: 100%;
+  max-width: 100px;
   height: 100%;
   background: #f0f0f0;
   border-radius: 4px;
@@ -816,26 +844,30 @@ export default defineComponent({
 
 .vertical-bar {
   width: 100%;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  transition: height 0.5s ease;
+  background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
+  transition: height 0.3s ease;
 }
 
 .vertical-bar-value {
-  margin-bottom: 5px;
+  margin-bottom: 12px;
   font-weight: 600;
+  font-size: 18px;
   color: #333;
 }
 
 .vertical-bar-label {
-  font-size: 12px;
+  font-size: 14px;
   color: #666;
+  font-weight: 500;
   text-align: center;
 }
 
 .pie-chart {
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
+  gap: 48px;
+  flex: 1;
 }
 
 .pie-chart-container {
@@ -845,14 +877,14 @@ export default defineComponent({
 }
 
 .pie-svg {
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
 }
 
 .pie-legend {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .legend-item {
@@ -862,9 +894,17 @@ export default defineComponent({
 }
 
 .legend-color {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 4px;
+}
+
+.legend-color-delayed {
+  background: #FF6B6B;
+}
+
+.legend-color-ontime {
+  background: #4CAF50;
 }
 
 .loading {
@@ -878,8 +918,8 @@ export default defineComponent({
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #4CAF50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -891,5 +931,41 @@ export default defineComponent({
   100% {
     transform: rotate(360deg);
   }
+}
+
+.toast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1000;
+}
+
+.toast-content {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+}
+
+.toast-content.success {
+  background: #4CAF50;
+  color: white;
+}
+
+.toast-content.error {
+  background: #DC2626;
+  color: white;
+}
+
+.toast-content.warning {
+  background: #FF9800;
+  color: white;
+}
+
+.toast-content.info {
+  background: #2196F3;
+  color: white;
 }
 </style>

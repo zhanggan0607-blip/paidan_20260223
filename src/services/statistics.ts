@@ -2,10 +2,12 @@ import apiClient from '@/utils/api'
 
 export interface StatisticsOverview {
   year: number
+  nearExpiry: number
+  overdue: number
+  completed: number
   regularInspectionCount: number
   temporaryRepairCount: number
   spotWorkCount: number
-  maintenancePlanCount: number
 }
 
 export interface WorkByPerson {

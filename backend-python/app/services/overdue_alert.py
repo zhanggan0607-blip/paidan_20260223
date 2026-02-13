@@ -43,7 +43,7 @@ class OverdueAlertService:
                         item = {
                             'id': str(inspection.id),
                             'workOrderNo': inspection.inspection_id,
-                            'projectId': inspection.project_id,
+                            'project_id': inspection.project_id,
                             'projectName': inspection.project_name,
                             'customerName': inspection.client_name,
                             'workOrderType': '定期巡检',
@@ -75,7 +75,7 @@ class OverdueAlertService:
                         item = {
                             'id': str(repair.id),
                             'workOrderNo': repair.repair_id,
-                            'projectId': repair.project_id,
+                            'project_id': repair.project_id,
                             'projectName': repair.project_name,
                             'customerName': repair.client_name,
                             'workOrderType': '临时维修',
@@ -107,7 +107,7 @@ class OverdueAlertService:
                         item = {
                             'id': str(work.id),
                             'workOrderNo': work.work_id,
-                            'projectId': work.project_id,
+                            'project_id': work.project_id,
                             'projectName': work.project_name,
                             'customerName': work.client_name,
                             'workOrderType': '零星用工',

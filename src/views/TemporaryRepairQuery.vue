@@ -219,6 +219,9 @@ interface RepairItem {
 
 export default defineComponent({
   name: 'TemporaryRepairQuery',
+  components: {
+    Toast
+  },
   setup() {
     const router = useRouter()
     const currentPage = ref(1)
@@ -456,7 +459,7 @@ export default defineComponent({
       handleExport,
       handleJump,
       toggleSidebar,
-      Toast
+      showToast
     }
   }
 })

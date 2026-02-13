@@ -54,14 +54,14 @@
             </tr>
             <tr v-else v-for="(item, index) in partsData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-              <td>{{ item.projectCode }}</td>
-              <td>{{ item.projectName }}</td>
+              <td>{{ item.project_id || '-' }}</td>
+              <td>{{ item.projectName || '-' }}</td>
               <td>{{ item.productName }}</td>
               <td>{{ item.brand || '-' }}</td>
-              <td>{{ item.productModel }}</td>
+              <td>{{ item.model || '-' }}</td>
               <td>{{ item.quantity }}</td>
-              <td>{{ item.recipient }}</td>
-              <td>{{ formatDate(item.receiveTime) }}</td>
+              <td>{{ item.userName }}</td>
+              <td>{{ formatDate(item.issueTime) }}</td>
               <td>{{ item.unit }}</td>
             </tr>
           </tbody>
@@ -77,7 +77,7 @@
             &lt;
           </button>
           <button
-            v-for="page in totalPages"
+            v-for="page in displayedPages"
             :key="page"
             class="page-btn page-num"
             :class="{ active: page === currentPage }"
@@ -106,20 +106,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
-
-interface PartsItem {
-  id: number
-  projectCode: string
-  projectName: string
-  productName: string
-  brand: string
-  productModel: string
-  quantity: number
-  recipient: string
-  receiveTime: string
-  unit: string
-}
+import { defineComponent, ref, computed, onMounted, watch } from 'vue'
+import { sparePartsUsageService, SparePartsUsage } from '../services/sparePartsUsage'
 
 export default defineComponent({
   name: 'SparePartsManagement',
@@ -137,70 +125,68 @@ export default defineComponent({
       projectName: ''
     })
 
-    const personnelList = ref(['张鑫', '胥海龙', '李明', '王芳'])
-    const projectList = ref(['曹杨街道零星改造项目', '张江园区维保项目', '浦东新区改造项目'])
+    const personnelList = ref<string[]>([])
+    const projectList = ref<string[]>([])
+    const partsData = ref<SparePartsUsage[]>([])
 
-    const partsData = ref<PartsItem[]>([
-      {
-        id: 1,
-        projectCode: 'TQ-2023-116A-SH',
-        projectName: '曹杨街道零星改造项目',
-        productName: '开关电源',
-        brand: '立方',
-        productModel: '12V5A',
-        quantity: 2,
-        recipient: '张鑫',
-        receiveTime: '2023-12-01',
-        unit: '套'
-      },
-      {
-        id: 2,
-        projectCode: 'TQ-2023-116A-SH',
-        projectName: '曹杨街道零星改造项目',
-        productName: '手套',
-        brand: '',
-        productModel: 'RF-PM22',
-        quantity: 30,
-        recipient: '胥海龙',
-        receiveTime: '2023-12-02',
-        unit: '付'
-      },
-      {
-        id: 3,
-        projectCode: 'TQ-2023-117B-SH',
-        projectName: '张江园区维保项目',
-        productName: '车辆检测器',
-        brand: '立方',
-        productModel: 'RF-PM12',
-        quantity: 20,
-        recipient: '张鑫',
-        receiveTime: '2023-12-03',
-        unit: '只'
-      },
-      {
-        id: 4,
-        projectCode: 'TQ-2023-118C-SH',
-        projectName: '浦东新区改造项目',
-        productName: '控制器',
-        brand: '立方',
-        productModel: 'RF-PM15',
-        quantity: 0,
-        recipient: '李明',
-        receiveTime: '2023-12-04',
-        unit: '套'
+    const displayedPages = computed(() => {
+      const pages: number[] = []
+      const start = Math.max(1, currentPage.value - 2)
+      const end = Math.min(totalPages.value, currentPage.value + 2)
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
       }
-    ])
-
-    totalElements.value = partsData.value.length
-    totalPages.value = Math.ceil(totalElements.value / pageSize.value)
+      return pages
+    })
 
     const formatDate = (dateStr: string) => {
       if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      try {
+        const date = new Date(dateStr)
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      } catch {
+        return dateStr
+      }
+    }
+
+    const loadData = async () => {
+      loading.value = true
+      try {
+        const response = await sparePartsUsageService.getList({
+          page: currentPage.value - 1,
+          pageSize: Number(pageSize.value),
+          user: searchForm.value.personnel || undefined,
+          product: searchForm.value.productName || undefined,
+          project: searchForm.value.projectName || undefined
+        })
+
+        if (response.code === 200 && response.data) {
+          partsData.value = response.data.items || []
+          totalElements.value = response.data.total || 0
+          totalPages.value = Math.ceil(totalElements.value / Number(pageSize.value)) || 1
+          
+          const personnelSet = new Set<string>()
+          const projectSet = new Set<string>()
+          partsData.value.forEach(item => {
+            if (item.userName) personnelSet.add(item.userName)
+            if (item.projectName) projectSet.add(item.projectName)
+          })
+          personnelList.value = Array.from(personnelSet)
+          projectList.value = Array.from(projectSet)
+        }
+      } catch (error) {
+        console.error('加载备品备件领用数据失败:', error)
+        partsData.value = []
+        totalElements.value = 0
+        totalPages.value = 1
+      } finally {
+        loading.value = false
+      }
     }
 
     const handleSearch = () => {
+      currentPage.value = 1
+      loadData()
     }
 
     const handleJump = () => {
@@ -209,6 +195,14 @@ export default defineComponent({
         currentPage.value = page
       }
     }
+
+    watch([currentPage, pageSize], () => {
+      loadData()
+    })
+
+    onMounted(() => {
+      loadData()
+    })
 
     return {
       currentPage,
@@ -221,6 +215,7 @@ export default defineComponent({
       personnelList,
       projectList,
       partsData,
+      displayedPages,
       formatDate,
       handleSearch,
       handleJump

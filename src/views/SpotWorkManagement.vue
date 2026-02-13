@@ -1,5 +1,6 @@
 <template>
   <div class="spot-work-page">
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
     <div class="content">
       <div class="search-section">
         <div class="search-form">
@@ -116,9 +117,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch } from 'vue'
+import { defineComponent, ref, onMounted, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { spotWorkService, type SpotWork } from '@/services/spotWork'
+import Toast from '@/components/Toast.vue'
 
 interface WorkItem {
   id: number
@@ -135,6 +137,9 @@ interface WorkItem {
 
 export default defineComponent({
   name: 'SpotWorkManagement',
+  components: {
+    Toast
+  },
   setup() {
     const router = useRouter()
     const currentPage = ref(1)
@@ -143,6 +148,21 @@ export default defineComponent({
     const loading = ref(false)
     const totalElements = ref(0)
     const totalPages = ref(1)
+
+    const toast = reactive({
+      visible: false,
+      message: '',
+      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+    })
+
+    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+      toast.message = message
+      toast.type = type
+      toast.visible = true
+      setTimeout(() => {
+        toast.visible = false
+      }, 3000)
+    }
 
     const searchForm = ref({
       project_name: '',
@@ -201,9 +221,11 @@ export default defineComponent({
       if (confirm(`确定要删除用工单 ${item.work_id} 吗？`)) {
         try {
           await spotWorkService.delete(item.id)
+          showToast('删除成功', 'success')
           loadData()
         } catch (error) {
           console.error('删除失败:', error)
+          showToast('删除失败', 'error')
         }
       }
     }
@@ -211,9 +233,11 @@ export default defineComponent({
     const handleConfirm = async (item: WorkItem) => {
       try {
         await spotWorkService.update(item.id, { status: '进行中' })
+        showToast('确认成功', 'success')
         loadData()
       } catch (error) {
         console.error('确认失败:', error)
+        showToast('确认失败', 'error')
       }
     }
 
@@ -241,6 +265,7 @@ export default defineComponent({
       totalPages,
       searchForm,
       workData,
+      toast,
       formatDate,
       handleSearch,
       handleAdd,

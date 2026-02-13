@@ -81,14 +81,34 @@ def update_project_info(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_project_info(
     id: int,
+    cascade: bool = Query(False, description="是否级联删除关联数据"),
     db: Session = Depends(get_db)
 ):
     """
     根据ID删除项目信息
+    
+    参数:
+    - cascade: 是否级联删除关联数据（工作计划、定期巡检、临时维修、零星用工、维保计划）
     """
     service = ProjectInfoService(db)
-    service.delete(id)
-    return ApiResponse.success(None, "删除成功")
+    result = service.delete(id, cascade=cascade)
+    
+    if result.get('deleted_related'):
+        deleted_info = []
+        for key, count in result['deleted_related'].items():
+            name_map = {
+                'work_plan': '工作计划',
+                'periodic_inspection': '定期巡检',
+                'temporary_repair': '临时维修',
+                'spot_work': '零星用工',
+                'maintenance_plan': '维保计划'
+            }
+            deleted_info.append(f"{count} 条{name_map.get(key, key)}")
+        message = f"已删除项目【{result['project_name']}】及其关联的 {', '.join(deleted_info)}"
+    else:
+        message = "删除成功"
+    
+    return ApiResponse.success(None, message)
 
 
 @router.get("/all/list", response_model=ApiResponse)

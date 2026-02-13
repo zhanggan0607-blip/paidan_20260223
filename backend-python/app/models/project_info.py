@@ -13,20 +13,22 @@ class ProjectInfo(Base):
     project_name = Column(String(200), nullable=False, comment="项目名称")
     completion_date = Column(DateTime, nullable=False, comment="开始日期")
     maintenance_end_date = Column(DateTime, nullable=False, comment="结束日期")
-    maintenance_period = Column(String(20), nullable=False, comment="维保周期")
+    maintenance_period = Column(String(20), nullable=False, comment="维保频率")
     client_name = Column(String(100), nullable=False, comment="客户单位名称")
     address = Column(String(200), nullable=False, comment="客户地址")
     project_abbr = Column(String(10), comment="项目简称")
+    project_manager = Column(String(50), comment="项目负责人")
     client_contact = Column(String(50), comment="客户联系人")
     client_contact_position = Column(String(20), comment="客户联系人职位")
     client_contact_info = Column(String(50), comment="客户联系方式")
     created_at = Column(DateTime, comment="创建时间")
     updated_at = Column(DateTime, comment="更新时间")
     
-    temporary_repairs = relationship("TemporaryRepair", back_populates="project")
-    spot_works = relationship("SpotWork", back_populates="project")
-    maintenance_plans = relationship("MaintenancePlan", back_populates="project")
-    periodic_inspections = relationship("PeriodicInspection", back_populates="project")
+    temporary_repairs = relationship("TemporaryRepair", back_populates="project", passive_deletes=True)
+    spot_works = relationship("SpotWork", back_populates="project", passive_deletes=True)
+    maintenance_plans = relationship("MaintenancePlan", back_populates="project", passive_deletes=True)
+    periodic_inspections = relationship("PeriodicInspection", back_populates="project", passive_deletes=True)
+    work_plans = relationship("WorkPlan", back_populates="project", passive_deletes=True)
     
     __table_args__ = (
         Index('idx_project_info_id', 'project_id'),
@@ -46,6 +48,7 @@ class ProjectInfo(Base):
             'client_name': self.client_name,
             'address': self.address,
             'project_abbr': self.project_abbr,
+            'project_manager': self.project_manager,
             'client_contact': self.client_contact,
             'client_contact_position': self.client_contact_position,
             'client_contact_info': self.client_contact_info,

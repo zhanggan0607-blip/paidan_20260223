@@ -9,7 +9,7 @@ class SpotWork(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     work_id = Column(String(50), unique=True, nullable=False, comment="用工单编号")
-    project_id = Column(String(50), ForeignKey('project_info.project_id'), nullable=False, comment="项目编号")
+    project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
     plan_start_date = Column(DateTime, nullable=False, comment="计划开始日期")
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")

@@ -10,6 +10,7 @@ export interface ProjectInfo {
   client_name: string
   address: string
   project_abbr?: string
+  project_manager?: string
   client_contact?: string
   client_contact_position?: string
   client_contact_info?: string
@@ -26,6 +27,7 @@ export interface ProjectInfoCreate {
   client_name: string
   address: string
   project_abbr?: string
+  project_manager?: string
   client_contact?: string
   client_contact_position?: string
   client_contact_info?: string
@@ -40,6 +42,7 @@ export interface ProjectInfoUpdate {
   client_name: string
   address: string
   project_abbr?: string
+  project_manager?: string
   client_contact?: string
   client_contact_position?: string
   client_contact_info?: string
@@ -87,8 +90,8 @@ export const projectInfoService = {
     return await apiClient.put(`/project-info/${id}`, data)
   },
 
-  async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/project-info/${id}`)
+  async delete(id: number, cascade: boolean = false): Promise<ApiResponse<null>> {
+    return await apiClient.delete(`/project-info/${id}`, { params: { cascade } })
   },
 
   async getAll(): Promise<ApiResponse<ProjectInfo[]>> {

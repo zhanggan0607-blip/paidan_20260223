@@ -3,7 +3,7 @@ import apiClient from '../utils/api'
 export interface OverdueItem {
   id: string
   workOrderNo: string
-  projectId: string
+  project_id: string
   projectName: string
   customerName: string
   workOrderType: string

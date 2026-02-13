@@ -103,15 +103,16 @@ export default defineComponent({
           id: 'work-order',
           label: '工单管理',
           children: [
-            { id: 'regular-inspection', label: '定期巡检', path: '/work-order/periodic-inspection' },
+            { id: 'work-plan', label: '工作计划管理', path: '/work-plan' },
             { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
-            { id: 'sporadic-labor', label: '零星用工管理', path: '/work-order/spot-work' }
+            { id: 'spot-work', label: '零星用工管理', path: '/work-order/spot-work' }
           ]
         },
         {
           id: 'spare-parts',
           label: '备品备件管理',
           children: [
+            { id: 'spare-parts-inventory', label: '备品备件库存', path: '/spare-parts/inventory' },
             { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
             { id: 'spare-parts-stock', label: '备品备件入库', path: '/spare-parts/stock' }
           ]
@@ -161,6 +162,13 @@ export default defineComponent({
           full: '工单管理 / 零星用工管理'
         }
       }
+      if (path === '/work-plan') {
+        return {
+          level1: '工单管理',
+          level2: '工作计划管理',
+          full: '工单管理 / 工作计划管理'
+        }
+      }
       if (path === '/spare-parts/issue') {
         return {
           level1: '备品备件管理',
@@ -173,6 +181,13 @@ export default defineComponent({
           level1: '备品备件管理',
           level2: '备品备件入库',
           full: '备品备件管理 / 备品备件入库'
+        }
+      }
+      if (path === '/spare-parts/inventory') {
+        return {
+          level1: '备品备件管理',
+          level2: '备品备件库存',
+          full: '备品备件管理 / 备品备件库存'
         }
       }
       if (path === '/spare-parts') {
@@ -191,9 +206,9 @@ export default defineComponent({
 
     const toggleMenu = (menuId: string) => {
       if (expandedMenus.value.includes(menuId)) {
-        expandedMenus.value = []
+        expandedMenus.value = expandedMenus.value.filter(id => id !== menuId)
       } else {
-        expandedMenus.value = [menuId]
+        expandedMenus.value = [...expandedMenus.value, menuId]
       }
     }
 

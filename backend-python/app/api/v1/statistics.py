@@ -2,6 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, case
+from datetime import datetime, timedelta
 from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.periodic_inspection import PeriodicInspection
@@ -9,6 +10,7 @@ from app.models.temporary_repair import TemporaryRepair
 from app.models.spot_work import SpotWork
 from app.models.maintenance_plan import MaintenancePlan
 from app.models.personnel import Personnel
+from app.config import OverdueAlertConfig
 
 router = APIRouter(prefix="/statistics", tags=["Statistics"])
 
@@ -20,47 +22,64 @@ def get_statistics_overview(
 ):
     """获取统计数据概览"""
     
-    # 获取年度数据
-    year_data = db.query(
+    today = datetime.now()
+    near_expiry_date = today + timedelta(days=7)
+    
+    # 临期工单：临时维修单中，状态为未完成且7天内到期的
+    near_expiry_repairs = db.query(TemporaryRepair).filter(
+        TemporaryRepair.status.in_(OverdueAlertConfig.VALID_STATUSES),
+        TemporaryRepair.plan_end_date >= today,
+        TemporaryRepair.plan_end_date <= near_expiry_date
+    ).all()
+    near_expiry_count = len(near_expiry_repairs)
+    
+    # 超期工单：项目超期提醒汇总数量（定期巡检、临时维修、零星用工中已超期的）
+    overdue_inspections = db.query(PeriodicInspection).filter(
+        PeriodicInspection.status.in_(OverdueAlertConfig.VALID_STATUSES),
+        PeriodicInspection.plan_end_date < today
+    ).all()
+    
+    overdue_repairs = db.query(TemporaryRepair).filter(
+        TemporaryRepair.status.in_(OverdueAlertConfig.VALID_STATUSES),
+        TemporaryRepair.plan_end_date < today
+    ).all()
+    
+    overdue_spot_works = db.query(SpotWork).filter(
+        SpotWork.status.in_(OverdueAlertConfig.VALID_STATUSES),
+        SpotWork.plan_end_date < today
+    ).all()
+    
+    overdue_count = len(overdue_inspections) + len(overdue_repairs) + len(overdue_spot_works)
+    
+    # 本年完成：定期巡检单中本年度已完成的数量
+    completed_inspections = db.query(PeriodicInspection).filter(
+        func.extract('year', PeriodicInspection.created_at) == year,
+        PeriodicInspection.status == '已完成'
+    ).all()
+    completed_count = len(completed_inspections)
+    
+    # 定期巡检单：本年度定期巡检单总数
+    regular_inspections = db.query(PeriodicInspection).filter(
         func.extract('year', PeriodicInspection.created_at) == year
     ).all()
+    regular_inspection_count = len(regular_inspections)
     
-    # 统计定期巡检单
-    regular_inspection_count = len([
-        item for item in year_data
-        if hasattr(item, 'status') and item.status == '已完成'
-    ])
+    # 临时维修单：临时维修单查询汇总数量（所有临时维修单）
+    temporary_repairs = db.query(TemporaryRepair).all()
+    temporary_repair_count = len(temporary_repairs)
     
-    # 统计临时维修单
-    temporary_repair_count = len([
-        item for item in year_data
-        if hasattr(item, 'status') and item.status == '已完成'
-    ])
-    
-    # 统计零星用工单
-    spot_work_data = db.query(
-        func.extract('year', SpotWork.created_at) == year
-    ).all()
-    spot_work_count = len([
-        item for item in spot_work_data
-        if hasattr(item, 'status') and item.status == '已完成'
-    ])
-    
-    # 统计维保计划
-    maintenance_plan_data = db.query(
-        func.extract('year', MaintenancePlan.created_at) == year
-    ).all()
-    maintenance_plan_count = len([
-        item for item in maintenance_plan_data
-        if hasattr(item, 'plan_status') and item.plan_status == '已完成'
-    ])
+    # 零星用工单：零星用工管理汇总数量（所有零星用工单）
+    spot_works = db.query(SpotWork).all()
+    spot_work_count = len(spot_works)
     
     return ApiResponse.success({
         'year': year,
+        'nearExpiry': near_expiry_count,
+        'overdue': overdue_count,
+        'completed': completed_count,
         'regularInspectionCount': regular_inspection_count,
         'temporaryRepairCount': temporary_repair_count,
-        'spotWorkCount': spot_work_count,
-        'maintenancePlanCount': maintenance_plan_count
+        'spotWorkCount': spot_work_count
     })
 
 

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.models.inspection_item import InspectionItem
 from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate
 import logging
@@ -14,7 +14,7 @@ class InspectionItemRepository:
 
     def get_all(self) -> List[InspectionItem]:
         try:
-            return self.db.query(InspectionItem).order_by(InspectionItem.created_at.desc()).all()
+            return self.db.query(InspectionItem).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有巡检事项失败: {str(e)}")
             raise
@@ -33,6 +33,45 @@ class InspectionItemRepository:
             logger.error(f"查询巡检事项失败 (code={item_code}): {str(e)}")
             raise
 
+    def get_children(self, parent_id: int) -> List[InspectionItem]:
+        try:
+            return self.db.query(InspectionItem).filter(
+                InspectionItem.parent_id == parent_id
+            ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
+        except Exception as e:
+            logger.error(f"查询子节点失败 (parent_id={parent_id}): {str(e)}")
+            raise
+
+    def get_root_items(self) -> List[InspectionItem]:
+        try:
+            return self.db.query(InspectionItem).filter(
+                InspectionItem.parent_id == None
+            ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
+        except Exception as e:
+            logger.error(f"查询根节点失败: {str(e)}")
+            raise
+
+    def get_tree(self) -> List[Dict[str, Any]]:
+        try:
+            all_items = self.get_all()
+            return self._build_tree(all_items)
+        except Exception as e:
+            logger.error(f"构建树形结构失败: {str(e)}")
+            raise
+
+    def _build_tree(self, items: List[InspectionItem], parent_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        tree = []
+        for item in items:
+            if item.parent_id == parent_id:
+                node = item.to_dict()
+                children = self._build_tree(items, item.id)
+                if children:
+                    node['children'] = children
+                else:
+                    node['children'] = []
+                tree.append(node)
+        return tree
+
     def search(self, keyword: Optional[str] = None) -> List[InspectionItem]:
         try:
             query = self.db.query(InspectionItem)
@@ -44,7 +83,7 @@ class InspectionItemRepository:
                         InspectionItem.item_name.ilike(search_pattern)
                     )
                 )
-            return query.order_by(InspectionItem.created_at.desc()).all()
+            return query.order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"搜索巡检事项失败: {str(e)}")
             raise
@@ -84,6 +123,10 @@ class InspectionItemRepository:
             db_item = self.get_by_id(item_id)
             if not db_item:
                 return False
+
+            children = self.get_children(item_id)
+            for child in children:
+                self.delete(child.id)
 
             self.db.delete(db_item)
             self.db.commit()

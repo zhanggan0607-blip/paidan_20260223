@@ -30,7 +30,7 @@
             <th>项目名称</th>
             <th>项目开始日期</th>
             <th>项目结束日期</th>
-            <th>维保周期</th>
+            <th>维保频率</th>
             <th>客户单位</th>
             <th>地址</th>
             <th>操作</th>
@@ -107,37 +107,13 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 项目编号
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_id" maxlength="50" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
                   <span class="required">*</span> 项目开始日期
                 </label>
                 <input type="date" class="form-input" v-model="formData.completion_date" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_name" maxlength="100" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系人
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact" maxlength="50" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact_position" maxlength="20" />
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 维保周期
+                  <span class="required">*</span> 维保频率
                 </label>
                 <select class="form-input" v-model="formData.maintenance_period">
                   <option value="">请选择</option>
@@ -147,6 +123,33 @@
                   <option value="每季度">每季度</option>
                   <option value="每半年">每半年</option>
                 </select>
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户单位
+                </label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_name" maxlength="100" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目负责人</label>
+                <select class="form-input" v-model="formData.project_manager">
+                  <option value="">请选择</option>
+                  <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户联系人
+                </label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact" maxlength="50" />
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 项目编号
+                </label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_id" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -172,6 +175,10 @@
                   <span class="required">*</span> 客户联系方式
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact_info" maxlength="50" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户联系人职位</label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="formData.client_contact_position" maxlength="20" />
               </div>
             </div>
           </div>
@@ -199,30 +206,30 @@
                 <div class="form-value">{{ viewData.project_name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
-              </div>
-              <div class="form-item">
                 <label class="form-label">项目开始日期</label>
                 <div class="form-value">{{ formatDate(viewData.completion_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">维保频率</label>
+                <div class="form-value">{{ viewData.maintenance_period || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户单位</label>
                 <div class="form-value">{{ viewData.client_name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
-                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
+                <label class="form-label">项目负责人</label>
+                <div class="form-value">{{ viewData.project_manager || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人职位</label>
-                <div class="form-value">{{ viewData.client_contact_position || '-' }}</div>
+                <label class="form-label">客户联系人</label>
+                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">维保周期</label>
-                <div class="form-value">{{ viewData.maintenance_period || '-' }}</div>
+                <label class="form-label">项目编号</label>
+                <div class="form-value">{{ viewData.project_id || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">项目目前简称</label>
@@ -239,6 +246,10 @@
               <div class="form-item">
                 <label class="form-label">客户联系方式</label>
                 <div class="form-value">{{ viewData.client_contact_info || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户联系人职位</label>
+                <div class="form-value">{{ viewData.client_contact_position || '-' }}</div>
               </div>
             </div>
           </div>
@@ -266,37 +277,13 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 项目编号
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
                   <span class="required">*</span> 项目开始日期
                 </label>
                 <input type="date" class="form-input" v-model="editData.completion_date" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_name" maxlength="100" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系人
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact" maxlength="50" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact_position" maxlength="20" />
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 维保周期
+                  <span class="required">*</span> 维保频率
                 </label>
                 <select class="form-input" v-model="editData.maintenance_period">
                   <option value="">请选择</option>
@@ -306,6 +293,33 @@
                   <option value="每季度">每季度</option>
                   <option value="每半年">每半年</option>
                 </select>
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户单位
+                </label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_name" maxlength="100" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目负责人</label>
+                <select class="form-input" v-model="editData.project_manager">
+                  <option value="">请选择</option>
+                  <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户联系人
+                </label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact" maxlength="50" />
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 项目编号
+                </label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -326,6 +340,10 @@
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact_info" maxlength="50" />
               </div>
+              <div class="form-item">
+                <label class="form-label">客户联系人职位</label>
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.client_contact_position" maxlength="20" />
+              </div>
             </div>
           </div>
         </div>
@@ -337,20 +355,32 @@
         </div>
       </div>
     </div>
+
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <ConfirmDialog 
+      :visible="confirmDialog.visible" 
+      :title="confirmDialog.title" 
+      :message="confirmDialog.message"
+      @confirm="handleConfirm"
+      @cancel="handleCancelConfirm"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { projectInfoService, type ProjectInfo, type ProjectInfoCreate, type ProjectInfoUpdate } from '../services/projectInfo'
+import { personnelService } from '../services/personnel'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 export default defineComponent({
   name: 'ProjectInfoManagement',
   components: {
     LoadingSpinner,
-    Toast
+    Toast,
+    ConfirmDialog
   },
   setup() {
     const searchForm = reactive({
@@ -371,12 +401,40 @@ export default defineComponent({
     const projectData = ref<ProjectInfo[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
+    const personnelList = ref<string[]>([])
 
     const toast = reactive({
       visible: false,
       message: '',
       type: 'success' as 'success' | 'error' | 'warning' | 'info'
     })
+
+    const confirmDialog = reactive({
+      visible: false,
+      title: '确认',
+      message: ''
+    })
+
+    let pendingConfirmAction: (() => void) | null = null
+
+    const showConfirm = (message: string, onConfirm: () => void) => {
+      confirmDialog.message = message
+      pendingConfirmAction = onConfirm
+      confirmDialog.visible = true
+    }
+
+    const handleConfirm = () => {
+      confirmDialog.visible = false
+      if (pendingConfirmAction) {
+        pendingConfirmAction()
+        pendingConfirmAction = null
+      }
+    }
+
+    const handleCancelConfirm = () => {
+      confirmDialog.visible = false
+      pendingConfirmAction = null
+    }
 
     const viewData = reactive({
       id: 0,
@@ -388,6 +446,7 @@ export default defineComponent({
       client_name: '',
       address: '',
       project_abbr: '',
+      project_manager: '',
       client_contact: '',
       client_contact_position: '',
       client_contact_info: ''
@@ -403,6 +462,7 @@ export default defineComponent({
       client_name: '',
       address: '',
       project_abbr: '',
+      project_manager: '',
       client_contact: '',
       client_contact_position: '',
       client_contact_info: ''
@@ -417,6 +477,7 @@ export default defineComponent({
       client_contact_position: '',
       maintenance_period: '',
       project_abbr: '',
+      project_manager: '',
       maintenance_end_date: '',
       address: '',
       client_contact_info: ''
@@ -440,6 +501,15 @@ export default defineComponent({
         month: '2-digit',
         day: '2-digit'
       })
+    }
+
+    const formatDateForInput = (dateStr: string) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
 
     const formatDateForAPI = (dateStr: string) => {
@@ -506,7 +576,7 @@ export default defineComponent({
         return false
       }
       if (!formData.maintenance_period?.trim()) {
-        showToast('请填写维保周期', 'warning')
+        showToast('请填写维保频率', 'warning')
         return false
       }
       if (!formData.client_name?.trim()) {
@@ -538,6 +608,7 @@ export default defineComponent({
       formData.client_contact_position = ''
       formData.maintenance_period = ''
       formData.project_abbr = ''
+      formData.project_manager = ''
       formData.maintenance_end_date = ''
       formData.address = ''
       formData.client_contact_info = ''
@@ -559,6 +630,7 @@ export default defineComponent({
           client_name: formData.client_name,
           address: formData.address,
           project_abbr: formData.project_abbr || undefined,
+          project_manager: formData.project_manager || undefined,
           client_contact: formData.client_contact || undefined,
           client_contact_position: formData.client_contact_position || undefined,
           client_contact_info: formData.client_contact_info || undefined
@@ -593,6 +665,7 @@ export default defineComponent({
       viewData.client_name = item.client_name
       viewData.address = item.address
       viewData.project_abbr = item.project_abbr || ''
+      viewData.project_manager = item.project_manager || ''
       viewData.client_contact = item.client_contact || ''
       viewData.client_contact_position = item.client_contact_position || ''
       viewData.client_contact_info = item.client_contact_info || ''
@@ -604,12 +677,13 @@ export default defineComponent({
       editData.id = item.id
       editData.project_id = item.project_id
       editData.project_name = item.project_name
-      editData.completion_date = item.completion_date
-      editData.maintenance_end_date = item.maintenance_end_date
+      editData.completion_date = formatDateForInput(item.completion_date)
+      editData.maintenance_end_date = formatDateForInput(item.maintenance_end_date)
       editData.maintenance_period = item.maintenance_period
       editData.client_name = item.client_name
       editData.address = item.address
       editData.project_abbr = item.project_abbr || ''
+      editData.project_manager = item.project_manager || ''
       editData.client_contact = item.client_contact || ''
       editData.client_contact_position = item.client_contact_position || ''
       editData.client_contact_info = item.client_contact_info || ''
@@ -643,7 +717,7 @@ export default defineComponent({
         return false
       }
       if (!editData.maintenance_period?.trim()) {
-        showToast('请填写维保周期', 'warning')
+        showToast('请填写维保频率', 'warning')
         return false
       }
       if (!editData.client_name?.trim()) {
@@ -673,6 +747,7 @@ export default defineComponent({
           client_name: editData.client_name,
           address: editData.address,
           project_abbr: editData.project_abbr || undefined,
+          project_manager: editData.project_manager || undefined,
           client_contact: editData.client_contact || undefined,
           client_contact_position: editData.client_contact_position || undefined,
           client_contact_info: editData.client_contact_info || undefined
@@ -696,26 +771,46 @@ export default defineComponent({
     }
 
     const handleDelete = async (item: ProjectInfo) => {
-      if (!confirm('确定要删除该项目吗？')) {
-        return
-      }
-
-      loading.value = true
-      try {
-        const response = await projectInfoService.delete(item.id)
-        
-        if (response.code === 200) {
-          showToast('删除成功', 'success')
-          await loadData()
-        } else {
-          showToast(response.message || '删除失败', 'error')
+      showConfirm('确定要删除该项目吗？', async () => {
+        loading.value = true
+        try {
+          const response = await projectInfoService.delete(item.id)
+          
+          if (response.code === 200) {
+            showToast('删除成功', 'success')
+            await loadData()
+          } else {
+            showToast(response.message || '删除失败', 'error')
+          }
+        } catch (error: any) {
+          console.error('删除失败:', error)
+          if (error.status === 400 && error.message && error.message.includes('请确认是否级联删除')) {
+            showConfirm(error.message + '\n\n是否确认删除项目及其所有关联数据？', async () => {
+              loading.value = true
+              try {
+                const cascadeResponse = await projectInfoService.delete(item.id, true)
+                if (cascadeResponse.code === 200) {
+                  showToast('删除成功', 'success')
+                  await loadData()
+                } else {
+                  showToast(cascadeResponse.message || '删除失败', 'error')
+                }
+              } catch (cascadeError: any) {
+                console.error('级联删除失败:', cascadeError)
+                showToast(cascadeError.message || '删除失败', 'error')
+              } finally {
+                loading.value = false
+              }
+            })
+          } else if (error.status === 400 && error.message) {
+            showToast(error.message, 'warning')
+          } else {
+            showToast(error.message || '删除失败，请检查网络连接', 'error')
+          }
+        } finally {
+          loading.value = false
         }
-      } catch (error: any) {
-        console.error('删除失败:', error)
-        showToast(error.message || '删除失败，请检查网络连接', 'error')
-      } finally {
-        loading.value = false
-      }
+      })
     }
 
     const handleJump = () => {
@@ -739,8 +834,20 @@ export default defineComponent({
       })
     })
 
+    const loadPersonnel = async () => {
+      try {
+        const response = await personnelService.getAll()
+        if (response.code === 200 && response.data) {
+          personnelList.value = response.data.map(p => p.name)
+        }
+      } catch (error) {
+        console.error('加载人员列表失败:', error)
+      }
+    }
+
     onMounted(() => {
       loadData()
+      loadPersonnel()
     })
 
     onUnmounted(() => {
@@ -767,6 +874,8 @@ export default defineComponent({
       editData,
       formData,
       toast,
+      confirmDialog,
+      personnelList,
       openModal,
       closeModal,
       handleSearch,
@@ -779,7 +888,9 @@ export default defineComponent({
       handlePageSizeChange,
       closeViewModal,
       closeEditModal,
-      formatDate
+      formatDate,
+      handleConfirm,
+      handleCancelConfirm
     }
   }
 })
@@ -1148,6 +1259,19 @@ export default defineComponent({
   gap: 8px;
   min-height: 90px;
   padding: 4px 0;
+}
+
+.form-item-inline {
+  display: flex;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+.form-item-half {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .form-label {

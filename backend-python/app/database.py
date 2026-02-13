@@ -15,6 +15,9 @@ engine = create_engine(
     echo=settings.debug,
     pool_pre_ping=True,
     pool_recycle=3600,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
 )
 
 try:
@@ -32,6 +35,11 @@ def get_db():
     try:
         logger.debug(f"开始事务: session={id(db)}")
         yield db
+        db.commit()
+    except Exception as e:
+        logger.error(f"事务异常，执行回滚: {str(e)}")
+        db.rollback()
+        raise
     finally:
         try:
             db.close()

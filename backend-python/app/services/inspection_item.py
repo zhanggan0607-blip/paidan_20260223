@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from app.repositories.inspection_item import InspectionItemRepository
 from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate, InspectionItem
@@ -12,6 +12,9 @@ class InspectionItemService:
 
     def get_item_by_id(self, item_id: int) -> Optional[InspectionItem]:
         return self.repository.get_by_id(item_id)
+
+    def get_tree(self) -> List[Dict[str, Any]]:
+        return self.repository.get_tree()
 
     def search_items(self, keyword: Optional[str] = None) -> List[InspectionItem]:
         return self.repository.search(keyword)

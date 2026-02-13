@@ -65,7 +65,7 @@
                 </tr>
                 <tr v-else v-for="(item, index) in dataList" :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-                  <td>{{ item.projectId }}</td>
+                  <td>{{ item.project_id }}</td>
                   <td>{{ item.projectName }}</td>
                   <td>{{ item.productName }}</td>
                   <td>{{ item.brand }}</td>
@@ -134,7 +134,7 @@ import type { ApiResponse, PaginatedResponse } from '@/types/api'
 
 interface SparePartsIssueItem {
   id: number
-  projectId: string
+  project_id: string
   projectName: string
   productName: string
   brand: string
@@ -143,6 +143,14 @@ interface SparePartsIssueItem {
   userName: string
   issueTime: string
   unit: string
+}
+
+interface SparePartsIssueQueryParams {
+  page: number
+  pageSize: number
+  user?: string
+  product?: string
+  project?: string
 }
 
 interface User {
@@ -245,7 +253,7 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list')
+        const response = await apiClient.get('/personnel/all/list') as unknown as ApiResponse<any[]>
         if (response && response.code === 200 && response.data) {
           userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === '材料员')
         }
@@ -256,7 +264,7 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } })
+        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } }) as unknown as ApiResponse<{ content: Project[] }>
         if (response && response.code === 200 && response.data) {
           projectList.value = (response.data.content || []).filter((project: Project) => project && project.id && project.name)
         }

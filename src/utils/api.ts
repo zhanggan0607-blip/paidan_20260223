@@ -34,6 +34,9 @@ apiClient.interceptors.response.use(
       const { status, data } = error.response
       
       switch (status) {
+        case 400:
+          console.error('请求错误', data?.message)
+          break
         case 401:
           console.error('未授权，请重新登录')
           localStorage.removeItem('token')

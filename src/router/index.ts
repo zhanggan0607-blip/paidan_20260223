@@ -15,6 +15,8 @@ import SpotWorkManagement from '@/views/SpotWorkManagement.vue'
 import SparePartsManagement from '@/views/SparePartsManagement.vue'
 import SparePartsIssue from '@/views/SparePartsIssue.vue'
 import SparePartsStock from '@/views/SparePartsStock.vue'
+import SparePartsInventory from '@/views/SparePartsInventory.vue'
+import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -81,6 +83,14 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/spare-parts/stock',
         component: SparePartsStock
+      },
+      {
+        path: '/spare-parts/inventory',
+        component: SparePartsInventory
+      },
+      {
+        path: '/work-plan',
+        component: WorkPlanManagement
       }
     ]
   }

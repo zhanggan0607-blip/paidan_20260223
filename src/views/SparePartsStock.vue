@@ -5,34 +5,34 @@
         <div class="content-wrapper">
           <div class="header-section">
             <h2 class="page-title">备品备件入库</h2>
-            <button @click="showAddModal = true" class="add-button">
-              <span class="add-icon">+</span>
-              新增备品备件
-            </button>
           </div>
 
           <div class="filter-section">
-            <div class="filter-group">
-              <label class="filter-label">产品名称</label>
-              <input 
-                v-model="filters.product" 
-                type="text" 
-                class="filter-input" 
-                placeholder="请输入产品名称"
-              />
+            <div class="filter-fields">
+              <div class="filter-group">
+                <label class="filter-label">产品名称</label>
+                <input 
+                  v-model="filters.product" 
+                  type="text" 
+                  class="filter-input" 
+                  placeholder="请输入产品名称"
+                />
+              </div>
+              <div class="filter-group">
+                <label class="filter-label">入库人</label>
+                <select v-model="filters.user" class="filter-select">
+                  <option value="">全部</option>
+                  <option v-for="user in userList" :key="user.id" :value="user.name">
+                    {{ user.name }}
+                  </option>
+                </select>
+              </div>
+              <button @click="handleSearch" class="search-button">
+                搜索
+              </button>
             </div>
-            <div class="filter-group">
-              <label class="filter-label">入库人</label>
-              <select v-model="filters.user" class="filter-select">
-                <option value="">全部</option>
-                <option v-for="user in userList" :key="user.id" :value="user.name">
-                  {{ user.name }}
-                </option>
-              </select>
-            </div>
-            <button @click="handleSearch" class="search-button">
-              <span class="search-icon">🔍</span>
-              搜索
+            <button @click="showAddModal = true" class="add-button">
+              新增备品备件
             </button>
           </div>
 
@@ -254,6 +254,9 @@ interface User {
 
 export default defineComponent({
   name: 'SparePartsStock',
+  components: {
+    Toast
+  },
   setup() {
     const loading = ref(false)
     const submitting = ref(false)
@@ -484,9 +487,6 @@ export default defineComponent({
 }
 
 .header-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
 }
 
@@ -498,7 +498,7 @@ export default defineComponent({
 }
 
 .add-button {
-  padding: 12px 24px;
+  padding: 8px 24px;
   background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
   color: #fff;
   border: none;
@@ -510,16 +510,12 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 8px;
+  white-space: nowrap;
 }
 
 .add-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-}
-
-.add-icon {
-  font-size: 20px;
-  font-weight: bold;
 }
 
 .filter-section {
@@ -530,6 +526,13 @@ export default defineComponent({
   padding: 16px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.filter-fields {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex: 2;
 }
 
 .filter-group {
@@ -579,10 +582,6 @@ export default defineComponent({
 .search-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-}
-
-.search-icon {
-  font-size: 16px;
 }
 
 .table-section {

@@ -38,7 +38,7 @@ def get_spare_parts_usage(
     for item in items:
         result_items.append({
             'id': item.id,
-            'projectId': item.project_id or '',
+            'project_id': item.project_id or '',
             'projectName': item.project_name or '',
             'productName': item.product_name,
             'brand': item.brand or '',

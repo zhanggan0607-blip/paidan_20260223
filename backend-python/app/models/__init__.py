@@ -7,6 +7,7 @@ from app.models.personnel import Personnel
 from app.models.inspection_item import InspectionItem
 from app.models.spare_parts_stock import SparePartsStock
 from app.models.spare_parts_inbound import SparePartsInbound
+from app.models.work_plan import WorkPlan
 
 __all__ = [
     'PeriodicInspection',
@@ -17,5 +18,6 @@ __all__ = [
     'Personnel',
     'InspectionItem',
     'SparePartsStock',
-    'SparePartsInbound'
+    'SparePartsInbound',
+    'WorkPlan'
 ]

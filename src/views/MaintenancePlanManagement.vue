@@ -97,7 +97,7 @@
     <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
       <div class="modal-container modal-large">
         <div class="modal-header">
-          <h3 class="modal-title">新增维保计划</h3>
+          <h3 class="modal-title">{{ editingId !== null ? '编辑维保计划' : '新增维保计划' }}</h3>
           <button class="modal-close" @click="closeModal">×</button>
         </div>
         <div class="modal-body">
@@ -116,7 +116,7 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">维保周期</label>
+                <label class="form-label">维保频率</label>
                 <input type="text" class="form-input form-input-readonly" v-model="formData.maintenance_period" readonly />
               </div>
               <div class="form-item">
@@ -147,7 +147,7 @@
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th>计划编号</th>
+                  <th>工单编号</th>
                   <th>计划开始日期</th>
                   <th>计划结束日期</th>
                   <th>维保人员</th>
@@ -195,9 +195,10 @@
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th>事项编号</th>
-                  <th>巡检项</th>
-                  <th>巡检内容</th>
+                  <th style="width: 60px;">事项编号</th>
+                  <th>巡查类</th>
+                  <th>巡查项</th>
+                  <th>巡查内容</th>
                   <th>检查要求</th>
                   <th>简要说明</th>
                   <th>操作</th>
@@ -206,19 +207,68 @@
               <tbody>
                 <tr v-for="(item, index) in formData.itemList" :key="index">
                   <td>
-                    <input type="text" class="table-input" v-model="item.item_id" placeholder="请输入" />
+                    <input type="text" class="table-input table-input-readonly" :value="index + 1" readonly />
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="item.inspection_item" placeholder="请输入" />
+                    <el-select 
+                      v-model="item.level1_id" 
+                      placeholder="选择巡查类" 
+                      size="small"
+                      style="width: 100%;"
+                      @change="handleLevel1Change(index)"
+                    >
+                      <el-option
+                        v-for="node in level1Nodes"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="item.inspection_content" placeholder="请输入" />
+                    <el-select 
+                      v-model="item.level2_id" 
+                      placeholder="选择巡查项" 
+                      size="small"
+                      style="width: 100%;"
+                      :disabled="!item.level1_id"
+                      @change="handleLevel2Change(index)"
+                    >
+                      <el-option
+                        v-for="node in getLevel2Nodes(item.level1_id)"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="item.check_requirements" placeholder="请输入" />
+                    <el-select 
+                      v-model="item.level3_id" 
+                      placeholder="选择巡查内容" 
+                      size="small"
+                      style="width: 100%;"
+                      :disabled="!item.level2_id"
+                      @change="handleLevel3Change(index)"
+                    >
+                      <el-option
+                        v-for="node in getLevel3Nodes(item.level1_id, item.level2_id)"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="item.brief_description" placeholder="请输入" />
+                    <el-input 
+                      v-model="item.check_requirements" 
+                      placeholder="自动带出"
+                      size="small"
+                      readonly
+                    />
+                  </td>
+                  <td>
+                    <input type="text" class="table-input table-input-readonly" v-model="item.brief_description" placeholder="自动带出" readonly />
                   </td>
                   <td class="action-cell">
                     <a href="#" class="action-link action-delete" @click.prevent="removeItem(index)">删除</a>
@@ -255,7 +305,7 @@
                 <div class="form-value">{{ viewData.plan_name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划编号</label>
+                <label class="form-label">工单编号</label>
                 <div class="form-value">{{ viewData.plan_id || '-' }}</div>
               </div>
               <div class="form-item">
@@ -366,7 +416,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 计划编号
+                  <span class="required">*</span> 工单编号
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="editData.plan_id" maxlength="50" />
               </div>
@@ -498,23 +548,48 @@
         </div>
       </div>
     </div>
+
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <ConfirmDialog 
+      :visible="confirmDialog.visible" 
+      :title="confirmDialog.title" 
+      :message="confirmDialog.message"
+      @confirm="handleConfirm"
+      @cancel="handleCancelConfirm"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
+import { ElSelect, ElOption, ElInput } from 'element-plus'
 import { maintenancePlanService, type MaintenancePlan, type MaintenancePlanCreate, type MaintenancePlanUpdate } from '../services/maintenancePlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
 import { dictionaryService, dictionaryTypes, type Dictionary } from '../services/dictionary'
+import { inspectionItemService, type InspectionItem as ApiInspectionItem } from '../services/inspectionItem'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+
+interface InspectionTreeNode {
+  id: string
+  label: string
+  level: number
+  checkRequirement?: string
+  checkStandard?: string
+  children?: InspectionTreeNode[]
+}
 
 export default defineComponent({
   name: 'MaintenancePlanManagement',
   components: {
     LoadingSpinner,
-    Toast
+    Toast,
+    ConfirmDialog,
+    ElSelect,
+    ElOption,
+    ElInput
   },
   setup() {
     const searchForm = reactive({
@@ -546,6 +621,33 @@ export default defineComponent({
       message: '',
       type: 'success' as 'success' | 'error' | 'warning' | 'info'
     })
+
+    const confirmDialog = reactive({
+      visible: false,
+      title: '确认',
+      message: ''
+    })
+
+    let pendingConfirmAction: (() => void) | null = null
+
+    const showConfirm = (message: string, onConfirm: () => void) => {
+      confirmDialog.message = message
+      pendingConfirmAction = onConfirm
+      confirmDialog.visible = true
+    }
+
+    const handleConfirm = () => {
+      confirmDialog.visible = false
+      if (pendingConfirmAction) {
+        pendingConfirmAction()
+        pendingConfirmAction = null
+      }
+    }
+
+    const handleCancelConfirm = () => {
+      confirmDialog.visible = false
+      pendingConfirmAction = null
+    }
 
     const loadPersonnel = async () => {
       try {
@@ -594,6 +696,9 @@ export default defineComponent({
       inspection_content: string
       check_requirements: string
       brief_description: string
+      level1_id: string
+      level2_id: string
+      level3_id: string
     }
 
     const formData = reactive({
@@ -606,6 +711,93 @@ export default defineComponent({
       planList: [] as PlanItem[],
       itemList: [] as InspectionItem[]
     })
+
+    const inspectionTreeData = ref<InspectionTreeNode[]>([])
+
+    const transformInspectionTree = (items: ApiInspectionItem[]): InspectionTreeNode[] => {
+      return items.map(item => ({
+        id: String(item.id),
+        label: item.item_name,
+        level: item.level,
+        checkRequirement: item.check_content || undefined,
+        checkStandard: item.check_standard || undefined,
+        children: item.children ? transformInspectionTree(item.children) : undefined
+      }))
+    }
+
+    const loadInspectionTree = async () => {
+      try {
+        const response = await inspectionItemService.getTree()
+        if (response.code === 200 && response.data) {
+          inspectionTreeData.value = transformInspectionTree(response.data)
+        }
+      } catch (error) {
+        console.error('加载巡检事项树失败:', error)
+      }
+    }
+
+    const level1Nodes = computed(() => {
+      return inspectionTreeData.value.filter(node => node.level === 1)
+    })
+
+    const getLevel2Nodes = (level1Id: string) => {
+      const level1Node = inspectionTreeData.value.find(node => node.id === level1Id)
+      return level1Node?.children || []
+    }
+
+    const getLevel3Nodes = (level1Id: string, level2Id: string) => {
+      const level2Nodes = getLevel2Nodes(level1Id)
+      const level2Node = level2Nodes.find(node => node.id === level2Id)
+      return level2Node?.children || []
+    }
+
+    const handleLevel1Change = (index: number) => {
+      const item = formData.itemList[index]
+      item.level2_id = ''
+      item.level3_id = ''
+      item.check_requirements = ''
+      item.brief_description = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+      
+      if (item.level1_id) {
+        const level1Node = inspectionTreeData.value.find(node => node.id === item.level1_id)
+        if (level1Node) {
+          item.inspection_item = level1Node.label
+        }
+      }
+    }
+
+    const handleLevel2Change = (index: number) => {
+      const item = formData.itemList[index]
+      item.level3_id = ''
+      item.check_requirements = ''
+      item.brief_description = ''
+      item.inspection_content = ''
+      
+      if (item.level1_id && item.level2_id) {
+        const level2Nodes = getLevel2Nodes(item.level1_id)
+        const level2Node = level2Nodes.find(node => node.id === item.level2_id)
+        if (level2Node) {
+          item.inspection_content = level2Node.label
+        }
+      }
+    }
+
+    const handleLevel3Change = (index: number) => {
+      const item = formData.itemList[index]
+      item.check_requirements = ''
+      item.brief_description = ''
+      
+      if (item.level1_id && item.level2_id && item.level3_id) {
+        const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
+        const level3Node = level3Nodes.find(node => node.id === item.level3_id)
+        if (level3Node) {
+          item.check_requirements = level3Node.checkRequirement || ''
+          item.brief_description = level3Node.checkStandard || ''
+        }
+      }
+    }
 
     let abortController: AbortController | null = null
 
@@ -707,12 +899,235 @@ export default defineComponent({
         formData.maintenance_period = selectedProject.maintenance_period
         formData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date)
         formData.client_name = selectedProject.client_name
+
+        const projectManager = (selectedProject as any).project_manager || ''
+        formData.planList = generatePlanList(
+          selectedProject.project_id,
+          new Date(selectedProject.completion_date),
+          new Date(selectedProject.maintenance_end_date),
+          selectedProject.maintenance_period,
+          projectManager
+        )
       }
     }
 
+    const generatePlanList = (projectId: string, startDate: Date, endDate: Date, period: string, projectManager: string = ''): PlanItem[] => {
+      const list: PlanItem[] = []
+      const planPeriods = generateMaintenancePeriods(startDate, endDate, period)
+      
+      planPeriods.forEach((periodInfo, index) => {
+        const planId = `${projectId}-${String(index + 1).padStart(3, '0')}`
+        list.push({
+          plan_id: planId,
+          plan_start_date: formatDateToString(periodInfo.start),
+          plan_end_date: formatDateToString(periodInfo.end),
+          responsible_person: projectManager,
+          remarks: ''
+        })
+      })
+      
+      return list
+    }
+
+    interface PeriodInfo {
+      start: Date
+      end: Date
+    }
+
+    const generateMaintenancePeriods = (projStart: Date, projEnd: Date, period: string): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      
+      if (period === '每天') {
+        return generateDailyPeriods(projStart, projEnd)
+      } else if (period === '每周') {
+        return generateWeeklyPeriods(projStart, projEnd)
+      } else if (period === '每月') {
+        return generateMonthlyPeriods(projStart, projEnd)
+      } else if (period === '每季度') {
+        return generateQuarterlyPeriods(projStart, projEnd)
+      } else if (period === '每半年') {
+        return generateHalfYearlyPeriods(projStart, projEnd)
+      }
+      
+      return generateMonthlyPeriods(projStart, projEnd)
+    }
+
+    const generateDailyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentDate = new Date(projStart)
+      
+      while (currentDate <= projEnd) {
+        periods.push({
+          start: new Date(currentDate),
+          end: new Date(currentDate)
+        })
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+      
+      return periods
+    }
+
+    const generateWeeklyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+      
+      while (currentStart <= projEnd) {
+        const dayOfWeek = currentStart.getDay()
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+        const daysToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek
+        
+        const weekStart = new Date(currentStart)
+        weekStart.setDate(weekStart.getDate() + daysToMonday)
+        if (weekStart < projStart) {
+          weekStart.setTime(projStart.getTime())
+        }
+        
+        const weekEnd = new Date(currentStart)
+        weekEnd.setDate(weekEnd.getDate() + daysToSunday)
+        if (weekEnd > projEnd) {
+          weekEnd.setTime(projEnd.getTime())
+        }
+        
+        periods.push({
+          start: new Date(weekStart),
+          end: new Date(weekEnd)
+        })
+        
+        const nextWeekStart = new Date(currentStart)
+        nextWeekStart.setDate(nextWeekStart.getDate() + (7 - dayOfWeek) + 1)
+        currentStart = nextWeekStart
+      }
+      
+      return periods
+    }
+
+    const generateMonthlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+      
+      while (currentStart <= projEnd) {
+        const year = currentStart.getFullYear()
+        const month = currentStart.getMonth()
+        
+        const monthStart = new Date(year, month, 1)
+        if (monthStart < projStart) {
+          monthStart.setTime(projStart.getTime())
+        }
+        
+        const monthEnd = new Date(year, month + 1, 0)
+        if (monthEnd > projEnd) {
+          monthEnd.setTime(projEnd.getTime())
+        }
+        
+        periods.push({
+          start: new Date(monthStart),
+          end: new Date(monthEnd)
+        })
+        
+        currentStart = new Date(year, month + 1, 1)
+      }
+      
+      return periods
+    }
+
+    const generateQuarterlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+      
+      while (currentStart <= projEnd) {
+        const year = currentStart.getFullYear()
+        const month = currentStart.getMonth()
+        const quarter = Math.floor(month / 3)
+        
+        const quarterStartMonth = quarter * 3
+        const quarterEndMonth = quarterStartMonth + 2
+        
+        const quarterStart = new Date(year, quarterStartMonth, 1)
+        if (quarterStart < projStart) {
+          quarterStart.setTime(projStart.getTime())
+        }
+        
+        const quarterEnd = new Date(year, quarterEndMonth + 1, 0)
+        if (quarterEnd > projEnd) {
+          quarterEnd.setTime(projEnd.getTime())
+        }
+        
+        periods.push({
+          start: new Date(quarterStart),
+          end: new Date(quarterEnd)
+        })
+        
+        currentStart = new Date(year, quarterEndMonth + 1, 1)
+      }
+      
+      return periods
+    }
+
+    const generateHalfYearlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+      
+      while (currentStart <= projEnd) {
+        const year = currentStart.getFullYear()
+        const month = currentStart.getMonth()
+        const half = month < 6 ? 0 : 1
+        
+        let halfStart: Date, halfEnd: Date
+        
+        if (half === 0) {
+          halfStart = new Date(year, 0, 1)
+          halfEnd = new Date(year, 6, 0)
+        } else {
+          halfStart = new Date(year, 6, 1)
+          halfEnd = new Date(year, 12, 0)
+        }
+        
+        if (halfStart < projStart) {
+          halfStart.setTime(projStart.getTime())
+        }
+        if (halfEnd > projEnd) {
+          halfEnd.setTime(projEnd.getTime())
+        }
+        
+        periods.push({
+          start: new Date(halfStart),
+          end: new Date(halfEnd)
+        })
+        
+        if (half === 0) {
+          currentStart = new Date(year, 6, 1)
+        } else {
+          currentStart = new Date(year + 1, 0, 1)
+        }
+      }
+      
+      return periods
+    }
+
+    const formatDateToString = (date: Date): string => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
     const addPlan = () => {
+      const projectId = formData.project_id || 'PRJ'
+      let newNum = 1
+      
+      if (formData.planList.length > 0) {
+        const lastPlan = formData.planList[formData.planList.length - 1]
+        if (lastPlan && lastPlan.plan_id) {
+          const parts = lastPlan.plan_id.split('-')
+          const lastNum = parseInt(parts[parts.length - 1])
+          if (!isNaN(lastNum)) {
+            newNum = lastNum + 1
+          }
+        }
+      }
+      
       formData.planList.push({
-        plan_id: '',
+        plan_id: `${projectId}-${String(newNum).padStart(3, '0')}`,
         plan_start_date: '',
         plan_end_date: '',
         responsible_person: '',
@@ -721,7 +1136,9 @@ export default defineComponent({
     }
 
     const removePlan = (index: number) => {
-      formData.planList.splice(index, 1)
+      showConfirm('确定要删除该计划吗？', () => {
+        formData.planList.splice(index, 1)
+      })
     }
 
     const addItem = () => {
@@ -730,12 +1147,17 @@ export default defineComponent({
         inspection_item: '',
         inspection_content: '',
         check_requirements: '',
-        brief_description: ''
+        brief_description: '',
+        level1_id: '',
+        level2_id: '',
+        level3_id: ''
       })
     }
 
     const removeItem = (index: number) => {
-      formData.itemList.splice(index, 1)
+      showConfirm('确定要删除该事项吗？', () => {
+        formData.itemList.splice(index, 1)
+      })
     }
 
     const importItems = () => {
@@ -799,6 +1221,7 @@ export default defineComponent({
 
     const closeModal = () => {
       isModalOpen.value = false
+      editingId.value = null
     }
 
     const resetForm = () => {
@@ -825,7 +1248,7 @@ export default defineComponent({
           return
         }
 
-        const createData: MaintenancePlanCreate = {
+        const planData: MaintenancePlanCreate = {
           plan_id: formData.planList[0]?.plan_id || '',
           plan_name: selectedProject.project_name,
           project_id: formData.project_id,
@@ -850,20 +1273,26 @@ export default defineComponent({
           remarks: formData.planList[0]?.remarks
         }
 
-        const response = await maintenancePlanService.create(createData)
+        let response
+        if (editingId.value !== null) {
+          response = await maintenancePlanService.update(editingId.value, planData)
+        } else {
+          response = await maintenancePlanService.create(planData)
+        }
         
         if (response.code === 200) {
-          showToast('创建成功', 'success')
+          showToast(editingId.value !== null ? '更新成功' : '创建成功', 'success')
           closeModal()
           resetForm()
+          editingId.value = null
           
           currentPage.value = 0
           await loadData()
         } else {
-          showToast(response.message || '创建失败', 'error')
+          showToast(response.message || (editingId.value !== null ? '更新失败' : '创建失败'), 'error')
         }
       } catch (error: any) {
-        showToast(error.message || '创建失败，请检查网络连接', 'error')
+        showToast(error.message || '操作失败，请检查网络连接', 'error')
       } finally {
         saving.value = false
       }
@@ -896,32 +1325,71 @@ export default defineComponent({
       isViewModalOpen.value = true
     }
 
-    const handleEdit = (item: MaintenancePlan) => {
+    const handleEdit = async (item: MaintenancePlan) => {
       editingId.value = item.id
-      editData.id = item.id
-      editData.plan_id = item.plan_id
-      editData.plan_name = item.plan_name
-      editData.project_id = item.project_id
-      editData.plan_type = item.plan_type
-      editData.equipment_id = item.equipment_id
-      editData.equipment_name = item.equipment_name
-      editData.equipment_model = item.equipment_model || ''
-      editData.equipment_location = item.equipment_location || ''
-      editData.plan_start_date = item.plan_start_date
-      editData.plan_end_date = item.plan_end_date
-      editData.execution_date = item.execution_date || ''
-      editData.next_maintenance_date = item.next_maintenance_date || ''
-      editData.responsible_person = item.responsible_person
-      editData.responsible_department = item.responsible_department || ''
-      editData.contact_info = item.contact_info || ''
-      editData.maintenance_content = item.maintenance_content
-      editData.maintenance_requirements = item.maintenance_requirements || ''
-      editData.maintenance_standard = item.maintenance_standard || ''
-      editData.plan_status = item.plan_status
-      editData.execution_status = item.execution_status
-      editData.completion_rate = item.completion_rate || 0
-      editData.remarks = item.remarks || ''
-      isEditModalOpen.value = true
+      
+      if (projectList.value.length === 0) {
+        await loadProjectList()
+      }
+      
+      console.log('项目列表:', projectList.value.map(p => ({ id: p.id, project_id: p.project_id, project_name: p.project_name })))
+      console.log('当前维保计划 project_id:', item.project_id)
+      
+      const project = projectList.value.find(p => p.project_id === item.project_id)
+      console.log('匹配到的项目:', project)
+      
+      if (project) {
+        formData.selectedProjectId = project.id
+        formData.project_id = item.project_id
+        formData.address = project.address
+        formData.maintenance_period = project.maintenance_period
+        formData.maintenance_end_date = formatDate(project.maintenance_end_date)
+        formData.client_name = project.client_name
+      } else {
+        formData.selectedProjectId = 0
+        formData.project_id = item.project_id
+        formData.address = item.equipment_location || ''
+        formData.maintenance_period = ''
+        formData.maintenance_end_date = ''
+        formData.client_name = item.responsible_department || ''
+      }
+
+      formData.planList = [{
+        plan_id: item.plan_id,
+        plan_start_date: formatDateForInput(item.plan_start_date),
+        plan_end_date: formatDateForInput(item.plan_end_date),
+        responsible_person: item.responsible_person,
+        remarks: item.remarks || ''
+      }]
+
+      formData.itemList = []
+      if (item.maintenance_content) {
+        const contents = item.maintenance_content.split('; ')
+        const requirements = item.maintenance_requirements ? item.maintenance_requirements.split('; ') : []
+        contents.forEach((content, index) => {
+          formData.itemList.push({
+            item_id: '',
+            inspection_item: '',
+            inspection_content: content,
+            check_requirements: requirements[index] || '',
+            brief_description: '',
+            level1_id: '',
+            level2_id: '',
+            level3_id: ''
+          })
+        })
+      }
+
+      isModalOpen.value = true
+    }
+
+    const formatDateForInput = (dateStr: string) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
     }
 
     const closeViewModal = () => {
@@ -1035,26 +1503,24 @@ export default defineComponent({
     }
 
     const handleDelete = async (item: MaintenancePlan) => {
-      if (!confirm('确定要删除该维保计划吗？')) {
-        return
-      }
-
-      loading.value = true
-      try {
-        const response = await maintenancePlanService.delete(item.id)
-        
-        if (response.code === 200) {
-          showToast('删除成功', 'success')
-          await loadData()
-        } else {
-          showToast(response.message || '删除失败', 'error')
+      showConfirm('确定要删除该维保计划吗？', async () => {
+        loading.value = true
+        try {
+          const response = await maintenancePlanService.delete(item.id)
+          
+          if (response.code === 200) {
+            showToast('删除成功', 'success')
+            await loadData()
+          } else {
+            showToast(response.message || '删除失败', 'error')
+          }
+        } catch (error: any) {
+          console.error('删除失败:', error)
+          showToast(error.message || '删除失败，请检查网络连接', 'error')
+        } finally {
+          loading.value = false
         }
-      } catch (error: any) {
-        console.error('删除失败:', error)
-        showToast(error.message || '删除失败，请检查网络连接', 'error')
-      } finally {
-        loading.value = false
-      }
+      })
     }
 
     const handleMaintenance = (item: MaintenancePlan) => {
@@ -1086,6 +1552,8 @@ export default defineComponent({
       loadData()
       loadPersonnel()
       loadDictionary()
+      loadProjectList()
+      loadInspectionTree()
     })
 
     onUnmounted(() => {
@@ -1112,6 +1580,8 @@ export default defineComponent({
       editData,
       formData,
       toast,
+      confirmDialog,
+      editingId,
       projectList,
       personnelList,
       planTypeOptions,
@@ -1123,6 +1593,8 @@ export default defineComponent({
       handleView,
       handleEdit,
       handleDelete,
+      handleConfirm,
+      handleCancelConfirm,
       handleMaintenance,
       handleSearch,
       handleUpdate,
@@ -1136,7 +1608,13 @@ export default defineComponent({
       removePlan,
       addItem,
       removeItem,
-      importItems
+      importItems,
+      level1Nodes,
+      getLevel2Nodes,
+      getLevel3Nodes,
+      handleLevel1Change,
+      handleLevel2Change,
+      handleLevel3Change
     }
   }
 })
@@ -1647,6 +2125,7 @@ export default defineComponent({
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 12px;
+  table-layout: auto;
 }
 
 .inner-table thead {
@@ -1661,6 +2140,7 @@ export default defineComponent({
   color: #333;
   border-bottom: 1px solid #d0d0d0;
   white-space: nowrap;
+  width: auto;
 }
 
 .inner-table td {
@@ -1677,6 +2157,12 @@ export default defineComponent({
   color: #333;
   background: #fff;
   transition: border-color 0.15s;
+}
+
+.table-input-readonly {
+  background: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
 }
 
 .table-input:focus {
