@@ -103,7 +103,7 @@ export default defineComponent({
           id: 'work-order',
           label: '工单管理',
           children: [
-            { id: 'work-plan', label: '工作计划管理', path: '/work-plan' },
+            { id: 'work-plan', label: '定期巡检单管理', path: '/work-plan' },
             { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
             { id: 'spot-work', label: '零星用工管理', path: '/work-order/spot-work' }
           ]
@@ -115,6 +115,15 @@ export default defineComponent({
             { id: 'spare-parts-inventory', label: '备品备件库存', path: '/spare-parts/inventory' },
             { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
             { id: 'spare-parts-stock', label: '备品备件入库', path: '/spare-parts/stock' }
+          ]
+        },
+        {
+          id: 'repair-tools',
+          label: '维修工具管理',
+          children: [
+            { id: 'repair-tools-issue', label: '维修工具领用', path: '/repair-tools/issue' },
+            { id: 'repair-tools-stock', label: '维修工具库存', path: '/repair-tools/stock' },
+            { id: 'repair-tools-inbound', label: '维修工具入库', path: '/repair-tools/inbound' }
           ]
         },
         {
@@ -166,8 +175,8 @@ export default defineComponent({
       if (path === '/work-plan') {
         return {
           level1: '工单管理',
-          level2: '工作计划管理',
-          full: '工单管理 / 工作计划管理'
+          level2: '定期巡检单管理',
+          full: '工单管理 / 定期巡检单管理'
         }
       }
       if (path === '/spare-parts/issue') {
@@ -196,6 +205,27 @@ export default defineComponent({
           level1: '备品备件管理',
           level2: '备品备件管理',
           full: '备品备件管理'
+        }
+      }
+      if (path === '/repair-tools/issue') {
+        return {
+          level1: '维修工具管理',
+          level2: '维修工具领用',
+          full: '维修工具管理 / 维修工具领用'
+        }
+      }
+      if (path === '/repair-tools/stock') {
+        return {
+          level1: '维修工具管理',
+          level2: '维修工具库存',
+          full: '维修工具管理 / 维修工具库存'
+        }
+      }
+      if (path === '/repair-tools/inbound') {
+        return {
+          level1: '维修工具管理',
+          level2: '维修工具入库',
+          full: '维修工具管理 / 维修工具入库'
         }
       }
       return {

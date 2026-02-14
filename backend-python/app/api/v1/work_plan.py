@@ -1,12 +1,33 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.work_plan import WorkPlanService, WorkPlanCreate, WorkPlanUpdate
 from app.schemas.common import ApiResponse, PaginatedResponse
+from app.auth import get_current_user
 
 
 router = APIRouter(prefix="/work-plan", tags=["Work Plan Management"])
+
+
+@router.get("/statistics", response_model=ApiResponse)
+def get_statistics(
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
+):
+    service = WorkPlanService(db)
+    user_name = None
+    is_manager = True
+    if current_user:
+        user_name = current_user.get('sub') or current_user.get('name')
+        role = current_user.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    stats = service.get_statistics(user_name=user_name, is_manager=is_manager)
+    return ApiResponse(
+        code=200,
+        message="success",
+        data=stats
+    )
 
 
 @router.get("/all/list", response_model=ApiResponse)

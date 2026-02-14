@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 
 class CustomerService:
     def __init__(self, db: Session):
+        self.db = db
         self.repository = CustomerRepository(db)
 
     def get_list(self, page: int = 0, size: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None) -> CustomerListResponse:

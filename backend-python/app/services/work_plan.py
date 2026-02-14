@@ -1,6 +1,6 @@
 from typing import List, Optional, Union
 from fastapi import HTTPException, status
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.work_plan import WorkPlan
 from app.repositories.work_plan import WorkPlanRepository
@@ -148,3 +148,52 @@ class WorkPlanService:
     
     def get_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
         return self.repository.find_all_unpaginated(plan_type)
+    
+    def get_statistics(self, user_name: Optional[str] = None, is_manager: bool = False) -> dict:
+        today = datetime.now().date()
+        year_start = datetime(today.year, 1, 1).date()
+        
+        all_plans = self.repository.find_all_unpaginated()
+        
+        if not is_manager and user_name:
+            all_plans = [p for p in all_plans if p.maintenance_personnel == user_name]
+        
+        expiring_soon = 0
+        overdue = 0
+        yearly_completed = 0
+        periodic_inspection = 0
+        temporary_repair = 0
+        spot_work = 0
+        
+        for plan in all_plans:
+            plan_end = plan.plan_end_date
+            if isinstance(plan_end, datetime):
+                plan_end = plan_end.date()
+            
+            if plan_end:
+                if plan_end < today and plan.status != '已完成':
+                    overdue += 1
+                elif plan_end <= today + timedelta(days=7) and plan.status != '已完成':
+                    expiring_soon += 1
+            
+            if plan.status == '已完成' and plan_end:
+                if isinstance(plan_end, datetime):
+                    plan_end = plan_end.date()
+                if plan_end >= year_start:
+                    yearly_completed += 1
+            
+            if plan.plan_type == '定期巡检':
+                periodic_inspection += 1
+            elif plan.plan_type == '临时维修':
+                temporary_repair += 1
+            elif plan.plan_type == '零星用工':
+                spot_work += 1
+        
+        return {
+            'expiringSoon': expiring_soon,
+            'overdue': overdue,
+            'yearlyCompleted': yearly_completed,
+            'periodicInspection': periodic_inspection,
+            'temporaryRepair': temporary_repair,
+            'spotWork': spot_work
+        }

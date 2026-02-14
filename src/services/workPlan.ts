@@ -1,7 +1,7 @@
 import apiClient from '../utils/api'
+import { PLAN_TYPE_LIST, PLAN_TYPES } from '../config/constants'
 
-export const PLAN_TYPES = ['定期巡检', '临时维修', '零星用工'] as const
-export type PlanType = typeof PLAN_TYPES[number]
+export type PlanType = typeof PLAN_TYPE_LIST[number]
 
 export interface WorkPlan {
   id: number

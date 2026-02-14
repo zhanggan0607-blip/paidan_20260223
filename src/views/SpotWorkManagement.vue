@@ -57,22 +57,22 @@
               <td>{{ item.client_name || '-' }}</td>
               <td>{{ item.maintenance_personnel || '-' }}</td>
               <td>
-                <span v-if="item.status === '未进行'" class="status-tag status-pending">未进行</span>
-                <span v-else-if="item.status === '待确认'" class="status-tag status-waiting">待确认</span>
-                <span v-else-if="item.status === '进行中'" class="status-tag status-in-progress">进行中</span>
-                <span v-else-if="item.status === '已完成'" class="status-tag status-completed">已完成</span>
+                <span v-if="item.status === WORK_STATUS.NOT_STARTED" class="status-tag status-pending">未进行</span>
+                <span v-else-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="status-tag status-waiting">待确认</span>
+                <span v-else-if="item.status === WORK_STATUS.IN_PROGRESS" class="status-tag status-in-progress">进行中</span>
+                <span v-else-if="item.status === WORK_STATUS.COMPLETED" class="status-tag status-completed">已完成</span>
                 <span v-else class="status-tag">{{ item.status }}</span>
               </td>
               <td>{{ item.remarks || '-' }}</td>
               <td class="action-cell">
                 <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="item.status === '未进行'" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-                <a href="#" v-if="item.status === '未进行'" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
-                <a href="#" v-if="item.status === '待确认'" class="action-link action-confirm" @click.prevent="handleConfirm(item)">确认</a>
-                <a href="#" v-if="item.status === '待确认'" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
-                <a href="#" v-if="item.status === '进行中'" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="item.status === '进行中'" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-                <a href="#" v-if="item.status === '进行中'" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+                <a href="#" v-if="item.status === WORK_STATUS.NOT_STARTED" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
+                <a href="#" v-if="item.status === WORK_STATUS.NOT_STARTED" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+                <a href="#" v-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="action-link action-confirm" @click.prevent="handleConfirm(item)">确认</a>
+                <a href="#" v-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+                <a href="#" v-if="item.status === WORK_STATUS.IN_PROGRESS" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+                <a href="#" v-if="item.status === WORK_STATUS.IN_PROGRESS" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
+                <a href="#" v-if="item.status === WORK_STATUS.IN_PROGRESS" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
               </td>
             </tr>
           </tbody>
@@ -119,8 +119,10 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
 import { spotWorkService, type SpotWork } from '@/services/spotWork'
 import Toast from '@/components/Toast.vue'
+import { WORK_STATUS, formatDate } from '@/config/constants'
 
 interface WorkItem {
   id: number
@@ -171,12 +173,6 @@ export default defineComponent({
 
     const workData = ref<WorkItem[]>([])
 
-    const formatDate = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-    }
-
     const loadData = async () => {
       loading.value = true
       try {
@@ -218,12 +214,18 @@ export default defineComponent({
     }
 
     const handleDelete = async (item: WorkItem) => {
-      if (confirm(`确定要删除用工单 ${item.work_id} 吗？`)) {
-        try {
-          await spotWorkService.delete(item.id)
-          showToast('删除成功', 'success')
-          loadData()
-        } catch (error) {
+      try {
+        await ElMessageBox.confirm(`确定要删除用工单 ${item.work_id} 吗？`, '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        
+        await spotWorkService.delete(item.id)
+        showToast('删除成功', 'success')
+        loadData()
+      } catch (error: any) {
+        if (error !== 'cancel') {
           console.error('删除失败:', error)
           showToast('删除失败', 'error')
         }
@@ -232,7 +234,7 @@ export default defineComponent({
 
     const handleConfirm = async (item: WorkItem) => {
       try {
-        await spotWorkService.update(item.id, { status: '进行中' })
+        await spotWorkService.update(item.id, { status: WORK_STATUS.IN_PROGRESS })
         showToast('确认成功', 'success')
         loadData()
       } catch (error) {
@@ -267,6 +269,7 @@ export default defineComponent({
       workData,
       toast,
       formatDate,
+      WORK_STATUS,
       handleSearch,
       handleAdd,
       handleView,

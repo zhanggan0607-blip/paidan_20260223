@@ -18,6 +18,9 @@ import SparePartsStock from '@/views/SparePartsStock.vue'
 import SparePartsInventory from '@/views/SparePartsInventory.vue'
 import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
 import CustomerManagement from '@/views/CustomerManagement.vue'
+import RepairToolsIssue from '@/views/RepairToolsIssue.vue'
+import RepairToolsInventory from '@/views/RepairToolsInventory.vue'
+import RepairToolsInbound from '@/views/RepairToolsInbound.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -96,6 +99,18 @@ const routes: RouteRecordRaw[] = [
       {
         path: '/customer',
         component: CustomerManagement
+      },
+      {
+        path: '/repair-tools/issue',
+        component: RepairToolsIssue
+      },
+      {
+        path: '/repair-tools/stock',
+        component: RepairToolsInventory
+      },
+      {
+        path: '/repair-tools/inbound',
+        component: RepairToolsInbound
       }
     ]
   }

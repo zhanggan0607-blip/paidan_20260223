@@ -131,6 +131,7 @@
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
+import { USER_ROLES } from '@/config/constants'
 
 interface SparePartsIssueItem {
   id: number
@@ -255,7 +256,7 @@ export default defineComponent({
       try {
         const response = await apiClient.get('/personnel/all/list') as unknown as ApiResponse<any[]>
         if (response && response.code === 200 && response.data) {
-          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === '材料员')
+          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === USER_ROLES.MATERIAL_MANAGER)
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)

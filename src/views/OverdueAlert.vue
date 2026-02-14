@@ -20,6 +20,7 @@
                 <option value="定期巡检">定期巡检</option>
                 <option value="临时维修">临时维修</option>
                 <option value="零星用工">零星用工</option>
+                <option value="维保计划">维保计划</option>
               </select>
             </div>
           </div>
@@ -37,9 +38,9 @@
                 <th>项目编号</th>
                 <th>项目名称</th>
                 <th>工单类型</th>
-                <th>结束日期</th>
+                <th>计划结束日期</th>
                 <th>提醒类型</th>
-                <th>已超期（天）</th>
+                <th class="th-overdue-days">已超期（天）</th>
                 <th>执行人员</th>
                 <th>工单状态</th>
                 <th>操作</th>
@@ -54,9 +55,7 @@
                 <td>{{ item.workOrderType }}</td>
                 <td>{{ item.planEndDate }}</td>
                 <td class="alert-type">已超期</td>
-                <td class="overdue-days">
-                  {{ item.overdueDays }}
-                </td>
+                <td class="overdue-days">{{ item.overdueDays }}</td>
                 <td>{{ item.executor }}</td>
                 <td>{{ item.workOrderStatus }}</td>
                 <td class="action-cell">
@@ -104,71 +103,12 @@
         </div>
       </div>
     </div>
-
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
-      <div class="modal-container">
-        <div class="modal-header">
-          <h3 class="modal-title">查看工单详情</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.workOrderNo || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">项目名称</label>
-                <div class="form-value">{{ viewData.projectName || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">客户名称</label>
-                <div class="form-value">{{ viewData.customerName || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">执行人员</label>
-                <div class="form-value">{{ viewData.executor || '-' }}</div>
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">工单类型</label>
-                <div class="form-value">{{ viewData.workOrderType || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">结束日期</label>
-                <div class="form-value">{{ viewData.planEndDate || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">提醒类型</label>
-                <div class="form-value alert-type">已超期</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">已超期（天）</label>
-                <div class="form-value overdue-days">{{ viewData.overdueDays }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">工单状态</label>
-                <div class="form-value">{{ viewData.workOrderStatus || '-' }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 
@@ -178,6 +118,7 @@ export default defineComponent({
     LoadingSpinner
   },
   setup() {
+    const router = useRouter()
     const searchForm = reactive({
       projectName: '',
       customerName: '',
@@ -188,18 +129,6 @@ export default defineComponent({
     const pageSize = ref(10)
     const jumpPage = ref(1)
     const loading = ref(false)
-    const isViewModalOpen = ref(false)
-    const viewData = reactive({
-      workOrderNo: '',
-      project_id: '',
-      projectName: '',
-      customerName: '',
-      workOrderType: '',
-      planEndDate: '',
-      workOrderStatus: '',
-      overdueDays: 0,
-      executor: ''
-    })
 
     const allData = ref<OverdueItem[]>([])
 
@@ -244,20 +173,32 @@ export default defineComponent({
     }
 
     const handleView = (item: OverdueItem) => {
-      viewData.workOrderNo = item.workOrderNo
-      viewData.project_id = item.project_id
-      viewData.projectName = item.projectName
-      viewData.customerName = item.customerName
-      viewData.workOrderType = item.workOrderType
-      viewData.planEndDate = item.planEndDate
-      viewData.workOrderStatus = item.workOrderStatus
-      viewData.overdueDays = item.overdueDays
-      viewData.executor = item.executor
-      isViewModalOpen.value = true
-    }
-
-    const closeViewModal = () => {
-      isViewModalOpen.value = false
+      switch (item.workOrderType) {
+        case '定期巡检':
+          router.push({
+            path: '/work-order/periodic-inspection',
+            query: { id: item.id }
+          })
+          break
+        case '临时维修':
+          router.push({
+            path: '/work-order/temporary-repair/detail',
+            query: { id: item.id }
+          })
+          break
+        case '零星用工':
+          router.push({
+            path: '/work-order/spot-work',
+            query: { id: item.id }
+          })
+          break
+        case '维保计划':
+          router.push({
+            path: '/maintenance-plan',
+            query: { id: item.id }
+          })
+          break
+      }
     }
 
     onMounted(() => {
@@ -273,10 +214,7 @@ export default defineComponent({
       jumpPage,
       loading,
       handleSearch,
-      handleView,
-      closeViewModal,
-      isViewModalOpen,
-      viewData
+      handleView
     }
   }
 })
@@ -415,6 +353,10 @@ export default defineComponent({
   border-bottom: 1px solid #d0d0d0;
 }
 
+.th-overdue-days {
+  color: #F5222D !important;
+}
+
 .data-table td {
   padding: 12px 16px;
   text-align: left;
@@ -439,6 +381,11 @@ export default defineComponent({
   padding: 4px 8px;
   border-radius: 2px;
   display: inline-block;
+}
+
+td.overdue-days {
+  color: #F5222D;
+  font-weight: 500;
 }
 
 .action-cell {
@@ -547,132 +494,4 @@ export default defineComponent({
     flex-direction: column;
   }
 }
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-container {
-  background: #fff;
-  border-radius: 8px;
-  width: 900px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  font-size: 24px;
-  color: #999;
-  cursor: pointer;
-  transition: color 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-close:hover {
-  color: #333;
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px 40px;
-  align-items: start;
-}
-
-.form-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 60px;
-  padding: 4px 0;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #424242;
-}
-
-.form-value {
-  padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-}
-
-.form-value.alert-type {
-  color: #F5222D;
-  font-weight: 500;
-}
-
-.form-value.overdue-days {
-  background: #FFF1F0;
-  color: #F5222D;
-  font-weight: 500;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
-}
-
-.btn-cancel:hover {
-  background: #f5f5f5;
-}
-
 </style>

@@ -2,6 +2,7 @@ from typing import List, Optional
 import logging
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.models.project_info import ProjectInfo
 from app.repositories.project_info import ProjectInfoRepository
 from app.schemas.project_info import ProjectInfoCreate, ProjectInfoUpdate
@@ -74,14 +75,13 @@ class ProjectInfoService:
     def update(self, id: int, dto: ProjectInfoUpdate) -> ProjectInfo:
         existing_project = self.get_by_id(id)
         
-        if existing_project.project_id != dto.project_id and self.repository.exists_by_project_id(dto.project_id):
+        if existing_project.project_id != dto.project_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="项目编号已存在"
+                detail="项目编号不允许修改"
             )
         
         existing_project.project_name = dto.project_name
-        existing_project.project_id = dto.project_id
         existing_project.completion_date = dto.completion_date
         existing_project.maintenance_end_date = dto.maintenance_end_date
         existing_project.maintenance_period = dto.maintenance_period
@@ -93,7 +93,9 @@ class ProjectInfoService:
         existing_project.client_contact_position = dto.client_contact_position
         existing_project.client_contact_info = dto.client_contact_info
         
-        return self.repository.update(existing_project)
+        result = self.repository.update(existing_project)
+        
+        return result
     
     def delete(self, id: int, cascade: bool = False) -> dict:
         project_info = self.get_by_id(id)

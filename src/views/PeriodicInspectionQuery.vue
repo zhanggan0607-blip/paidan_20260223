@@ -52,7 +52,7 @@
             </td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-export" @click.prevent="handleExport(item)" v-if="item.status === '已完成'">导出</a>
+              <a href="#" class="action-link action-export" @click.prevent="handleExport(item)" v-if="item.status === WORK_STATUS.COMPLETED">导出</a>
             </td>
           </tr>
         </tbody>
@@ -115,11 +115,11 @@
                 <div class="form-value">{{ viewData.project_name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">开始日期</label>
+                <label class="form-label">计划开始日期</label>
                 <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">结束日期</label>
+                <label class="form-label">计划结束日期</label>
                 <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
             </div>
@@ -133,16 +133,16 @@
                 <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
               <div class="form-item">
+                <label class="form-label">合同剩余时间</label>
+                <div class="form-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
+              </div>
+              <div class="form-item">
                 <label class="form-label">状态</label>
                 <div class="form-value" :class="getStatusClass(viewData.status)">{{ viewData.status || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">创建时间</label>
-                <div class="form-value">{{ formatDate(viewData.created_at) || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">更新时间</label>
-                <div class="form-value">{{ formatDate(viewData.updated_at) || '-' }}</div>
+                <div class="form-value">{{ formatDateTime(viewData.created_at) || '-' }}</div>
               </div>
             </div>
           </div>
@@ -162,8 +162,10 @@
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
+import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import { WORK_STATUS, formatDate as formatDateUtil } from '../config/constants'
 
 export default defineComponent({
   name: 'PeriodicInspectionQuery',
@@ -205,7 +207,8 @@ export default defineComponent({
       status: '',
       remarks: '',
       created_at: '',
-      updated_at: ''
+      updated_at: '',
+      remainingTime: ''
     })
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
@@ -219,28 +222,69 @@ export default defineComponent({
     }
 
     const formatDate = (dateStr: string) => {
+      return formatDateUtil(dateStr)
+    }
+
+    const formatDateTime = (dateStr: string) => {
       if (!dateStr) return '-'
       const date = new Date(dateStr)
-      return date.toLocaleDateString('zh-CN', {
+      return date.toLocaleString('zh-CN', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
       })
+    }
+
+    const calculateRemainingTime = (endDate: string): string => {
+      if (!endDate) return '-'
+      
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const end = new Date(endDate)
+      end.setHours(0, 0, 0, 0)
+      
+      const diffTime = end.getTime() - today.getTime()
+      
+      if (diffTime < 0) {
+        return '已过期'
+      }
+      
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      const years = Math.floor(diffDays / 365)
+      const months = Math.floor((diffDays % 365) / 30)
+      const days = diffDays % 30
+      
+      const parts: string[] = []
+      if (years > 0) parts.push(`${years}年`)
+      if (months > 0) parts.push(`${months}月`)
+      if (days > 0 || parts.length === 0) parts.push(`${days}日`)
+      
+      return parts.join('')
+    }
+
+    const getRemainingTimeClass = () => {
+      if (!viewData.remainingTime) return ''
+      if (viewData.remainingTime === '已过期') return 'remaining-expired'
+      return 'remaining-normal'
     }
 
     const getStatusClass = (status: string) => {
       switch (status) {
-        case '未进行':
+        case WORK_STATUS.NOT_STARTED:
           return 'status-pending'
-        case '待确认':
+        case WORK_STATUS.PENDING_CONFIRM:
           return 'status-confirmed'
-        case '已确认':
+        case WORK_STATUS.CONFIRMED:
           return 'status-confirmed'
-        case '进行中':
+        case WORK_STATUS.IN_PROGRESS:
           return 'status-in-progress'
-        case '已完成':
+        case WORK_STATUS.COMPLETED:
           return 'status-completed'
-        case '已取消':
+        case WORK_STATUS.CANCELLED:
           return 'status-cancelled'
         default:
           return ''
@@ -285,7 +329,7 @@ export default defineComponent({
       loadData()
     }
 
-    const handleView = (item: PeriodicInspection) => {
+    const handleView = async (item: PeriodicInspection) => {
       viewData.id = item.id
       viewData.inspection_id = item.inspection_id
       viewData.project_id = item.project_id
@@ -298,6 +342,20 @@ export default defineComponent({
       viewData.remarks = item.remarks || ''
       viewData.created_at = item.created_at
       viewData.updated_at = item.updated_at
+      viewData.remainingTime = '-'
+
+      try {
+        const projectResponse = await projectInfoService.getAll()
+        if (projectResponse.code === 200 && projectResponse.data) {
+          const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
+          if (project) {
+            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+          }
+        }
+      } catch (error) {
+        console.error('获取项目信息失败:', error)
+      }
+
       isViewModalOpen.value = true
     }
 
@@ -362,7 +420,10 @@ export default defineComponent({
       handleJump,
       handlePageSizeChange,
       formatDate,
-      getStatusClass
+      formatDateTime,
+      getStatusClass,
+      getRemainingTimeClass,
+      WORK_STATUS
     }
   }
 })
@@ -565,6 +626,16 @@ export default defineComponent({
 .status-cancelled {
   background: #FFEBEE;
   color: #D32F2F;
+}
+
+.remaining-normal {
+  color: #388E3C;
+  font-weight: 500;
+}
+
+.remaining-expired {
+  color: #D32F2F;
+  font-weight: 600;
 }
 
 .pagination-section {

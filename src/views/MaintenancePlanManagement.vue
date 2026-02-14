@@ -40,13 +40,13 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in planData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+          <tr v-for="(item, index) in planData" :key="item.project_id" :class="{ 'even-row': index % 2 === 0 }">
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.project_id }}</td>
-            <td>{{ item.plan_name }}</td>
+            <td>{{ item.project_name }}</td>
             <td>{{ formatDate(item.plan_start_date) }}</td>
             <td>{{ formatDate(item.plan_end_date) }}</td>
-            <td>{{ 1 }}</td>
+            <td>{{ item.plan_count }}</td>
             <td>{{ item.responsible_department || '-' }}</td>
             <td>{{ item.equipment_location || '-' }}</td>
             <td class="action-cell">
@@ -107,12 +107,21 @@
                 <label class="form-label">
                   <span class="required">*</span> 项目名称
                 </label>
-                <select class="form-input" v-model="formData.selectedProjectId" @change="handleProjectChange">
-                  <option value="">请选择项目</option>
-                  <option v-for="project in projectList" :key="project.id" :value="project.id">
-                    {{ project.project_name }}
-                  </option>
-                </select>
+                <el-select 
+                  v-model="formData.selectedProjectId" 
+                  placeholder="请选择或搜索项目" 
+                  filterable
+                  size="default"
+                  style="width: 100%;"
+                  @change="handleProjectChange"
+                >
+                  <el-option
+                    v-for="project in projectList"
+                    :key="project.id"
+                    :label="project.project_name"
+                    :value="project.id"
+                  />
+                </el-select>
               </div>
               <div class="form-item">
                 <label class="form-label">维保频率</label>
@@ -267,7 +276,7 @@
                     />
                   </td>
                   <td>
-                    <input type="text" class="table-input table-input-readonly" v-model="item.brief_description" placeholder="自动带出" readonly />
+                    <input type="text" class="table-input" v-model="item.brief_description" placeholder="请输入" />
                   </td>
                   <td class="action-cell">
                     <a href="#" class="action-link action-delete" @click.prevent="removeItem(index)">删除</a>
@@ -297,6 +306,13 @@
           <button class="modal-close" @click="closeViewModal">×</button>
         </div>
         <div class="modal-body">
+          <div class="view-plan-pagination" v-if="viewPlanList.length > 1">
+            <span class="view-plan-info">计划 {{ currentViewPlanIndex + 1 }} / {{ viewPlanList.length }}</span>
+            <div class="view-plan-nav">
+              <button class="view-plan-btn" :disabled="currentViewPlanIndex === 0" @click="prevViewPlan">&lt; 上一条</button>
+              <button class="view-plan-btn" :disabled="currentViewPlanIndex >= viewPlanList.length - 1" @click="nextViewPlan">下一条 &gt;</button>
+            </div>
+          </div>
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
@@ -304,8 +320,8 @@
                 <div class="form-value">{{ viewData.plan_name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
+                <label class="form-label">计划开始日期</label>
+                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">项目编号</label>
@@ -331,14 +347,18 @@
                 <label class="form-label">设备位置</label>
                 <div class="form-value">{{ viewData.equipment_location || '-' }}</div>
               </div>
+              <div class="form-item">
+                <label class="form-label">执行状态</label>
+                <div class="form-value">{{ viewData.execution_status || '-' }}</div>
+              </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">开始日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
+                <label class="form-label">工单编号</label>
+                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">结束日期</label>
+                <label class="form-label">计划结束日期</label>
                 <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
               <div class="form-item">
@@ -364,10 +384,6 @@
               <div class="form-item">
                 <label class="form-label">计划状态</label>
                 <div class="form-value">{{ viewData.plan_status || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">执行状态</label>
-                <div class="form-value">{{ viewData.execution_status || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">完成率</label>
@@ -570,6 +586,8 @@ import { inspectionItemService, type InspectionItem as ApiInspectionItem } from 
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { useInputMemory } from '../utils/inputMemory'
+import { formatDate as formatDateUtil, formatDateForInput } from '../config/constants'
 
 interface InspectionTreeNode {
   id: string
@@ -701,7 +719,7 @@ export default defineComponent({
     }
 
     const formData = reactive({
-      selectedProjectId: 0,
+      selectedProjectId: '' as number | string,
       project_id: '',
       address: '',
       maintenance_period: '',
@@ -712,6 +730,16 @@ export default defineComponent({
     })
 
     const inspectionTreeData = ref<InspectionTreeNode[]>([])
+
+    const inputMemory = useInputMemory({
+      pageName: 'MaintenancePlanManagement',
+      fields: ['selectedProjectId'],
+      onRestore: (data) => {
+        if (data.selectedProjectId) {
+          formData.selectedProjectId = data.selectedProjectId
+        }
+      }
+    })
 
     const transformInspectionTree = (items: ApiInspectionItem[]): InspectionTreeNode[] => {
       return items.map(item => ({
@@ -755,7 +783,6 @@ export default defineComponent({
       item.level2_id = ''
       item.level3_id = ''
       item.check_requirements = ''
-      item.brief_description = ''
       item.inspection_item = ''
       item.inspection_content = ''
       
@@ -771,8 +798,6 @@ export default defineComponent({
       const item = formData.itemList[index]
       item.level3_id = ''
       item.check_requirements = ''
-      item.brief_description = ''
-      item.inspection_content = ''
       
       if (item.level1_id && item.level2_id) {
         const level2Nodes = getLevel2Nodes(item.level1_id)
@@ -786,14 +811,12 @@ export default defineComponent({
     const handleLevel3Change = (index: number) => {
       const item = formData.itemList[index]
       item.check_requirements = ''
-      item.brief_description = ''
       
       if (item.level1_id && item.level2_id && item.level3_id) {
         const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
         const level3Node = level3Nodes.find(node => node.id === item.level3_id)
         if (level3Node) {
           item.check_requirements = level3Node.checkRequirement || ''
-          item.brief_description = level3Node.checkStandard || ''
         }
       }
     }
@@ -825,6 +848,49 @@ export default defineComponent({
       completion_rate: 0,
       remarks: ''
     })
+
+    const viewPlanList = ref<MaintenancePlan[]>([])
+    const currentViewPlanIndex = ref(0)
+
+    const updateViewData = (plan: MaintenancePlan) => {
+      viewData.id = plan.id
+      viewData.plan_id = plan.plan_id
+      viewData.plan_name = plan.plan_name
+      viewData.project_id = plan.project_id
+      viewData.plan_type = plan.plan_type
+      viewData.equipment_id = plan.equipment_id
+      viewData.equipment_name = plan.equipment_name
+      viewData.equipment_model = plan.equipment_model || ''
+      viewData.equipment_location = plan.equipment_location || ''
+      viewData.plan_start_date = plan.plan_start_date
+      viewData.plan_end_date = plan.plan_end_date
+      viewData.execution_date = plan.execution_date || ''
+      viewData.next_maintenance_date = plan.next_maintenance_date || ''
+      viewData.responsible_person = plan.responsible_person
+      viewData.responsible_department = plan.responsible_department || ''
+      viewData.contact_info = plan.contact_info || ''
+      viewData.maintenance_content = plan.maintenance_content
+      viewData.maintenance_requirements = plan.maintenance_requirements || ''
+      viewData.maintenance_standard = plan.maintenance_standard || ''
+      viewData.plan_status = plan.plan_status
+      viewData.execution_status = plan.execution_status
+      viewData.completion_rate = plan.completion_rate || 0
+      viewData.remarks = plan.remarks || ''
+    }
+
+    const prevViewPlan = () => {
+      if (currentViewPlanIndex.value > 0) {
+        currentViewPlanIndex.value--
+        updateViewData(viewPlanList.value[currentViewPlanIndex.value])
+      }
+    }
+
+    const nextViewPlan = () => {
+      if (currentViewPlanIndex.value < viewPlanList.value.length - 1) {
+        currentViewPlanIndex.value++
+        updateViewData(viewPlanList.value[currentViewPlanIndex.value])
+      }
+    }
 
     const editData = reactive({
       id: 0,
@@ -861,13 +927,7 @@ export default defineComponent({
     }
 
     const formatDate = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      })
+      return formatDateUtil(dateStr)
     }
 
     const formatDateForAPI = (dateStr: string) => {
@@ -1171,17 +1231,65 @@ export default defineComponent({
 
       loading.value = true
       try {
-        const response = await maintenancePlanService.getList({
-          page: currentPage.value,
-          size: pageSize.value,
-          project_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined
-        })
+        const response = await maintenancePlanService.getAll()
         
-        if (response.code === 200) {
-          planData.value = response.data.content
-          totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+        if (response.code === 200 && response.data) {
+          const projectMap = new Map<string, {
+            project_id: string
+            project_name: string
+            plan_start_date: string
+            plan_end_date: string
+            plan_count: number
+            responsible_department: string
+            equipment_location: string
+            plans: MaintenancePlan[]
+          }>()
+          
+          response.data.forEach((plan: MaintenancePlan) => {
+            const existing = projectMap.get(plan.project_id)
+            if (existing) {
+              existing.plan_count++
+              existing.plans.push(plan)
+              if (plan.plan_start_date < existing.plan_start_date) {
+                existing.plan_start_date = plan.plan_start_date
+              }
+              if (plan.plan_end_date > existing.plan_end_date) {
+                existing.plan_end_date = plan.plan_end_date
+              }
+            } else {
+              projectMap.set(plan.project_id, {
+                project_id: plan.project_id,
+                project_name: plan.plan_name,
+                plan_start_date: plan.plan_start_date,
+                plan_end_date: plan.plan_end_date,
+                plan_count: 1,
+                responsible_department: plan.responsible_department || '',
+                equipment_location: plan.equipment_location || '',
+                plans: [plan]
+              })
+            }
+          })
+          
+          let items = Array.from(projectMap.values())
+          
+          if (searchForm.projectName) {
+            items = items.filter(item => 
+              item.project_name.toLowerCase().includes(searchForm.projectName.toLowerCase())
+            )
+          }
+          
+          if (searchForm.clientName) {
+            items = items.filter(item => 
+              item.responsible_department.toLowerCase().includes(searchForm.clientName.toLowerCase())
+            )
+          }
+          
+          totalElements.value = items.length
+          totalPages.value = Math.ceil(items.length / pageSize.value) || 1
+          
+          const start = currentPage.value * pageSize.value
+          const end = start + pageSize.value
+          planData.value = items.slice(start, end) as any
         } else {
           showToast(response.message || '加载数据失败', 'error')
         }
@@ -1209,22 +1317,35 @@ export default defineComponent({
         showToast('请至少添加一条维保计划', 'warning')
         return false
       }
+      const firstPlan = formData.planList[0]
+      if (!firstPlan.plan_start_date) {
+        showToast('请填写计划开始日期', 'warning')
+        return false
+      }
+      if (!firstPlan.plan_end_date) {
+        showToast('请填写计划结束日期', 'warning')
+        return false
+      }
       return true
     }
 
     const openModal = () => {
       resetForm()
       loadProjectList()
+      inputMemory.loadMemory()
       isModalOpen.value = true
     }
 
     const closeModal = () => {
+      if (editingId.value === null) {
+        inputMemory.saveMemory({ selectedProjectId: formData.selectedProjectId })
+      }
       isModalOpen.value = false
       editingId.value = null
     }
 
     const resetForm = () => {
-      formData.selectedProjectId = 0
+      formData.selectedProjectId = ''
       formData.project_id = ''
       formData.address = ''
       formData.maintenance_period = ''
@@ -1247,40 +1368,65 @@ export default defineComponent({
           return
         }
 
-        const planData: MaintenancePlanCreate = {
-          plan_id: formData.planList[0]?.plan_id || '',
-          plan_name: selectedProject.project_name,
-          project_id: formData.project_id,
-          plan_type: '定期维保',
-          equipment_id: 'EQ001',
-          equipment_name: '默认设备',
-          equipment_model: undefined,
-          equipment_location: formData.address,
-          plan_start_date: formData.planList[0]?.plan_start_date || '',
-          plan_end_date: formData.planList[0]?.plan_end_date || '',
-          execution_date: undefined,
-          next_maintenance_date: undefined,
-          responsible_person: formData.planList[0]?.responsible_person || '',
-          responsible_department: formData.client_name,
-          contact_info: undefined,
-          maintenance_content: formData.itemList.map(item => item.inspection_content).join('; '),
-          maintenance_requirements: formData.itemList.map(item => item.check_requirements).join('; '),
-          maintenance_standard: undefined,
-          plan_status: '待执行',
-          execution_status: '未开始',
-          completion_rate: 0,
-          remarks: formData.planList[0]?.remarks
-        }
+        let successCount = 0
+        let failCount = 0
 
-        let response
-        if (editingId.value !== null) {
-          response = await maintenancePlanService.update(editingId.value, planData)
-        } else {
-          response = await maintenancePlanService.create(planData)
+        for (const plan of formData.planList) {
+          if (!plan.plan_start_date || !plan.plan_end_date) {
+            failCount++
+            continue
+          }
+
+          const planData: MaintenancePlanCreate = {
+            plan_id: plan.plan_id || '',
+            plan_name: selectedProject.project_name,
+            project_id: formData.project_id,
+            plan_type: '定期维保',
+            equipment_id: 'EQ001',
+            equipment_name: '默认设备',
+            equipment_model: undefined,
+            equipment_location: formData.address,
+            plan_start_date: formatDateForAPI(plan.plan_start_date),
+            plan_end_date: formatDateForAPI(plan.plan_end_date),
+            execution_date: undefined,
+            next_maintenance_date: undefined,
+            responsible_person: plan.responsible_person || '',
+            responsible_department: formData.client_name,
+            contact_info: undefined,
+            maintenance_content: formData.itemList.length > 0 
+              ? formData.itemList.map(item => item.inspection_content).filter(Boolean).join('; ')
+              : '常规维保',
+            maintenance_requirements: formData.itemList.length > 0 
+              ? formData.itemList.map(item => item.check_requirements).filter(Boolean).join('; ')
+              : undefined,
+            maintenance_standard: undefined,
+            plan_status: '待执行',
+            execution_status: '未开始',
+            completion_rate: 0,
+            remarks: plan.remarks
+          }
+
+          try {
+            let response
+            if (editingId.value !== null) {
+              response = await maintenancePlanService.update(editingId.value, planData)
+              editingId.value = null
+            } else {
+              response = await maintenancePlanService.create(planData)
+            }
+            
+            if (response.code === 200 || response.code === 201) {
+              successCount++
+            } else {
+              failCount++
+            }
+          } catch (err: any) {
+            failCount++
+          }
         }
         
-        if (response.code === 200) {
-          showToast(editingId.value !== null ? '更新成功' : '创建成功', 'success')
+        if (successCount > 0) {
+          showToast(`成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`, 'success')
           closeModal()
           resetForm()
           editingId.value = null
@@ -1288,7 +1434,7 @@ export default defineComponent({
           currentPage.value = 0
           await loadData()
         } else {
-          showToast(response.message || (editingId.value !== null ? '更新失败' : '创建失败'), 'error')
+          showToast('保存失败，请检查数据', 'error')
         }
       } catch (error: any) {
         showToast(error.message || '操作失败，请检查网络连接', 'error')
@@ -1297,45 +1443,24 @@ export default defineComponent({
       }
     }
 
-    const handleView = async (item: MaintenancePlan) => {
-      viewData.id = item.id
-      viewData.plan_id = item.plan_id
-      viewData.plan_name = item.plan_name
-      viewData.project_id = item.project_id
-      viewData.plan_type = item.plan_type
-      viewData.equipment_id = item.equipment_id
-      viewData.equipment_name = item.equipment_name
-      viewData.equipment_model = item.equipment_model || ''
-      viewData.equipment_location = item.equipment_location || ''
-      viewData.plan_start_date = item.plan_start_date
-      viewData.plan_end_date = item.plan_end_date
-      viewData.execution_date = item.execution_date || ''
-      viewData.next_maintenance_date = item.next_maintenance_date || ''
-      viewData.responsible_person = item.responsible_person
-      viewData.responsible_department = item.responsible_department || ''
-      viewData.contact_info = item.contact_info || ''
-      viewData.maintenance_content = item.maintenance_content
-      viewData.maintenance_requirements = item.maintenance_requirements || ''
-      viewData.maintenance_standard = item.maintenance_standard || ''
-      viewData.plan_status = item.plan_status
-      viewData.execution_status = item.execution_status
-      viewData.completion_rate = item.completion_rate || 0
-      viewData.remarks = item.remarks || ''
+    const handleView = (item: any) => {
+      if (item.plans && item.plans.length > 0) {
+        viewPlanList.value = item.plans
+        currentViewPlanIndex.value = 0
+        updateViewData(item.plans[0])
+      } else {
+        viewPlanList.value = []
+        currentViewPlanIndex.value = 0
+      }
       isViewModalOpen.value = true
     }
 
-    const handleEdit = async (item: MaintenancePlan) => {
-      editingId.value = item.id
-      
+    const handleEdit = async (item: any) => {
       if (projectList.value.length === 0) {
         await loadProjectList()
       }
       
-      console.log('项目列表:', projectList.value.map(p => ({ id: p.id, project_id: p.project_id, project_name: p.project_name })))
-      console.log('当前维保计划 project_id:', item.project_id)
-      
       const project = projectList.value.find(p => p.project_id === item.project_id)
-      console.log('匹配到的项目:', project)
       
       if (project) {
         formData.selectedProjectId = project.id
@@ -1345,7 +1470,7 @@ export default defineComponent({
         formData.maintenance_end_date = formatDate(project.maintenance_end_date)
         formData.client_name = project.client_name
       } else {
-        formData.selectedProjectId = 0
+        formData.selectedProjectId = ''
         formData.project_id = item.project_id
         formData.address = item.equipment_location || ''
         formData.maintenance_period = ''
@@ -1353,46 +1478,42 @@ export default defineComponent({
         formData.client_name = item.responsible_department || ''
       }
 
-      formData.planList = [{
-        plan_id: item.plan_id,
-        plan_start_date: formatDateForInput(item.plan_start_date),
-        plan_end_date: formatDateForInput(item.plan_end_date),
-        responsible_person: item.responsible_person,
-        remarks: item.remarks || ''
-      }]
-
-      formData.itemList = []
-      if (item.maintenance_content) {
-        const contents = item.maintenance_content.split('; ')
-        const requirements = item.maintenance_requirements ? item.maintenance_requirements.split('; ') : []
-        contents.forEach((content, index) => {
-          formData.itemList.push({
-            item_id: '',
-            inspection_item: '',
-            inspection_content: content,
-            check_requirements: requirements[index] || '',
-            brief_description: '',
-            level1_id: '',
-            level2_id: '',
-            level3_id: ''
+      if (item.plans && item.plans.length > 0) {
+        formData.planList = item.plans.map((plan: MaintenancePlan) => ({
+          plan_id: plan.plan_id,
+          plan_start_date: formatDateForInput(plan.plan_start_date),
+          plan_end_date: formatDateForInput(plan.plan_end_date),
+          responsible_person: plan.responsible_person,
+          remarks: plan.remarks || ''
+        }))
+        
+        const firstPlan = item.plans[0]
+        formData.itemList = []
+        if (firstPlan.maintenance_content) {
+          const contents = firstPlan.maintenance_content.split('; ')
+          const requirements = firstPlan.maintenance_requirements ? firstPlan.maintenance_requirements.split('; ') : []
+          contents.forEach((content: string, index: number) => {
+            formData.itemList.push({
+              item_id: '',
+              inspection_item: '',
+              inspection_content: content,
+              check_requirements: requirements[index] || '',
+              brief_description: '',
+              level1_id: '',
+              level2_id: '',
+              level3_id: ''
+            })
           })
-        })
+        }
       }
 
       isModalOpen.value = true
     }
 
-    const formatDateForInput = (dateStr: string) => {
-      if (!dateStr) return ''
-      const date = new Date(dateStr)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-
     const closeViewModal = () => {
       isViewModalOpen.value = false
+      viewPlanList.value = []
+      currentViewPlanIndex.value = 0
     }
 
     const closeEditModal = () => {
@@ -1501,18 +1622,17 @@ export default defineComponent({
       }
     }
 
-    const handleDelete = async (item: MaintenancePlan) => {
-      showConfirm('确定要删除该维保计划吗？', async () => {
+    const handleDelete = async (item: any) => {
+      showConfirm(`确定要删除该项目下的所有维保计划（共 ${item.plan_count} 条）吗？`, async () => {
         loading.value = true
         try {
-          const response = await maintenancePlanService.delete(item.id)
-          
-          if (response.code === 200) {
-            showToast('删除成功', 'success')
-            await loadData()
-          } else {
-            showToast(response.message || '删除失败', 'error')
+          if (item.plans && item.plans.length > 0) {
+            for (const plan of item.plans) {
+              await maintenancePlanService.delete(plan.id)
+            }
           }
+          showToast('删除成功', 'success')
+          await loadData()
         } catch (error: any) {
           console.error('删除失败:', error)
           showToast(error.message || '删除失败，请检查网络连接', 'error')
@@ -1572,6 +1692,10 @@ export default defineComponent({
       isViewModalOpen,
       isEditModalOpen,
       viewData,
+      viewPlanList,
+      currentViewPlanIndex,
+      prevViewPlan,
+      nextViewPlan,
       editData,
       formData,
       toast,
@@ -2191,5 +2315,49 @@ export default defineComponent({
 .form-input-readonly {
   background: #f5f5f5;
   cursor: not-allowed;
+}
+
+.view-plan-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #e3f2fd;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.view-plan-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.view-plan-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.view-plan-btn {
+  padding: 6px 16px;
+  border: 1px solid #1976d2;
+  border-radius: 3px;
+  background: #fff;
+  color: #1976d2;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-plan-btn:hover:not(:disabled) {
+  background: #1976d2;
+  color: #fff;
+}
+
+.view-plan-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #ccc;
+  color: #999;
 }
 </style>

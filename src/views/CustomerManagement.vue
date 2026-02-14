@@ -194,6 +194,7 @@ import { ElMessageBox } from 'element-plus'
 import { customerService, type Customer, type CustomerCreate, type CustomerUpdate } from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import { useInputMemory } from '../utils/inputMemory'
 
 export default defineComponent({
   name: 'CustomerManagement',
@@ -237,6 +238,19 @@ export default defineComponent({
     })
 
     let abortController: AbortController | null = null
+
+    const inputMemory = useInputMemory({
+      pageName: 'CustomerManagement',
+      fields: ['name', 'address', 'contact_person', 'phone', 'contact_position', 'remarks'],
+      onRestore: (data) => {
+        if (data.name) formData.name = data.name
+        if (data.address) formData.address = data.address
+        if (data.contact_person) formData.contact_person = data.contact_person
+        if (data.phone) formData.phone = data.phone
+        if (data.contact_position) formData.contact_position = data.contact_position
+        if (data.remarks) formData.remarks = data.remarks
+      }
+    })
 
     const viewData = reactive({
       id: 0,
@@ -317,10 +331,14 @@ export default defineComponent({
     const openModal = () => {
       resetForm()
       isEditMode.value = false
+      inputMemory.loadMemory()
       isModalOpen.value = true
     }
 
     const closeModal = () => {
+      if (!isEditMode.value) {
+        inputMemory.saveMemory(formData)
+      }
       isModalOpen.value = false
     }
 

@@ -42,6 +42,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path in ["/health", "/", "/docs", "/redoc", "/openapi.json"]:
             return await call_next(request)
+        
+        if request.method == "OPTIONS":
+            return await call_next(request)
 
         client_id = self._get_client_id(request)
         current_time = time.time()

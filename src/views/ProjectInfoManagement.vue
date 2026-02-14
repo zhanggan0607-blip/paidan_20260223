@@ -128,19 +128,19 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="formData.client_name" readonly />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户地址
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="formData.address" maxlength="200" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户单位" v-model="formData.client_name" maxlength="100" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户联系人
                 </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="formData.client_contact" maxlength="50" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="formData.client_contact" maxlength="50" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户地址
+                </label>
+                <input type="text" class="form-input" placeholder="请输入客户地址" v-model="formData.address" maxlength="200" />
               </div>
             </div>
             <div class="form-column">
@@ -158,15 +158,6 @@
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 选择客户
-                </label>
-                <select class="form-input" v-model="formData.client_name" @change="handleCustomerChange">
-                  <option value="">请选择</option>
-                  <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
-                </select>
-              </div>
-              <div class="form-item">
                 <label class="form-label">项目负责人</label>
                 <select class="form-input" v-model="formData.project_manager">
                   <option value="">请选择</option>
@@ -177,11 +168,11 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户联系方式
                 </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="formData.client_contact_info" maxlength="50" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系方式" v-model="formData.client_contact_info" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="formData.client_contact_position" maxlength="20" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系人职位" v-model="formData.client_contact_position" maxlength="20" />
               </div>
             </div>
           </div>
@@ -225,8 +216,8 @@
                 <div class="form-value">{{ viewData.project_manager || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
-                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
+                <label class="form-label">客户地址</label>
+                <div class="form-value">{{ viewData.address || '-' }}</div>
               </div>
             </div>
             <div class="form-column">
@@ -243,8 +234,8 @@
                 <div class="form-value">{{ formatDate(viewData.maintenance_end_date) || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户地址</label>
-                <div class="form-value">{{ viewData.address || '-' }}</div>
+                <label class="form-label">客户联系人</label>
+                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系方式</label>
@@ -301,19 +292,19 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="editData.client_name" readonly />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户地址
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="editData.address" maxlength="200" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户单位" v-model="editData.client_name" maxlength="100" />
               </div>
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 客户联系人
                 </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="editData.client_contact" maxlength="50" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="editData.client_contact" maxlength="50" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户地址
+                </label>
+                <input type="text" class="form-input" placeholder="请输入客户地址" v-model="editData.address" maxlength="200" />
               </div>
             </div>
             <div class="form-column">
@@ -321,7 +312,7 @@
                 <label class="form-label">
                   <span class="required">*</span> 项目编号
                 </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" />
+                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" readonly />
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -329,15 +320,6 @@
                 </label>
                 <input type="date" class="form-input" v-model="editData.maintenance_end_date" />
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 选择客户
-                </label>
-                <select class="form-input" v-model="editData.client_name" @change="handleEditCustomerChange">
-                  <option value="">请选择</option>
-                  <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
-                </select>
               </div>
               <div class="form-item">
                 <label class="form-label">项目负责人</label>
@@ -350,11 +332,11 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户联系方式
                 </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="editData.client_contact_info" maxlength="50" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系方式" v-model="editData.client_contact_info" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请选择客户" v-model="editData.client_contact_position" maxlength="20" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系人职位" v-model="editData.client_contact_position" maxlength="20" />
               </div>
             </div>
           </div>
@@ -383,10 +365,12 @@
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { projectInfoService, type ProjectInfo, type ProjectInfoCreate, type ProjectInfoUpdate } from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
-import { customerService, type Customer } from '../services/customer'
+import { customerService } from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import { useInputMemory } from '../utils/inputMemory'
+import { formatDate as formatDateUtil, formatDateForInput as formatDateForInputUtil } from '../config/constants'
 
 export default defineComponent({
   name: 'ProjectInfoManagement',
@@ -415,7 +399,6 @@ export default defineComponent({
     const totalElements = ref(0)
     const totalPages = ref(0)
     const personnelList = ref<string[]>([])
-    const customerList = ref<Customer[]>([])
 
     const toast = reactive({
       visible: false,
@@ -499,6 +482,25 @@ export default defineComponent({
 
     let abortController: AbortController | null = null
 
+    const inputMemory = useInputMemory({
+      pageName: 'ProjectInfoManagement',
+      fields: ['project_name', 'project_id', 'completion_date', 'client_name', 'client_contact', 'client_contact_position', 'maintenance_period', 'project_abbr', 'project_manager', 'maintenance_end_date', 'address', 'client_contact_info'],
+      onRestore: (data) => {
+        if (data.project_name) formData.project_name = data.project_name
+        if (data.project_id) formData.project_id = data.project_id
+        if (data.completion_date) formData.completion_date = data.completion_date
+        if (data.client_name) formData.client_name = data.client_name
+        if (data.client_contact) formData.client_contact = data.client_contact
+        if (data.client_contact_position) formData.client_contact_position = data.client_contact_position
+        if (data.maintenance_period) formData.maintenance_period = data.maintenance_period
+        if (data.project_abbr) formData.project_abbr = data.project_abbr
+        if (data.project_manager) formData.project_manager = data.project_manager
+        if (data.maintenance_end_date) formData.maintenance_end_date = data.maintenance_end_date
+        if (data.address) formData.address = data.address
+        if (data.client_contact_info) formData.client_contact_info = data.client_contact_info
+      }
+    })
+
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
@@ -508,22 +510,11 @@ export default defineComponent({
     }
 
     const formatDate = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      })
+      return formatDateUtil(dateStr)
     }
 
     const formatDateForInput = (dateStr: string) => {
-      if (!dateStr) return ''
-      const date = new Date(dateStr)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
+      return formatDateForInputUtil(dateStr)
     }
 
     const formatDateForAPI = (dateStr: string) => {
@@ -606,10 +597,12 @@ export default defineComponent({
 
     const openModal = () => {
       resetForm()
+      inputMemory.loadMemory()
       isModalOpen.value = true
     }
 
     const closeModal = () => {
+      inputMemory.saveMemory(formData)
       isModalOpen.value = false
     }
 
@@ -653,6 +646,27 @@ export default defineComponent({
         const response = await projectInfoService.create(createData)
         
         if (response.code === 200) {
+          const customerResponse = await customerService.getList({ page: 0, size: 100, name: formData.client_name })
+          if (customerResponse.code === 200 && customerResponse.data) {
+            const existingCustomer = customerResponse.data.content.find(c => c.name === formData.client_name)
+            if (existingCustomer) {
+              await customerService.update(existingCustomer.id, {
+                address: formData.address,
+                contact_person: formData.client_contact || '',
+                phone: formData.client_contact_info || '',
+                contact_position: formData.client_contact_position || ''
+              })
+            } else {
+              await customerService.create({
+                name: formData.client_name,
+                address: formData.address,
+                contact_person: formData.client_contact || '',
+                phone: formData.client_contact_info || '',
+                contact_position: formData.client_contact_position || ''
+              })
+            }
+          }
+          
           showToast('创建成功', 'success')
           closeModal()
           resetForm()
@@ -770,6 +784,27 @@ export default defineComponent({
         const response = await projectInfoService.update(editingId.value, updateData)
         
         if (response.code === 200) {
+          const customerResponse = await customerService.getList({ page: 0, size: 100, name: editData.client_name })
+          if (customerResponse.code === 200 && customerResponse.data) {
+            const existingCustomer = customerResponse.data.content.find(c => c.name === editData.client_name)
+            if (existingCustomer) {
+              await customerService.update(existingCustomer.id, {
+                address: editData.address,
+                contact_person: editData.client_contact || '',
+                phone: editData.client_contact_info || '',
+                contact_position: editData.client_contact_position || ''
+              })
+            } else {
+              await customerService.create({
+                name: editData.client_name,
+                address: editData.address,
+                contact_person: editData.client_contact || '',
+                phone: editData.client_contact_info || '',
+                contact_position: editData.client_contact_position || ''
+              })
+            }
+          }
+          
           showToast('更新成功', 'success')
           closeEditModal()
           await loadData()
@@ -859,51 +894,9 @@ export default defineComponent({
       }
     }
 
-    const loadCustomers = async () => {
-      try {
-        const response = await customerService.getList({ page: 0, size: 100 })
-        if (response.code === 200 && response.data) {
-          customerList.value = response.data.content
-        }
-      } catch (error) {
-        console.error('加载客户列表失败:', error)
-      }
-    }
-
-    const handleCustomerChange = () => {
-      const selectedCustomer = customerList.value.find(c => c.name === formData.client_name)
-      if (selectedCustomer) {
-        formData.address = selectedCustomer.address
-        formData.client_contact_info = selectedCustomer.phone
-        formData.client_contact = selectedCustomer.contact_person
-        formData.client_contact_position = selectedCustomer.contact_position || ''
-      } else {
-        formData.address = ''
-        formData.client_contact_info = ''
-        formData.client_contact = ''
-        formData.client_contact_position = ''
-      }
-    }
-
-    const handleEditCustomerChange = () => {
-      const selectedCustomer = customerList.value.find(c => c.name === editData.client_name)
-      if (selectedCustomer) {
-        editData.address = selectedCustomer.address
-        editData.client_contact_info = selectedCustomer.phone
-        editData.client_contact = selectedCustomer.contact_person
-        editData.client_contact_position = selectedCustomer.contact_position || ''
-      } else {
-        editData.address = ''
-        editData.client_contact_info = ''
-        editData.client_contact = ''
-        editData.client_contact_position = ''
-      }
-    }
-
     onMounted(() => {
       loadData()
       loadPersonnel()
-      loadCustomers()
     })
 
     onUnmounted(() => {
@@ -932,7 +925,6 @@ export default defineComponent({
       toast,
       confirmDialog,
       personnelList,
-      customerList,
       openModal,
       closeModal,
       handleSearch,
@@ -947,9 +939,7 @@ export default defineComponent({
       closeEditModal,
       formatDate,
       handleConfirm,
-      handleCancelConfirm,
-      handleCustomerChange,
-      handleEditCustomerChange
+      handleCancelConfirm
     }
   }
 })

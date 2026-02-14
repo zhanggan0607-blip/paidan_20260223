@@ -6,13 +6,6 @@
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label class="search-label">计划类型：</label>
-              <select class="search-input" v-model="searchForm.plan_type">
-                <option value="">全部</option>
-                <option v-for="type in planTypes" :key="type" :value="type">{{ type }}</option>
-              </select>
-            </div>
-            <div class="search-item">
               <label class="search-label">项目名称：</label>
               <input type="text" class="search-input" placeholder="请输入项目名称" v-model="searchForm.project_name" />
             </div>
@@ -25,9 +18,6 @@
         <div class="action-buttons">
           <button class="btn btn-reset" @click="handleReset">
             重置
-          </button>
-          <button class="btn btn-add" @click="handleAdd">
-            新增工作计划
           </button>
           <button class="btn btn-search" @click="handleSearch">
             搜索
@@ -76,9 +66,7 @@
               </td>
               <td class="action-cell">
                 <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="item.status === '待执行' || item.status === '未进行'" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-                <a href="#" v-if="item.status === '待执行' || item.status === '未进行'" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
-                <a href="#" v-if="item.status === '待确认'" class="action-link action-confirm" @click.prevent="handleConfirm(item)">确认</a>
+                <a href="#" v-if="item.status === WORK_STATUS.COMPLETED" class="action-link action-export" @click.prevent="handleExport(item)">导出</a>
               </td>
             </tr>
           </tbody>
@@ -120,163 +108,144 @@
       </div>
     </div>
 
-    <div v-if="isAddModalOpen" class="modal-overlay" @click.self="closeAddModal">
-      <div class="modal-container">
-        <div class="modal-header">
-          <h3 class="modal-title">{{ isEditMode ? '编辑工作计划' : '新增工作计划' }}</h3>
-          <button class="modal-close" @click="closeAddModal">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划类型
-                </label>
-                <select class="form-input" v-model="formData.plan_type">
-                  <option value="">请选择计划类型</option>
-                  <option v-for="type in planTypes" :key="type" :value="type">{{ type }}</option>
-                </select>
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <select class="form-input" v-model="formData.project_name" @change="handleProjectChange">
-                  <option value="">请选择项目</option>
-                  <option v-for="project in projectList" :key="project.id" :value="project.project_name">
-                    {{ project.project_name }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目编号
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="选择项目后自动填充" v-model="formData.project_id" readonly />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 工单编号
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="选择项目后自动生成" v-model="formData.plan_id" readonly />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="选择项目后自动填充" v-model="formData.client_name" readonly />
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划开始日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.plan_start_date" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划结束日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.plan_end_date" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 运维人员
-                </label>
-                <select class="form-input" v-model="formData.maintenance_personnel">
-                  <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person.id" :value="person.name">
-                    {{ person.name }}
-                  </option>
-                </select>
-              </div>
-              <div class="form-item">
-                <label class="form-label">状态</label>
-                <select class="form-input" v-model="formData.status">
-                  <option value="未进行">未进行</option>
-                  <option value="待确认">待确认</option>
-                  <option value="进行中">进行中</option>
-                  <option value="已完成">已完成</option>
-                </select>
-              </div>
-              <div class="form-item">
-                <label class="form-label">备注</label>
-                <input type="text" class="form-input" placeholder="请输入备注" v-model="formData.remarks" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeAddModal">取消</button>
-          <button class="btn btn-save" @click="handleSave" :disabled="saving">
-            {{ saving ? '保存中...' : '保存' }}
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
-      <div class="modal-container">
+      <div class="modal-container modal-container-large">
         <div class="modal-header">
-          <h3 class="modal-title">查看工作计划</h3>
+          <h3 class="modal-title">定期巡检单详情</h3>
           <button class="modal-close" @click="closeViewModal">×</button>
         </div>
         <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
+          <div class="detail-section">
+            <div class="detail-grid detail-grid-3">
+              <div class="detail-item">
+                <label class="detail-label">项目名称</label>
+                <div class="detail-value">{{ viewData.project_name || '-' }}</div>
               </div>
-              <div class="form-item">
-                <label class="form-label">计划类型</label>
-                <div class="form-value">{{ viewData.plan_type || '-' }}</div>
+              <div class="detail-item">
+                <label class="detail-label">客户单位</label>
+                <div class="detail-value">{{ viewData.client_name || '-' }}</div>
               </div>
-              <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+              <div class="detail-item">
+                <label class="detail-label">合同剩余时间</label>
+                <div class="detail-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
               </div>
-              <div class="form-item">
-                <label class="form-label">项目名称</label>
-                <div class="form-value">{{ viewData.project_name || '-' }}</div>
+              <div class="detail-item">
+                <label class="detail-label">计划开始日期</label>
+                <div class="detail-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
               </div>
-              <div class="form-item">
-                <label class="form-label">客户单位</label>
-                <div class="form-value">{{ viewData.client_name || '-' }}</div>
+              <div class="detail-item">
+                <label class="detail-label">计划结束日期</label>
+                <div class="detail-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">计划开始日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">计划结束日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">运维人员</label>
-                <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">状态</label>
-                <div class="form-value">{{ viewData.status || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">创建时间</label>
-                <div class="form-value">{{ formatDateTime(viewData.created_at) || '-' }}</div>
+              <div class="detail-item">
+                <label class="detail-label">维保人员</label>
+                <div class="detail-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
             </div>
           </div>
-          <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+
+          <div class="detail-section">
+            <h4 class="section-title">巡检内容:</h4>
+            <table class="inspection-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px;">序号</th>
+                  <th style="width: 120px;">巡检项</th>
+                  <th style="width: 150px;">巡检内容</th>
+                  <th style="width: 150px;">检查要求</th>
+                  <th style="width: 150px;">简要说明</th>
+                  <th style="width: 80px;">是否正常</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in viewInspectionItems" :key="index">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ item.inspection_item || '-' }}</td>
+                  <td>{{ item.inspection_content || '-' }}</td>
+                  <td>{{ item.check_requirement || '-' }}</td>
+                  <td>{{ item.brief_description || '-' }}</td>
+                  <td>
+                    <span :class="item.is_normal ? 'status-normal' : 'status-abnormal'">
+                      {{ item.is_normal ? '正常' : '异常' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="viewInspectionItems.length === 0">
+                  <td colspan="6" style="text-align: center; padding: 20px; color: #999;">暂无巡检内容</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="detail-section">
+            <h4 class="section-title">现场处理内容</h4>
+            <table class="inspection-table">
+              <thead>
+                <tr>
+                  <th style="width: 300px;">实际现场故障情况</th>
+                  <th style="width: 300px;">故障解决方案</th>
+                  <th style="width: 80px;">是否解决</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in viewFieldHandling" :key="index">
+                  <td>{{ item.fault_situation || '-' }}</td>
+                  <td>{{ item.solution || '-' }}</td>
+                  <td>
+                    <span :class="item.is_resolved ? 'status-resolved' : 'status-unresolved'">
+                      {{ item.is_resolved ? '已解决' : '未解决' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="viewFieldHandling.length === 0">
+                  <td colspan="3" style="text-align: center; padding: 20px; color: #999;">暂无现场处理内容</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="detail-section">
+            <h4 class="section-title">图片附件</h4>
+            <div class="image-attachment-section">
+              <div class="image-group">
+                <label class="image-label">巡检组相关图片</label>
+                <div class="image-list">
+                  <div v-for="(img, index) in viewInspectionImages" :key="'insp-' + index" class="image-item">
+                    <img :src="img" alt="巡检图片" @click="previewImage(img)" />
+                  </div>
+                  <div v-if="viewInspectionImages.length === 0" class="no-image">暂无图片</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4 class="section-title">用户电子签名</h4>
+            <div class="signature-area">
+              <div v-if="viewSignature" class="signature-image">
+                <img :src="viewSignature" alt="电子签名" />
+              </div>
+              <div v-else class="no-signature">暂无签名</div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h4 class="section-title">内部确认</h4>
+            <div class="confirmation-list">
+              <div v-for="(record, index) in viewConfirmationRecords" :key="index" class="confirmation-item">
+                <span class="confirmation-time">{{ record.time }}</span>
+                <span class="confirmation-user">{{ record.user }}</span>
+                <span :class="['confirmation-status', record.status === '已确认' ? 'status-confirmed' : record.status === '已退回' ? 'status-returned' : 'status-submitted']">
+                  {{ record.status }}
+                </span>
+                <span v-if="record.reason" class="confirmation-reason">{{ record.reason }}</span>
+              </div>
+              <div v-if="viewConfirmationRecords.length === 0" class="no-confirmation">暂无确认记录</div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button class="btn btn-cancel" @click="closeViewModal">取消</button>
         </div>
       </div>
     </div>
@@ -285,10 +254,11 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, reactive, watch, computed } from 'vue'
-import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
-import { personnelService, type Personnel } from '@/services/personnel'
+import { ElMessageBox } from 'element-plus'
 import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
+import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import Toast from '@/components/Toast.vue'
+import { PLAN_TYPES, WORK_STATUS, formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/config/constants'
 
 interface PlanItem {
   id: number
@@ -310,18 +280,14 @@ export default defineComponent({
     Toast
   },
   setup() {
-    const planTypes = ['定期维保', '临时维修', '零星用工']
+    const planTypes = [PLAN_TYPES.PERIODIC_MAINTENANCE, PLAN_TYPES.TEMPORARY_REPAIR, PLAN_TYPES.SPOT_WORK]
     const currentPage = ref(0)
     const pageSize = ref(10)
     const jumpPage = ref(1)
     const loading = ref(false)
-    const saving = ref(false)
     const totalElements = ref(0)
     const totalPages = ref(0)
-    const isAddModalOpen = ref(false)
     const isViewModalOpen = ref(false)
-    const isEditMode = ref(false)
-    const editingId = ref<number | null>(null)
 
     const toast = reactive({
       visible: false,
@@ -330,25 +296,8 @@ export default defineComponent({
     })
 
     const searchForm = ref({
-      plan_type: '',
       project_name: '',
       client_name: ''
-    })
-
-    const projectList = ref<ProjectInfo[]>([])
-    const personnelList = ref<Personnel[]>([])
-
-    const formData = ref({
-      plan_id: '',
-      plan_type: '',
-      project_name: '',
-      project_id: '',
-      client_name: '',
-      plan_start_date: '',
-      plan_end_date: '',
-      maintenance_personnel: '',
-      status: '待执行',
-      remarks: ''
     })
 
     const viewData = reactive({
@@ -364,8 +313,35 @@ export default defineComponent({
       status: '',
       remarks: '',
       created_at: '',
-      updated_at: ''
+      updated_at: '',
+      maintenance_cycle: '',
+      project_start_date: '',
+      project_end_date: '',
+      remainingTime: ''
     })
+
+    const viewInspectionItems = ref<Array<{
+      inspection_item: string
+      inspection_content: string
+      check_requirement: string
+      brief_description: string
+      is_normal: boolean
+    }>>([])
+
+    const viewFieldHandling = ref<Array<{
+      fault_situation: string
+      solution: string
+      is_resolved: boolean
+    }>>([])
+
+    const viewInspectionImages = ref<string[]>([])
+    const viewSignature = ref('')
+    const viewConfirmationRecords = ref<Array<{
+      time: string
+      user: string
+      status: string
+      reason?: string
+    }>>([])
 
     const planData = ref<PlanItem[]>([])
 
@@ -386,25 +362,56 @@ export default defineComponent({
     }
 
     const formatDate = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      return formatDateUtil(dateStr)
     }
 
     const formatDateTime = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+      return formatDateTimeUtil(dateStr)
+    }
+
+    const calculateRemainingTime = (endDate: string): string => {
+      if (!endDate) return '-'
+      
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      const end = new Date(endDate)
+      end.setHours(0, 0, 0, 0)
+      
+      const diffTime = end.getTime() - today.getTime()
+      
+      if (diffTime < 0) {
+        return '已过期'
+      }
+      
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      
+      const years = Math.floor(diffDays / 365)
+      const months = Math.floor((diffDays % 365) / 30)
+      const days = diffDays % 30
+      
+      const parts: string[] = []
+      if (years > 0) parts.push(`${years}年`)
+      if (months > 0) parts.push(`${months}月`)
+      if (days > 0 || parts.length === 0) parts.push(`${days}日`)
+      
+      return parts.join('')
+    }
+
+    const getRemainingTimeClass = () => {
+      if (!viewData.remainingTime) return ''
+      if (viewData.remainingTime === '已过期') return 'remaining-expired'
+      return 'remaining-normal'
     }
 
     const getPlanTypeClass = (planType: string) => {
       switch (planType) {
-        case '定期维保':
-        case '定期巡检':
+        case PLAN_TYPES.PERIODIC_MAINTENANCE:
+        case PLAN_TYPES.PERIODIC_INSPECTION:
           return 'type-inspection'
-        case '临时维修':
+        case PLAN_TYPES.TEMPORARY_REPAIR:
           return 'type-repair'
-        case '零星用工':
+        case PLAN_TYPES.SPOT_WORK:
           return 'type-spot'
         default:
           return ''
@@ -413,16 +420,16 @@ export default defineComponent({
 
     const getStatusClass = (status: string) => {
       switch (status) {
-        case '未进行':
+        case WORK_STATUS.NOT_STARTED:
         case '待执行':
           return 'status-pending'
-        case '待确认':
+        case WORK_STATUS.PENDING_CONFIRM:
           return 'status-waiting'
-        case '进行中':
+        case WORK_STATUS.IN_PROGRESS:
           return 'status-in-progress'
-        case '已完成':
+        case WORK_STATUS.COMPLETED:
           return 'status-completed'
-        case '已取消':
+        case WORK_STATUS.CANCELLED:
           return 'status-cancelled'
         default:
           return ''
@@ -472,7 +479,6 @@ export default defineComponent({
 
     const handleReset = () => {
       searchForm.value = {
-        plan_type: '',
         project_name: '',
         client_name: ''
       }
@@ -480,60 +486,7 @@ export default defineComponent({
       loadData()
     }
 
-    const loadProjects = async () => {
-      try {
-        const response = await projectInfoService.getAll()
-        if (response.code === 200 && response.data) {
-          projectList.value = response.data
-        }
-      } catch (error) {
-        console.error('加载项目列表失败:', error)
-      }
-    }
-
-    const loadPersonnel = async () => {
-      try {
-        const response = await personnelService.getAll()
-        if (response.code === 200 && response.data) {
-          personnelList.value = response.data
-        }
-      } catch (error) {
-        console.error('加载人员列表失败:', error)
-      }
-    }
-
-    const handleProjectChange = async () => {
-      const selectedProject = projectList.value.find(p => p.project_name === formData.value.project_name)
-      if (selectedProject) {
-        formData.value.project_id = selectedProject.project_id
-        formData.value.client_name = selectedProject.client_name
-        
-        if (!isEditMode.value) {
-          await generateWorkOrderId(selectedProject.project_id)
-        }
-      }
-    }
-
-    const generateWorkOrderId = async (projectId: string) => {
-      try {
-        const response = await maintenancePlanService.getByProjectId(projectId)
-        if (response.code === 200 && response.data) {
-          const count = response.data.length
-          const nextNumber = count + 1
-          const paddedNumber = String(nextNumber).padStart(3, '0')
-          formData.value.plan_id = `${projectId}${paddedNumber}`
-        } else {
-          formData.value.plan_id = `${projectId}001`
-        }
-      } catch (error) {
-        console.error('生成工单编号失败:', error)
-        formData.value.plan_id = `${projectId}001`
-      }
-    }
-
     onMounted(() => {
-      loadProjects()
-      loadPersonnel()
       loadData()
     })
 
@@ -541,126 +494,7 @@ export default defineComponent({
       loadData()
     })
 
-    const handleAdd = () => {
-      isEditMode.value = false
-      editingId.value = null
-      resetForm()
-      isAddModalOpen.value = true
-    }
-
-    const handleEdit = (item: PlanItem) => {
-      isEditMode.value = true
-      editingId.value = item.id
-      formData.value = {
-        plan_id: item.plan_id,
-        plan_type: item.plan_type,
-        project_name: item.project_name,
-        project_id: item.project_id,
-        client_name: item.client_name || '',
-        plan_start_date: item.plan_start_date ? item.plan_start_date.split('T')[0] : '',
-        plan_end_date: item.plan_end_date ? item.plan_end_date.split('T')[0] : '',
-        maintenance_personnel: item.maintenance_personnel || '',
-        status: item.status,
-        remarks: item.remarks || ''
-      }
-      isAddModalOpen.value = true
-    }
-
-    const closeAddModal = () => {
-      isAddModalOpen.value = false
-      resetForm()
-    }
-
-    const resetForm = () => {
-      formData.value = {
-        plan_id: '',
-        plan_type: '',
-        project_name: '',
-        project_id: '',
-        client_name: '',
-        plan_start_date: '',
-        plan_end_date: '',
-        maintenance_personnel: '',
-        status: '未进行',
-        remarks: ''
-      }
-    }
-
-    const handleSave = async () => {
-      if (!formData.value.plan_type || !formData.value.project_id || 
-          !formData.value.project_name || !formData.value.plan_start_date || !formData.value.plan_end_date) {
-        showToast('请填写所有必填项', 'warning')
-        return
-      }
-
-      if (!formData.value.plan_id) {
-        showToast('请先选择项目以生成工单编号', 'warning')
-        return
-      }
-
-      saving.value = true
-      
-      try {
-        if (isEditMode.value && editingId.value) {
-          const response = await maintenancePlanService.update(editingId.value, {
-            plan_id: formData.value.plan_id,
-            plan_type: formData.value.plan_type,
-            project_id: formData.value.project_id,
-            plan_name: formData.value.project_name,
-            plan_start_date: formData.value.plan_start_date,
-            plan_end_date: formData.value.plan_end_date,
-            responsible_department: formData.value.client_name,
-            responsible_person: formData.value.maintenance_personnel || '未指定',
-            plan_status: formData.value.status,
-            remarks: formData.value.remarks,
-            equipment_id: 'EQ001',
-            equipment_name: '默认设备',
-            maintenance_content: '无',
-            execution_status: '未开始'
-          })
-          
-          if (response.code === 200) {
-            showToast('更新成功', 'success')
-            await loadData()
-            closeAddModal()
-          } else {
-            showToast(response.message || '更新失败', 'error')
-          }
-        } else {
-          const response = await maintenancePlanService.create({
-            plan_id: formData.value.plan_id,
-            plan_type: formData.value.plan_type,
-            project_id: formData.value.project_id,
-            plan_name: formData.value.project_name,
-            plan_start_date: formData.value.plan_start_date,
-            plan_end_date: formData.value.plan_end_date,
-            responsible_department: formData.value.client_name,
-            responsible_person: formData.value.maintenance_personnel || '未指定',
-            plan_status: formData.value.status,
-            remarks: formData.value.remarks,
-            equipment_id: 'EQ001',
-            equipment_name: '默认设备',
-            maintenance_content: '无',
-            execution_status: '未开始'
-          })
-          
-          if (response.code === 200) {
-            showToast('保存成功', 'success')
-            await loadData()
-            closeAddModal()
-          } else {
-            showToast(response.message || '保存失败', 'error')
-          }
-        }
-      } catch (error: any) {
-        console.error('保存失败:', error)
-        showToast('保存失败，请检查网络连接', 'error')
-      } finally {
-        saving.value = false
-      }
-    }
-
-    const handleView = (item: PlanItem) => {
+    const handleView = async (item: PlanItem) => {
       viewData.id = item.id
       viewData.plan_id = item.plan_id
       viewData.plan_type = item.plan_type
@@ -674,6 +508,44 @@ export default defineComponent({
       viewData.remarks = item.remarks || ''
       viewData.created_at = ''
       viewData.updated_at = ''
+      viewData.project_start_date = item.plan_start_date
+      viewData.project_end_date = item.plan_end_date
+      viewData.maintenance_cycle = ''
+      viewData.remainingTime = '-'
+      
+      viewInspectionItems.value = []
+      viewFieldHandling.value = []
+      viewInspectionImages.value = []
+      viewSignature.value = ''
+      viewConfirmationRecords.value = []
+      
+      try {
+        const projectResponse = await projectInfoService.getAll()
+        if (projectResponse.code === 200 && projectResponse.data) {
+          const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
+          if (project) {
+            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+          }
+        }
+      } catch (error) {
+        console.error('获取项目信息失败:', error)
+      }
+      
+      try {
+        const response = await maintenancePlanService.getByProjectId(item.project_id)
+        if (response.code === 200 && response.data) {
+          viewInspectionItems.value = response.data.map((plan: any) => ({
+            inspection_item: plan.plan_id,
+            inspection_content: plan.maintenance_content || '',
+            check_requirement: plan.maintenance_requirements || '',
+            brief_description: plan.remarks || '',
+            is_normal: plan.execution_status === WORK_STATUS.COMPLETED
+          }))
+        }
+      } catch (error) {
+        console.error('获取巡检内容失败:', error)
+      }
+      
       isViewModalOpen.value = true
     }
 
@@ -681,42 +553,8 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
-    const handleDelete = async (item: PlanItem) => {
-      if (confirm(`确定要删除计划 ${item.plan_id} 吗？`)) {
-        try {
-          await maintenancePlanService.delete(item.id)
-          showToast('删除成功', 'success')
-          loadData()
-        } catch (error) {
-          console.error('删除失败:', error)
-          showToast('删除失败', 'error')
-        }
-      }
-    }
-
-    const handleConfirm = async (item: PlanItem) => {
-      try {
-        await maintenancePlanService.update(item.id, { 
-          plan_id: item.plan_id,
-          plan_type: item.plan_type,
-          project_id: item.project_id,
-          plan_name: item.project_name,
-          plan_start_date: item.plan_start_date,
-          plan_end_date: item.plan_end_date,
-          responsible_department: item.client_name,
-          responsible_person: item.maintenance_personnel || '未指定',
-          plan_status: '进行中',
-          equipment_id: 'EQ001',
-          equipment_name: '默认设备',
-          maintenance_content: '无',
-          execution_status: '进行中'
-        })
-        showToast('确认成功', 'success')
-        loadData()
-      } catch (error) {
-        console.error('确认失败:', error)
-        showToast('确认失败', 'error')
-      }
+    const handleExport = (item: PlanItem) => {
+      showToast('导出功能开发中', 'info')
     }
 
     const handleJump = () => {
@@ -726,43 +564,44 @@ export default defineComponent({
       }
     }
 
+    const previewImage = (img: string) => {
+      window.open(img, '_blank')
+    }
+
     return {
       planTypes,
       currentPage,
       pageSize,
       jumpPage,
       loading,
-      saving,
       totalElements,
       totalPages,
       displayedPages,
-      isAddModalOpen,
       isViewModalOpen,
-      isEditMode,
       toast,
       searchForm,
-      formData,
-      projectList,
-      personnelList,
       planData,
       viewData,
+      viewInspectionItems,
+      viewFieldHandling,
+      viewInspectionImages,
+      viewSignature,
+      viewConfirmationRecords,
       formatDate,
       formatDateTime,
       getPlanTypeClass,
       getStatusClass,
+      getRemainingTimeClass,
+      WORK_STATUS,
+      PLAN_TYPES,
       handleSearch,
       handleReset,
-      handleProjectChange,
-      handleAdd,
-      handleEdit,
-      closeAddModal,
-      handleSave,
       handleView,
       closeViewModal,
-      handleDelete,
-      handleConfirm,
+      handleExport,
       handleJump,
-      showToast
+      showToast,
+      previewImage
     }
   }
 })
@@ -953,6 +792,14 @@ export default defineComponent({
   color: #45a049;
 }
 
+.action-export {
+  color: #ff9800;
+}
+
+.action-export:hover {
+  color: #f57c00;
+}
+
 .action-delete {
   color: #f44336;
 }
@@ -1015,6 +862,16 @@ export default defineComponent({
 .status-cancelled {
   background: #ffebee;
   color: #c62828;
+}
+
+.remaining-normal {
+  color: #388E3C;
+  font-weight: 500;
+}
+
+.remaining-expired {
+  color: #D32F2F;
+  font-weight: 600;
 }
 
 .pagination-section {
@@ -1283,5 +1140,221 @@ export default defineComponent({
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.modal-container-large {
+  width: 1100px;
+  max-width: 98vw;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 16px 0;
+  padding-left: 8px;
+  border-left: 3px solid #1976d2;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px 24px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-label {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  padding: 8px 12px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  min-height: 20px;
+}
+
+.inspection-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.inspection-table th {
+  background: #f5f5f5;
+  padding: 12px 10px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border: 1px solid #e0e0e0;
+}
+
+.inspection-table td {
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  color: #666;
+}
+
+.inspection-table tbody tr:hover {
+  background: #f9f9f9;
+}
+
+.status-normal {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.status-abnormal {
+  color: #c62828;
+  font-weight: 500;
+}
+
+.status-resolved {
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+.status-unresolved {
+  color: #c62828;
+  font-weight: 500;
+}
+
+.image-attachment-section {
+  display: flex;
+  gap: 24px;
+}
+
+.image-group {
+  flex: 1;
+}
+
+.image-label {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.image-list {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.image-item {
+  width: 100px;
+  height: 100px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.image-item:hover {
+  transform: scale(1.05);
+}
+
+.image-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-image, .no-signature, .no-confirmation {
+  color: #999;
+  font-size: 14px;
+  padding: 20px;
+  text-align: center;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+.signature-area {
+  min-height: 80px;
+}
+
+.signature-image {
+  max-width: 200px;
+  max-height: 100px;
+}
+
+.signature-image img {
+  max-width: 100%;
+  max-height: 100px;
+}
+
+.confirmation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirmation-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f9f9f9;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.confirmation-time {
+  color: #666;
+  min-width: 120px;
+}
+
+.confirmation-user {
+  color: #333;
+  font-weight: 500;
+  min-width: 80px;
+}
+
+.confirmation-status {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-confirmed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-returned {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-submitted {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.confirmation-reason {
+  color: #666;
+  margin-left: auto;
 }
 </style>

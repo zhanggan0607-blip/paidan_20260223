@@ -213,9 +213,12 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { personnelService, type Personnel, type PersonnelCreate, type PersonnelUpdate } from '../services/personnel'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import { useInputMemory } from '../utils/inputMemory'
+import { USER_ROLES, GENDER_LIST, formatDate } from '../config/constants'
 
 export default defineComponent({
   name: 'PersonnelManagement',
@@ -260,6 +263,20 @@ export default defineComponent({
     })
 
     let abortController: AbortController | null = null
+
+    const inputMemory = useInputMemory({
+      pageName: 'PersonnelManagement',
+      fields: ['name', 'gender', 'phone', 'department', 'role', 'address', 'remarks'],
+      onRestore: (data) => {
+        if (data.name) formData.name = data.name
+        if (data.gender) formData.gender = data.gender
+        if (data.phone) formData.phone = data.phone
+        if (data.department) formData.department = data.department
+        if (data.role) formData.role = data.role
+        if (data.address) formData.address = data.address
+        if (data.remarks) formData.remarks = data.remarks
+      }
+    })
 
     const currentUserRole = ref('管理员')
     const currentUserDepartment = ref('')
@@ -384,10 +401,14 @@ export default defineComponent({
     const openModal = () => {
       resetForm()
       isEditMode.value = false
+      inputMemory.loadMemory()
       isModalOpen.value = true
     }
 
     const closeModal = () => {
+      if (!isEditMode.value) {
+        inputMemory.saveMemory(formData)
+      }
       isModalOpen.value = false
     }
 
@@ -487,12 +508,14 @@ export default defineComponent({
     }
 
     const handleDelete = async (item: Personnel) => {
-      if (!confirm('确定要删除该人员吗？')) {
-        return
-      }
-
-      loading.value = true
       try {
+        await ElMessageBox.confirm('确定要删除该人员吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        
+        loading.value = true
         const response = await personnelService.delete(item.id)
         
         if (response.code === 200) {
@@ -502,8 +525,10 @@ export default defineComponent({
           showToast(response.message || '删除失败', 'error')
         }
       } catch (error: any) {
-        console.error('删除失败:', error)
-        showToast(error.message || '删除失败，请检查网络连接', 'error')
+        if (error !== 'cancel') {
+          console.error('删除失败:', error)
+          showToast(error.message || '删除失败，请检查网络连接', 'error')
+        }
       } finally {
         loading.value = false
       }

@@ -205,6 +205,7 @@ import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
 import { temporaryRepairService, type TemporaryRepair } from '@/services/temporaryRepair'
 import Toast from '@/components/Toast.vue'
+import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
 
 interface RepairItem {
   id: number
@@ -259,7 +260,7 @@ export default defineComponent({
       plan_start_date: '',
       plan_end_date: '',
       maintenance_personnel: '',
-      status: '未进行',
+      status: WORK_STATUS.NOT_STARTED,
       remarks: ''
     })
 
@@ -296,9 +297,7 @@ export default defineComponent({
     }
 
     const formatDate = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      return formatDateUtil(dateStr)
     }
 
     const handleSearch = () => {
@@ -401,7 +400,7 @@ export default defineComponent({
         plan_start_date: '',
         plan_end_date: '',
         maintenance_personnel: '',
-        status: '未进行',
+        status: WORK_STATUS.NOT_STARTED,
         remarks: ''
       }
     }
@@ -502,6 +501,7 @@ export default defineComponent({
       personnelList,
       repairData,
       formatDate,
+      WORK_STATUS,
       handleSearch,
       handleReset,
       handleProjectChange,
