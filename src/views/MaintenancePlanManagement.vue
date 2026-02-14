@@ -598,6 +598,17 @@ interface InspectionTreeNode {
   children?: InspectionTreeNode[]
 }
 
+interface AggregatedPlanData {
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  plan_count: number
+  responsible_department: string
+  equipment_location: string
+  plans: MaintenancePlan[]
+}
+
 export default defineComponent({
   name: 'MaintenancePlanManagement',
   components: {
@@ -624,7 +635,7 @@ export default defineComponent({
     const isEditModalOpen = ref(false)
     const editingId = ref<number | null>(null)
     
-    const planData = ref<MaintenancePlan[]>([])
+    const planData = ref<AggregatedPlanData[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
     const projectList = ref<ProjectInfo[]>([])
@@ -1289,7 +1300,7 @@ export default defineComponent({
           
           const start = currentPage.value * pageSize.value
           const end = start + pageSize.value
-          planData.value = items.slice(start, end) as any
+          planData.value = items.slice(start, end)
         } else {
           showToast(response.message || '加载数据失败', 'error')
         }
@@ -1443,7 +1454,7 @@ export default defineComponent({
       }
     }
 
-    const handleView = (item: any) => {
+    const handleView = (item: AggregatedPlanData) => {
       if (item.plans && item.plans.length > 0) {
         viewPlanList.value = item.plans
         currentViewPlanIndex.value = 0
@@ -1455,7 +1466,7 @@ export default defineComponent({
       isViewModalOpen.value = true
     }
 
-    const handleEdit = async (item: any) => {
+    const handleEdit = async (item: AggregatedPlanData) => {
       if (projectList.value.length === 0) {
         await loadProjectList()
       }
@@ -1622,7 +1633,7 @@ export default defineComponent({
       }
     }
 
-    const handleDelete = async (item: any) => {
+    const handleDelete = async (item: AggregatedPlanData) => {
       showConfirm(`确定要删除该项目下的所有维保计划（共 ${item.plan_count} 条）吗？`, async () => {
         loading.value = true
         try {

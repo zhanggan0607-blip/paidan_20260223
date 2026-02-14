@@ -44,7 +44,8 @@ class MaintenancePlanRepository:
         execution_status: Optional[str] = None,
         responsible_person: Optional[str] = None,
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None
+        client_name: Optional[str] = None,
+        plan_type: Optional[str] = None
     ) -> tuple[List[MaintenancePlan], int]:
         try:
             query = self.db.query(MaintenancePlan)
@@ -72,6 +73,9 @@ class MaintenancePlanRepository:
 
             if client_name:
                 query = query.filter(MaintenancePlan.responsible_department.like(f"%{client_name}%"))
+
+            if plan_type:
+                query = query.filter(MaintenancePlan.plan_type == plan_type)
 
             total = query.count()
             items = query.order_by(MaintenancePlan.created_at.desc()).offset(page * size).limit(size).all()

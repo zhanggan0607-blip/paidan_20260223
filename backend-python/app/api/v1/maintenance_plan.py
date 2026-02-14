@@ -79,13 +79,14 @@ def get_maintenance_plan_list(
     responsible_person: Optional[str] = Query(None, description="Responsible person (fuzzy search)"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
+    plan_type: Optional[str] = Query(None, description="Plan type (定期维保/临时维修/零星用工)"),
     db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
     items, total = service.get_all(
         page, size, plan_name, project_id, equipment_name,
         plan_status, execution_status, responsible_person,
-        project_name, client_name
+        project_name, client_name, plan_type
     )
     items_dict = [item.to_dict() for item in items]
     return PaginatedResponse.success(items_dict, total, page, size)

@@ -161,11 +161,26 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
-import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
+import { maintenancePlanService, type MaintenancePlan } from '../services/maintenancePlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '../config/constants'
+
+interface InspectionItem {
+  id: number
+  inspection_id: string
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  client_name: string
+  maintenance_personnel: string
+  status: string
+  remarks: string
+  created_at: string
+  updated_at: string
+}
 
 export default defineComponent({
   name: 'PeriodicInspectionQuery',
@@ -185,7 +200,7 @@ export default defineComponent({
     const loading = ref(false)
     const isViewModalOpen = ref(false)
     
-    const inspectionData = ref<PeriodicInspection[]>([])
+    const inspectionData = ref<InspectionItem[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
 
@@ -275,14 +290,18 @@ export default defineComponent({
     const getStatusClass = (status: string) => {
       switch (status) {
         case WORK_STATUS.NOT_STARTED:
+        case '待执行':
           return 'status-pending'
         case WORK_STATUS.PENDING_CONFIRM:
+        case '待确认':
           return 'status-confirmed'
         case WORK_STATUS.CONFIRMED:
           return 'status-confirmed'
         case WORK_STATUS.IN_PROGRESS:
+        case '进行中':
           return 'status-in-progress'
         case WORK_STATUS.COMPLETED:
+        case '已完成':
           return 'status-completed'
         case WORK_STATUS.CANCELLED:
           return 'status-cancelled'
@@ -299,15 +318,29 @@ export default defineComponent({
 
       loading.value = true
       try {
-        const response = await periodicInspectionService.getList({
+        const response = await maintenancePlanService.getList({
           page: currentPage.value,
           size: pageSize.value,
-          project_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined
+          plan_name: searchForm.projectName || undefined,
+          client_name: searchForm.clientName || undefined,
+          plan_type: '定期维保'
         })
         
         if (response.code === 200) {
-          inspectionData.value = response.data.content
+          inspectionData.value = response.data.content.map((item: MaintenancePlan) => ({
+            id: item.id,
+            inspection_id: item.plan_id,
+            project_id: item.project_id,
+            project_name: item.plan_name,
+            plan_start_date: item.plan_start_date,
+            plan_end_date: item.plan_end_date,
+            client_name: item.responsible_department || '',
+            maintenance_personnel: item.responsible_person || '',
+            status: item.plan_status || '待执行',
+            remarks: item.remarks || '',
+            created_at: item.created_at,
+            updated_at: item.updated_at
+          }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
         } else {
@@ -329,7 +362,7 @@ export default defineComponent({
       loadData()
     }
 
-    const handleView = async (item: PeriodicInspection) => {
+    const handleView = async (item: InspectionItem) => {
       viewData.id = item.id
       viewData.inspection_id = item.inspection_id
       viewData.project_id = item.project_id
@@ -363,7 +396,7 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
-    const handleExport = (item: PeriodicInspection) => {
+    const handleExport = (item: InspectionItem) => {
       showToast('导出功能开发中', 'info')
     }
 

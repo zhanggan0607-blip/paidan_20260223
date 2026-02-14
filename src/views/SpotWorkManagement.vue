@@ -120,7 +120,7 @@
 import { defineComponent, ref, onMounted, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { spotWorkService, type SpotWork } from '@/services/spotWork'
+import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
 import Toast from '@/components/Toast.vue'
 import { WORK_STATUS, formatDate } from '@/config/constants'
 
@@ -176,17 +176,29 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await spotWorkService.getList({
+        const response = await maintenancePlanService.getList({
           page: currentPage.value - 1,
           size: pageSize.value,
-          project_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined
+          plan_name: searchForm.value.project_name || undefined,
+          client_name: searchForm.value.client_name || undefined,
+          plan_type: '零星用工'
         })
         
         if (response.code === 200) {
-          workData.value = response.data.content
+          workData.value = response.data.content.map((item: MaintenancePlan) => ({
+            id: item.id,
+            work_id: item.plan_id,
+            project_id: item.project_id,
+            project_name: item.plan_name,
+            plan_start_date: item.plan_start_date,
+            plan_end_date: item.plan_end_date,
+            client_name: item.responsible_department || '',
+            maintenance_personnel: item.responsible_person || '',
+            status: item.plan_status || '待执行',
+            remarks: item.remarks || ''
+          }))
           totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+          totalPages.value = response.data.totalPages || 1
         }
       } catch (error: any) {
         console.error('加载数据失败:', error)
@@ -221,7 +233,7 @@ export default defineComponent({
           type: 'warning'
         })
         
-        await spotWorkService.delete(item.id)
+        await maintenancePlanService.delete(item.id)
         showToast('删除成功', 'success')
         loadData()
       } catch (error: any) {
@@ -234,7 +246,21 @@ export default defineComponent({
 
     const handleConfirm = async (item: WorkItem) => {
       try {
-        await spotWorkService.update(item.id, { status: WORK_STATUS.IN_PROGRESS })
+        await maintenancePlanService.update(item.id, {
+          plan_id: item.work_id,
+          plan_name: item.project_name,
+          project_id: item.project_id,
+          plan_type: '零星用工',
+          equipment_id: 'N/A',
+          equipment_name: '零星用工',
+          plan_start_date: item.plan_start_date,
+          plan_end_date: item.plan_end_date,
+          responsible_person: item.maintenance_personnel,
+          responsible_department: item.client_name,
+          maintenance_content: item.remarks || '',
+          plan_status: '进行中',
+          execution_status: '进行中'
+        })
         showToast('确认成功', 'success')
         loadData()
       } catch (error) {

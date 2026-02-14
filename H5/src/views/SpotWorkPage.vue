@@ -13,9 +13,9 @@ const loading = ref(false)
 const workList = ref<any[]>([])
 
 const tabs = [
-  { key: 'pending', title: '待处理' },
-  { key: 'processing', title: '进行中' },
-  { key: 'completed', title: '已完成' }
+  { key: '未进行', title: '待处理' },
+  { key: '进行中', title: '进行中' },
+  { key: '已完成', title: '已完成' }
 ]
 
 const currentTab = computed(() => tabs[activeTab.value])
@@ -24,11 +24,16 @@ const fetchWorkList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<any[]>>('/work-plan/spot-work', { 
-      params: { status: currentTab.value?.key } 
+    const response = await api.get<unknown, ApiResponse<any>>('/work-plan', { 
+      params: { 
+        plan_type: '零星用工',
+        status: currentTab.value?.key,
+        page: 0,
+        size: 100
+      } 
     })
     if (response.success) {
-      workList.value = response.data
+      workList.value = response.data?.content || []
     }
   } catch (error) {
     console.error('Failed to fetch work list:', error)
@@ -66,7 +71,7 @@ onMounted(() => {
                 v-for="item in workList" 
                 :key="item.id"
                 :title="item.projectName"
-                :label="`${formatDate(item.planDate)} | ${item.workContent}`"
+                :label="`${formatDate(item.planEndDate)} | ${item.remarks || ''}`"
                 is-link
                 @click="handleItemClick(item)"
               >

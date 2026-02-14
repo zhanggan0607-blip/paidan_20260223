@@ -1,6 +1,6 @@
 <template>
-  <div class="layout">
-    <aside class="sidebar">
+  <div class="layout" :class="{ 'fullscreen-mode': isFullscreenMode }">
+    <aside class="sidebar" v-show="!isFullscreenMode">
         <div class="sidebar-header">
           <h1 class="system-title">SSTCP维保系统</h1>
         </div>
@@ -51,7 +51,7 @@
 
     <section class="center-content">
       <div class="main-content">
-        <div class="top-bar">
+        <div class="top-bar" v-show="!isFullscreenMode">
         <div class="breadcrumb">
           <span class="breadcrumb-level1">{{ currentBreadcrumb.level1 }}</span>
           <span class="breadcrumb-separator" v-if="currentBreadcrumb.level2">/</span>
@@ -71,7 +71,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
+import { defineComponent, ref, computed, provide, readonly } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { MenuItem } from '@/types'
 
@@ -82,6 +82,14 @@ export default defineComponent({
     const route = useRoute()
     const expandedMenus = ref<string[]>(['statistics'])
     const activeMenu = ref<string>('project-info')
+    const isFullscreenMode = ref(false)
+
+    const setFullscreenMode = (value: boolean) => {
+      isFullscreenMode.value = value
+    }
+
+    provide('fullscreenMode', readonly(isFullscreenMode))
+    provide('setFullscreenMode', setFullscreenMode)
 
       const menuItems: MenuItem[] = [
         {
@@ -265,7 +273,8 @@ export default defineComponent({
       activeMenu,
       currentBreadcrumb,
       toggleMenu,
-      handleMenuClick
+      handleMenuClick,
+      isFullscreenMode
     }
   }
 })
@@ -276,6 +285,15 @@ export default defineComponent({
   display: grid;
   grid-template-columns: 240px 1fr;
   min-height: 100vh;
+}
+
+.layout.fullscreen-mode {
+  grid-template-columns: 1fr;
+}
+
+.layout.fullscreen-mode .center-content {
+  width: 100%;
+  max-width: 100%;
 }
 
 .sidebar {
@@ -461,4 +479,11 @@ export default defineComponent({
   flex: 1;
 }
 
+.layout.fullscreen-mode .content-wrapper {
+  padding: 0;
+}
+
+.layout.fullscreen-mode .main-content {
+  background: #f5f7fa;
+}
 </style>

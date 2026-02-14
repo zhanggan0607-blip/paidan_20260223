@@ -1,15 +1,12 @@
 from typing import List
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, or_, case
+from sqlalchemy import func, and_, or_, case, extract
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.schemas.common import ApiResponse
-from app.models.periodic_inspection import PeriodicInspection
-from app.models.temporary_repair import TemporaryRepair
-from app.models.spot_work import SpotWork
 from app.models.maintenance_plan import MaintenancePlan
-from app.models.personnel import Personnel
+from app.models.project_info import ProjectInfo
 from app.config import OverdueAlertConfig
 
 router = APIRouter(prefix="/statistics", tags=["Statistics"])
@@ -20,139 +17,56 @@ def get_statistics_overview(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db)
 ):
-    """获取统计数据概览"""
+    """获取统计数据概览 - 统一使用 MaintenancePlan 表"""
     
-    today = datetime.now()
-    near_expiry_date = today + timedelta(days=7)
+    today = datetime.now().date()
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    near_due_days = 5
+    valid_statuses = OverdueAlertConfig.VALID_STATUSES
     
-    # 临期工单：临时维修单中，状态为未完成且7天内到期的
-    near_expiry_repairs = db.query(TemporaryRepair).filter(
-        TemporaryRepair.status.in_(OverdueAlertConfig.VALID_STATUSES),
-        TemporaryRepair.plan_end_date >= today,
-        TemporaryRepair.plan_end_date <= near_expiry_date
-    ).all()
-    near_expiry_count = len(near_expiry_repairs)
+    near_due_count = 0
+    overdue_count = 0
+    year_completed_count = 0
+    regular_inspection_count = 0
+    temporary_repair_count = 0
+    spot_work_count = 0
     
-    # 超期工单：项目超期提醒汇总数量（定期巡检、临时维修、零星用工中已超期的）
-    overdue_inspections = db.query(PeriodicInspection).filter(
-        PeriodicInspection.status.in_(OverdueAlertConfig.VALID_STATUSES),
-        PeriodicInspection.plan_end_date < today
-    ).all()
+    maintenance_plans = db.query(MaintenancePlan).all()
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        
+        if plan_end:
+            if plan_end < today and plan.plan_status in valid_statuses:
+                overdue_count += 1
+            elif 0 < (plan_end - today).days <= near_due_days and plan.plan_status in valid_statuses:
+                near_due_count += 1
+        
+        if plan.plan_status == '已完成' and plan_end:
+            if plan_end >= year_start and plan_end <= year_end:
+                year_completed_count += 1
+        
+        if plan.plan_type == '定期维保':
+            regular_inspection_count += 1
+        elif plan.plan_type == '临时维修':
+            temporary_repair_count += 1
+        elif plan.plan_type == '零星用工':
+            spot_work_count += 1
     
-    overdue_repairs = db.query(TemporaryRepair).filter(
-        TemporaryRepair.status.in_(OverdueAlertConfig.VALID_STATUSES),
-        TemporaryRepair.plan_end_date < today
-    ).all()
-    
-    overdue_spot_works = db.query(SpotWork).filter(
-        SpotWork.status.in_(OverdueAlertConfig.VALID_STATUSES),
-        SpotWork.plan_end_date < today
-    ).all()
-    
-    overdue_count = len(overdue_inspections) + len(overdue_repairs) + len(overdue_spot_works)
-    
-    # 本年完成：定期巡检单中本年度已完成的数量
-    completed_inspections = db.query(PeriodicInspection).filter(
-        func.extract('year', PeriodicInspection.created_at) == year,
-        PeriodicInspection.status == '已完成'
-    ).all()
-    completed_count = len(completed_inspections)
-    
-    # 定期巡检单：本年度定期巡检单总数
-    regular_inspections = db.query(PeriodicInspection).filter(
-        func.extract('year', PeriodicInspection.created_at) == year
-    ).all()
-    regular_inspection_count = len(regular_inspections)
-    
-    # 临时维修单：临时维修单查询汇总数量（所有临时维修单）
-    temporary_repairs = db.query(TemporaryRepair).all()
-    temporary_repair_count = len(temporary_repairs)
-    
-    # 零星用工单：零星用工管理汇总数量（所有零星用工单）
-    spot_works = db.query(SpotWork).all()
-    spot_work_count = len(spot_works)
+    total_work_orders = regular_inspection_count + temporary_repair_count + spot_work_count
     
     return ApiResponse.success({
         'year': year,
-        'nearExpiry': near_expiry_count,
-        'overdue': overdue_count,
-        'completed': completed_count,
+        'totalWorkOrders': total_work_orders,
         'regularInspectionCount': regular_inspection_count,
         'temporaryRepairCount': temporary_repair_count,
-        'spotWorkCount': spot_work_count
+        'spotWorkCount': spot_work_count,
+        'nearDueCount': near_due_count,
+        'overdueCount': overdue_count,
+        'yearCompletedCount': year_completed_count
     })
-
-
-@router.get("/work-by-person", response_model=ApiResponse)
-def get_work_by_person(
-    year: int = Query(..., description="年度"),
-    db: Session = Depends(get_db)
-):
-    """获取按人员统计的工单数据"""
-    
-    # 获取年度数据
-    year_data = db.query(
-        func.extract('year', PeriodicInspection.created_at) == year
-    ).all()
-    
-    # 按人员分组统计定期巡检单
-    inspection_by_person = {}
-    for item in year_data:
-        if hasattr(item, 'status') and item.status == '已完成':
-            if item.maintenance_personnel not in inspection_by_person:
-                inspection_by_person[item.maintenance_personnel] = 0
-            inspection_by_person[item.maintenance_personnel] += 1
-    
-    # 按人员分组统计临时维修单
-    repair_data = db.query(
-        func.extract('year', TemporaryRepair.created_at) == year
-    ).all()
-    repair_by_person = {}
-    for item in repair_data:
-        if hasattr(item, 'status') and item.status == '已完成':
-            if item.maintenance_personnel not in repair_by_person:
-                repair_by_person[item.maintenance_personnel] = 0
-            repair_by_person[item.maintenance_personnel] += 1
-    
-    # 按人员分组统计零星用工单
-    spot_work_data = db.query(
-        func.extract('year', SpotWork.created_at) == year
-    ).all()
-    labor_by_person = {}
-    for item in spot_work_data:
-        if hasattr(item, 'status') and item.status == '已完成':
-            if item.maintenance_personnel not in labor_by_person:
-                labor_by_person[item.maintenance_personnel] = 0
-            labor_by_person[item.maintenance_personnel] += 1
-    
-    # 获取人员信息
-    personnel_list = db.query(Personnel).all()
-    personnel_dict = {p.id: p.name for p in personnel_list}
-    
-    # 构建返回数据
-    work_by_person_list = []
-    for person_id, total in inspection_by_person.items():
-        person_name = personnel_dict.get(person_id, f'人员{person_id}')
-        work_by_person_list.append({
-            'name': person_name,
-            'value': total
-        })
-    
-    for person_id, total in repair_by_person.items():
-        person_name = personnel_dict.get(person_id, f'人员{person_id}')
-        work_by_person_list.append({
-            'name': person_name,
-            'value': total
-        })
-    
-    for person_id, total in labor_by_person.items():
-        person_name = personnel_dict.get(person_id, f'人员{person_id}')
-        work_by_person_list.append({
-            'name': person_name,
-            'value': total
-        })
-    
-    return ApiResponse.success(work_by_person_list)
 
 
 @router.get("/completion-rate", response_model=ApiResponse)
@@ -160,34 +74,40 @@ def get_completion_rate(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db)
 ):
-    """获取准时完成率"""
+    """获取准时完成率 - 统一使用 MaintenancePlan 表"""
     
-    # 获取年度数据
-    year_data = db.query(
-        func.extract('year', PeriodicInspection.created_at) == year
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    on_time_count = 0
+    total_count = 0
+    
+    maintenance_plans = db.query(MaintenancePlan).filter(
+        MaintenancePlan.plan_status == '已完成'
     ).all()
     
-    total_count = len(year_data)
-    if total_count == 0:
-        return ApiResponse.success({
-            'year': year,
-            'onTimeRate': 0
-        })
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        actual_end = plan.execution_date or plan.updated_at
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if isinstance(actual_end, datetime):
+            actual_end = actual_end.date()
+        if plan_end and actual_end:
+            if plan_end >= year_start and plan_end <= year_end:
+                total_count += 1
+                if actual_end <= plan_end:
+                    on_time_count += 1
     
-    # 统计准时完成数量
-    on_time_count = len([
-        item for item in year_data
-        if hasattr(item, 'status') and item.status == '已完成' and hasattr(item, 'plan_end_date') and hasattr(item, 'actual_end_date')
-        and item.plan_end_date
-        and item.actual_end_date <= item.plan_end_date
-    ])
-    
-    # 计算准时完成率
+    delayed_count = total_count - on_time_count
     on_time_rate = on_time_count / total_count if total_count > 0 else 0
     
     return ApiResponse.success({
         'year': year,
-        'onTimeRate': round(on_time_rate, 2)
+        'onTimeRate': round(on_time_rate, 4),
+        'onTimeCount': on_time_count,
+        'delayedCount': delayed_count,
+        'totalCount': total_count
     })
 
 
@@ -197,25 +117,254 @@ def get_top_projects(
     limit: int = Query(5, ge=1, le=10, description="返回数量"),
     db: Session = Depends(get_db)
 ):
-    """获取年度前五项目"""
+    """获取年度前五项目（维保单数量）- 统一使用 MaintenancePlan 表"""
     
-    # 获取年度数据
-    year_data = db.query(
-        func.extract('year', PeriodicInspection.created_at) == year
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    project_stats = {}
+    
+    maintenance_plans = db.query(MaintenancePlan).filter(
+        MaintenancePlan.plan_status == '已完成'
     ).all()
     
-    # 按项目统计工单数量
-    project_stats = {}
-    for item in year_data:
-        if hasattr(item, 'project_id') and item.project_id not in project_stats:
-            project_stats[item.project_id] = 0
-        if hasattr(item, 'status') and item.status == '已完成':
-            project_stats[item.project_id] += 1
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            if plan.project_id:
+                if plan.project_id not in project_stats:
+                    project_stats[plan.project_id] = 0
+                project_stats[plan.project_id] += 1
     
-    # 排序并取前五
+    projects = db.query(ProjectInfo).all()
+    project_dict = {p.project_id: p.project_name for p in projects}
+    
     sorted_projects = sorted(project_stats.items(), key=lambda x: x[1], reverse=True)[:limit]
     
-    return ApiResponse.success([
-        {'name': f'项目{project_id}', 'value': value}
-        for project_id, value in sorted_projects
-    ])
+    result = []
+    for project_id, value in sorted_projects:
+        project_name = project_dict.get(project_id, project_id)
+        result.append({
+            'name': project_name,
+            'value': value
+        })
+    
+    return ApiResponse.success(result)
+
+
+@router.get("/top-repairs", response_model=ApiResponse)
+def get_top_repairs(
+    year: int = Query(..., description="年度"),
+    limit: int = Query(5, ge=1, le=10, description="返回数量"),
+    db: Session = Depends(get_db)
+):
+    """获取临时维修单年度前五 - 按项目统计临时维修单数量"""
+    
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    project_stats = {}
+    
+    maintenance_plans = db.query(MaintenancePlan).filter(
+        MaintenancePlan.plan_type == '临时维修',
+        MaintenancePlan.plan_status == '已完成'
+    ).all()
+    
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            if plan.project_id:
+                if plan.project_id not in project_stats:
+                    project_stats[plan.project_id] = 0
+                project_stats[plan.project_id] += 1
+    
+    projects = db.query(ProjectInfo).all()
+    project_dict = {p.project_id: p.project_name for p in projects}
+    
+    sorted_projects = sorted(project_stats.items(), key=lambda x: x[1], reverse=True)[:limit]
+    
+    result = []
+    for project_id, value in sorted_projects:
+        project_name = project_dict.get(project_id, project_id)
+        result.append({
+            'name': project_name,
+            'value': value
+        })
+    
+    return ApiResponse.success(result)
+
+
+@router.get("/employee-stats", response_model=ApiResponse)
+def get_employee_stats(
+    year: int = Query(..., description="年度"),
+    db: Session = Depends(get_db)
+):
+    """获取员工工单数量统计 - 按运维人员分组统计"""
+    
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    employee_stats = {}
+    
+    maintenance_plans = db.query(MaintenancePlan).all()
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            personnel = plan.responsible_person or '未知'
+            if personnel not in employee_stats:
+                employee_stats[personnel] = 0
+            employee_stats[personnel] += 1
+    
+    sorted_employees = sorted(employee_stats.items(), key=lambda x: x[1], reverse=True)
+    
+    result = []
+    for name, count in sorted_employees:
+        if name != '未知':
+            result.append({
+                'name': name,
+                'count': count
+            })
+    
+    return ApiResponse.success({
+        'year': year,
+        'employees': result,
+        'total': len(result)
+    })
+
+
+@router.get("/repair-stats", response_model=ApiResponse)
+def get_repair_stats(
+    year: int = Query(..., description="年度"),
+    db: Session = Depends(get_db)
+):
+    """获取临时维修单完成数量统计 - 按运维人员分组统计已完成的临时维修单"""
+    
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    repair_stats = {}
+    
+    maintenance_plans = db.query(MaintenancePlan).filter(
+        MaintenancePlan.plan_type == '临时维修',
+        MaintenancePlan.plan_status == '已完成'
+    ).all()
+    
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            personnel = plan.responsible_person or '未知'
+            if personnel not in repair_stats:
+                repair_stats[personnel] = 0
+            repair_stats[personnel] += 1
+    
+    sorted_employees = sorted(repair_stats.items(), key=lambda x: x[1], reverse=True)
+    
+    result = []
+    for name, count in sorted_employees:
+        if name != '未知':
+            result.append({
+                'name': name,
+                'count': count
+            })
+    
+    return ApiResponse.success({
+        'year': year,
+        'employees': result,
+        'total': len(result)
+    })
+
+
+@router.get("/spotwork-stats", response_model=ApiResponse)
+def get_spotwork_stats(
+    year: int = Query(..., description="年度"),
+    db: Session = Depends(get_db)
+):
+    """获取零星用工单完成数量统计 - 按运维人员分组统计已完成的零星用工单"""
+    
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    spotwork_stats = {}
+    
+    maintenance_plans = db.query(MaintenancePlan).filter(
+        MaintenancePlan.plan_type == '零星用工',
+        MaintenancePlan.plan_status == '已完成'
+    ).all()
+    
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            personnel = plan.responsible_person or '未知'
+            if personnel not in spotwork_stats:
+                spotwork_stats[personnel] = 0
+            spotwork_stats[personnel] += 1
+    
+    sorted_employees = sorted(spotwork_stats.items(), key=lambda x: x[1], reverse=True)
+    
+    result = []
+    for name, count in sorted_employees:
+        if name != '未知':
+            result.append({
+                'name': name,
+                'count': count
+            })
+    
+    return ApiResponse.success({
+        'year': year,
+        'employees': result,
+        'total': len(result)
+    })
+
+
+@router.get("/inspection-stats", response_model=ApiResponse)
+def get_inspection_stats(
+    year: int = Query(..., description="年度"),
+    db: Session = Depends(get_db)
+):
+    """获取定期巡检单完成数量统计 - 按运维人员分组统计已完成的定期巡检单"""
+    
+    year_start = datetime(year, 1, 1).date()
+    year_end = datetime(year, 12, 31).date()
+    
+    inspection_stats = {}
+    
+    maintenance_plans = db.query(MaintenancePlan).filter(
+        MaintenancePlan.plan_type == '定期维保',
+        MaintenancePlan.plan_status == '已完成'
+    ).all()
+    
+    for plan in maintenance_plans:
+        plan_end = plan.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            personnel = plan.responsible_person or '未知'
+            if personnel not in inspection_stats:
+                inspection_stats[personnel] = 0
+            inspection_stats[personnel] += 1
+    
+    sorted_employees = sorted(inspection_stats.items(), key=lambda x: x[1], reverse=True)
+    
+    result = []
+    for name, count in sorted_employees:
+        if name != '未知':
+            result.append({
+                'name': name,
+                'count': count
+            })
+    
+    return ApiResponse.success({
+        'year': year,
+        'employees': result,
+        'total': len(result)
+    })

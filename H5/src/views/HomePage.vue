@@ -79,7 +79,7 @@ onMounted(() => {
 
 <template>
   <div class="home-page">
-    <van-nav-bar title="天齐维保系统" fixed placeholder>
+    <van-nav-bar title="SSTCP维保系统" fixed placeholder>
       <template #left>
         <van-icon name="arrow-left" @click="handleBack" />
       </template>

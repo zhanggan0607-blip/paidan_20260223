@@ -48,7 +48,7 @@
             </thead>
             <tbody>
               <tr v-for="(item, index) in filteredData" :key="item.id" class="table-row">
-                <td>{{ index + 1 }}</td>
+                <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                 <td>{{ item.workOrderNo }}</td>
                 <td>{{ item.project_id }}</td>
                 <td>{{ item.projectName }}</td>
@@ -71,7 +71,7 @@
 
         <div class="pagination-section">
           <div class="pagination-info">
-            共 {{ filteredData.length }} 条记录
+            共 {{ allData.length }} 条记录
           </div>
           <div class="pagination-controls" v-if="totalPages > 0">
             <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
@@ -208,6 +208,7 @@ export default defineComponent({
     return {
       searchForm,
       filteredData,
+      allData,
       currentPage,
       pageSize,
       totalPages,

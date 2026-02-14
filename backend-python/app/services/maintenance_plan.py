@@ -40,12 +40,13 @@ class MaintenancePlanService:
         execution_status: Optional[str] = None,
         responsible_person: Optional[str] = None,
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None
+        client_name: Optional[str] = None,
+        plan_type: Optional[str] = None
     ) -> tuple[List[MaintenancePlan], int]:
         return self.repository.find_all(
             page, size, plan_name, project_id, equipment_name, 
             plan_status, execution_status, responsible_person,
-            project_name, client_name
+            project_name, client_name, plan_type
         )
     
     def get_by_id(self, id: int) -> MaintenancePlan:

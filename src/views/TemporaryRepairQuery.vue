@@ -203,7 +203,7 @@ import { defineComponent, ref, onMounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
-import { temporaryRepairService, type TemporaryRepair } from '@/services/temporaryRepair'
+import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
 import Toast from '@/components/Toast.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
 
@@ -275,17 +275,29 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await temporaryRepairService.getList({
+        const response = await maintenancePlanService.getList({
           page: currentPage.value - 1,
           size: pageSize.value,
-          project_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined
+          plan_name: searchForm.value.project_name || undefined,
+          client_name: searchForm.value.client_name || undefined,
+          plan_type: '临时维修'
         })
         
         if (response.code === 200) {
-          repairData.value = response.data.content
+          repairData.value = response.data.content.map((item: MaintenancePlan) => ({
+            id: item.id,
+            repair_id: item.plan_id,
+            project_id: item.project_id,
+            project_name: item.plan_name,
+            plan_start_date: item.plan_start_date,
+            plan_end_date: item.plan_end_date,
+            client_name: item.responsible_department || '',
+            maintenance_personnel: item.responsible_person || '',
+            status: item.plan_status || '待执行',
+            remarks: item.remarks || ''
+          }))
           totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+          totalPages.value = response.data.totalPages || 1
         } else {
           showToast(response.message || '加载数据失败', 'error')
         }
@@ -353,10 +365,11 @@ export default defineComponent({
       if (!formData.value.project_id) return
       
       try {
-        const response = await temporaryRepairService.getList({
+        const response = await maintenancePlanService.getList({
           page: 0,
           size: 1000,
-          project_name: formData.value.project_name
+          plan_name: formData.value.project_name,
+          plan_type: '临时维修'
         })
         
         if (response.code === 200) {
@@ -364,11 +377,11 @@ export default defineComponent({
             item => item.project_id === formData.value.project_id
           )
           const nextNumber = existingRepairs.length + 1
-          formData.value.repair_id = `${formData.value.project_id}_BX_${String(nextNumber).padStart(3, '0')}`
+          formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(nextNumber).padStart(2, '0')}`
         }
       } catch (error) {
         console.error('生成维修单编号失败:', error)
-        formData.value.repair_id = `${formData.value.project_id}_BX_001`
+        formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-01`
       }
     }
 
@@ -436,16 +449,20 @@ export default defineComponent({
       saving.value = true
       
       try {
-        const response = await temporaryRepairService.create({
-          repair_id: formData.value.repair_id,
+        const response = await maintenancePlanService.create({
+          plan_id: formData.value.repair_id,
+          plan_name: formData.value.project_name,
           project_id: formData.value.project_id,
-          project_name: formData.value.project_name,
+          plan_type: '临时维修',
+          equipment_id: 'N/A',
+          equipment_name: '临时维修',
           plan_start_date: formData.value.plan_start_date,
           plan_end_date: formData.value.plan_end_date,
-          client_name: formData.value.client_name,
-          maintenance_personnel: formData.value.maintenance_personnel,
-          status: formData.value.status,
-          remarks: formData.value.remarks
+          responsible_person: formData.value.maintenance_personnel,
+          responsible_department: formData.value.client_name,
+          maintenance_content: formData.value.remarks || '',
+          plan_status: '待执行',
+          execution_status: '未开始'
         })
         
         if (response.code === 200) {

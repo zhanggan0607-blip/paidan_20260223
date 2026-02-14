@@ -122,6 +122,7 @@ export const maintenancePlanService = {
     responsible_person?: string
     project_name?: string
     client_name?: string
+    plan_type?: string
   }): Promise<PaginatedResponse> {
     return await apiClient.get('/maintenance-plan', { params })
   },
