@@ -70,6 +70,10 @@ export const spotWorkService = {
     return await apiClient.get('/spot-work', { params })
   },
 
+  async getAll(): Promise<ApiResponse<SpotWork[]>> {
+    return await apiClient.get('/spot-work/all/list')
+  },
+
   async getById(id: number): Promise<ApiResponse<SpotWork>> {
     return await apiClient.get(`/spot-work/${id}`)
   },

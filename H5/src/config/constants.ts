@@ -13,10 +13,10 @@ export const PLAN_TYPES = {
 } as const
 
 export const WORK_STATUS = {
-  NOT_STARTED: '未进行',
+  NOT_STARTED: '待执行',
   PENDING_CONFIRM: '待确认',
   CONFIRMED: '已确认',
-  IN_PROGRESS: '进行中',
+  IN_PROGRESS: '执行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',
   RETURNED: '已退回'

@@ -34,7 +34,7 @@ const handleSubmit = async () => {
   
   try {
     const response = await api.post<unknown, ApiResponse<null>>('/work-plan/spot-work/quick-fill', formData.value)
-    if (response.success) {
+    if (response.code === 200) {
       showSuccessToast('提交成功')
       router.back()
     } else {
@@ -59,11 +59,16 @@ const handleDateConfirm = (value: Date) => {
   <div class="quick-fill-page">
     <van-nav-bar 
       title="零星用工快捷填报" 
-      left-arrow 
       fixed 
       placeholder 
-      @click-left="router.back()" 
-    />
+    >
+      <template #left>
+        <div class="nav-left" @click="router.back()">
+          <van-icon name="arrow-left" />
+          <span>返回</span>
+        </div>
+      </template>
+    </van-nav-bar>
     
     <van-cell-group inset title="基本信息">
       <van-field 

@@ -5,6 +5,7 @@ export interface MaintenancePlan {
   plan_id: string
   plan_name: string
   project_id: string
+  project_name?: string
   plan_type: string
   equipment_id: string
   equipment_name: string

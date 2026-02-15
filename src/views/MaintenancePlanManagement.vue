@@ -7,11 +7,21 @@
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">项目名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" />
+          <SearchInput
+            v-model="searchForm.projectName"
+            field-key="MaintenancePlanManagement_projectName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">客户名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" />
+          <SearchInput
+            v-model="searchForm.clientName"
+            field-key="MaintenancePlanManagement_clientName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
       </div>
       <div class="search-actions">
@@ -316,50 +326,16 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">计划名称</label>
-                <div class="form-value">{{ viewData.plan_name || '-' }}</div>
+                <label class="form-label">项目名称</label>
+                <div class="form-value">{{ viewData.project_name || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">计划开始日期</label>
                 <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
-              </div>
-              <div class="form-item">
                 <label class="form-label">计划类型</label>
                 <div class="form-value">{{ viewData.plan_type || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备编号</label>
-                <div class="form-value">{{ viewData.equipment_id || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备名称</label>
-                <div class="form-value">{{ viewData.equipment_name || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备型号</label>
-                <div class="form-value">{{ viewData.equipment_model || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备位置</label>
-                <div class="form-value">{{ viewData.equipment_location || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">执行状态</label>
-                <div class="form-value">{{ viewData.execution_status || '-' }}</div>
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">计划结束日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">执行日期</label>
@@ -370,12 +346,34 @@
                 <div class="form-value">{{ formatDate(viewData.next_maintenance_date) || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">负责人</label>
-                <div class="form-value">{{ viewData.responsible_person || '-' }}</div>
-              </div>
-              <div class="form-item">
                 <label class="form-label">负责部门</label>
                 <div class="form-value">{{ viewData.responsible_department || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">完成率</label>
+                <div class="form-value">{{ viewData.completion_rate || 0 }}%</div>
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">项目编号</label>
+                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">计划结束日期</label>
+                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">工单编号</label>
+                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">执行状态</label>
+                <div class="form-value">{{ viewData.execution_status || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目负责人</label>
+                <div class="form-value">{{ viewData.responsible_person || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">联系方式</label>
@@ -384,10 +382,6 @@
               <div class="form-item">
                 <label class="form-label">计划状态</label>
                 <div class="form-value">{{ viewData.plan_status || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">完成率</label>
-                <div class="form-value">{{ viewData.completion_rate || 0 }}%</div>
               </div>
             </div>
           </div>
@@ -425,12 +419,6 @@
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 计划名称
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.plan_name" maxlength="200" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
                   <span class="required">*</span> 工单编号
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="editData.plan_id" maxlength="50" />
@@ -451,26 +439,6 @@
                     {{ option.dict_label }}
                   </option>
                 </select>
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 设备编号
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.equipment_id" maxlength="50" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 设备名称
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.equipment_name" maxlength="200" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备型号</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.equipment_model" maxlength="100" />
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备位置</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.equipment_location" maxlength="200" />
               </div>
             </div>
             <div class="form-column">
@@ -496,7 +464,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 负责人
+                  <span class="required">*</span> 项目负责人
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="editData.responsible_person" maxlength="50" />
               </div>
@@ -586,6 +554,7 @@ import { inspectionItemService, type InspectionItem as ApiInspectionItem } from 
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 import { formatDate as formatDateUtil, formatDateForInput } from '../config/constants'
 
@@ -615,6 +584,7 @@ export default defineComponent({
     LoadingSpinner,
     Toast,
     ConfirmDialog,
+    SearchInput,
     ElSelect,
     ElOption,
     ElInput
@@ -837,13 +807,9 @@ export default defineComponent({
     const viewData = reactive({
       id: 0,
       plan_id: '',
-      plan_name: '',
       project_id: '',
+      project_name: '',
       plan_type: '',
-      equipment_id: '',
-      equipment_name: '',
-      equipment_model: '',
-      equipment_location: '',
       plan_start_date: '',
       plan_end_date: '',
       execution_date: '',
@@ -866,13 +832,9 @@ export default defineComponent({
     const updateViewData = (plan: MaintenancePlan) => {
       viewData.id = plan.id
       viewData.plan_id = plan.plan_id
-      viewData.plan_name = plan.plan_name
       viewData.project_id = plan.project_id
+      viewData.project_name = plan.project_name || ''
       viewData.plan_type = plan.plan_type
-      viewData.equipment_id = plan.equipment_id
-      viewData.equipment_name = plan.equipment_name
-      viewData.equipment_model = plan.equipment_model || ''
-      viewData.equipment_location = plan.equipment_location || ''
       viewData.plan_start_date = plan.plan_start_date
       viewData.plan_end_date = plan.plan_end_date
       viewData.execution_date = plan.execution_date || ''
@@ -906,13 +868,8 @@ export default defineComponent({
     const editData = reactive({
       id: 0,
       plan_id: '',
-      plan_name: '',
       project_id: '',
       plan_type: '',
-      equipment_id: '',
-      equipment_name: '',
-      equipment_model: '',
-      equipment_location: '',
       plan_start_date: '',
       plan_end_date: '',
       execution_date: '',
@@ -1270,7 +1227,7 @@ export default defineComponent({
             } else {
               projectMap.set(plan.project_id, {
                 project_id: plan.project_id,
-                project_name: plan.plan_name,
+                project_name: plan.project_name || plan.plan_name,
                 plan_start_date: plan.plan_start_date,
                 plan_end_date: plan.plan_end_date,
                 plan_count: 1,
@@ -1533,10 +1490,6 @@ export default defineComponent({
     }
 
     const checkEditFormValid = (): boolean => {
-      if (!editData.plan_name?.trim()) {
-        showToast('请填写计划名称', 'warning')
-        return false
-      }
       if (!editData.plan_id?.trim()) {
         showToast('请填写计划编号', 'warning')
         return false
@@ -1549,14 +1502,6 @@ export default defineComponent({
         showToast('请选择计划类型', 'warning')
         return false
       }
-      if (!editData.equipment_id?.trim()) {
-        showToast('请填写设备编号', 'warning')
-        return false
-      }
-      if (!editData.equipment_name?.trim()) {
-        showToast('请填写设备名称', 'warning')
-        return false
-      }
       if (!editData.plan_start_date) {
         showToast('请填写开始日期', 'warning')
         return false
@@ -1566,7 +1511,7 @@ export default defineComponent({
         return false
       }
       if (!editData.responsible_person?.trim()) {
-        showToast('请填写负责人', 'warning')
+        showToast('请填写项目负责人', 'warning')
         return false
       }
       if (!editData.plan_status?.trim()) {
@@ -1593,13 +1538,8 @@ export default defineComponent({
       try {
         const updateData: MaintenancePlanUpdate = {
           plan_id: editData.plan_id,
-          plan_name: editData.plan_name,
           project_id: editData.project_id,
           plan_type: editData.plan_type,
-          equipment_id: editData.equipment_id,
-          equipment_name: editData.equipment_name,
-          equipment_model: editData.equipment_model || undefined,
-          equipment_location: editData.equipment_location || undefined,
           plan_start_date: formatDateForAPI(editData.plan_start_date),
           plan_end_date: formatDateForAPI(editData.plan_end_date),
           execution_date: editData.execution_date ? formatDateForAPI(editData.execution_date) : undefined,

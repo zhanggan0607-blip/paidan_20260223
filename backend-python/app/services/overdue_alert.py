@@ -4,7 +4,6 @@ from sqlalchemy.orm import Session
 from app.models.periodic_inspection import PeriodicInspection
 from app.models.temporary_repair import TemporaryRepair
 from app.models.spot_work import SpotWork
-from app.models.maintenance_plan import MaintenancePlan
 from app.repositories.periodic_inspection import PeriodicInspectionRepository
 from app.config import OverdueAlertConfig
 
@@ -116,34 +115,6 @@ class OverdueAlertService:
                             'workOrderStatus': work.status,
                             'overdueDays': overdue_days,
                             'executor': work.maintenance_personnel
-                        }
-                        overdue_items.append(item)
-        
-        if work_order_type is None or work_order_type == '维保计划':
-            from app.repositories.maintenance_plan import MaintenancePlanRepository
-            maint_repo = MaintenancePlanRepository(self.db)
-            maintenance_plans = maint_repo.find_all_unpaginated()
-            
-            for plan in maintenance_plans:
-                if plan.plan_status not in OverdueAlertConfig.VALID_STATUSES:
-                    continue
-                
-                if plan.plan_end_date and plan.plan_end_date < today:
-                    overdue_days = (today - plan.plan_end_date).days
-                    if overdue_days >= OverdueAlertConfig.OVERDUE_THRESHOLD_DAYS:
-                        if project_name and project_name.lower() not in plan.plan_name.lower():
-                            continue
-                        item = {
-                            'id': str(plan.id),
-                            'workOrderNo': plan.plan_id,
-                            'project_id': plan.project_id,
-                            'projectName': plan.plan_name,
-                            'customerName': plan.responsible_department,
-                            'workOrderType': '维保计划',
-                            'planEndDate': plan.plan_end_date.isoformat() if plan.plan_end_date else None,
-                            'workOrderStatus': plan.plan_status,
-                            'overdueDays': overdue_days,
-                            'executor': plan.responsible_person
                         }
                         overdue_items.append(item)
         

@@ -7,18 +7,27 @@
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">项目名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" />
+          <SearchInput
+            v-model="searchForm.projectName"
+            field-key="NearExpiryReminders_projectName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">客户名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" />
+          <SearchInput
+            v-model="searchForm.clientName"
+            field-key="NearExpiryReminders_clientName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">工单类型：</label>
           <select class="search-select" v-model="searchForm.workOrderType">
             <option value="">全部</option>
             <option value="定期巡检">定期巡检工单</option>
-            <option value="维保计划">维保计划</option>
             <option value="临时维修">临时维修工单</option>
             <option value="零星用工">零星用工工单</option>
           </select>
@@ -99,114 +108,6 @@
         </div>
       </div>
     </div>
-
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
-      <div class="modal-container">
-        <div class="modal-header">
-          <h3 class="modal-title">查看维保计划</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
-        </div>
-        <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">计划名称</label>
-                <div class="form-value">{{ viewData.plan_name || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">计划开始日期</label>
-                <div class="form-value">{{ formatViewDate(viewData.plan_start_date) }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">计划类型</label>
-                <div class="form-value">{{ viewData.plan_type || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备编号</label>
-                <div class="form-value">{{ viewData.equipment_id || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备名称</label>
-                <div class="form-value">{{ viewData.equipment_name || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备型号</label>
-                <div class="form-value">{{ viewData.equipment_model || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">设备位置</label>
-                <div class="form-value">{{ viewData.equipment_location || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">执行状态</label>
-                <div class="form-value">{{ viewData.execution_status || '-' }}</div>
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">计划结束日期</label>
-                <div class="form-value">{{ formatViewDate(viewData.plan_end_date) }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">执行日期</label>
-                <div class="form-value">{{ formatViewDate(viewData.execution_date) }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">下次维保日期</label>
-                <div class="form-value">{{ formatViewDate(viewData.next_maintenance_date) }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">负责人</label>
-                <div class="form-value">{{ viewData.responsible_person || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">负责部门</label>
-                <div class="form-value">{{ viewData.responsible_department || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">联系方式</label>
-                <div class="form-value">{{ viewData.contact_info || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">计划状态</label>
-                <div class="form-value">{{ viewData.plan_status || '-' }}</div>
-              </div>
-              <div class="form-item">
-                <label class="form-label">完成率</label>
-                <div class="form-value">{{ viewData.completion_rate || 0 }}%</div>
-              </div>
-            </div>
-          </div>
-          <div class="form-item-full">
-            <label class="form-label">维保内容</label>
-            <div class="form-value form-value-textarea">{{ viewData.maintenance_content || '-' }}</div>
-          </div>
-          <div class="form-item-full">
-            <label class="form-label">维保要求</label>
-            <div class="form-value form-value-textarea">{{ viewData.maintenance_requirements || '-' }}</div>
-          </div>
-          <div class="form-item-full">
-            <label class="form-label">维保标准</label>
-            <div class="form-value form-value-textarea">{{ viewData.maintenance_standard || '-' }}</div>
-          </div>
-          <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -216,9 +117,9 @@ import { useRouter } from 'vue-router'
 import { workPlanService, type WorkPlan } from '../services/workPlan'
 import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
 import { spotWorkService, type SpotWork } from '../services/spotWork'
-import { maintenancePlanService, type MaintenancePlan } from '../services/maintenancePlan'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import SearchInput from '../components/SearchInput.vue'
 import { PLAN_TYPES, formatDate } from '../config/constants'
 
 interface NearExpiryItem {
@@ -236,7 +137,8 @@ export default defineComponent({
   name: 'NearExpiryReminders',
   components: {
     LoadingSpinner,
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const router = useRouter()
@@ -251,33 +153,6 @@ export default defineComponent({
     const pageSize = ref(10)
     const jumpPage = ref(1)
     const allData = ref<NearExpiryItem[]>([])
-    const isViewModalOpen = ref(false)
-
-    const viewData = reactive({
-      id: 0,
-      plan_id: '',
-      plan_name: '',
-      project_id: '',
-      plan_type: '',
-      equipment_id: '',
-      equipment_name: '',
-      equipment_model: '',
-      equipment_location: '',
-      plan_start_date: '',
-      plan_end_date: '',
-      execution_date: '',
-      next_maintenance_date: '',
-      responsible_person: '',
-      responsible_department: '',
-      contact_info: '',
-      maintenance_content: '',
-      maintenance_requirements: '',
-      maintenance_standard: '',
-      plan_status: '',
-      execution_status: '',
-      completion_rate: 0,
-      remarks: ''
-    })
 
     const toast = reactive({
       visible: false,
@@ -302,12 +177,12 @@ export default defineComponent({
     }
 
     const getDaysFromToday = (dateStr: string): number => {
-      if (!dateStr) return 0
+      if (!dateStr) return 999
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const targetDate = new Date(dateStr)
       targetDate.setHours(0, 0, 0, 0)
-      const diffTime = today.getTime() - targetDate.getTime()
+      const diffTime = targetDate.getTime() - today.getTime()
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
       return diffDays
     }
@@ -319,11 +194,10 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const [workPlansRes, tempRepairsRes, spotWorksRes, maintenancePlansRes] = await Promise.all([
+        const [workPlansRes, tempRepairsRes, spotWorksRes] = await Promise.all([
           workPlanService.getAll({ plan_type: PLAN_TYPES.PERIODIC_INSPECTION }),
-          temporaryRepairService.getList({ page: 0, size: 100 }),
-          spotWorkService.getList({ page: 0, size: 100 }),
-          maintenancePlanService.getAll()
+          temporaryRepairService.getAll(),
+          spotWorkService.getAll()
         ])
 
         const items: NearExpiryItem[] = []
@@ -346,26 +220,8 @@ export default defineComponent({
           })
         }
 
-        if (maintenancePlansRes.code === 200 && maintenancePlansRes.data) {
-          maintenancePlansRes.data.forEach((item: MaintenancePlan) => {
-            const days = getDaysFromToday(item.plan_start_date)
-            if (days <= 3 && days >= 0) {
-              items.push({
-                id: item.id,
-                workOrderId: item.plan_id,
-                projectId: item.project_id,
-                projectName: item.plan_name,
-                workOrderType: '维保计划',
-                planStartDate: item.plan_start_date,
-                daysFromToday: days,
-                executor: item.responsible_person
-              })
-            }
-          })
-        }
-
         if (tempRepairsRes.code === 200 && tempRepairsRes.data) {
-          tempRepairsRes.data.content.forEach((item: TemporaryRepair) => {
+          tempRepairsRes.data.forEach((item: TemporaryRepair) => {
             const days = getDaysFromToday(item.plan_start_date)
             if (days <= 3 && days >= 0) {
               items.push({
@@ -383,7 +239,7 @@ export default defineComponent({
         }
 
         if (spotWorksRes.code === 200 && spotWorksRes.data) {
-          spotWorksRes.data.content.forEach((item: SpotWork) => {
+          spotWorksRes.data.forEach((item: SpotWork) => {
             const days = getDaysFromToday(item.plan_start_date)
             if (days <= 3 && days >= 0) {
               items.push({
@@ -475,55 +331,7 @@ export default defineComponent({
       }
     }
 
-    const formatViewDate = (dateStr: string) => {
-      if (!dateStr) return '-'
-      const date = new Date(dateStr)
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-
     const handleView = async (item: NearExpiryItem) => {
-      if (item.workOrderType === '维保计划') {
-        try {
-          loading.value = true
-          const response = await maintenancePlanService.getById(item.id)
-          if (response.code === 200 && response.data) {
-            const plan = response.data
-            viewData.id = plan.id
-            viewData.plan_id = plan.plan_id
-            viewData.plan_name = plan.plan_name
-            viewData.project_id = plan.project_id
-            viewData.plan_type = plan.plan_type
-            viewData.equipment_id = plan.equipment_id
-            viewData.equipment_name = plan.equipment_name
-            viewData.equipment_model = plan.equipment_model || ''
-            viewData.equipment_location = plan.equipment_location || ''
-            viewData.plan_start_date = plan.plan_start_date
-            viewData.plan_end_date = plan.plan_end_date
-            viewData.execution_date = plan.execution_date || ''
-            viewData.next_maintenance_date = plan.next_maintenance_date || ''
-            viewData.responsible_person = plan.responsible_person
-            viewData.responsible_department = plan.responsible_department || ''
-            viewData.contact_info = plan.contact_info || ''
-            viewData.maintenance_content = plan.maintenance_content
-            viewData.maintenance_requirements = plan.maintenance_requirements || ''
-            viewData.maintenance_standard = plan.maintenance_standard || ''
-            viewData.plan_status = plan.plan_status
-            viewData.execution_status = plan.execution_status
-            viewData.completion_rate = plan.completion_rate || 0
-            viewData.remarks = plan.remarks || ''
-            isViewModalOpen.value = true
-          }
-        } catch (error) {
-          showToast('获取维保计划详情失败', 'error')
-        } finally {
-          loading.value = false
-        }
-        return
-      }
-
       switch (item.workOrderType) {
         case PLAN_TYPES.PERIODIC_INSPECTION:
           router.push({
@@ -544,10 +352,6 @@ export default defineComponent({
           })
           break
       }
-    }
-
-    const closeViewModal = () => {
-      isViewModalOpen.value = false
     }
 
     onMounted(() => {
@@ -573,11 +377,7 @@ export default defineComponent({
       handleReset,
       handlePageSizeChange,
       handleJump,
-      handleView,
-      isViewModalOpen,
-      viewData,
-      closeViewModal,
-      formatViewDate
+      handleView
     }
   }
 })
@@ -883,147 +683,5 @@ export default defineComponent({
 
 .page-go:hover {
   background: #1976D2;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-container {
-  background: #fff;
-  border-radius: 8px;
-  width: 900px;
-  max-width: 95vw;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
-.modal-close {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  font-size: 24px;
-  color: #999;
-  cursor: pointer;
-  transition: color 0.15s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.modal-close:hover {
-  color: #333;
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px 40px;
-  align-items: start;
-}
-
-.form-column {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-height: 70px;
-  padding: 4px 0;
-}
-
-.form-item-full {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #424242;
-}
-
-.form-value {
-  padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-}
-
-.form-value-textarea {
-  min-height: 60px;
-  align-items: flex-start;
-  padding-top: 12px;
-  padding-bottom: 12px;
-  white-space: pre-wrap;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 3px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
-}
-
-.btn-cancel:hover {
-  background: #f5f5f5;
 }
 </style>

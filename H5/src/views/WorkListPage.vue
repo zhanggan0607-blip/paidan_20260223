@@ -38,7 +38,7 @@ const fetchWorkList = async () => {
       params.status = currentTab.value.status
     }
     const response = await api.get<unknown, ApiResponse<any>>('/work-plan', { params })
-    if (response.success) {
+    if (response.code === 200) {
       workList.value = response.data?.content || []
     }
   } catch (error) {
@@ -66,11 +66,16 @@ onMounted(() => {
   <div class="work-list-page">
     <van-nav-bar 
       title="工单列表" 
-      left-arrow 
       fixed 
       placeholder 
-      @click-left="router.back()" 
-    />
+    >
+      <template #left>
+        <div class="nav-left" @click="router.back()">
+          <van-icon name="arrow-left" />
+          <span>返回</span>
+        </div>
+      </template>
+    </van-nav-bar>
     
     <van-tabs v-model:active="activeTab" sticky>
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">

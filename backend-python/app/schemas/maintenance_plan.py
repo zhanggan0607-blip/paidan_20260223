@@ -47,7 +47,7 @@ class MaintenancePlanBase(BaseModel):
     @field_validator('execution_status')
     @classmethod
     def validate_execution_status(cls, v):
-        valid_statuses = ['未开始', '进行中', '已完成', '已取消', '异常']
+        valid_statuses = ['未开始', '待确认', '已完成', '已取消', '异常']
         if v not in valid_statuses:
             raise ValueError(f'执行状态必须是以下之一: {", ".join(valid_statuses)}')
         return v

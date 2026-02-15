@@ -77,6 +77,11 @@ const routes: RouteRecordRaw[] = [
         component: SpotWorkManagement
       },
       {
+        path: '/work-order/spot-work/detail',
+        name: 'SpotWorkDetail',
+        component: SpotWorkDetail
+      },
+      {
         path: '/spare-parts',
         component: SparePartsManagement
       },

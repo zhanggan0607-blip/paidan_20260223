@@ -5,7 +5,9 @@ from sqlalchemy import func, and_, or_, case, extract
 from datetime import datetime, timedelta
 from app.database import get_db
 from app.schemas.common import ApiResponse
-from app.models.maintenance_plan import MaintenancePlan
+from app.models.periodic_inspection import PeriodicInspection
+from app.models.temporary_repair import TemporaryRepair
+from app.models.spot_work import SpotWork
 from app.models.project_info import ProjectInfo
 from app.config import OverdueAlertConfig
 
@@ -17,12 +19,13 @@ def get_statistics_overview(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db)
 ):
-    """获取统计数据概览 - 统一使用 MaintenancePlan 表"""
+    """获取统计数据概览 - 从三种工单表获取数据"""
     
     today = datetime.now().date()
+    current_year = today.year
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
-    near_due_days = 5
+    near_due_days = 3
     valid_statuses = OverdueAlertConfig.VALID_STATUSES
     
     near_due_count = 0
@@ -32,28 +35,85 @@ def get_statistics_overview(
     temporary_repair_count = 0
     spot_work_count = 0
     
-    maintenance_plans = db.query(MaintenancePlan).all()
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    is_current_year = (year == current_year)
+    
+    for inspection in db.query(PeriodicInspection).all():
+        plan_start = inspection.plan_start_date
+        plan_end = inspection.plan_end_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         
-        if plan_end:
-            if plan_end < today and plan.plan_status in valid_statuses:
-                overdue_count += 1
-            elif 0 < (plan_end - today).days <= near_due_days and plan.plan_status in valid_statuses:
+        if plan_start:
+            if plan_start >= year_start and plan_start <= year_end:
+                regular_inspection_count += 1
+        
+        if is_current_year and plan_start:
+            days_from_today = (plan_start - today).days
+            if 0 <= days_from_today <= near_due_days:
                 near_due_count += 1
         
-        if plan.plan_status == '已完成' and plan_end:
+        if plan_end:
+            check_date = today if is_current_year else year_end
+            if plan_end < check_date and inspection.status in valid_statuses:
+                overdue_count += 1
+        
+        if inspection.status == '已完成' and plan_end:
             if plan_end >= year_start and plan_end <= year_end:
                 year_completed_count += 1
+    
+    for repair in db.query(TemporaryRepair).all():
+        plan_start = repair.plan_start_date
+        plan_end = repair.plan_end_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
         
-        if plan.plan_type == '定期维保':
-            regular_inspection_count += 1
-        elif plan.plan_type == '临时维修':
-            temporary_repair_count += 1
-        elif plan.plan_type == '零星用工':
-            spot_work_count += 1
+        if plan_start:
+            if plan_start >= year_start and plan_start <= year_end:
+                temporary_repair_count += 1
+        
+        if is_current_year and plan_start:
+            days_from_today = (plan_start - today).days
+            if 0 <= days_from_today <= near_due_days:
+                near_due_count += 1
+        
+        if plan_end:
+            check_date = today if is_current_year else year_end
+            if plan_end < check_date and repair.status in valid_statuses:
+                overdue_count += 1
+        
+        if repair.status == '已完成' and plan_end:
+            if plan_end >= year_start and plan_end <= year_end:
+                year_completed_count += 1
+    
+    for work in db.query(SpotWork).all():
+        plan_start = work.plan_start_date
+        plan_end = work.plan_end_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        
+        if plan_start:
+            if plan_start >= year_start and plan_start <= year_end:
+                spot_work_count += 1
+        
+        if is_current_year and plan_start:
+            days_from_today = (plan_start - today).days
+            if 0 <= days_from_today <= near_due_days:
+                near_due_count += 1
+        
+        if plan_end:
+            check_date = today if is_current_year else year_end
+            if plan_end < check_date and work.status in valid_statuses:
+                overdue_count += 1
+        
+        if work.status == '已完成' and plan_end:
+            if plan_end >= year_start and plan_end <= year_end:
+                year_completed_count += 1
     
     total_work_orders = regular_inspection_count + temporary_repair_count + spot_work_count
     
@@ -74,7 +134,7 @@ def get_completion_rate(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db)
 ):
-    """获取准时完成率 - 统一使用 MaintenancePlan 表"""
+    """获取准时完成率 - 从三种工单表获取数据"""
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -82,13 +142,35 @@ def get_completion_rate(
     on_time_count = 0
     total_count = 0
     
-    maintenance_plans = db.query(MaintenancePlan).filter(
-        MaintenancePlan.plan_status == '已完成'
-    ).all()
+    for inspection in db.query(PeriodicInspection).filter(PeriodicInspection.status == '已完成').all():
+        plan_end = inspection.plan_end_date
+        actual_end = inspection.updated_at
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if isinstance(actual_end, datetime):
+            actual_end = actual_end.date()
+        if plan_end and actual_end:
+            if plan_end >= year_start and plan_end <= year_end:
+                total_count += 1
+                if actual_end <= plan_end:
+                    on_time_count += 1
     
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
-        actual_end = plan.execution_date or plan.updated_at
+    for repair in db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成').all():
+        plan_end = repair.plan_end_date
+        actual_end = repair.updated_at
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if isinstance(actual_end, datetime):
+            actual_end = actual_end.date()
+        if plan_end and actual_end:
+            if plan_end >= year_start and plan_end <= year_end:
+                total_count += 1
+                if actual_end <= plan_end:
+                    on_time_count += 1
+    
+    for work in db.query(SpotWork).filter(SpotWork.status == '已完成').all():
+        plan_end = work.plan_end_date
+        actual_end = work.updated_at
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if isinstance(actual_end, datetime):
@@ -117,26 +199,42 @@ def get_top_projects(
     limit: int = Query(5, ge=1, le=10, description="返回数量"),
     db: Session = Depends(get_db)
 ):
-    """获取年度前五项目（维保单数量）- 统一使用 MaintenancePlan 表"""
+    """获取年度前五项目（工单数量）- 从三种工单表获取数据"""
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
     
     project_stats = {}
     
-    maintenance_plans = db.query(MaintenancePlan).filter(
-        MaintenancePlan.plan_status == '已完成'
-    ).all()
-    
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    for inspection in db.query(PeriodicInspection).filter(PeriodicInspection.status == '已完成').all():
+        plan_end = inspection.plan_end_date
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if plan_end and plan_end >= year_start and plan_end <= year_end:
-            if plan.project_id:
-                if plan.project_id not in project_stats:
-                    project_stats[plan.project_id] = 0
-                project_stats[plan.project_id] += 1
+            if inspection.project_id:
+                if inspection.project_id not in project_stats:
+                    project_stats[inspection.project_id] = 0
+                project_stats[inspection.project_id] += 1
+    
+    for repair in db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成').all():
+        plan_end = repair.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            if repair.project_id:
+                if repair.project_id not in project_stats:
+                    project_stats[repair.project_id] = 0
+                project_stats[repair.project_id] += 1
+    
+    for work in db.query(SpotWork).filter(SpotWork.status == '已完成').all():
+        plan_end = work.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            if work.project_id:
+                if work.project_id not in project_stats:
+                    project_stats[work.project_id] = 0
+                project_stats[work.project_id] += 1
     
     projects = db.query(ProjectInfo).all()
     project_dict = {p.project_id: p.project_name for p in projects}
@@ -167,20 +265,15 @@ def get_top_repairs(
     
     project_stats = {}
     
-    maintenance_plans = db.query(MaintenancePlan).filter(
-        MaintenancePlan.plan_type == '临时维修',
-        MaintenancePlan.plan_status == '已完成'
-    ).all()
-    
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    for repair in db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成').all():
+        plan_end = repair.plan_end_date
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if plan_end and plan_end >= year_start and plan_end <= year_end:
-            if plan.project_id:
-                if plan.project_id not in project_stats:
-                    project_stats[plan.project_id] = 0
-                project_stats[plan.project_id] += 1
+            if repair.project_id:
+                if repair.project_id not in project_stats:
+                    project_stats[repair.project_id] = 0
+                project_stats[repair.project_id] += 1
     
     projects = db.query(ProjectInfo).all()
     project_dict = {p.project_id: p.project_name for p in projects}
@@ -210,13 +303,32 @@ def get_employee_stats(
     
     employee_stats = {}
     
-    maintenance_plans = db.query(MaintenancePlan).all()
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    for inspection in db.query(PeriodicInspection).all():
+        plan_end = inspection.plan_end_date
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if plan_end and plan_end >= year_start and plan_end <= year_end:
-            personnel = plan.responsible_person or '未知'
+            personnel = inspection.maintenance_personnel or '未知'
+            if personnel not in employee_stats:
+                employee_stats[personnel] = 0
+            employee_stats[personnel] += 1
+    
+    for repair in db.query(TemporaryRepair).all():
+        plan_end = repair.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            personnel = repair.maintenance_personnel or '未知'
+            if personnel not in employee_stats:
+                employee_stats[personnel] = 0
+            employee_stats[personnel] += 1
+    
+    for work in db.query(SpotWork).all():
+        plan_end = work.plan_end_date
+        if isinstance(plan_end, datetime):
+            plan_end = plan_end.date()
+        if plan_end and plan_end >= year_start and plan_end <= year_end:
+            personnel = work.maintenance_personnel or '未知'
             if personnel not in employee_stats:
                 employee_stats[personnel] = 0
             employee_stats[personnel] += 1
@@ -250,17 +362,12 @@ def get_repair_stats(
     
     repair_stats = {}
     
-    maintenance_plans = db.query(MaintenancePlan).filter(
-        MaintenancePlan.plan_type == '临时维修',
-        MaintenancePlan.plan_status == '已完成'
-    ).all()
-    
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    for repair in db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成').all():
+        plan_end = repair.plan_end_date
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if plan_end and plan_end >= year_start and plan_end <= year_end:
-            personnel = plan.responsible_person or '未知'
+            personnel = repair.maintenance_personnel or '未知'
             if personnel not in repair_stats:
                 repair_stats[personnel] = 0
             repair_stats[personnel] += 1
@@ -294,17 +401,12 @@ def get_spotwork_stats(
     
     spotwork_stats = {}
     
-    maintenance_plans = db.query(MaintenancePlan).filter(
-        MaintenancePlan.plan_type == '零星用工',
-        MaintenancePlan.plan_status == '已完成'
-    ).all()
-    
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    for work in db.query(SpotWork).filter(SpotWork.status == '已完成').all():
+        plan_end = work.plan_end_date
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if plan_end and plan_end >= year_start and plan_end <= year_end:
-            personnel = plan.responsible_person or '未知'
+            personnel = work.maintenance_personnel or '未知'
             if personnel not in spotwork_stats:
                 spotwork_stats[personnel] = 0
             spotwork_stats[personnel] += 1
@@ -338,17 +440,12 @@ def get_inspection_stats(
     
     inspection_stats = {}
     
-    maintenance_plans = db.query(MaintenancePlan).filter(
-        MaintenancePlan.plan_type == '定期维保',
-        MaintenancePlan.plan_status == '已完成'
-    ).all()
-    
-    for plan in maintenance_plans:
-        plan_end = plan.plan_end_date
+    for inspection in db.query(PeriodicInspection).filter(PeriodicInspection.status == '已完成').all():
+        plan_end = inspection.plan_end_date
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
         if plan_end and plan_end >= year_start and plan_end <= year_end:
-            personnel = plan.responsible_person or '未知'
+            personnel = inspection.maintenance_personnel or '未知'
             if personnel not in inspection_stats:
                 inspection_stats[personnel] = 0
             inspection_stats[personnel] += 1

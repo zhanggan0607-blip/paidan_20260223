@@ -11,12 +11,11 @@
             <div class="filter-fields">
               <div class="filter-group">
                 <label class="filter-label">产品名称</label>
-                <input 
-                  v-model="filters.product_name" 
-                  type="text" 
-                  class="filter-input" 
+                <SearchInput
+                  v-model="filters.product_name"
+                  field-key="SparePartsInventory_product_name"
                   placeholder="请输入产品名称"
-                  @keyup.enter="handleSearch"
+                  @input="handleSearch"
                 />
               </div>
               <button @click="handleSearch" class="search-button">
@@ -93,6 +92,7 @@
 import { defineComponent, ref, onMounted, computed } from 'vue'
 import apiClient from '@/utils/api'
 import Toast from '@/components/Toast.vue'
+import SearchInput from '@/components/SearchInput.vue'
 
 interface StockItem {
   id: number
@@ -117,7 +117,8 @@ interface ApiResponse {
 export default defineComponent({
   name: 'SparePartsInventory',
   components: {
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const loading = ref(false)

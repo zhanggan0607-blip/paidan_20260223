@@ -10,6 +10,7 @@ class MaintenancePlan(Base):
     plan_id = Column(String(50), nullable=False, unique=True, comment="计划编号")
     plan_name = Column(String(200), nullable=False, comment="计划名称")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="关联项目编号")
+    project_name = Column(String(200), comment="项目名称")
     plan_type = Column(String(20), nullable=False, comment="计划类型")
     equipment_id = Column(String(50), nullable=False, comment="设备编号")
     equipment_name = Column(String(200), nullable=False, comment="设备名称")
@@ -50,6 +51,7 @@ class MaintenancePlan(Base):
             'plan_id': self.plan_id,
             'plan_name': self.plan_name,
             'project_id': self.project_id,
+            'project_name': self.project_name or '',
             'plan_type': self.plan_type,
             'equipment_id': self.equipment_id,
             'equipment_name': self.equipment_name,

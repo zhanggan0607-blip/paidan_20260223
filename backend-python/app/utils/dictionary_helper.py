@@ -41,17 +41,20 @@ class DictionaryHelper:
 
 def get_default_temporary_repair_status(db: Session) -> str:
     """获取临时维修单默认状态"""
-    return DictionaryHelper.get_default_value(db, 'temporary_repair_status', 'not_started')
+    value = DictionaryHelper.get_default_value(db, 'temporary_repair_status', 'not_started')
+    return value if value else '未进行'
 
 
 def get_default_spot_work_status(db: Session) -> str:
     """获取零星用工单默认状态"""
-    return DictionaryHelper.get_default_value(db, 'spot_work_status', 'not_started')
+    value = DictionaryHelper.get_default_value(db, 'spot_work_status', 'not_started')
+    return value if value else '未进行'
 
 
 def get_default_periodic_inspection_status(db: Session) -> str:
     """获取定期巡检单默认状态"""
-    return DictionaryHelper.get_default_value(db, 'periodic_inspection_status', 'not_started')
+    value = DictionaryHelper.get_default_value(db, 'periodic_inspection_status', 'not_started')
+    return value if value else '未进行'
 
 
 def get_default_maintenance_plan_status(db: Session) -> str:

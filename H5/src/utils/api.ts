@@ -26,7 +26,12 @@ api.interceptors.response.use(
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
-    return Promise.reject(error)
+    const errorMessage = error.response?.data?.detail || error.response?.data?.message || error.message
+    return Promise.reject({
+      status: error.response?.status,
+      message: errorMessage,
+      data: error.response?.data
+    })
   }
 )
 

@@ -78,7 +78,7 @@ class TemporaryRepairService:
         if self.repository.exists_by_repair_id(dto.repair_id):
             raise DuplicateException("维修单编号已存在")
         
-        default_status = get_default_temporary_repair_status(self.repository._TemporaryRepairRepository__db)
+        default_status = get_default_temporary_repair_status(self.repository.db)
         
         repair = TemporaryRepair(
             repair_id=dto.repair_id,

@@ -70,6 +70,10 @@ export const temporaryRepairService = {
     return await apiClient.get('/temporary-repair', { params })
   },
 
+  async getAll(): Promise<ApiResponse<TemporaryRepair[]>> {
+    return await apiClient.get('/temporary-repair/all/list')
+  },
+
   async getById(id: number): Promise<ApiResponse<TemporaryRepair>> {
     return await apiClient.get(`/temporary-repair/${id}`)
   },

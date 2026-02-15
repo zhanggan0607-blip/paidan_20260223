@@ -18,21 +18,21 @@ def init_dictionary_data():
         dictionary_data = [
             # 临时维修单状态
             {'dict_type': 'temporary_repair_status', 'dict_key': 'not_started', 'dict_value': '未进行', 'dict_label': '未进行', 'sort_order': 1},
-            {'dict_type': 'temporary_repair_status', 'dict_key': 'in_progress', 'dict_value': '进行中', 'dict_label': '进行中', 'sort_order': 2},
+            {'dict_type': 'temporary_repair_status', 'dict_key': 'in_progress', 'dict_value': '待确认', 'dict_label': '待确认', 'sort_order': 2},
             {'dict_type': 'temporary_repair_status', 'dict_key': 'completed', 'dict_value': '已完成', 'dict_label': '已完成', 'sort_order': 3},
             {'dict_type': 'temporary_repair_status', 'dict_key': 'cancelled', 'dict_value': '已取消', 'dict_label': '已取消', 'sort_order': 4},
             
             # 零星用工单状态
             {'dict_type': 'spot_work_status', 'dict_key': 'not_started', 'dict_value': '未进行', 'dict_label': '未进行', 'sort_order': 1},
             {'dict_type': 'spot_work_status', 'dict_key': 'pending_confirm', 'dict_value': '待确认', 'dict_label': '待确认', 'sort_order': 2},
-            {'dict_type': 'spot_work_status', 'dict_key': 'in_progress', 'dict_value': '进行中', 'dict_label': '进行中', 'sort_order': 3},
+            {'dict_type': 'spot_work_status', 'dict_key': 'in_progress', 'dict_value': '待确认', 'dict_label': '待确认', 'sort_order': 3},
             {'dict_type': 'spot_work_status', 'dict_key': 'completed', 'dict_value': '已完成', 'dict_label': '已完成', 'sort_order': 4},
             
             # 定期巡检单状态
             {'dict_type': 'periodic_inspection_status', 'dict_key': 'not_started', 'dict_value': '未进行', 'dict_label': '未进行', 'sort_order': 1},
             {'dict_type': 'periodic_inspection_status', 'dict_key': 'pending_confirm', 'dict_value': '待确认', 'dict_label': '待确认', 'sort_order': 2},
             {'dict_type': 'periodic_inspection_status', 'dict_key': 'confirmed', 'dict_value': '已确认', 'dict_label': '已确认', 'sort_order': 3},
-            {'dict_type': 'periodic_inspection_status', 'dict_key': 'in_progress', 'dict_value': '进行中', 'dict_label': '进行中', 'sort_order': 4},
+            {'dict_type': 'periodic_inspection_status', 'dict_key': 'in_progress', 'dict_value': '待确认', 'dict_label': '待确认', 'sort_order': 4},
             {'dict_type': 'periodic_inspection_status', 'dict_key': 'completed', 'dict_value': '已完成', 'dict_label': '已完成', 'sort_order': 5},
             {'dict_type': 'periodic_inspection_status', 'dict_key': 'cancelled', 'dict_value': '已取消', 'dict_label': '已取消', 'sort_order': 6},
             
@@ -45,7 +45,7 @@ def init_dictionary_data():
             
             # 维保计划执行状态
             {'dict_type': 'maintenance_execution_status', 'dict_key': 'not_started', 'dict_value': '未开始', 'dict_label': '未开始', 'sort_order': 1},
-            {'dict_type': 'maintenance_execution_status', 'dict_key': 'in_progress', 'dict_value': '进行中', 'dict_label': '进行中', 'sort_order': 2},
+            {'dict_type': 'maintenance_execution_status', 'dict_key': 'in_progress', 'dict_value': '待确认', 'dict_label': '待确认', 'sort_order': 2},
             {'dict_type': 'maintenance_execution_status', 'dict_key': 'completed', 'dict_value': '已完成', 'dict_label': '已完成', 'sort_order': 3},
             {'dict_type': 'maintenance_execution_status', 'dict_key': 'cancelled', 'dict_value': '已取消', 'dict_label': '已取消', 'sort_order': 4},
             {'dict_type': 'maintenance_execution_status', 'dict_key': 'abnormal', 'dict_value': '异常', 'dict_label': '异常', 'sort_order': 5},

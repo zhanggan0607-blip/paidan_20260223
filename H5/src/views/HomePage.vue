@@ -31,7 +31,7 @@ const fetchStatistics = async () => {
   loading.value = true
   try {
     const response = await api.get<unknown, ApiResponse<Statistics>>('/work-plan/statistics')
-    if (response.success) {
+    if (response.code === 200) {
       statistics.value = response.data
     }
   } catch (error) {
@@ -51,6 +51,7 @@ const statCards = computed(() => [
 ])
 
 const quickActions = [
+  { key: 'project', label: '项目信息', icon: 'info-o', color: '#1989fa', route: '/project-info' },
   { key: 'periodic', label: '定期巡检', icon: 'todo-list-o', color: '#1989fa', route: '/periodic-inspection' },
   { key: 'repair', label: '临时维修', icon: 'warning-o', color: '#ff976a', route: '/temporary-repair' },
   { key: 'spot', label: '零星用工', icon: 'cluster-o', color: '#07c160', route: '/spot-work' }
@@ -81,13 +82,16 @@ onMounted(() => {
   <div class="home-page">
     <van-nav-bar title="SSTCP维保系统" fixed placeholder>
       <template #left>
-        <van-icon name="arrow-left" @click="handleBack" />
+        <div class="nav-left" @click="handleBack">
+          <van-icon name="arrow-left" />
+          <span>返回</span>
+        </div>
       </template>
     </van-nav-bar>
     
     <div class="content">
       <div class="actions-section">
-        <van-grid :column-num="3" :border="false">
+        <van-grid :column-num="2" :border="false">
           <van-grid-item 
             v-for="action in quickActions" 
             :key="action.key"

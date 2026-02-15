@@ -7,11 +7,21 @@
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">项目名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" @input="handleSearch" />
+          <SearchInput
+            v-model="searchForm.projectName"
+            field-key="ProjectInfoManagement_projectName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">客户名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" @input="handleSearch" />
+          <SearchInput
+            v-model="searchForm.clientName"
+            field-key="ProjectInfoManagement_clientName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
       </div>
       <div class="search-actions">
@@ -128,7 +138,21 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input" placeholder="请输入客户单位" v-model="formData.client_name" maxlength="100" />
+                <div class="client-select-wrapper">
+                  <select class="form-input client-select" v-model="formData.client_source" @change="handleClientSourceChange('formData')">
+                    <option value="">请选择客户单位</option>
+                    <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
+                    <option value="__other__">其他（手动输入）</option>
+                  </select>
+                  <input 
+                    v-if="formData.client_source === '__other__'" 
+                    type="text" 
+                    class="form-input client-input" 
+                    placeholder="请输入客户单位" 
+                    v-model="formData.client_name" 
+                    maxlength="100" 
+                  />
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -149,6 +173,10 @@
                   <span class="required">*</span> 项目编号
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_id" maxlength="50" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目简称</label>
+                <input type="text" class="form-input" placeholder="请输入项目简称" v-model="formData.project_abbr" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -226,7 +254,7 @@
                 <div class="form-value">{{ viewData.project_id || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目目前简称</label>
+                <label class="form-label">项目简称</label>
                 <div class="form-value">{{ viewData.project_abbr || '-' }}</div>
               </div>
               <div class="form-item">
@@ -292,7 +320,21 @@
                 <label class="form-label">
                   <span class="required">*</span> 客户单位
                 </label>
-                <input type="text" class="form-input" placeholder="请输入客户单位" v-model="editData.client_name" maxlength="100" />
+                <div class="client-select-wrapper">
+                  <select class="form-input client-select" v-model="editData.client_source" @change="handleClientSourceChange('editData')">
+                    <option value="">请选择客户单位</option>
+                    <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
+                    <option value="__other__">其他（手动输入）</option>
+                  </select>
+                  <input 
+                    v-if="editData.client_source === '__other__'" 
+                    type="text" 
+                    class="form-input client-input" 
+                    placeholder="请输入客户单位" 
+                    v-model="editData.client_name" 
+                    maxlength="100" 
+                  />
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -313,6 +355,10 @@
                   <span class="required">*</span> 项目编号
                 </label>
                 <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" readonly />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目简称</label>
+                <input type="text" class="form-input" placeholder="请输入项目简称" v-model="editData.project_abbr" maxlength="50" />
               </div>
               <div class="form-item">
                 <label class="form-label">
@@ -369,6 +415,7 @@ import { customerService } from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 import { formatDate as formatDateUtil, formatDateForInput as formatDateForInputUtil } from '../config/constants'
 
@@ -377,7 +424,8 @@ export default defineComponent({
   components: {
     LoadingSpinner,
     Toast,
-    ConfirmDialog
+    ConfirmDialog,
+    SearchInput
   },
   setup() {
     const searchForm = reactive({
@@ -399,6 +447,7 @@ export default defineComponent({
     const totalElements = ref(0)
     const totalPages = ref(0)
     const personnelList = ref<string[]>([])
+    const customerList = ref<{id: number, name: string}[]>([])
 
     const toast = reactive({
       visible: false,
@@ -457,6 +506,7 @@ export default defineComponent({
       maintenance_end_date: '',
       maintenance_period: '',
       client_name: '',
+      client_source: '',
       address: '',
       project_abbr: '',
       project_manager: '',
@@ -470,6 +520,7 @@ export default defineComponent({
       project_id: '',
       completion_date: '',
       client_name: '',
+      client_source: '',
       client_contact: '',
       client_contact_position: '',
       maintenance_period: '',
@@ -484,12 +535,13 @@ export default defineComponent({
 
     const inputMemory = useInputMemory({
       pageName: 'ProjectInfoManagement',
-      fields: ['project_name', 'project_id', 'completion_date', 'client_name', 'client_contact', 'client_contact_position', 'maintenance_period', 'project_abbr', 'project_manager', 'maintenance_end_date', 'address', 'client_contact_info'],
+      fields: ['project_name', 'project_id', 'completion_date', 'client_name', 'client_source', 'client_contact', 'client_contact_position', 'maintenance_period', 'project_abbr', 'project_manager', 'maintenance_end_date', 'address', 'client_contact_info'],
       onRestore: (data) => {
         if (data.project_name) formData.project_name = data.project_name
         if (data.project_id) formData.project_id = data.project_id
         if (data.completion_date) formData.completion_date = data.completion_date
         if (data.client_name) formData.client_name = data.client_name
+        if (data.client_source) formData.client_source = data.client_source
         if (data.client_contact) formData.client_contact = data.client_contact
         if (data.client_contact_position) formData.client_contact_position = data.client_contact_position
         if (data.maintenance_period) formData.maintenance_period = data.maintenance_period
@@ -584,8 +636,12 @@ export default defineComponent({
         showToast('请填写维保频率', 'warning')
         return false
       }
-      if (!formData.client_name?.trim()) {
-        showToast('请填写客户单位', 'warning')
+      if (!formData.client_source) {
+        showToast('请选择或输入客户单位', 'warning')
+        return false
+      }
+      if (formData.client_source === '__other__' && !formData.client_name?.trim()) {
+        showToast('请输入客户单位名称', 'warning')
         return false
       }
       if (!formData.address?.trim()) {
@@ -611,6 +667,7 @@ export default defineComponent({
       formData.project_id = ''
       formData.completion_date = ''
       formData.client_name = ''
+      formData.client_source = ''
       formData.client_contact = ''
       formData.client_contact_position = ''
       formData.maintenance_period = ''
@@ -649,20 +706,21 @@ export default defineComponent({
           const customerResponse = await customerService.getList({ page: 0, size: 100, name: formData.client_name })
           if (customerResponse.code === 200 && customerResponse.data) {
             const existingCustomer = customerResponse.data.content.find(c => c.name === formData.client_name)
+            const clientContactInfo = formData.client_contact_info?.trim()
             if (existingCustomer) {
               await customerService.update(existingCustomer.id, {
-                address: formData.address,
-                contact_person: formData.client_contact || '',
-                phone: formData.client_contact_info || '',
-                contact_position: formData.client_contact_position || ''
+                address: formData.address?.trim() || undefined,
+                contact_person: formData.client_contact?.trim() || undefined,
+                phone: clientContactInfo || undefined,
+                contact_position: formData.client_contact_position?.trim() || undefined
               })
-            } else {
+            } else if (clientContactInfo && /^1[3-9]\d{9}$/.test(clientContactInfo)) {
               await customerService.create({
-                name: formData.client_name,
-                address: formData.address,
-                contact_person: formData.client_contact || '',
-                phone: formData.client_contact_info || '',
-                contact_position: formData.client_contact_position || ''
+                name: formData.client_name?.trim() || '',
+                address: formData.address?.trim() || undefined,
+                contact_person: formData.client_contact?.trim() || '',
+                phone: clientContactInfo,
+                contact_position: formData.client_contact_position?.trim() || undefined
               })
             }
           }
@@ -709,6 +767,8 @@ export default defineComponent({
       editData.maintenance_end_date = formatDateForInput(item.maintenance_end_date)
       editData.maintenance_period = item.maintenance_period
       editData.client_name = item.client_name
+      const existingCustomer = customerList.value.find(c => c.name === item.client_name)
+      editData.client_source = existingCustomer ? item.client_name : '__other__'
       editData.address = item.address
       editData.project_abbr = item.project_abbr || ''
       editData.project_manager = item.project_manager || ''
@@ -748,8 +808,12 @@ export default defineComponent({
         showToast('请填写维保频率', 'warning')
         return false
       }
-      if (!editData.client_name?.trim()) {
-        showToast('请填写客户单位', 'warning')
+      if (!editData.client_source) {
+        showToast('请选择或输入客户单位', 'warning')
+        return false
+      }
+      if (editData.client_source === '__other__' && !editData.client_name?.trim()) {
+        showToast('请输入客户单位名称', 'warning')
         return false
       }
       if (!editData.address?.trim()) {
@@ -787,20 +851,25 @@ export default defineComponent({
           const customerResponse = await customerService.getList({ page: 0, size: 100, name: editData.client_name })
           if (customerResponse.code === 200 && customerResponse.data) {
             const existingCustomer = customerResponse.data.content.find(c => c.name === editData.client_name)
+            const clientContactInfo = editData.client_contact_info?.trim()
+            const phonePattern = /^1[3-9]\d{9}$/
             if (existingCustomer) {
-              await customerService.update(existingCustomer.id, {
-                address: editData.address,
-                contact_person: editData.client_contact || '',
-                phone: editData.client_contact_info || '',
-                contact_position: editData.client_contact_position || ''
-              })
-            } else {
+              const updatePayload: any = {
+                address: editData.address?.trim() || undefined,
+                contact_person: editData.client_contact?.trim() || undefined,
+                contact_position: editData.client_contact_position?.trim() || undefined
+              }
+              if (clientContactInfo && phonePattern.test(clientContactInfo)) {
+                updatePayload.phone = clientContactInfo
+              }
+              await customerService.update(existingCustomer.id, updatePayload)
+            } else if (clientContactInfo && phonePattern.test(clientContactInfo)) {
               await customerService.create({
-                name: editData.client_name,
-                address: editData.address,
-                contact_person: editData.client_contact || '',
-                phone: editData.client_contact_info || '',
-                contact_position: editData.client_contact_position || ''
+                name: editData.client_name?.trim() || '',
+                address: editData.address?.trim() || undefined,
+                contact_person: editData.client_contact?.trim() || '',
+                phone: clientContactInfo,
+                contact_position: editData.client_contact_position?.trim() || undefined
               })
             }
           }
@@ -894,9 +963,37 @@ export default defineComponent({
       }
     }
 
+    const loadCustomerList = async () => {
+      try {
+        const response = await customerService.getList({ page: 0, size: 100 })
+        if (response.code === 200 && response.data) {
+          customerList.value = response.data.content.map(c => ({ id: c.id, name: c.name }))
+        }
+      } catch (error) {
+        console.error('加载客户列表失败:', error)
+      }
+    }
+
+    const handleClientSourceChange = (target: 'formData' | 'editData') => {
+      if (target === 'formData') {
+        if (formData.client_source !== '__other__') {
+          formData.client_name = formData.client_source
+        } else {
+          formData.client_name = ''
+        }
+      } else {
+        if (editData.client_source !== '__other__') {
+          editData.client_name = editData.client_source
+        } else {
+          editData.client_name = ''
+        }
+      }
+    }
+
     onMounted(() => {
       loadData()
       loadPersonnel()
+      loadCustomerList()
     })
 
     onUnmounted(() => {
@@ -925,6 +1022,7 @@ export default defineComponent({
       toast,
       confirmDialog,
       personnelList,
+      customerList,
       openModal,
       closeModal,
       handleSearch,
@@ -939,7 +1037,8 @@ export default defineComponent({
       closeEditModal,
       formatDate,
       handleConfirm,
-      handleCancelConfirm
+      handleCancelConfirm,
+      handleClientSourceChange
     }
   }
 })
@@ -1408,5 +1507,19 @@ export default defineComponent({
 
 .btn-save:hover:not(:disabled) {
   background: #1976D2;
+}
+
+.client-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.client-select {
+  cursor: pointer;
+}
+
+.client-input {
+  margin-top: 0;
 }
 </style>

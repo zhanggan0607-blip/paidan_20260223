@@ -37,7 +37,7 @@ def insert_test_data():
                 plan_end_date=today - timedelta(days=5),
                 client_name='上海城投（集团）有限公司',
                 maintenance_personnel='刘园智',
-                status='进行中',
+                status='待确认',
                 remarks='电梯故障维修'
             ),
             TemporaryRepair(
@@ -76,7 +76,7 @@ def insert_test_data():
                 plan_end_date=today - timedelta(days=7),
                 client_name='上海城投（集团）有限公司',
                 maintenance_personnel='李明',
-                status='进行中',
+                status='待确认',
                 remarks='临时搬运工'
             ),
             SpotWork(

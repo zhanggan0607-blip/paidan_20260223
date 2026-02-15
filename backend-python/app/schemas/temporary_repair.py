@@ -18,7 +18,7 @@ class TemporaryRepairBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '进行中', '已完成', '已取消']
+        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v

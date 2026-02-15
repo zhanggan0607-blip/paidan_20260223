@@ -21,3 +21,22 @@ html, body {
   background-color: #f5f7fa;
   position: relative;
 }
+
+.van-nav-bar--fixed {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: 375px !important;
+  width: 100% !important;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  color: var(--van-nav-bar-icon-color, #1989fa);
+}
+
+.nav-left span {
+  color: var(--van-nav-bar-icon-color, #1989fa);
+}

@@ -163,9 +163,7 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <div class="cards-section">
         <div class="stat-card card-total employee-chart-card">
           <div class="employee-chart-container">
             <div class="chart-caption">准时完成情况分布（{{ selectedYear }}）</div>
@@ -199,26 +197,34 @@
         <div class="stat-card card-inspection inspection-chart-card">
           <div class="employee-chart-container">
             <div class="chart-caption">临时维修单前五（{{ selectedYear }}）</div>
-            <div class="horizontal-bar-chart">
-              <div class="chart-y-axis">
-                <div v-for="tick in topRepairYAxisTicks" :key="tick" class="y-axis-tick">{{ tick }}</div>
-              </div>
-              <div class="chart-content">
-                <div class="chart-grid">
-                  <div v-for="tick in topRepairYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
+            <div class="vertical-bar-chart">
+              <div class="vertical-chart-wrapper">
+                <div class="vertical-chart-yaxis">
+                  <div v-for="tick in topRepairYAxisTicks" :key="tick" class="v-yaxis-tick">{{ tick }}</div>
                 </div>
-                <div class="horizontal-bars">
-                  <div v-for="(item, index) in topRepairs" :key="index" class="horizontal-bar-item">
-                    <div class="bar-label">{{ truncateName(item.name, 6) }}</div>
-                    <div class="bar-track">
-                      <div class="bar-fill" :style="{ width: getTopRepairBarWidth(item.value) + '%' }">
-                        <span class="bar-value">{{ item.value }}</span>
+                <div class="vertical-chart-content">
+                  <div class="vertical-chart-grid">
+                    <div v-for="tick in topRepairYAxisTicks" :key="'grid-' + tick" class="v-grid-line"></div>
+                  </div>
+                  <div class="vertical-bars-container">
+                    <div v-for="(item, index) in topRepairs" :key="index" class="vertical-bar-col">
+                      <div class="v-bar-track">
+                        <div class="v-bar-fill" :style="{ height: getTopRepairBarHeight(item.value) + '%' }">
+                          <span class="v-bar-value">{{ item.value }}</span>
+                        </div>
+                      </div>
+                      <div class="v-bar-label-wrapper">
+                        <span 
+                          class="v-bar-label-slanted" 
+                          :style="{ fontSize: getLabelFontSize(item.name) + 'px' }"
+                          :title="item.name"
+                        >{{ item.name }}</span>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="employee-no-data" v-if="topRepairs.length === 0">
-                  暂无数据
+                  <div class="employee-no-data" v-if="topRepairs.length === 0">
+                    暂无数据
+                  </div>
                 </div>
               </div>
             </div>
@@ -242,7 +248,8 @@ export default defineComponent({
   name: 'StatisticsPage',
   setup() {
     const selectedYear = ref<number>(new Date().getFullYear())
-    const availableYears = [2024, 2025, 2026, 2027, 2028]
+    const currentYear = new Date().getFullYear()
+    const availableYears = Array.from({ length: 5 }, (_, i) => currentYear - 2 + i)
     const overviewData = ref<StatisticsOverview>({
       year: selectedYear.value,
       totalWorkOrders: 0,
@@ -402,6 +409,11 @@ export default defineComponent({
       return (value / maxValue) * 100
     }
 
+    const getTopRepairBarHeight = (value: number) => {
+      if (maxTopRepairValue.value === 0) return 0
+      return (value / maxTopRepairValue.value) * 100
+    }
+
     const pieDashArray = computed(() => {
       const circumference = 2 * Math.PI * 40
       return `${circumference} ${circumference}`
@@ -417,6 +429,16 @@ export default defineComponent({
       if (!name) return ''
       if (name.length <= maxLen) return name
       return name.substring(0, maxLen) + '...'
+    }
+
+    const getLabelFontSize = (name: string) => {
+      if (!name) return 10
+      const len = name.length
+      if (len <= 4) return 12
+      if (len <= 6) return 10
+      if (len <= 8) return 9
+      if (len <= 10) return 8
+      return 7
     }
 
     const toggleFullscreen = () => {
@@ -507,9 +529,11 @@ export default defineComponent({
       getRepairBarWidth,
       getSpotworkBarWidth,
       getTopRepairBarWidth,
+      getTopRepairBarHeight,
       pieDashArray,
       pieDashOffset,
       truncateName,
+      getLabelFontSize,
       toggleFullscreen,
       handleYearChange
     }
@@ -519,7 +543,7 @@ export default defineComponent({
 
 <style scoped>
 .statistics-page {
-  padding: 20px;
+  padding: 20px 0;
   background: #f5f7fa;
   min-height: 100vh;
   font-family: 'Inter', '思源黑体', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -532,7 +556,7 @@ export default defineComponent({
   align-items: center;
   padding: 16px 24px;
   background: white;
-  border-radius: 12px;
+  border-radius: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
 }
@@ -607,15 +631,16 @@ export default defineComponent({
 
 .top-cards-section {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: #e0e0e0;
 }
 
 .mini-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 0;
   padding: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: none;
   text-align: center;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -686,16 +711,17 @@ export default defineComponent({
 
 .cards-section {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-auto-rows: 1fr;
-  gap: 20px;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 1px;
+  background: #e0e0e0;
 }
 
 .stat-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 0;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: none;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -1057,74 +1083,149 @@ export default defineComponent({
   border-radius: 4px;
 }
 
-.legend-color-ontime {
-  background: #4CAF50;
-}
-
-.legend-color-delayed {
-  background: #FF6B6B;
-}
-
 .vertical-bar-chart {
   flex: 1;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  min-height: 150px;
 }
 
-.vertical-bars {
+.vertical-chart-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.vertical-chart-yaxis {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 24px;
+  width: 40px;
+  padding: 0 4px;
+}
+
+.v-yaxis-tick {
+  font-size: 9px;
+  color: #999;
+  text-align: right;
+  height: 20px;
+  line-height: 20px;
+}
+
+.vertical-chart-content {
+  flex: 1;
+  position: relative;
+  margin-left: 40px;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}
+
+.vertical-chart-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100px;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.v-grid-line {
+  width: 100%;
+  border-bottom: 1px dashed #e8e8e8;
+  height: 20px;
+}
+
+.vertical-bars-container {
   display: flex;
   align-items: flex-end;
   justify-content: space-around;
-  width: 100%;
-  height: 280px;
-  padding: 0 20px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 35px;
+  margin-top: auto;
 }
 
-.vertical-bar-item {
+.vertical-bar-col {
   display: flex;
   flex-direction: column;
   align-items: center;
   flex: 1;
-  max-width: 80px;
+  max-width: 50px;
 }
 
-.vertical-bar-wrapper {
-  width: 100%;
-  height: 240px;
+.v-bar-track {
+  width: 20px;
+  height: 100px;
   background: #f0f0f0;
-  border-radius: 8px 8px 0 0;
+  border-radius: 3px;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   overflow: hidden;
+  margin: 0 auto;
+  flex-shrink: 0;
 }
 
-.vertical-bar {
-  width: 100%;
-  background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
-  border-radius: 8px 8px 0 0;
-  transition: height 0.3s ease;
+.v-bar-fill {
+  width: 20px;
+  background: #5470c6;
+  border-radius: 3px 3px 0 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 8px;
+  padding-top: 4px;
+  min-height: 20px;
+  transition: height 0.3s ease;
+  margin: 0 auto;
 }
 
-.vertical-bar-value {
+.v-bar-value {
+  font-size: 10px;
   font-weight: 600;
-  font-size: 16px;
   color: white;
 }
 
-.vertical-bar-label {
-  margin-top: 12px;
-  font-size: 12px;
-  color: #666;
+.v-bar-label {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #333;
   text-align: center;
-  max-width: 80px;
+  max-width: 50px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.v-bar-label-wrapper {
+  width: 80px;
+  min-height: 20px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: visible;
+  margin-top: 8px;
+  margin-left: 10px;
+}
+
+.v-bar-label-slanted {
+  display: inline-block;
+  color: #333;
+  white-space: normal;
+  transform: rotate(-45deg);
+  transform-origin: top left;
+  text-align: left;
+  line-height: 1.1;
+  word-break: break-all;
+  max-width: 48px;
 }
 
 .loading {
@@ -1153,12 +1254,6 @@ export default defineComponent({
   }
 }
 
-@media (max-width: 1200px) {
-  .top-cards-section {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .top-cards-section {
     grid-template-columns: repeat(2, 1fr);
@@ -1178,7 +1273,7 @@ export default defineComponent({
   min-height: 100vh;
   height: 100vh;
   width: 100vw;
-  padding: 12px;
+  padding: 16px 24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -1186,48 +1281,49 @@ export default defineComponent({
 
 :fullscreen .top-bar {
   flex-shrink: 0;
-  padding: 10px 16px;
-  margin-bottom: 8px;
+  padding: 12px 20px;
+  margin-bottom: 12px;
 }
 
 :fullscreen .content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
   min-height: 0;
   overflow: hidden;
 }
 
 :fullscreen .top-cards-section {
   flex-shrink: 0;
-  gap: 8px;
+  gap: 1px;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 :fullscreen .mini-card {
-  padding: 8px 10px;
+  padding: 14px 16px;
 }
 
 :fullscreen .mini-card-value {
-  font-size: 22px;
+  font-size: 32px;
 }
 
 :fullscreen .mini-card-label {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 :fullscreen .cards-section {
   flex: 1;
   min-height: 0;
-  gap: 8px;
+  gap: 1px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
   overflow: hidden;
 }
 
 :fullscreen .stat-card {
-  padding: 8px 10px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1245,7 +1341,7 @@ export default defineComponent({
 
 :fullscreen .employee-chart-container,
 :fullscreen .inspection-chart-container {
-  padding: 8px;
+  padding: 12px 16px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1254,8 +1350,8 @@ export default defineComponent({
 }
 
 :fullscreen .chart-caption {
-  font-size: 0.9rem;
-  margin-bottom: 4px;
+  font-size: 1rem;
+  margin-bottom: 8px;
   flex-shrink: 0;
 }
 
@@ -1269,7 +1365,7 @@ export default defineComponent({
 
 :fullscreen .chart-y-axis {
   flex-shrink: 0;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 :fullscreen .chart-content {
@@ -1287,32 +1383,33 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
+  gap: 6px;
 }
 
 :fullscreen .horizontal-bar-item {
   height: auto;
   flex: 1 1 auto;
-  min-height: 18px;
-  max-height: 24px;
+  min-height: 22px;
+  max-height: 32px;
   display: flex;
   align-items: center;
 }
 
 :fullscreen .bar-label {
-  font-size: 11px;
-  width: 60px;
+  font-size: 12px;
+  width: 70px;
 }
 
 :fullscreen .bar-track {
-  height: 14px;
+  height: 18px;
 }
 
 :fullscreen .bar-value {
-  font-size: 10px;
+  font-size: 11px;
 }
 
 :fullscreen .y-axis-tick {
-  font-size: 9px;
+  font-size: 10px;
 }
 
 :fullscreen .pie-chart-wrapper {
@@ -1321,7 +1418,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 48px;
 }
 
 :fullscreen .pie-chart-container {
@@ -1329,8 +1426,8 @@ export default defineComponent({
 }
 
 :fullscreen .pie-svg {
-  width: 100px;
-  height: 100px;
+  width: 240px;
+  height: 240px;
 }
 
 :fullscreen .pie-center {
@@ -1341,28 +1438,107 @@ export default defineComponent({
 }
 
 :fullscreen .pie-percentage {
-  font-size: 18px;
+  font-size: 44px;
 }
 
 :fullscreen .pie-label {
-  font-size: 9px;
+  font-size: 20px;
 }
 
 :fullscreen .pie-legend {
-  gap: 6px;
+  gap: 12px;
 }
 
 :fullscreen .legend-item {
-  font-size: 11px;
-  gap: 6px;
+  font-size: 14px;
+  gap: 10px;
 }
 
 :fullscreen .legend-color {
-  width: 12px;
-  height: 12px;
+  width: 18px;
+  height: 18px;
+}
+
+:fullscreen .vertical-bar-chart {
+  min-height: 150px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+:fullscreen .vertical-chart-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+:fullscreen .vertical-chart-yaxis {
+  bottom: 24px;
+  width: 40px;
+}
+
+:fullscreen .v-yaxis-tick {
+  font-size: 10px;
+  height: 20px;
+  line-height: 20px;
+}
+
+:fullscreen .vertical-chart-content {
+  margin-left: 40px;
+  overflow: visible;
+}
+
+:fullscreen .vertical-chart-grid {
+  height: 100px;
+}
+
+:fullscreen .v-grid-line {
+  height: 20px;
+}
+
+:fullscreen .vertical-bars-container {
+  margin-bottom: 40px;
+  margin-top: auto;
+}
+
+:fullscreen .vertical-bar-col {
+  max-width: 50px;
+}
+
+:fullscreen .v-bar-track {
+  height: 100px;
+  width: 20px;
+}
+
+:fullscreen .v-bar-fill {
+  min-height: 18px;
+  padding-top: 3px;
+  width: 20px;
+}
+
+:fullscreen .v-bar-value {
+  font-size: 10px;
+}
+
+:fullscreen .v-bar-label {
+  font-size: 10px;
+  margin-top: 4px;
+}
+
+:fullscreen .v-bar-label-wrapper {
+  min-height: 25px;
+  width: 100px;
+  margin-top: 10px;
+  margin-left: 15px;
+}
+
+:fullscreen .v-bar-label-slanted {
+  font-size: 11px;
+  max-width: 54px;
 }
 
 :fullscreen .employee-no-data {
-  font-size: 12px;
+  font-size: 14px;
 }
 </style>

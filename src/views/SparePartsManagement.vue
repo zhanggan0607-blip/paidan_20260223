@@ -12,7 +12,12 @@
           </div>
           <div class="search-item">
             <label class="search-label">产品名称：</label>
-            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.productName" />
+            <SearchInput
+              v-model="searchForm.productName"
+              field-key="SparePartsManagement_productName"
+              placeholder="请输入"
+              @input="handleSearch"
+            />
           </div>
           <div class="search-item">
             <label class="search-label">项目名称：</label>
@@ -108,9 +113,13 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue'
 import { sparePartsUsageService, SparePartsUsage } from '../services/sparePartsUsage'
+import SearchInput from '../components/SearchInput.vue'
 
 export default defineComponent({
   name: 'SparePartsManagement',
+  components: {
+    SearchInput
+  },
   setup() {
     const currentPage = ref(1)
     const pageSize = ref(10)

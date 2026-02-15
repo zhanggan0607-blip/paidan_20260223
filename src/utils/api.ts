@@ -32,9 +32,11 @@ apiClient.interceptors.response.use(
     if (error.response) {
       const { status, data } = error.response
       
+      const errorMessage = data?.detail || data?.message || error.message
+      
       switch (status) {
         case 400:
-          console.error('请求错误', data?.message)
+          console.error('请求错误', errorMessage)
           break
         case 401:
           console.error('未授权，请重新登录')
@@ -47,18 +49,18 @@ apiClient.interceptors.response.use(
           console.error('请求的资源不存在')
           break
         case 422:
-          console.error('参数验证失败', data?.data?.errors)
+          console.error('参数验证失败', data?.detail || data?.data?.errors)
           break
         case 500:
-          console.error('服务器内部错误', data?.message)
+          console.error('服务器内部错误', errorMessage)
           break
         default:
-          console.error('请求失败', data?.message || error.message)
+          console.error('请求失败', errorMessage)
       }
       
       return Promise.reject({
         status,
-        message: data?.message || error.message,
+        message: errorMessage,
         errors: data?.data?.errors || [],
         data: data?.data || null
       })

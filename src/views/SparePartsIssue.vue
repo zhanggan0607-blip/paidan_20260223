@@ -16,11 +16,11 @@
 
             <div class="filter-item">
               <label class="filter-label">产品名称</label>
-              <input 
-                v-model="filters.product" 
-                type="text" 
-                class="filter-input" 
+              <SearchInput
+                v-model="filters.product"
+                field-key="SparePartsIssue_product"
                 placeholder="请输入产品名称"
+                @input="handleSearch"
               />
             </div>
 
@@ -132,6 +132,7 @@ import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
+import SearchInput from '@/components/SearchInput.vue'
 
 interface SparePartsIssueItem {
   id: number
@@ -167,6 +168,9 @@ interface Project {
 
 export default defineComponent({
   name: 'SparePartsIssue',
+  components: {
+    SearchInput
+  },
   setup() {
     const loading = ref(false)
     const dataList = ref<SparePartsIssueItem[]>([])

@@ -1,9 +1,12 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, Query
+from typing import List, Optional, Union
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
+from datetime import datetime
 from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.spare_parts_usage import SparePartsUsage
+from app.models.spare_parts_stock import SparePartsStock
 from app.services.spare_parts_usage import SparePartsUsageService
 import logging
 
@@ -11,6 +14,82 @@ logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/spare-parts", tags=["Spare Parts Management"])
+
+
+class SparePartsUsageCreate(BaseModel):
+    product_name: str = Field(..., min_length=1, max_length=200, description="产品名称")
+    brand: Optional[str] = Field(None, max_length=100, description="品牌")
+    model: Optional[str] = Field(None, max_length=100, description="产品型号")
+    quantity: int = Field(..., gt=0, description="领用数量")
+    user_name: str = Field(..., min_length=1, max_length=100, description="领用人员")
+    issue_time: Union[str, datetime] = Field(..., description="领用时间")
+    unit: str = Field("件", max_length=20, description="单位")
+    project_id: Optional[str] = Field(None, max_length=50, description="项目编号")
+    project_name: Optional[str] = Field(None, max_length=200, description="项目名称")
+
+
+@router.post("/usage", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
+def create_spare_parts_usage(
+    data: SparePartsUsageCreate,
+    db: Session = Depends(get_db)
+):
+    """创建备品备件领用记录"""
+    logger.info(f"创建备品备件领用记录: {data}")
+    
+    try:
+        issue_time = data.issue_time
+        if isinstance(issue_time, str):
+            try:
+                issue_time = datetime.fromisoformat(issue_time.replace('Z', '+00:00'))
+            except ValueError:
+                try:
+                    issue_time = datetime.strptime(issue_time, '%Y-%m-%d %H:%M:%S')
+                except ValueError:
+                    issue_time = datetime.strptime(issue_time, '%Y-%m-%d')
+        
+        stock = db.query(SparePartsStock).filter(
+            SparePartsStock.product_name == data.product_name,
+            SparePartsStock.brand == (data.brand or ''),
+            SparePartsStock.model == (data.model or '')
+        ).first()
+        
+        if stock:
+            if stock.quantity < data.quantity:
+                return ApiResponse(code=400, message=f"库存不足，当前库存: {stock.quantity}", data=None)
+            stock.quantity -= data.quantity
+        
+        usage = SparePartsUsage(
+            product_name=data.product_name,
+            brand=data.brand or '',
+            model=data.model or '',
+            quantity=data.quantity,
+            user_name=data.user_name,
+            issue_time=issue_time,
+            unit=data.unit,
+            project_id=data.project_id,
+            project_name=data.project_name
+        )
+        
+        db.add(usage)
+        db.commit()
+        db.refresh(usage)
+        
+        logger.info(f"备品备件领用记录创建成功: id={usage.id}")
+        
+        return ApiResponse(
+            code=200,
+            message="领用成功",
+            data={
+                'id': usage.id,
+                'product_name': usage.product_name,
+                'quantity': usage.quantity,
+                'user_name': usage.user_name
+            }
+        )
+    except Exception as e:
+        db.rollback()
+        logger.error(f"创建备品备件领用记录失败: {str(e)}")
+        return ApiResponse(code=500, message=f"领用失败: {str(e)}", data=None)
 
 
 @router.get("/usage", response_model=ApiResponse)

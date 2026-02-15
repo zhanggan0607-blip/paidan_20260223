@@ -81,6 +81,12 @@ class ProjectInfoService:
                 detail="项目编号不允许修改"
             )
         
+        old_project_name = existing_project.project_name
+        old_client_name = existing_project.client_name
+        
+        project_name_changed = old_project_name != dto.project_name
+        client_name_changed = old_client_name != dto.client_name
+        
         existing_project.project_name = dto.project_name
         existing_project.completion_date = dto.completion_date
         existing_project.maintenance_end_date = dto.maintenance_end_date
@@ -95,7 +101,93 @@ class ProjectInfoService:
         
         result = self.repository.update(existing_project)
         
+        if project_name_changed or client_name_changed:
+            self._sync_related_tables(
+                existing_project.project_id,
+                existing_project.id,
+                dto.project_name if project_name_changed else None,
+                dto.client_name if client_name_changed else None
+            )
+        
         return result
+    
+    def _sync_related_tables(
+        self, 
+        project_id: str,
+        project_pk: int,
+        new_project_name: Optional[str] = None, 
+        new_client_name: Optional[str] = None
+    ):
+        from app.models.work_plan import WorkPlan
+        from app.models.periodic_inspection import PeriodicInspection
+        from app.models.temporary_repair import TemporaryRepair
+        from app.models.spot_work import SpotWork
+        from app.models.spare_parts_usage import SparePartsUsage
+        from app.models.repair_tools import RepairToolsIssue
+        from app.models.maintenance_plan import MaintenancePlan
+        
+        sync_count = 0
+        
+        if new_project_name:
+            work_plan_updated = self.db.query(WorkPlan).filter(
+                WorkPlan.project_id == project_id
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += work_plan_updated
+            
+            periodic_updated = self.db.query(PeriodicInspection).filter(
+                PeriodicInspection.project_id == project_id
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += periodic_updated
+            
+            repair_updated = self.db.query(TemporaryRepair).filter(
+                TemporaryRepair.project_id == project_id
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += repair_updated
+            
+            spot_work_updated = self.db.query(SpotWork).filter(
+                SpotWork.project_id == project_id
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += spot_work_updated
+            
+            spare_parts_updated = self.db.query(SparePartsUsage).filter(
+                SparePartsUsage.project_id == project_id
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += spare_parts_updated
+            
+            tools_issue_updated = self.db.query(RepairToolsIssue).filter(
+                RepairToolsIssue.project_id == project_pk
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += tools_issue_updated
+            
+            maintenance_plan_updated = self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.project_id == project_id
+            ).update({"project_name": new_project_name}, synchronize_session=False)
+            sync_count += maintenance_plan_updated
+        
+        if new_client_name:
+            work_plan_updated = self.db.query(WorkPlan).filter(
+                WorkPlan.project_id == project_id
+            ).update({"client_name": new_client_name}, synchronize_session=False)
+            sync_count += work_plan_updated
+            
+            periodic_updated = self.db.query(PeriodicInspection).filter(
+                PeriodicInspection.project_id == project_id
+            ).update({"client_name": new_client_name}, synchronize_session=False)
+            sync_count += periodic_updated
+            
+            repair_updated = self.db.query(TemporaryRepair).filter(
+                TemporaryRepair.project_id == project_id
+            ).update({"client_name": new_client_name}, synchronize_session=False)
+            sync_count += repair_updated
+            
+            spot_work_updated = self.db.query(SpotWork).filter(
+                SpotWork.project_id == project_id
+            ).update({"client_name": new_client_name}, synchronize_session=False)
+            sync_count += spot_work_updated
+        
+        if sync_count > 0:
+            self.db.commit()
+            logger.info(f"✅ [Service] 同步更新关联表数据: project_id={project_id}, 更新记录数={sync_count}")
     
     def delete(self, id: int, cascade: bool = False) -> dict:
         project_info = self.get_by_id(id)

@@ -14,7 +14,7 @@ const workList = ref<any[]>([])
 
 const tabs = [
   { key: '未进行', title: '待处理' },
-  { key: '进行中', title: '进行中' },
+  { key: '待确认', title: '待确认' },
   { key: '已完成', title: '已完成' }
 ]
 
@@ -32,7 +32,7 @@ const fetchWorkList = async () => {
         size: 100
       } 
     })
-    if (response.success) {
+    if (response.code === 200) {
       workList.value = response.data?.content || []
     }
   } catch (error) {
@@ -56,11 +56,16 @@ onMounted(() => {
   <div class="spot-work-page">
     <van-nav-bar 
       title="零星用工" 
-      left-arrow 
       fixed 
       placeholder 
-      @click-left="router.back()" 
-    />
+    >
+      <template #left>
+        <div class="nav-left" @click="router.back()">
+          <van-icon name="arrow-left" />
+          <span>返回</span>
+        </div>
+      </template>
+    </van-nav-bar>
     
     <van-tabs v-model:active="activeTab" sticky @change="fetchWorkList">
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">

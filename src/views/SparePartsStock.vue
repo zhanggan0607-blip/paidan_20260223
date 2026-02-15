@@ -11,11 +11,11 @@
             <div class="filter-fields">
               <div class="filter-group">
                 <label class="filter-label">产品名称</label>
-                <input 
-                  v-model="filters.product" 
-                  type="text" 
-                  class="filter-input" 
+                <SearchInput
+                  v-model="filters.product"
+                  field-key="SparePartsStock_product"
                   placeholder="请输入产品名称"
+                  @input="handleSearch"
                 />
               </div>
               <div class="filter-group">
@@ -231,6 +231,7 @@ import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse, SparePartsStockQueryParams } from '@/types/api'
 import Toast from '@/components/Toast.vue'
+import SearchInput from '@/components/SearchInput.vue'
 import { USER_ROLES } from '@/config/constants'
 
 interface InboundRecord {
@@ -256,7 +257,8 @@ interface User {
 export default defineComponent({
   name: 'SparePartsStock',
   components: {
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const loading = ref(false)

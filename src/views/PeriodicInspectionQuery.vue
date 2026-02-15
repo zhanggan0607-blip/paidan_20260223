@@ -7,11 +7,21 @@
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">项目名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" />
+          <SearchInput
+            v-model="searchForm.projectName"
+            field-key="PeriodicInspectionQuery_projectName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">客户名称：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.clientName" />
+          <SearchInput
+            v-model="searchForm.clientName"
+            field-key="PeriodicInspectionQuery_clientName"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
       </div>
       <div class="search-actions">
@@ -161,10 +171,11 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
-import { maintenancePlanService, type MaintenancePlan } from '../services/maintenancePlan'
+import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import SearchInput from '../components/SearchInput.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '../config/constants'
 
 interface InspectionItem {
@@ -186,7 +197,8 @@ export default defineComponent({
   name: 'PeriodicInspectionQuery',
   components: {
     LoadingSpinner,
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const searchForm = reactive({
@@ -298,7 +310,7 @@ export default defineComponent({
         case WORK_STATUS.CONFIRMED:
           return 'status-confirmed'
         case WORK_STATUS.IN_PROGRESS:
-        case '进行中':
+        case '待确认':
           return 'status-in-progress'
         case WORK_STATUS.COMPLETED:
         case '已完成':
@@ -318,25 +330,24 @@ export default defineComponent({
 
       loading.value = true
       try {
-        const response = await maintenancePlanService.getList({
+        const response = await periodicInspectionService.getList({
           page: currentPage.value,
           size: pageSize.value,
-          plan_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined,
-          plan_type: '定期维保'
+          project_name: searchForm.projectName || undefined,
+          client_name: searchForm.clientName || undefined
         })
         
         if (response.code === 200) {
-          inspectionData.value = response.data.content.map((item: MaintenancePlan) => ({
+          inspectionData.value = response.data.content.map((item: PeriodicInspection) => ({
             id: item.id,
-            inspection_id: item.plan_id,
+            inspection_id: item.inspection_id,
             project_id: item.project_id,
-            project_name: item.plan_name,
+            project_name: item.project_name,
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
-            client_name: item.responsible_department || '',
-            maintenance_personnel: item.responsible_person || '',
-            status: item.plan_status || '待执行',
+            client_name: item.client_name || '',
+            maintenance_personnel: item.maintenance_personnel || '',
+            status: item.status || '未进行',
             remarks: item.remarks || '',
             created_at: item.created_at,
             updated_at: item.updated_at

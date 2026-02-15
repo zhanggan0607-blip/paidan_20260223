@@ -20,6 +20,7 @@ class WorkPlanCreate(BaseModel):
     client_name: Optional[str] = None
     maintenance_personnel: Optional[str] = None
     status: Optional[str] = None
+    filled_count: Optional[int] = 0
     remarks: Optional[str] = None
 
 
@@ -33,6 +34,7 @@ class WorkPlanUpdate(BaseModel):
     client_name: Optional[str] = None
     maintenance_personnel: Optional[str] = None
     status: str
+    filled_count: Optional[int] = 0
     remarks: Optional[str] = None
 
 
@@ -109,6 +111,7 @@ class WorkPlanService:
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
             status=dto.status or "未进行",
+            filled_count=dto.filled_count or 0,
             remarks=dto.remarks
         )
         
@@ -138,6 +141,7 @@ class WorkPlanService:
         existing_plan.client_name = dto.client_name
         existing_plan.maintenance_personnel = dto.maintenance_personnel
         existing_plan.status = dto.status
+        existing_plan.filled_count = dto.filled_count or 0
         existing_plan.remarks = dto.remarks
         
         return self.repository.update(existing_plan)

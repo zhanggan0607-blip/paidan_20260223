@@ -7,11 +7,21 @@
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">客户单位：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.name" />
+          <SearchInput
+            v-model="searchForm.name"
+            field-key="CustomerManagement_name"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">客户联系人：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.contact_person" />
+          <SearchInput
+            v-model="searchForm.contact_person"
+            field-key="CustomerManagement_contact_person"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
       </div>
       <div class="search-actions">
@@ -194,13 +204,15 @@ import { ElMessageBox } from 'element-plus'
 import { customerService, type Customer, type CustomerCreate, type CustomerUpdate } from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 
 export default defineComponent({
   name: 'CustomerManagement',
   components: {
     LoadingSpinner,
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const searchForm = reactive({
@@ -360,12 +372,12 @@ export default defineComponent({
       try {
         if (isEditMode.value && editingId.value !== null) {
           const updateData: CustomerUpdate = {
-            name: formData.name,
-            address: formData.address || undefined,
-            contact_person: formData.contact_person || undefined,
-            phone: formData.phone || undefined,
-            contact_position: formData.contact_position || undefined,
-            remarks: formData.remarks || undefined
+            name: formData.name?.trim() || undefined,
+            address: formData.address?.trim() || undefined,
+            contact_person: formData.contact_person?.trim() || undefined,
+            phone: formData.phone?.trim() || undefined,
+            contact_position: formData.contact_position?.trim() || undefined,
+            remarks: formData.remarks?.trim() || undefined
           }
 
           const response = await customerService.update(editingId.value, updateData)
@@ -379,12 +391,12 @@ export default defineComponent({
           }
         } else {
           const createData: CustomerCreate = {
-            name: formData.name,
-            address: formData.address || undefined,
-            contact_person: formData.contact_person || undefined,
-            phone: formData.phone || undefined,
-            contact_position: formData.contact_position || undefined,
-            remarks: formData.remarks || undefined
+            name: formData.name?.trim() || '',
+            address: formData.address?.trim() || undefined,
+            contact_person: formData.contact_person?.trim() || '',
+            phone: formData.phone?.trim() || '',
+            contact_position: formData.contact_position?.trim() || undefined,
+            remarks: formData.remarks?.trim() || undefined
           }
 
           const response = await customerService.create(createData)

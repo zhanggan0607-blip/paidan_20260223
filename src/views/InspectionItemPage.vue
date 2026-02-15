@@ -17,11 +17,11 @@
         </div>
 
         <div class="tree-toolbar">
-          <el-input
+          <SearchInput
             v-model="filterText"
+            field-key="InspectionItemPage_filter"
             placeholder="搜索分类..."
-            clearable
-            @clear="handleSearchClear"
+            @input="handleSearchInput"
           />
           
           <div class="toolbar-actions">
@@ -239,6 +239,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import type { ElTree } from 'element-plus'
 import type Node from 'element-plus/es/components/tree/src/model/node'
 import { inspectionItemService, type InspectionItem } from '@/services/inspectionItem'
+import SearchInput from '@/components/SearchInput.vue'
 
 interface TreeNodeData extends InspectionItem {
   label: string
@@ -331,6 +332,11 @@ const filterNode = (value: string, data: TreeNodeData) => {
 
 const handleSearchClear = () => {
   filterText.value = ''
+}
+
+const handleSearchInput = (value: string) => {
+  filterText.value = value
+  treeRef.value?.filter(value)
 }
 
 const handleExpandAll = () => {

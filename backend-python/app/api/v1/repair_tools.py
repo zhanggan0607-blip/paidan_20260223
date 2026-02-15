@@ -69,7 +69,7 @@ async def create_stock(
     db.commit()
     db.refresh(stock)
     
-    return ApiResponse(data=stock.to_dict(), message="新增成功")
+    return ApiResponse(code=200, data=stock.to_dict(), message="新增成功")
 
 
 @router.get("/stock/{stock_id}", summary="获取维修工具详情")
@@ -81,7 +81,7 @@ async def get_stock_detail(
     if not stock:
         raise HTTPException(status_code=404, detail="工具不存在")
     
-    return ApiResponse(data=stock.to_dict())
+    return ApiResponse(code=200, data=stock.to_dict())
 
 
 @router.put("/stock/{stock_id}", summary="更新维修工具信息")
@@ -101,7 +101,7 @@ async def update_stock(
     db.commit()
     db.refresh(stock)
     
-    return ApiResponse(data=stock.to_dict(), message="更新成功")
+    return ApiResponse(code=200, data=stock.to_dict(), message="更新成功")
 
 
 @router.post("/stock/{stock_id}/restock", summary="工具入库（增加库存）")
@@ -118,7 +118,7 @@ async def restock_tool(
     db.commit()
     db.refresh(stock)
     
-    return ApiResponse(data=stock.to_dict(), message="入库成功")
+    return ApiResponse(code=200, data=stock.to_dict(), message="入库成功")
 
 
 @router.delete("/stock/{stock_id}", summary="删除维修工具")
@@ -133,7 +133,7 @@ async def delete_stock(
     db.delete(stock)
     db.commit()
     
-    return ApiResponse(message="删除成功")
+    return ApiResponse(code=200, message="删除成功")
 
 
 @router.get("/issue", summary="获取维修工具领用记录列表")
@@ -202,7 +202,7 @@ async def create_issue(
     db.commit()
     db.refresh(issue)
     
-    return ApiResponse(data=issue.to_dict(), message="领用成功")
+    return ApiResponse(code=200, data=issue.to_dict(), message="领用成功")
 
 
 @router.put("/issue/{issue_id}/return", summary="工具归还")
@@ -235,7 +235,7 @@ async def return_tool(
     db.commit()
     db.refresh(issue)
     
-    return ApiResponse(data=issue.to_dict(), message="归还成功")
+    return ApiResponse(code=200, data=issue.to_dict(), message="归还成功")
 
 
 @router.get("/issue/{issue_id}", summary="获取领用记录详情")
@@ -247,4 +247,4 @@ async def get_issue_detail(
     if not issue:
         raise HTTPException(status_code=404, detail="领用记录不存在")
     
-    return ApiResponse(data=issue.to_dict())
+    return ApiResponse(code=200, data=issue.to_dict())

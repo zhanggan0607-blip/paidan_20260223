@@ -55,7 +55,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { temporaryRepairService } from '@/services/temporaryRepair'
+import { maintenancePlanService } from '@/services/maintenancePlan'
 
 interface RepairData {
   id: number
@@ -102,9 +102,21 @@ export default defineComponent({
       const id = route.query.id as string
       if (id) {
         try {
-          const response = await temporaryRepairService.getById(parseInt(id))
+          const response = await maintenancePlanService.getById(parseInt(id))
           if (response.code === 200) {
-            repairData.value = response.data
+            const item = response.data
+            repairData.value = {
+              id: item.id,
+              repair_id: item.plan_id,
+              project_id: item.project_id,
+              project_name: item.project_name || item.plan_name,
+              plan_start_date: item.plan_start_date,
+              plan_end_date: item.plan_end_date,
+              client_name: item.responsible_department || '',
+              maintenance_personnel: item.responsible_person || '',
+              status: item.plan_status || '待执行',
+              remarks: item.remarks || ''
+            }
           }
         } catch (error) {
           console.error('加载数据失败:', error)

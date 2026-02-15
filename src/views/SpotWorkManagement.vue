@@ -6,11 +6,21 @@
         <div class="search-form">
           <div class="search-item">
             <label class="search-label">项目名称：</label>
-            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.project_name" />
+            <SearchInput
+              v-model="searchForm.project_name"
+              field-key="SpotWorkManagement_project_name"
+              placeholder="请输入"
+              @input="handleSearch"
+            />
           </div>
           <div class="search-item">
             <label class="search-label">客户名称：</label>
-            <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.client_name" />
+            <SearchInput
+              v-model="searchForm.client_name"
+              field-key="SpotWorkManagement_client_name"
+              placeholder="请输入"
+              @input="handleSearch"
+            />
           </div>
         </div>
         <div class="action-buttons">
@@ -59,7 +69,7 @@
               <td>
                 <span v-if="item.status === WORK_STATUS.NOT_STARTED" class="status-tag status-pending">未进行</span>
                 <span v-else-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="status-tag status-waiting">待确认</span>
-                <span v-else-if="item.status === WORK_STATUS.IN_PROGRESS" class="status-tag status-in-progress">进行中</span>
+                <span v-else-if="item.status === WORK_STATUS.IN_PROGRESS" class="status-tag status-in-progress">待确认</span>
                 <span v-else-if="item.status === WORK_STATUS.COMPLETED" class="status-tag status-completed">已完成</span>
                 <span v-else class="status-tag">{{ item.status }}</span>
               </td>
@@ -122,6 +132,7 @@ import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
 import Toast from '@/components/Toast.vue'
+import SearchInput from '@/components/SearchInput.vue'
 import { WORK_STATUS, formatDate } from '@/config/constants'
 
 interface WorkItem {
@@ -140,7 +151,8 @@ interface WorkItem {
 export default defineComponent({
   name: 'SpotWorkManagement',
   components: {
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const router = useRouter()
@@ -189,7 +201,7 @@ export default defineComponent({
             id: item.id,
             work_id: item.plan_id,
             project_id: item.project_id,
-            project_name: item.plan_name,
+            project_name: item.project_name || item.plan_name,
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
             client_name: item.responsible_department || '',
@@ -258,8 +270,8 @@ export default defineComponent({
           responsible_person: item.maintenance_personnel,
           responsible_department: item.client_name,
           maintenance_content: item.remarks || '',
-          plan_status: '进行中',
-          execution_status: '进行中'
+          plan_status: '待确认',
+          execution_status: '待确认'
         })
         showToast('确认成功', 'success')
         loadData()

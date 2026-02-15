@@ -88,7 +88,7 @@ class SpotWorkService:
                 detail="用工单编号已存在"
             )
         
-        default_status = get_default_spot_work_status(self.repository._SpotWorkRepository__db)
+        default_status = get_default_spot_work_status(self.repository.db)
         
         work = SpotWork(
             work_id=dto.work_id,

@@ -7,11 +7,21 @@
           <div class="search-row">
             <div class="search-item">
               <label class="search-label">项目名称：</label>
-              <input type="text" class="search-input" placeholder="请输入项目名称" v-model="searchForm.project_name" />
+              <SearchInput
+                v-model="searchForm.project_name"
+                field-key="TemporaryRepairQuery_project_name"
+                placeholder="请输入项目名称"
+                @input="handleSearch"
+              />
             </div>
             <div class="search-item">
               <label class="search-label">客户名称：</label>
-              <input type="text" class="search-input" placeholder="请输入客户名称" v-model="searchForm.client_name" />
+              <SearchInput
+                v-model="searchForm.client_name"
+                field-key="TemporaryRepairQuery_client_name"
+                placeholder="请输入客户名称"
+                @input="handleSearch"
+              />
             </div>
           </div>
           <div class="search-row">
@@ -205,6 +215,7 @@ import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
 import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
 import Toast from '@/components/Toast.vue'
+import SearchInput from '@/components/SearchInput.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
 
 interface RepairItem {
@@ -223,7 +234,8 @@ interface RepairItem {
 export default defineComponent({
   name: 'TemporaryRepairQuery',
   components: {
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const router = useRouter()
@@ -288,7 +300,7 @@ export default defineComponent({
             id: item.id,
             repair_id: item.plan_id,
             project_id: item.project_id,
-            project_name: item.plan_name,
+            project_name: item.project_name || item.plan_name,
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
             client_name: item.responsible_department || '',
@@ -367,7 +379,7 @@ export default defineComponent({
       try {
         const response = await maintenancePlanService.getList({
           page: 0,
-          size: 1000,
+          size: 100,
           plan_name: formData.value.project_name,
           plan_type: '临时维修'
         })

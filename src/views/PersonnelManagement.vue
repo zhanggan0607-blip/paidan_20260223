@@ -7,11 +7,21 @@
       <div class="search-form">
         <div class="search-item">
           <label class="search-label">姓名：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.name" />
+          <SearchInput
+            v-model="searchForm.name"
+            field-key="PersonnelManagement_name"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
         <div class="search-item">
           <label class="search-label">部门：</label>
-          <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.department" />
+          <SearchInput
+            v-model="searchForm.department"
+            field-key="PersonnelManagement_department"
+            placeholder="请输入"
+            @input="handleSearch"
+          />
         </div>
       </div>
       <div class="search-actions">
@@ -217,6 +227,7 @@ import { ElMessageBox } from 'element-plus'
 import { personnelService, type Personnel, type PersonnelCreate, type PersonnelUpdate } from '../services/personnel'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
+import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 import { USER_ROLES, GENDER_LIST, formatDate } from '../config/constants'
 
@@ -224,7 +235,8 @@ export default defineComponent({
   name: 'PersonnelManagement',
   components: {
     LoadingSpinner,
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const searchForm = reactive({

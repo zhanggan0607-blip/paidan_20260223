@@ -18,7 +18,7 @@ class PeriodicInspectionBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '进行中', '已完成', '已取消']
+        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -33,6 +33,7 @@ class PeriodicInspectionCreate(BaseModel):
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: Optional[str] = Field(None, max_length=20, description="状态")
+    filled_count: Optional[int] = Field(0, description="已填写检查项数量")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
 
@@ -45,6 +46,7 @@ class PeriodicInspectionUpdate(BaseModel):
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field(..., max_length=20, description="状态")
+    filled_count: Optional[int] = Field(0, description="已填写检查项数量")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
 

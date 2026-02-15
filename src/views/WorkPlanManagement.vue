@@ -7,11 +7,21 @@
           <div class="search-row">
             <div class="search-item">
               <label class="search-label">项目名称：</label>
-              <input type="text" class="search-input" placeholder="请输入项目名称" v-model="searchForm.project_name" />
+              <SearchInput
+                v-model="searchForm.project_name"
+                field-key="WorkPlanManagement_project_name"
+                placeholder="请输入项目名称"
+                @input="handleSearch"
+              />
             </div>
             <div class="search-item">
               <label class="search-label">客户名称：</label>
-              <input type="text" class="search-input" placeholder="请输入客户名称" v-model="searchForm.client_name" />
+              <SearchInput
+                v-model="searchForm.client_name"
+                field-key="WorkPlanManagement_client_name"
+                placeholder="请输入客户名称"
+                @input="handleSearch"
+              />
             </div>
           </div>
         </div>
@@ -258,6 +268,7 @@ import { ElMessageBox } from 'element-plus'
 import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import Toast from '@/components/Toast.vue'
+import SearchInput from '@/components/SearchInput.vue'
 import { PLAN_TYPES, WORK_STATUS, formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/config/constants'
 
 interface PlanItem {
@@ -277,7 +288,8 @@ interface PlanItem {
 export default defineComponent({
   name: 'WorkPlanManagement',
   components: {
-    Toast
+    Toast,
+    SearchInput
   },
   setup() {
     const planTypes = [PLAN_TYPES.PERIODIC_MAINTENANCE, PLAN_TYPES.TEMPORARY_REPAIR, PLAN_TYPES.SPOT_WORK]

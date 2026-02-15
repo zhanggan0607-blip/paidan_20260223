@@ -7,20 +7,29 @@
           <div class="search-form">
             <div class="search-item">
               <label class="search-label">项目名称</label>
-              <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.projectName" />
+              <SearchInput
+                v-model="searchForm.projectName"
+                field-key="OverdueAlert_projectName"
+                placeholder="请输入"
+                @input="handleSearch"
+              />
             </div>
             <div class="search-item">
               <label class="search-label">客户名称</label>
-              <input type="text" class="search-input" placeholder="请输入" v-model="searchForm.customerName" />
+              <SearchInput
+                v-model="searchForm.customerName"
+                field-key="OverdueAlert_customerName"
+                placeholder="请输入"
+                @input="handleSearch"
+              />
             </div>
             <div class="search-item">
               <label class="search-label">工单类型</label>
               <select class="search-select" v-model="searchForm.workOrderType">
                 <option value="">请选择工单类型</option>
-                <option value="定期巡检">定期巡检</option>
-                <option value="临时维修">临时维修</option>
-                <option value="零星用工">零星用工</option>
-                <option value="维保计划">维保计划</option>
+                <option value="定期巡检">定期巡检单</option>
+                <option value="临时维修">临时维修单</option>
+                <option value="零星用工">零星用工单</option>
               </select>
             </div>
           </div>
@@ -103,22 +112,99 @@
         </div>
       </div>
     </div>
+
+    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3 class="modal-title">查看工单详情</h3>
+          <button class="modal-close" @click="closeViewModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">工单编号</label>
+                <div class="form-value">{{ viewData.work_order_no || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目编号</label>
+                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">工单类型</label>
+                <div class="form-value">{{ viewData.work_order_type || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">计划开始日期</label>
+                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户名称</label>
+                <div class="form-value">{{ viewData.client_name || '-' }}</div>
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">项目名称</label>
+                <div class="form-value">{{ viewData.project_name || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">工单状态</label>
+                <div class="form-value">{{ viewData.status || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">计划结束日期</label>
+                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">执行人员</label>
+                <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">备注</label>
+            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
+import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
+import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
+import { spotWorkService, type SpotWork } from '../services/spotWork'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
+import SearchInput from '../components/SearchInput.vue'
+
+interface ViewData {
+  id: number
+  work_order_no: string
+  project_id: string
+  project_name: string
+  work_order_type: string
+  plan_start_date: string
+  plan_end_date: string
+  client_name: string
+  maintenance_personnel: string
+  status: string
+  remarks: string
+}
 
 export default defineComponent({
   name: 'OverdueAlert',
   components: {
-    LoadingSpinner
+    LoadingSpinner,
+    SearchInput
   },
   setup() {
-    const router = useRouter()
     const searchForm = reactive({
       projectName: '',
       customerName: '',
@@ -131,6 +217,83 @@ export default defineComponent({
     const loading = ref(false)
 
     const allData = ref<OverdueItem[]>([])
+
+    const isViewModalOpen = ref(false)
+    const currentWorkOrderType = ref('')
+
+    const viewData = reactive<ViewData>({
+      id: 0,
+      work_order_no: '',
+      project_id: '',
+      project_name: '',
+      work_order_type: '',
+      plan_start_date: '',
+      plan_end_date: '',
+      client_name: '',
+      maintenance_personnel: '',
+      status: '',
+      remarks: ''
+    })
+
+    const formatDate = (dateStr: string) => {
+      if (!dateStr) return ''
+      try {
+        const date = new Date(dateStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      } catch {
+        return dateStr
+      }
+    }
+
+    const updateViewDataFromInspection = (data: PeriodicInspection) => {
+      viewData.id = data.id
+      viewData.work_order_no = data.inspection_id
+      viewData.project_id = data.project_id
+      viewData.project_name = data.project_name
+      viewData.work_order_type = '定期巡检单'
+      viewData.plan_start_date = data.plan_start_date
+      viewData.plan_end_date = data.plan_end_date
+      viewData.client_name = data.client_name || ''
+      viewData.maintenance_personnel = data.maintenance_personnel || ''
+      viewData.status = data.status
+      viewData.remarks = data.remarks || ''
+    }
+
+    const updateViewDataFromRepair = (data: TemporaryRepair) => {
+      viewData.id = data.id
+      viewData.work_order_no = data.repair_id
+      viewData.project_id = data.project_id
+      viewData.project_name = data.project_name
+      viewData.work_order_type = '临时维修单'
+      viewData.plan_start_date = data.plan_start_date
+      viewData.plan_end_date = data.plan_end_date
+      viewData.client_name = data.client_name
+      viewData.maintenance_personnel = data.maintenance_personnel
+      viewData.status = data.status
+      viewData.remarks = data.remarks || ''
+    }
+
+    const updateViewDataFromSpotWork = (data: SpotWork) => {
+      viewData.id = data.id
+      viewData.work_order_no = data.work_id
+      viewData.project_id = data.project_id
+      viewData.project_name = data.project_name
+      viewData.work_order_type = '零星用工单'
+      viewData.plan_start_date = data.plan_start_date
+      viewData.plan_end_date = data.plan_end_date
+      viewData.client_name = data.client_name
+      viewData.maintenance_personnel = data.maintenance_personnel
+      viewData.status = data.status
+      viewData.remarks = data.remarks || ''
+    }
+
+    const closeViewModal = () => {
+      isViewModalOpen.value = false
+      currentWorkOrderType.value = ''
+    }
 
     const loadData = async () => {
       loading.value = true
@@ -172,32 +335,41 @@ export default defineComponent({
       loadData()
     }
 
-    const handleView = (item: OverdueItem) => {
-      switch (item.workOrderType) {
-        case '定期巡检':
-          router.push({
-            path: '/work-order/periodic-inspection',
-            query: { id: item.id }
-          })
-          break
-        case '临时维修':
-          router.push({
-            path: '/work-order/temporary-repair/detail',
-            query: { id: item.id }
-          })
-          break
-        case '零星用工':
-          router.push({
-            path: '/work-order/spot-work',
-            query: { id: item.id }
-          })
-          break
-        case '维保计划':
-          router.push({
-            path: '/maintenance-plan',
-            query: { id: item.id }
-          })
-          break
+    const handleView = async (item: OverdueItem) => {
+      loading.value = true
+      try {
+        const itemId = parseInt(item.id)
+        if (isNaN(itemId)) {
+          console.error('无效的工单ID:', item.id)
+          return
+        }
+        
+        if (item.workOrderType === '定期巡检') {
+          currentWorkOrderType.value = '定期巡检'
+          const response = await periodicInspectionService.getById(itemId)
+          if (response.code === 200 && response.data) {
+            updateViewDataFromInspection(response.data)
+            isViewModalOpen.value = true
+          }
+        } else if (item.workOrderType === '临时维修') {
+          currentWorkOrderType.value = '临时维修'
+          const response = await temporaryRepairService.getById(itemId)
+          if (response.code === 200 && response.data) {
+            updateViewDataFromRepair(response.data)
+            isViewModalOpen.value = true
+          }
+        } else if (item.workOrderType === '零星用工') {
+          currentWorkOrderType.value = '零星用工'
+          const response = await spotWorkService.getById(itemId)
+          if (response.code === 200 && response.data) {
+            updateViewDataFromSpotWork(response.data)
+            isViewModalOpen.value = true
+          }
+        }
+      } catch (error) {
+        console.error('加载工单详情失败:', error)
+      } finally {
+        loading.value = false
       }
     }
 
@@ -215,7 +387,12 @@ export default defineComponent({
       jumpPage,
       loading,
       handleSearch,
-      handleView
+      handleView,
+      isViewModalOpen,
+      currentWorkOrderType,
+      viewData,
+      closeViewModal,
+      formatDate
     }
   }
 })
@@ -494,5 +671,148 @@ td.overdue-days {
   .main-wrapper {
     flex-direction: column;
   }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background: #fff;
+  border-radius: 8px;
+  width: 1000px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px 40px;
+  align-items: start;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 70px;
+  padding: 4px 0;
+}
+
+.form-item-full {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #424242;
+}
+
+.form-value {
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.form-value-textarea {
+  min-height: 60px;
+  align-items: flex-start;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-cancel {
+  background: #fff;
+  color: #666;
+  border: 1px solid #e0e0e0;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #f5f5f5;
 }
 </style>

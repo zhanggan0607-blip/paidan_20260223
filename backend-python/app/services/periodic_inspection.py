@@ -75,6 +75,7 @@ class PeriodicInspectionService:
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
             status=dto.status or default_status,
+            filled_count=dto.filled_count or 0,
             remarks=dto.remarks
         )
         
@@ -97,6 +98,7 @@ class PeriodicInspectionService:
         existing_inspection.client_name = dto.client_name
         existing_inspection.maintenance_personnel = dto.maintenance_personnel
         existing_inspection.status = dto.status
+        existing_inspection.filled_count = dto.filled_count or 0
         existing_inspection.remarks = dto.remarks
         
         return self.repository.update(existing_inspection)

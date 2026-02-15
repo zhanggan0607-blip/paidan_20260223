@@ -6,11 +6,11 @@
           <div class="filter-section">
             <div class="filter-item">
               <label class="filter-label">工具名称</label>
-              <input 
-                v-model="filters.toolName" 
-                type="text" 
-                class="filter-input" 
+              <SearchInput
+                v-model="filters.toolName"
+                field-key="RepairToolsInbound_toolName"
                 placeholder="请输入工具名称"
+                @input="handleSearch"
               />
             </div>
 
@@ -223,6 +223,7 @@
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
+import SearchInput from '@/components/SearchInput.vue'
 
 interface RepairToolsStockItem {
   id: number
@@ -239,6 +240,9 @@ interface RepairToolsStockItem {
 
 export default defineComponent({
   name: 'RepairToolsInbound',
+  components: {
+    SearchInput
+  },
   setup() {
     const loading = ref(false)
     const submitting = ref(false)

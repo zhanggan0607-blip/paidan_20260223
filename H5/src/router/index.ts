@@ -8,6 +8,12 @@ const routes = [
     meta: { title: '运维人员_手机端' }
   },
   {
+    path: '/project-info',
+    name: 'ProjectInfo',
+    component: () => import('../views/ProjectInfoPage.vue'),
+    meta: { title: '项目信息' }
+  },
+  {
     path: '/work-list',
     name: 'WorkList',
     component: () => import('../views/WorkListPage.vue'),
@@ -18,6 +24,12 @@ const routes = [
     name: 'PeriodicInspection',
     component: () => import('../views/PeriodicInspectionPage.vue'),
     meta: { title: '定期巡检' }
+  },
+  {
+    path: '/periodic-inspection/:id',
+    name: 'PeriodicInspectionDetail',
+    component: () => import('../views/PeriodicInspectionDetailPage.vue'),
+    meta: { title: '定期巡检详情' }
   },
   {
     path: '/temporary-repair',
@@ -36,6 +48,12 @@ const routes = [
     name: 'SpotWorkQuickFill',
     component: () => import('../views/SpotWorkQuickFillPage.vue'),
     meta: { title: '零星用工快捷填报' }
+  },
+  {
+    path: '/signature',
+    name: 'Signature',
+    component: () => import('../views/SignaturePage.vue'),
+    meta: { title: '签字确认' }
   }
 ]
 
