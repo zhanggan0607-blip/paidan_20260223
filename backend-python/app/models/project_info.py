@@ -17,7 +17,7 @@ class ProjectInfo(Base):
     client_name = Column(String(100), nullable=False, comment="客户单位名称")
     address = Column(String(200), nullable=False, comment="客户地址")
     project_abbr = Column(String(10), comment="项目简称")
-    project_manager = Column(String(50), comment="项目负责人")
+    project_manager = Column(String(50), comment="运维人员")
     client_contact = Column(String(50), comment="客户联系人")
     client_contact_position = Column(String(20), comment="客户联系人职位")
     client_contact_info = Column(String(50), comment="客户联系方式")

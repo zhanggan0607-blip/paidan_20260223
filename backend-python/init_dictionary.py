@@ -50,7 +50,7 @@ def init_dictionary_data():
             {'dict_type': 'maintenance_execution_status', 'dict_key': 'cancelled', 'dict_value': '已取消', 'dict_label': '已取消', 'sort_order': 4},
             {'dict_type': 'maintenance_execution_status', 'dict_key': 'abnormal', 'dict_value': '异常', 'dict_label': '异常', 'sort_order': 5},
             
-            # 维保计划类型
+            # 工单类型
             {'dict_type': 'maintenance_plan_type', 'dict_key': 'regular', 'dict_value': '定期维保', 'dict_label': '定期维保', 'sort_order': 1},
             {'dict_type': 'maintenance_plan_type', 'dict_key': 'preventive', 'dict_value': '预防性维保', 'dict_label': '预防性维保', 'sort_order': 2},
             {'dict_type': 'maintenance_plan_type', 'dict_key': 'fault_repair', 'dict_value': '故障维修', 'dict_label': '故障维修', 'sort_order': 3},

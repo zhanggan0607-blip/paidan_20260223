@@ -15,6 +15,7 @@ class RepairToolsStock(Base):
     stock = Column(Integer, nullable=False, default=0, comment="库存数量")
     min_stock = Column(Integer, default=5, comment="最低库存预警")
     location = Column(String(100), comment="存放位置")
+    status = Column(String(20), nullable=False, default="已归还", comment="状态：已归还/已领用/已损坏")
     remark = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
@@ -22,6 +23,7 @@ class RepairToolsStock(Base):
     __table_args__ = (
         Index('idx_repair_tool_name', 'tool_name'),
         Index('idx_repair_tool_category', 'category'),
+        Index('idx_repair_tool_status', 'status'),
         {'comment': '维修工具库存表'}
     )
     
@@ -36,6 +38,7 @@ class RepairToolsStock(Base):
             'stock': self.stock,
             'min_stock': self.min_stock or 5,
             'location': self.location or '',
+            'status': self.status,
             'remark': self.remark or '',
             'last_stock_time': self.updated_at.strftime('%Y-%m-%d %H:%M:%S') if self.updated_at else '',
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -52,13 +55,13 @@ class RepairToolsIssue(Base):
     specification = Column(String(200), comment="规格型号")
     quantity = Column(Integer, nullable=False, comment="领用数量")
     return_quantity = Column(Integer, default=0, comment="归还数量")
-    user_id = Column(BigInteger, comment="领用人ID")
-    user_name = Column(String(100), nullable=False, comment="领用人姓名")
+    user_id = Column(BigInteger, comment="运维人员ID")
+    user_name = Column(String(100), nullable=False, comment="运维人员姓名")
     issue_time = Column(DateTime, nullable=False, comment="领用时间")
     return_time = Column(DateTime, comment="归还时间")
-    project_id = Column(BigInteger, comment="项目ID")
+    project_id = Column(String(50), comment="项目编号")
     project_name = Column(String(200), comment="项目名称")
-    status = Column(String(20), default="已领用", comment="状态：已领用/已归还")
+    status = Column(String(20), default="已领用", comment="状态：已领用/已归还/已损坏")
     remark = Column(Text, comment="备注")
     stock_id = Column(BigInteger, comment="库存记录ID")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")

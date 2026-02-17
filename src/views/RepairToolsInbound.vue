@@ -23,8 +23,6 @@
                 </option>
               </select>
             </div>
-
-            <button @click="handleSearch" class="search-button">搜索</button>
             <button @click="handleAdd" class="add-button">新增入库</button>
           </div>
 
@@ -446,11 +444,17 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       if (abortController) abortController.abort()
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       loading,

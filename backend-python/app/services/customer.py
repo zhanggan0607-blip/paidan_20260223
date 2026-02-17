@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.repositories.customer import CustomerRepository
 from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse, CustomerListResponse
-from typing import Optional
+from typing import Optional, List
 import logging
 from fastapi import HTTPException, status
 
@@ -12,9 +12,9 @@ class CustomerService:
         self.db = db
         self.repository = CustomerRepository(db)
 
-    def get_list(self, page: int = 0, size: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None) -> CustomerListResponse:
+    def get_list(self, page: int = 0, size: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None, client_names: Optional[List[str]] = None) -> CustomerListResponse:
         skip = page * size
-        items, total = self.repository.get_all(skip=skip, limit=size, name=name, contact_person=contact_person)
+        items, total = self.repository.get_all(skip=skip, limit=size, name=name, contact_person=contact_person, client_names=client_names)
         
         return CustomerListResponse(
             content=[CustomerResponse.model_validate(item) for item in items],
@@ -23,6 +23,45 @@ class CustomerService:
             size=size,
             number=page
         )
+    
+    def get_user_client_names(self, user_name: str) -> List[str]:
+        """获取用户关联的客户名称列表（通过项目和工单关联）"""
+        from app.models.project_info import ProjectInfo
+        from app.models.periodic_inspection import PeriodicInspection
+        from app.models.temporary_repair import TemporaryRepair
+        from app.models.spot_work import SpotWork
+        from app.models.work_plan import WorkPlan
+        
+        project_ids = set()
+        
+        periodic = self.db.query(PeriodicInspection.project_id).filter(
+            PeriodicInspection.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in periodic if p[0]])
+        
+        repair = self.db.query(TemporaryRepair.project_id).filter(
+            TemporaryRepair.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in repair if p[0]])
+        
+        spot = self.db.query(SpotWork.project_id).filter(
+            SpotWork.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in spot if p[0]])
+        
+        work_plan = self.db.query(WorkPlan.project_id).filter(
+            WorkPlan.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in work_plan if p[0]])
+        
+        if not project_ids:
+            return []
+        
+        clients = self.db.query(ProjectInfo.client_name).filter(
+            ProjectInfo.project_id.in_(list(project_ids))
+        ).distinct().all()
+        
+        return [c[0] for c in clients if c[0]]
 
     def get_by_id(self, customer_id: int) -> Optional[CustomerResponse]:
         customer = self.repository.get_by_id(customer_id)
@@ -40,13 +79,13 @@ class CustomerService:
             return CustomerResponse.model_validate(db_customer)
         return None
 
-    def delete(self, customer_id: int, cascade: bool = False) -> dict:
-        from app.models.project_info import ProjectInfo
+    def delete(self, customer_id: int) -> dict:
         from app.models.work_plan import WorkPlan
         from app.models.periodic_inspection import PeriodicInspection
         from app.models.temporary_repair import TemporaryRepair
         from app.models.spot_work import SpotWork
         from app.models.maintenance_plan import MaintenancePlan
+        from app.models.project_info import ProjectInfo
         
         customer = self.repository.get_by_id(customer_id)
         if not customer:
@@ -57,52 +96,15 @@ class CustomerService:
         projects = self.db.query(ProjectInfo).filter(ProjectInfo.client_name == customer_name).all()
         project_count = len(projects)
         
-        if project_count > 0 and not cascade:
+        if project_count > 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"该客户下有 {project_count} 个项目，请确认是否级联删除"
+                detail=f"该客户下有 {project_count} 个项目，无法删除。请先在项目信息管理中删除相关项目。"
             )
-        
-        deleted_counts = {}
-        
-        if cascade and project_count > 0:
-            for project in projects:
-                project_id = project.project_id
-                
-                work_plan_count = self.db.query(WorkPlan).filter(WorkPlan.project_id == project_id).count()
-                periodic_count = self.db.query(PeriodicInspection).filter(PeriodicInspection.project_id == project_id).count()
-                repair_count = self.db.query(TemporaryRepair).filter(TemporaryRepair.project_id == project_id).count()
-                spot_count = self.db.query(SpotWork).filter(SpotWork.project_id == project_id).count()
-                maintenance_count = self.db.query(MaintenancePlan).filter(MaintenancePlan.project_id == project_id).count()
-                
-                if work_plan_count > 0:
-                    self.db.query(WorkPlan).filter(WorkPlan.project_id == project_id).delete(synchronize_session=False)
-                    deleted_counts['work_plan'] = deleted_counts.get('work_plan', 0) + work_plan_count
-                
-                if periodic_count > 0:
-                    self.db.query(PeriodicInspection).filter(PeriodicInspection.project_id == project_id).delete(synchronize_session=False)
-                    deleted_counts['periodic_inspection'] = deleted_counts.get('periodic_inspection', 0) + periodic_count
-                
-                if repair_count > 0:
-                    self.db.query(TemporaryRepair).filter(TemporaryRepair.project_id == project_id).delete(synchronize_session=False)
-                    deleted_counts['temporary_repair'] = deleted_counts.get('temporary_repair', 0) + repair_count
-                
-                if spot_count > 0:
-                    self.db.query(SpotWork).filter(SpotWork.project_id == project_id).delete(synchronize_session=False)
-                    deleted_counts['spot_work'] = deleted_counts.get('spot_work', 0) + spot_count
-                
-                if maintenance_count > 0:
-                    self.db.query(MaintenancePlan).filter(MaintenancePlan.project_id == project_id).delete(synchronize_session=False)
-                    deleted_counts['maintenance_plan'] = deleted_counts.get('maintenance_plan', 0) + maintenance_count
-            
-            self.db.query(ProjectInfo).filter(ProjectInfo.client_name == customer_name).delete(synchronize_session=False)
-            deleted_counts['project'] = project_count
-            
-            self.db.commit()
         
         self.repository.delete(customer_id)
         
         return {
             'customer_name': customer_name,
-            'deleted_related': deleted_counts
+            'deleted_related': {}
         }

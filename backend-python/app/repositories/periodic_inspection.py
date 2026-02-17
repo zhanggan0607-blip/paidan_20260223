@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.periodic_inspection import PeriodicInspection
 import logging
 
@@ -16,7 +16,9 @@ class PeriodicInspectionRepository:
 
     def find_by_id(self, id: int) -> Optional[PeriodicInspection]:
         try:
-            return self.db.query(PeriodicInspection).filter(PeriodicInspection.id == id).first()
+            return self.db.query(PeriodicInspection).options(
+                joinedload(PeriodicInspection.project)
+            ).filter(PeriodicInspection.id == id).first()
         except Exception as e:
             logger.error(f"查询定期巡检失败 (id={id}): {str(e)}")
             raise
@@ -41,10 +43,11 @@ class PeriodicInspectionRepository:
         size: int = 10,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[PeriodicInspection], int]:
         try:
-            query = self.db.query(PeriodicInspection)
+            query = self.db.query(PeriodicInspection).options(joinedload(PeriodicInspection.project))
 
             if project_name:
                 query = query.filter(PeriodicInspection.project_name.like(f"%{project_name}%"))
@@ -54,6 +57,9 @@ class PeriodicInspectionRepository:
 
             if status:
                 query = query.filter(PeriodicInspection.status == status)
+            
+            if maintenance_personnel:
+                query = query.filter(PeriodicInspection.maintenance_personnel == maintenance_personnel)
 
             total = query.count()
             items = query.order_by(PeriodicInspection.created_at.desc()).offset(page * size).limit(size).all()
@@ -65,7 +71,7 @@ class PeriodicInspectionRepository:
 
     def find_all_unpaginated(self) -> List[PeriodicInspection]:
         try:
-            return self.db.query(PeriodicInspection).order_by(PeriodicInspection.created_at.desc()).all()
+            return self.db.query(PeriodicInspection).options(joinedload(PeriodicInspection.project)).order_by(PeriodicInspection.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有定期巡检失败: {str(e)}")
             raise

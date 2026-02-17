@@ -5,6 +5,7 @@ import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import SearchInput from '../components/SearchInput.vue'
+import UserSelector from '../components/UserSelector.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -136,10 +137,6 @@ const onClientSelect = (customer: Customer) => {
   searchKeyword.value = ''
 }
 
-const onClientInput = (value: string) => {
-  formData.value.client_name = value
-}
-
 const onPeriodConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
   formData.value.maintenance_period = selectedValues[0] ?? ''
   showPeriodPicker.value = false
@@ -179,7 +176,7 @@ const validateForm = (): boolean => {
     return false
   }
   if (!formData.value.client_name.trim()) {
-    showToast('请输入客户单位')
+    showToast('请选择客户单位')
     return false
   }
   if (!formData.value.address.trim()) {
@@ -271,8 +268,9 @@ onMounted(() => {
           <span>返回</span>
         </div>
       </template>
-      <template #right v-if="isEdit">
-        <van-icon name="delete-o" @click="handleDelete" />
+      <template #right>
+        <UserSelector />
+        <van-icon v-if="isEdit" name="delete-o" @click="handleDelete" style="margin-left: 12px;" />
       </template>
     </van-nav-bar>
 
@@ -335,11 +333,11 @@ onMounted(() => {
         <van-field
           v-model="formData.client_name"
           is-link
+          readonly
           label="客户单位"
-          placeholder="请选择或输入客户单位"
+          placeholder="请选择客户单位"
           required
           @click="showClientPicker = true"
-          @update:model-value="onClientInput"
         />
 
         <van-field
@@ -351,8 +349,8 @@ onMounted(() => {
 
         <van-field
           v-model="formData.project_manager"
-          label="项目负责人"
-          placeholder="请输入项目负责人"
+          label="运维人员"
+          placeholder="请输入运维人员"
         />
 
         <van-field
@@ -413,17 +411,6 @@ onMounted(() => {
           />
           
           <van-empty v-if="filteredCustomers.length === 0" description="暂无客户数据" />
-        </div>
-
-        <div class="custom-input-section">
-          <van-field
-            v-model="formData.client_name"
-            placeholder="或直接输入客户单位名称"
-            clearable
-          />
-          <van-button type="primary" size="small" @click="showClientPicker = false">
-            确定
-          </van-button>
         </div>
       </div>
     </van-popup>

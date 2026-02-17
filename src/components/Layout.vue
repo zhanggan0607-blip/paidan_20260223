@@ -6,7 +6,7 @@
         </div>
        <nav class="sidebar-nav">
          <div
-           v-for="menu in menuItems"
+           v-for="menu in filteredMenuItems"
            :key="menu.id"
            class="menu-group"
          >
@@ -57,9 +57,21 @@
           <span class="breadcrumb-separator" v-if="currentBreadcrumb.level2">/</span>
           <span class="breadcrumb-level2">{{ currentBreadcrumb.level2 }}</span>
         </div>
-        <div class="user-info">
-          <div class="user-avatar">MO</div>
-          <span class="user-name">momo.zxy</span>
+        <div class="user-info" @click="showUserMenu = !showUserMenu">
+          <div class="user-avatar">{{ userInitials }}</div>
+          <span class="user-name">{{ userDisplayName }}</span>
+          <span class="dropdown-arrow">▼</span>
+          <div v-if="showUserMenu" class="user-dropdown">
+            <div 
+              v-for="user in userList" 
+              :key="user.id" 
+              class="dropdown-item" 
+              :class="{ 'active': currentUser?.id === user.id }"
+              @click.stop="selectUser(user)"
+            >
+              {{ user.name }} ({{ user.role }})
+            </div>
+          </div>
         </div>
       </div>
         <div class="content-wrapper">
@@ -71,9 +83,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, provide, readonly } from 'vue'
+import { defineComponent, ref, computed, provide, readonly, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { MenuItem } from '@/types'
+import { authService, type User } from '@/services/auth'
+import { personnelService } from '@/services/personnel'
+import { USER_ROLES } from '@/config/constants'
 
 export default defineComponent({
   name: 'Layout',
@@ -83,6 +98,7 @@ export default defineComponent({
     const expandedMenus = ref<string[]>(['statistics'])
     const activeMenu = ref<string>('project-info')
     const isFullscreenMode = ref(false)
+    const currentUser = ref<User | null>(null)
 
     const setFullscreenMode = (value: boolean) => {
       isFullscreenMode.value = value
@@ -91,59 +107,144 @@ export default defineComponent({
     provide('fullscreenMode', readonly(isFullscreenMode))
     provide('setFullscreenMode', setFullscreenMode)
 
-      const menuItems: MenuItem[] = [
-        {
-          id: 'statistics',
-          label: '统计分析',
-          path: '/statistics'
-        },
-        {
-          id: 'maintenance',
-          label: '维保项目管理',
-          children: [
-            { id: 'project-info', label: '项目信息管理', path: '/project-info' },
-            { id: 'maintenance-plan', label: '维保计划管理', path: '/maintenance-plan' },
-            { id: 'overdue-alert', label: '项目超期提醒', path: '/overdue-alert' },
-            { id: 'near-expiry-alert', label: '项目临期提醒', path: '/near-expiry-alert' }
-          ]
-        },
-        {
-          id: 'work-order',
-          label: '工单管理',
-          children: [
-            { id: 'work-plan', label: '定期巡检单管理', path: '/work-plan' },
-            { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
-            { id: 'spot-work', label: '零星用工管理', path: '/work-order/spot-work' }
-          ]
-        },
-        {
-          id: 'spare-parts',
-          label: '备品备件管理',
-          children: [
-            { id: 'spare-parts-inventory', label: '备品备件库存', path: '/spare-parts/inventory' },
-            { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
-            { id: 'spare-parts-stock', label: '备品备件入库', path: '/spare-parts/stock' }
-          ]
-        },
-        {
-          id: 'repair-tools',
-          label: '维修工具管理',
-          children: [
-            { id: 'repair-tools-issue', label: '维修工具领用', path: '/repair-tools/issue' },
-            { id: 'repair-tools-stock', label: '维修工具库存', path: '/repair-tools/stock' },
-            { id: 'repair-tools-inbound', label: '维修工具入库', path: '/repair-tools/inbound' }
-          ]
-        },
-        {
-          id: 'system',
-          label: '系统管理',
-          children: [
-            { id: 'personnel', label: '人员管理', path: '/personnel' },
-            { id: 'customer', label: '客户管理', path: '/customer' },
-            { id: 'inspection-item', label: '巡检事项管理', path: '/inspection-item' }
-          ]
+    const userInitials = computed(() => {
+      if (!currentUser.value?.name) return 'U'
+      return currentUser.value.name.substring(0, 2).toUpperCase()
+    })
+
+    const userDisplayName = computed(() => {
+      return currentUser.value?.name || '未登录'
+    })
+
+    const userRoleDisplay = computed(() => {
+      return currentUser.value?.role || ''
+    })
+
+    const getRoleClass = (role: string) => {
+      switch (role) {
+        case USER_ROLES.ADMIN:
+          return 'role-admin'
+        case USER_ROLES.DEPARTMENT_MANAGER:
+          return 'role-manager'
+        case USER_ROLES.MATERIAL_MANAGER:
+          return 'role-material'
+        case USER_ROLES.EMPLOYEE:
+          return 'role-employee'
+        default:
+          return ''
+      }
+    }
+
+    const handleLogout = () => {
+      authService.logout()
+      currentUser.value = null
+      router.push('/login')
+    }
+
+    const canShowMenu = (menuId: string): boolean => {
+      const user = currentUser.value
+      if (!user) return false
+      
+      switch (menuId) {
+        case 'statistics':
+          return authService.canViewStatistics(user)
+        case 'project-info':
+        case 'maintenance-plan':
+          return authService.canViewProjectManagement(user)
+        case 'overdue-alert':
+        case 'near-expiry-alert':
+          return authService.canViewAlerts(user)
+        case 'personnel':
+          return authService.canViewPersonnel(user)
+        case 'customer':
+        case 'inspection-item':
+          return authService.canViewSystemManagement(user)
+        case 'work-plan':
+        case 'temporary-repair':
+        case 'spot-work':
+          return authService.canViewWorkOrder(user)
+        case 'spare-parts-stock':
+          return authService.canViewSparePartsStock(user)
+        case 'spare-parts-issue':
+          return authService.canViewSparePartsIssue(user)
+        case 'repair-tools-inbound':
+          return authService.canViewRepairToolsInbound(user)
+        case 'repair-tools-issue':
+          return authService.canViewRepairToolsIssue(user)
+        default:
+          return false
+      }
+    }
+
+    const menuItems: MenuItem[] = [
+      {
+        id: 'statistics',
+        label: '统计分析',
+        path: '/statistics'
+      },
+      {
+        id: 'maintenance',
+        label: '维保项目管理',
+        children: [
+          { id: 'project-info', label: '项目信息管理', path: '/project-info' },
+          { id: 'maintenance-plan', label: '维保计划管理', path: '/maintenance-plan' },
+          { id: 'overdue-alert', label: '项目超期提醒', path: '/overdue-alert' },
+          { id: 'near-expiry-alert', label: '项目临期提醒', path: '/near-expiry-alert' }
+        ]
+      },
+      {
+        id: 'work-order',
+        label: '工单管理',
+        children: [
+          { id: 'work-plan', label: '定期巡检单管理', path: '/work-plan' },
+          { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
+          { id: 'spot-work', label: '零星用工管理', path: '/work-order/spot-work' }
+        ]
+      },
+      {
+        id: 'spare-parts',
+        label: '备品备件管理',
+        children: [
+          { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
+          { id: 'spare-parts-stock', label: '备品备件入库', path: '/spare-parts/stock' }
+        ]
+      },
+      {
+        id: 'repair-tools',
+        label: '维修工具管理',
+        children: [
+          { id: 'repair-tools-issue', label: '维修工具领用', path: '/repair-tools/issue' },
+          { id: 'repair-tools-inbound', label: '维修工具入库', path: '/repair-tools/inbound' }
+        ]
+      },
+      {
+        id: 'system',
+        label: '系统管理',
+        children: [
+          { id: 'personnel', label: '人员管理', path: '/personnel' },
+          { id: 'customer', label: '客户管理', path: '/customer' },
+          { id: 'inspection-item', label: '巡检事项管理', path: '/inspection-item' }
+        ]
+      }
+    ]
+
+    const filteredMenuItems = computed(() => {
+      return menuItems.filter(menu => {
+        if (menu.children) {
+          const filteredChildren = menu.children.filter(child => canShowMenu(child.id))
+          return filteredChildren.length > 0
         }
-      ]
+        return canShowMenu(menu.id)
+      }).map(menu => {
+        if (menu.children) {
+          return {
+            ...menu,
+            children: menu.children.filter(child => canShowMenu(child.id))
+          }
+        }
+        return menu
+      })
+    })
 
     const currentBreadcrumb = computed(() => {
       const path = route.path
@@ -201,13 +302,6 @@ export default defineComponent({
           full: '备品备件管理 / 备品备件入库'
         }
       }
-      if (path === '/spare-parts/inventory') {
-        return {
-          level1: '备品备件管理',
-          level2: '备品备件库存',
-          full: '备品备件管理 / 备品备件库存'
-        }
-      }
       if (path === '/spare-parts') {
         return {
           level1: '备品备件管理',
@@ -220,13 +314,6 @@ export default defineComponent({
           level1: '维修工具管理',
           level2: '维修工具领用',
           full: '维修工具管理 / 维修工具领用'
-        }
-      }
-      if (path === '/repair-tools/stock') {
-        return {
-          level1: '维修工具管理',
-          level2: '维修工具库存',
-          full: '维修工具管理 / 维修工具库存'
         }
       }
       if (path === '/repair-tools/inbound') {
@@ -267,14 +354,59 @@ export default defineComponent({
       }
     }
 
+    const showUserMenu = ref(false)
+    const userList = ref<User[]>([])
+
+    const loadUserList = async () => {
+      try {
+        const response = await personnelService.getAll()
+        if (response.code === 200 && response.data) {
+          userList.value = response.data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            role: p.role,
+            department: p.department || '',
+            phone: p.phone || ''
+          }))
+        }
+      } catch (error) {
+        console.error('加载用户列表失败:', error)
+      }
+    }
+
+    const selectUser = (user: User) => {
+      currentUser.value = user
+      authService.updateStoredUser(user)
+      showUserMenu.value = false
+      window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
+    }
+
+    onMounted(async () => {
+      await loadUserList()
+      
+      const storedUser = authService.getCurrentUser()
+      if (storedUser) {
+        currentUser.value = storedUser
+      } else if (userList.value.length > 0) {
+        currentUser.value = userList.value[0]
+        authService.updateStoredUser(userList.value[0])
+      }
+    })
+
     return {
-      menuItems,
+      filteredMenuItems,
       expandedMenus,
       activeMenu,
       currentBreadcrumb,
       toggleMenu,
       handleMenuClick,
-      isFullscreenMode
+      isFullscreenMode,
+      currentUser,
+      userInitials,
+      userDisplayName,
+      showUserMenu,
+      userList,
+      selectUser
     }
   }
 })
@@ -446,11 +578,13 @@ export default defineComponent({
 .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 6px 12px;
   background: #fff;
   border-radius: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  position: relative;
 }
 
 .user-avatar {
@@ -469,6 +603,49 @@ export default defineComponent({
 .user-name {
   font-size: 14px;
   color: #333;
+  font-weight: 500;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  color: #999;
+  margin-left: 4px;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  min-width: 180px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.dropdown-item {
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: #f5f5f5;
+}
+
+.dropdown-item.active {
+  background: #e3f2fd;
+  color: #1976d2;
   font-weight: 500;
 }
 

@@ -42,7 +42,7 @@
             <th>项目结束日期</th>
             <th>维保频率</th>
             <th>客户单位</th>
-            <th>地址</th>
+            <th>运维人员</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -55,7 +55,7 @@
             <td>{{ formatDate(item.maintenance_end_date) }}</td>
             <td>{{ item.maintenance_period }}</td>
             <td>{{ item.client_name }}</td>
-            <td>{{ item.address }}</td>
+            <td>{{ item.project_manager || '-' }}</td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
               <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
@@ -139,19 +139,14 @@
                   <span class="required">*</span> 客户单位
                 </label>
                 <div class="client-select-wrapper">
-                  <select class="form-input client-select" v-model="formData.client_source" @change="handleClientSourceChange('formData')">
-                    <option value="">请选择客户单位</option>
-                    <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
-                    <option value="__other__">其他（手动输入）</option>
-                  </select>
-                  <input 
-                    v-if="formData.client_source === '__other__'" 
-                    type="text" 
-                    class="form-input client-input" 
-                    placeholder="请输入客户单位" 
-                    v-model="formData.client_name" 
-                    maxlength="100" 
-                  />
+                  <div class="client-input-row">
+                    <select class="form-input client-select" v-model="formData.client_source" @change="handleClientSourceChange('formData')">
+                      <option value="">选择已有客户</option>
+                      <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
+                    </select>
+                    <span class="client-or">或</span>
+                    <input type="text" class="form-input client-input" placeholder="手动输入客户单位" v-model="formData.client_name_manual" @input="handleClientManualInput('formData')" maxlength="100" />
+                  </div>
                 </div>
               </div>
               <div class="form-item">
@@ -186,7 +181,7 @@
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label">项目负责人</label>
+                <label class="form-label">运维人员</label>
                 <select class="form-input" v-model="formData.project_manager">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
@@ -240,7 +235,7 @@
                 <div class="form-value">{{ viewData.client_name || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目负责人</label>
+                <label class="form-label">运维人员</label>
                 <div class="form-value">{{ viewData.project_manager || '-' }}</div>
               </div>
               <div class="form-item">
@@ -321,19 +316,14 @@
                   <span class="required">*</span> 客户单位
                 </label>
                 <div class="client-select-wrapper">
-                  <select class="form-input client-select" v-model="editData.client_source" @change="handleClientSourceChange('editData')">
-                    <option value="">请选择客户单位</option>
-                    <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
-                    <option value="__other__">其他（手动输入）</option>
-                  </select>
-                  <input 
-                    v-if="editData.client_source === '__other__'" 
-                    type="text" 
-                    class="form-input client-input" 
-                    placeholder="请输入客户单位" 
-                    v-model="editData.client_name" 
-                    maxlength="100" 
-                  />
+                  <div class="client-input-row">
+                    <select class="form-input client-select" v-model="editData.client_source" @change="handleClientSourceChange('editData')">
+                      <option value="">选择已有客户</option>
+                      <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
+                    </select>
+                    <span class="client-or">或</span>
+                    <input type="text" class="form-input client-input" placeholder="手动输入客户单位" v-model="editData.client_name_manual" @input="handleClientManualInput('editData')" maxlength="100" />
+                  </div>
                 </div>
               </div>
               <div class="form-item">
@@ -368,7 +358,7 @@
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label">项目负责人</label>
+                <label class="form-label">运维人员</label>
                 <select class="form-input" v-model="editData.project_manager">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
@@ -507,6 +497,7 @@ export default defineComponent({
       maintenance_period: '',
       client_name: '',
       client_source: '',
+      client_name_manual: '',
       address: '',
       project_abbr: '',
       project_manager: '',
@@ -521,6 +512,7 @@ export default defineComponent({
       completion_date: '',
       client_name: '',
       client_source: '',
+      client_name_manual: '',
       client_contact: '',
       client_contact_position: '',
       maintenance_period: '',
@@ -535,13 +527,14 @@ export default defineComponent({
 
     const inputMemory = useInputMemory({
       pageName: 'ProjectInfoManagement',
-      fields: ['project_name', 'project_id', 'completion_date', 'client_name', 'client_source', 'client_contact', 'client_contact_position', 'maintenance_period', 'project_abbr', 'project_manager', 'maintenance_end_date', 'address', 'client_contact_info'],
+      fields: ['project_name', 'project_id', 'completion_date', 'client_name', 'client_source', 'client_name_manual', 'client_contact', 'client_contact_position', 'maintenance_period', 'project_abbr', 'project_manager', 'maintenance_end_date', 'address', 'client_contact_info'],
       onRestore: (data) => {
         if (data.project_name) formData.project_name = data.project_name
         if (data.project_id) formData.project_id = data.project_id
         if (data.completion_date) formData.completion_date = data.completion_date
         if (data.client_name) formData.client_name = data.client_name
         if (data.client_source) formData.client_source = data.client_source
+        if (data.client_name_manual) formData.client_name_manual = data.client_name_manual
         if (data.client_contact) formData.client_contact = data.client_contact
         if (data.client_contact_position) formData.client_contact_position = data.client_contact_position
         if (data.maintenance_period) formData.maintenance_period = data.maintenance_period
@@ -636,12 +629,9 @@ export default defineComponent({
         showToast('请填写维保频率', 'warning')
         return false
       }
-      if (!formData.client_source) {
+      const clientName = formData.client_name_manual?.trim() || formData.client_source
+      if (!clientName) {
         showToast('请选择或输入客户单位', 'warning')
-        return false
-      }
-      if (formData.client_source === '__other__' && !formData.client_name?.trim()) {
-        showToast('请输入客户单位名称', 'warning')
         return false
       }
       if (!formData.address?.trim()) {
@@ -668,6 +658,7 @@ export default defineComponent({
       formData.completion_date = ''
       formData.client_name = ''
       formData.client_source = ''
+      formData.client_name_manual = ''
       formData.client_contact = ''
       formData.client_contact_position = ''
       formData.maintenance_period = ''
@@ -683,6 +674,8 @@ export default defineComponent({
         return
       }
 
+      const clientName = formData.client_name_manual?.trim() || formData.client_source
+
       saving.value = true
       try {
         const createData: ProjectInfoCreate = {
@@ -691,7 +684,7 @@ export default defineComponent({
           completion_date: formatDateForAPI(formData.completion_date),
           maintenance_end_date: formatDateForAPI(formData.maintenance_end_date),
           maintenance_period: formData.maintenance_period,
-          client_name: formData.client_name,
+          client_name: clientName,
           address: formData.address,
           project_abbr: formData.project_abbr || undefined,
           project_manager: formData.project_manager || undefined,
@@ -703,28 +696,6 @@ export default defineComponent({
         const response = await projectInfoService.create(createData)
         
         if (response.code === 200) {
-          const customerResponse = await customerService.getList({ page: 0, size: 100, name: formData.client_name })
-          if (customerResponse.code === 200 && customerResponse.data) {
-            const existingCustomer = customerResponse.data.content.find(c => c.name === formData.client_name)
-            const clientContactInfo = formData.client_contact_info?.trim()
-            if (existingCustomer) {
-              await customerService.update(existingCustomer.id, {
-                address: formData.address?.trim() || undefined,
-                contact_person: formData.client_contact?.trim() || undefined,
-                phone: clientContactInfo || undefined,
-                contact_position: formData.client_contact_position?.trim() || undefined
-              })
-            } else if (clientContactInfo && /^1[3-9]\d{9}$/.test(clientContactInfo)) {
-              await customerService.create({
-                name: formData.client_name?.trim() || '',
-                address: formData.address?.trim() || undefined,
-                contact_person: formData.client_contact?.trim() || '',
-                phone: clientContactInfo,
-                contact_position: formData.client_contact_position?.trim() || undefined
-              })
-            }
-          }
-          
           showToast('创建成功', 'success')
           closeModal()
           resetForm()
@@ -767,8 +738,12 @@ export default defineComponent({
       editData.maintenance_end_date = formatDateForInput(item.maintenance_end_date)
       editData.maintenance_period = item.maintenance_period
       editData.client_name = item.client_name
-      const existingCustomer = customerList.value.find(c => c.name === item.client_name)
-      editData.client_source = existingCustomer ? item.client_name : '__other__'
+      editData.client_source = ''
+      editData.client_name_manual = item.client_name
+      const matchingCustomer = customerList.value.find(c => c.name === item.client_name)
+      if (matchingCustomer) {
+        editData.client_source = item.client_name
+      }
       editData.address = item.address
       editData.project_abbr = item.project_abbr || ''
       editData.project_manager = item.project_manager || ''
@@ -808,12 +783,9 @@ export default defineComponent({
         showToast('请填写维保频率', 'warning')
         return false
       }
-      if (!editData.client_source) {
+      const clientName = editData.client_name_manual?.trim() || editData.client_source
+      if (!clientName) {
         showToast('请选择或输入客户单位', 'warning')
-        return false
-      }
-      if (editData.client_source === '__other__' && !editData.client_name?.trim()) {
-        showToast('请输入客户单位名称', 'warning')
         return false
       }
       if (!editData.address?.trim()) {
@@ -828,6 +800,8 @@ export default defineComponent({
         return
       }
 
+      const clientName = editData.client_name_manual?.trim() || editData.client_source
+
       saving.value = true
       try {
         const updateData: ProjectInfoUpdate = {
@@ -836,7 +810,7 @@ export default defineComponent({
           completion_date: formatDateForAPI(editData.completion_date),
           maintenance_end_date: formatDateForAPI(editData.maintenance_end_date),
           maintenance_period: editData.maintenance_period,
-          client_name: editData.client_name,
+          client_name: clientName,
           address: editData.address,
           project_abbr: editData.project_abbr || undefined,
           project_manager: editData.project_manager || undefined,
@@ -848,32 +822,6 @@ export default defineComponent({
         const response = await projectInfoService.update(editingId.value, updateData)
         
         if (response.code === 200) {
-          const customerResponse = await customerService.getList({ page: 0, size: 100, name: editData.client_name })
-          if (customerResponse.code === 200 && customerResponse.data) {
-            const existingCustomer = customerResponse.data.content.find(c => c.name === editData.client_name)
-            const clientContactInfo = editData.client_contact_info?.trim()
-            const phonePattern = /^1[3-9]\d{9}$/
-            if (existingCustomer) {
-              const updatePayload: any = {
-                address: editData.address?.trim() || undefined,
-                contact_person: editData.client_contact?.trim() || undefined,
-                contact_position: editData.client_contact_position?.trim() || undefined
-              }
-              if (clientContactInfo && phonePattern.test(clientContactInfo)) {
-                updatePayload.phone = clientContactInfo
-              }
-              await customerService.update(existingCustomer.id, updatePayload)
-            } else if (clientContactInfo && phonePattern.test(clientContactInfo)) {
-              await customerService.create({
-                name: editData.client_name?.trim() || '',
-                address: editData.address?.trim() || undefined,
-                contact_person: editData.client_contact?.trim() || '',
-                phone: clientContactInfo,
-                contact_position: editData.client_contact_position?.trim() || undefined
-              })
-            }
-          }
-          
           showToast('更新成功', 'success')
           closeEditModal()
           await loadData()
@@ -976,17 +924,59 @@ export default defineComponent({
 
     const handleClientSourceChange = (target: 'formData' | 'editData') => {
       if (target === 'formData') {
-        if (formData.client_source !== '__other__') {
+        if (formData.client_source) {
+          formData.client_name_manual = ''
           formData.client_name = formData.client_source
-        } else {
-          formData.client_name = ''
+          const selectedCustomer = customerList.value.find(c => c.name === formData.client_source)
+          if (selectedCustomer) {
+            loadCustomerDetails(selectedCustomer.id, 'formData')
+          }
         }
       } else {
-        if (editData.client_source !== '__other__') {
+        if (editData.client_source) {
+          editData.client_name_manual = ''
           editData.client_name = editData.client_source
-        } else {
-          editData.client_name = ''
+          const selectedCustomer = customerList.value.find(c => c.name === editData.client_source)
+          if (selectedCustomer) {
+            loadCustomerDetails(selectedCustomer.id, 'editData')
+          }
         }
+      }
+    }
+
+    const handleClientManualInput = (target: 'formData' | 'editData') => {
+      if (target === 'formData') {
+        if (formData.client_name_manual?.trim()) {
+          formData.client_source = ''
+          formData.client_name = formData.client_name_manual.trim()
+        }
+      } else {
+        if (editData.client_name_manual?.trim()) {
+          editData.client_source = ''
+          editData.client_name = editData.client_name_manual.trim()
+        }
+      }
+    }
+
+    const loadCustomerDetails = async (customerId: number, target: 'formData' | 'editData') => {
+      try {
+        const response = await customerService.getById(customerId)
+        if (response.code === 200 && response.data) {
+          const customer = response.data
+          if (target === 'formData') {
+            formData.address = customer.address || formData.address
+            formData.client_contact = customer.contact_person || formData.client_contact
+            formData.client_contact_info = customer.phone || formData.client_contact_info
+            formData.client_contact_position = customer.contact_position || formData.client_contact_position
+          } else {
+            editData.address = customer.address || editData.address
+            editData.client_contact = customer.contact_person || editData.client_contact
+            editData.client_contact_info = customer.phone || editData.client_contact_info
+            editData.client_contact_position = customer.contact_position || editData.client_contact_position
+          }
+        }
+      } catch (error) {
+        console.error('加载客户详情失败:', error)
       }
     }
 
@@ -994,13 +984,19 @@ export default defineComponent({
       loadData()
       loadPersonnel()
       loadCustomerList()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       if (abortController) {
         abortController.abort()
       }
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       searchForm,
@@ -1038,7 +1034,8 @@ export default defineComponent({
       formatDate,
       handleConfirm,
       handleCancelConfirm,
-      handleClientSourceChange
+      handleClientSourceChange,
+      handleClientManualInput
     }
   }
 })
@@ -1515,11 +1512,25 @@ export default defineComponent({
   gap: 8px;
 }
 
+.client-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .client-select {
+  flex: 1;
   cursor: pointer;
 }
 
+.client-or {
+  font-size: 14px;
+  color: #666;
+  white-space: nowrap;
+}
+
 .client-input {
+  flex: 1;
   margin-top: 0;
 }
 </style>

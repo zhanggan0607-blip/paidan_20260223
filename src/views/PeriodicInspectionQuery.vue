@@ -24,11 +24,6 @@
           />
         </div>
       </div>
-      <div class="search-actions">
-        <button class="btn btn-search" @click="handleSearch">
-          搜索
-        </button>
-      </div>
     </div>
 
     <div class="table-section">
@@ -125,6 +120,20 @@
                 <div class="form-value">{{ viewData.project_name || '-' }}</div>
               </div>
               <div class="form-item">
+                <label class="form-label">客户单位</label>
+                <div class="form-value">{{ viewData.client_name || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户联系人</label>
+                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">联系人职位</label>
+                <div class="form-value">{{ viewData.client_contact_position || '-' }}</div>
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
                 <label class="form-label">计划开始日期</label>
                 <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
               </div>
@@ -132,15 +141,17 @@
                 <label class="form-label">计划结束日期</label>
                 <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">客户单位</label>
-                <div class="form-value">{{ viewData.client_name || '-' }}</div>
-              </div>
               <div class="form-item">
                 <label class="form-label">运维人员</label>
                 <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户联系方式</label>
+                <div class="form-value">{{ viewData.client_contact_info || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户地址</label>
+                <div class="form-value">{{ viewData.address || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">合同剩余时间</label>
@@ -171,7 +182,9 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
+import { useRoute } from 'vue-router'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
+import { workPlanService, type WorkPlan } from '../services/workPlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
@@ -186,6 +199,10 @@ interface InspectionItem {
   plan_start_date: string
   plan_end_date: string
   client_name: string
+  client_contact: string
+  client_contact_info: string
+  client_contact_position: string
+  address: string
   maintenance_personnel: string
   status: string
   remarks: string
@@ -201,6 +218,7 @@ export default defineComponent({
     SearchInput
   },
   setup() {
+    const route = useRoute()
     const searchForm = reactive({
       projectName: '',
       clientName: ''
@@ -230,6 +248,10 @@ export default defineComponent({
       plan_start_date: '',
       plan_end_date: '',
       client_name: '',
+      client_contact: '',
+      client_contact_info: '',
+      client_contact_position: '',
+      address: '',
       maintenance_personnel: '',
       status: '',
       remarks: '',
@@ -346,6 +368,10 @@ export default defineComponent({
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
             client_name: item.client_name || '',
+            client_contact: item.client_contact || '',
+            client_contact_info: item.client_contact_info || '',
+            client_contact_position: item.client_contact_position || '',
+            address: item.address || '',
             maintenance_personnel: item.maintenance_personnel || '',
             status: item.status || '未进行',
             remarks: item.remarks || '',
@@ -381,6 +407,10 @@ export default defineComponent({
       viewData.plan_start_date = item.plan_start_date
       viewData.plan_end_date = item.plan_end_date
       viewData.client_name = item.client_name || ''
+      viewData.client_contact = item.client_contact || ''
+      viewData.client_contact_info = item.client_contact_info || ''
+      viewData.client_contact_position = item.client_contact_position || ''
+      viewData.address = item.address || ''
       viewData.maintenance_personnel = item.maintenance_personnel || ''
       viewData.status = item.status
       viewData.remarks = item.remarks || ''
@@ -432,8 +462,59 @@ export default defineComponent({
       })
     })
 
-    onMounted(() => {
-      loadData()
+    const handleViewFromUrl = async (id: number) => {
+      try {
+        loading.value = true
+        const response = await workPlanService.getById(id)
+        if (response.code === 200 && response.data) {
+          const item = response.data
+          viewData.id = item.id
+          viewData.inspection_id = item.plan_id
+          viewData.project_id = item.project_id
+          viewData.project_name = item.project_name
+          viewData.plan_start_date = item.plan_start_date
+          viewData.plan_end_date = item.plan_end_date
+          viewData.client_name = item.client_name || ''
+          viewData.maintenance_personnel = item.maintenance_personnel || ''
+          viewData.status = item.status
+          viewData.remarks = item.remarks || ''
+          viewData.created_at = item.created_at
+          viewData.updated_at = item.updated_at
+          viewData.remainingTime = '-'
+
+          try {
+            const projectResponse = await projectInfoService.getAll()
+            if (projectResponse.code === 200 && projectResponse.data) {
+              const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
+              if (project) {
+                viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+              }
+            }
+          } catch (error) {
+            console.error('获取项目信息失败:', error)
+          }
+
+          isViewModalOpen.value = true
+        } else {
+          showToast(response.message || '获取工单信息失败', 'error')
+        }
+      } catch (error: any) {
+        console.error('获取工单信息失败:', error)
+        showToast(error.message || '获取工单信息失败', 'error')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    onMounted(async () => {
+      await loadData()
+      const urlId = route.query.id
+      if (urlId) {
+        const id = parseInt(urlId as string)
+        if (!isNaN(id)) {
+          await handleViewFromUrl(id)
+        }
+      }
     })
 
     onUnmounted(() => {

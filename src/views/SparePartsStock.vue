@@ -27,9 +27,6 @@
                   </option>
                 </select>
               </div>
-              <button @click="handleSearch" class="search-button">
-                搜索
-              </button>
             </div>
             <button @click="showAddModal = true" class="add-button">
               新增备品备件
@@ -430,14 +427,19 @@ export default defineComponent({
     onMounted(() => {
       loadUsers()
       loadRecords()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
-      // Clean up pending requests when component unmounts
       if (abortController) {
         abortController.abort()
       }
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadRecords()
+    }
 
     return {
       loading,

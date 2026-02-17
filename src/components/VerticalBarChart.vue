@@ -69,7 +69,7 @@ const getBarHeight = (value: number): number => {
 
 .vertical-bar {
   width: 100%;
-  background: linear-gradient(180deg, var(--color-success) 0%, var(--color-success-dark) 100%);
+  background: linear-gradient(180deg, #5470c6 0%, #3a5ba0 100%);
   transition: height var(--transition-slow) ease;
 }
 

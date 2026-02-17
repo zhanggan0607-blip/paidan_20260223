@@ -6,11 +6,13 @@ from app.models.periodic_inspection import PeriodicInspection
 from app.repositories.periodic_inspection import PeriodicInspectionRepository
 from app.schemas.periodic_inspection import PeriodicInspectionCreate, PeriodicInspectionUpdate
 from app.utils.dictionary_helper import get_default_periodic_inspection_status
+from app.services.sync_service import SyncService, PLAN_TYPE_INSPECTION
 
 
 class PeriodicInspectionService:
     def __init__(self, db: Session):
         self.repository = PeriodicInspectionRepository(db)
+        self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         if date_value is None:
@@ -33,10 +35,11 @@ class PeriodicInspectionService:
         size: int = 10, 
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[PeriodicInspection], int]:
         return self.repository.find_all(
-            page, size, project_name, client_name, status
+            page, size, project_name, client_name, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> PeriodicInspection:
@@ -64,7 +67,7 @@ class PeriodicInspectionService:
                 detail="巡检单编号已存在"
             )
         
-        default_status = get_default_periodic_inspection_status(self.repository._PeriodicInspectionRepository__db)
+        default_status = get_default_periodic_inspection_status(self.repository.db)
         
         inspection = PeriodicInspection(
             inspection_id=dto.inspection_id,
@@ -79,7 +82,9 @@ class PeriodicInspectionService:
             remarks=dto.remarks
         )
         
-        return self.repository.create(inspection)
+        result = self.repository.create(inspection)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)
+        return result
     
     def update(self, id: int, dto: PeriodicInspectionUpdate) -> PeriodicInspection:
         existing_inspection = self.get_by_id(id)
@@ -101,10 +106,13 @@ class PeriodicInspectionService:
         existing_inspection.filled_count = dto.filled_count or 0
         existing_inspection.remarks = dto.remarks
         
-        return self.repository.update(existing_inspection)
+        result = self.repository.update(existing_inspection)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)
+        return result
     
     def delete(self, id: int) -> None:
         inspection = self.get_by_id(id)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, inspection, is_delete=True)
         self.repository.delete(inspection)
     
     def get_all_unpaginated(self) -> List[PeriodicInspection]:

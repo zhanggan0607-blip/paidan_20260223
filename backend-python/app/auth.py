@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 from typing import Optional, Dict
+from urllib.parse import unquote
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 from app.config import get_settings
@@ -55,3 +56,16 @@ async def get_current_user_required(token: str = Depends(oauth2_scheme)) -> Dict
         return payload
     except JWTError:
         raise credentials_exception
+
+
+def get_current_user_from_headers(request: Request) -> Optional[Dict]:
+    user_name = request.headers.get('X-User-Name')
+    user_role = request.headers.get('X-User-Role')
+    
+    if user_name:
+        return {
+            'sub': unquote(user_name),
+            'name': unquote(user_name),
+            'role': unquote(user_role) if user_role else '运维人员'
+        }
+    return None

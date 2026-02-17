@@ -18,12 +18,6 @@
                   @input="handleSearch"
                 />
               </div>
-              <button @click="handleSearch" class="search-button">
-                搜索
-              </button>
-              <button @click="handleReset" class="reset-button">
-                重置
-              </button>
             </div>
           </div>
 
@@ -37,18 +31,19 @@
                   <th>产品型号</th>
                   <th>单位</th>
                   <th>库存数量</th>
+                  <th>状态</th>
                   <th>更新时间</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="7" class="loading-cell">
+                  <td colspan="8" class="loading-cell">
                     <div class="loading-spinner"></div>
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="stockList.length === 0">
-                  <td colspan="7" class="empty-cell">暂无库存数据</td>
+                  <td colspan="8" class="empty-cell">暂无库存数据</td>
                 </tr>
                 <tr v-else v-for="(item, index) in stockList" :key="item.id">
                   <td>{{ index + 1 }}</td>
@@ -58,6 +53,9 @@
                   <td>{{ item.unit }}</td>
                   <td>
                     <span :class="getStockClass(item.quantity)">{{ item.quantity }}</span>
+                  </td>
+                  <td>
+                    <span :class="getStatusClass(item.status)">{{ item.status || '在库' }}</span>
                   </td>
                   <td>{{ formatDateTime(item.updatedAt) }}</td>
                 </tr>
@@ -101,6 +99,7 @@ interface StockItem {
   model: string
   unit: string
   quantity: number
+  status: string
   createdAt: string
   updatedAt: string
 }
@@ -153,6 +152,19 @@ export default defineComponent({
       return 'stock-normal'
     }
 
+    const getStatusClass = (status: string) => {
+      switch (status) {
+        case '在库':
+          return 'status-in-stock'
+        case '已使用':
+          return 'status-used'
+        case '缺货':
+          return 'status-out-of-stock'
+        default:
+          return 'status-in-stock'
+      }
+    }
+
     const loadStock = async () => {
       loading.value = true
       try {
@@ -183,7 +195,12 @@ export default defineComponent({
 
     onMounted(() => {
       loadStock()
+      window.addEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadStock()
+    }
 
     return {
       loading,
@@ -193,6 +210,7 @@ export default defineComponent({
       totalQuantity,
       formatDateTime,
       getStockClass,
+      getStatusClass,
       handleSearch,
       handleReset
     }
@@ -394,6 +412,21 @@ export default defineComponent({
 .stock-normal {
   color: #4caf50;
   font-weight: 600;
+}
+
+.status-in-stock {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.status-used {
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.status-out-of-stock {
+  color: #f44336;
+  font-weight: 500;
 }
 
 .summary-section {

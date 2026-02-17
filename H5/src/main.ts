@@ -21,6 +21,8 @@ import {
   PullRefresh,
   Tag,
   Empty,
+  ActionSheet,
+  Popover,
   showLoadingToast,
   closeToast,
   showSuccessToast,
@@ -47,6 +49,8 @@ app.use(List)
 app.use(PullRefresh)
 app.use(Tag)
 app.use(Empty)
+app.use(ActionSheet)
+app.use(Popover)
 
 app.use(router)
 app.mount('#app')

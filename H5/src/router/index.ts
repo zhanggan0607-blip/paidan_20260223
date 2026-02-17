@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { authService } from '../services/auth'
 
 const routes = [
   {
@@ -23,31 +24,43 @@ const routes = [
     path: '/periodic-inspection',
     name: 'PeriodicInspection',
     component: () => import('../views/PeriodicInspectionPage.vue'),
-    meta: { title: '定期巡检' }
+    meta: { title: '定期巡检', permission: 'canViewPeriodicInspection' }
   },
   {
     path: '/periodic-inspection/:id',
     name: 'PeriodicInspectionDetail',
     component: () => import('../views/PeriodicInspectionDetailPage.vue'),
-    meta: { title: '定期巡检详情' }
+    meta: { title: '定期巡检详情', permission: 'canViewPeriodicInspection' }
   },
   {
     path: '/temporary-repair',
     name: 'TemporaryRepair',
     component: () => import('../views/TemporaryRepairPage.vue'),
-    meta: { title: '临时维修' }
+    meta: { title: '临时维修', permission: 'canViewTemporaryRepair' }
+  },
+  {
+    path: '/temporary-repair/:id',
+    name: 'TemporaryRepairDetail',
+    component: () => import('../views/TemporaryRepairDetailPage.vue'),
+    meta: { title: '临时维修详情', permission: 'canViewTemporaryRepair' }
   },
   {
     path: '/spot-work',
     name: 'SpotWork',
     component: () => import('../views/SpotWorkPage.vue'),
-    meta: { title: '零星用工' }
+    meta: { title: '零星用工', permission: 'canViewSpotWork' }
+  },
+  {
+    path: '/spot-work/:id',
+    name: 'SpotWorkDetail',
+    component: () => import('../views/SpotWorkDetailPage.vue'),
+    meta: { title: '零星用工详情', permission: 'canViewSpotWork' }
   },
   {
     path: '/spot-work/quick-fill',
     name: 'SpotWorkQuickFill',
     component: () => import('../views/SpotWorkQuickFillPage.vue'),
-    meta: { title: '零星用工快捷填报' }
+    meta: { title: '零星用工快捷填报', permission: 'canQuickFillSpotWork' }
   },
   {
     path: '/signature',
@@ -64,6 +77,18 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   document.title = (to.meta.title as string) || 'SSTCP维保系统'
+  
+  if (to.meta.permission) {
+    const user = authService.getCurrentUser()
+    const permissionMethod = to.meta.permission as string
+    if (typeof (authService as any)[permissionMethod] === 'function') {
+      if (!(authService as any)[permissionMethod](user)) {
+        next({ name: 'Home' })
+        return
+      }
+    }
+  }
+  
   next()
 })
 

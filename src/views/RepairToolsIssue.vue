@@ -5,7 +5,7 @@
         <div class="content-wrapper">
           <div class="filter-section">
             <div class="filter-item">
-              <label class="filter-label">领用人员</label>
+              <label class="filter-label">运维人员员</label>
               <select v-model="filters.user" class="filter-select">
                 <option value="">全部</option>
                 <option v-for="user in userList" :key="user.id" :value="user.name">
@@ -28,13 +28,11 @@
               <label class="filter-label">项目名称</label>
               <select v-model="filters.project" class="filter-select">
                 <option value="">全部</option>
-                <option v-for="project in projectList" :key="project.id" :value="project.project_name">
+                <option v-for="project in projectList" :key="project.project_id" :value="project.project_name">
                   {{ project.project_name }}
                 </option>
               </select>
             </div>
-
-            <button @click="handleSearch" class="search-button">搜索</button>
             <button @click="handleAdd" class="add-button">新增领用</button>
           </div>
 
@@ -47,7 +45,7 @@
                   <th>工具名称</th>
                   <th>规格型号</th>
                   <th>领用数量</th>
-                  <th>领用人</th>
+                  <th>运维人员</th>
                   <th>领用时间</th>
                   <th>所属项目</th>
                   <th>状态</th>
@@ -129,7 +127,7 @@
     </div>
 
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
-      <div class="modal-content">
+      <div class="modal-content modal-content-large">
         <div class="modal-header">
           <h3>新增工具领用</h3>
           <button class="close-btn" @click="closeAddModal">&times;</button>
@@ -137,31 +135,53 @@
         <div class="modal-body">
           <div class="form-item">
             <label class="form-label">工具名称<span class="required">*</span></label>
-            <select v-model="formData.tool_id" class="form-select" @change="handleToolChange">
-              <option value="">请选择工具</option>
-              <option v-for="tool in toolList" :key="tool.id" :value="tool.id">
-                {{ tool.tool_name }} (库存: {{ tool.stock }})
-              </option>
-            </select>
+            <div class="tool-search-wrapper">
+              <input 
+                v-model="toolSearchKeyword" 
+                type="text" 
+                class="form-input" 
+                placeholder="输入关键词搜索工具..."
+                @input="handleToolSearch"
+                @focus="showToolDropdown = true"
+              />
+              <div v-if="showToolDropdown && filteredToolList.length > 0" class="tool-dropdown">
+                <div 
+                  v-for="tool in filteredToolList" 
+                  :key="tool.id" 
+                  class="tool-option"
+                  @click="selectTool(tool)"
+                >
+                  <span class="tool-name">{{ tool.tool_name }}</span>
+                  <span class="tool-spec">{{ tool.specification || '-' }}</span>
+                  <span class="tool-stock">库存: {{ tool.stock }}</span>
+                </div>
+              </div>
+              <div v-if="showToolDropdown && toolSearchKeyword && filteredToolList.length === 0" class="tool-dropdown">
+                <div class="tool-empty">未找到匹配的工具</div>
+              </div>
+            </div>
+            <div v-if="selectedTool" class="selected-tool-info">
+              已选择: {{ selectedTool.tool_name }} ({{ selectedTool.specification || '无规格' }}) - 库存: {{ selectedTool.stock }}
+            </div>
           </div>
           <div class="form-item">
             <label class="form-label">领用数量<span class="required">*</span></label>
             <input v-model.number="formData.quantity" type="number" :min="1" class="form-input" placeholder="请输入领用数量" />
           </div>
           <div class="form-item">
-            <label class="form-label">领用人<span class="required">*</span></label>
-            <select v-model="formData.user_id" class="form-select">
-              <option value="">请选择领用人</option>
-              <option v-for="user in userList" :key="user.id" :value="user.id">
+            <label class="form-label">运维人员<span class="required">*</span></label>
+            <select v-model="formData.user_id" class="form-select" @change="handleUserChange">
+              <option value="">请选择运维人员</option>
+              <option v-for="user in filteredUserList" :key="user.id" :value="user.id">
                 {{ user.name }}
               </option>
             </select>
           </div>
           <div class="form-item">
             <label class="form-label">所属项目</label>
-            <select v-model="formData.project_id" class="form-select">
+            <select v-model="formData.project_id" class="form-select" @change="handleProjectChange">
               <option value="">请选择项目</option>
-              <option v-for="project in projectList" :key="project.id" :value="project.id">
+              <option v-for="project in filteredProjectList" :key="project.project_id" :value="project.project_id">
                 {{ project.project_name }}
               </option>
             </select>
@@ -183,9 +203,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
+import { defineComponent, ref, onMounted, computed, onUnmounted, watch } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
+import { USER_ROLES } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
 
 interface RepairToolsIssueItem {
@@ -202,6 +223,7 @@ interface RepairToolsIssueItem {
 
 interface Tool {
   id: number
+  tool_id?: string
   tool_name: string
   specification: string
   stock: number
@@ -214,8 +236,14 @@ interface User {
 }
 
 interface Project {
-  id: number
+  project_id: string
   project_name: string
+}
+
+interface PersonnelProject {
+  personnel_id: number
+  personnel_name: string
+  projects: Project[]
 }
 
 export default defineComponent({
@@ -249,11 +277,58 @@ export default defineComponent({
     const toolList = ref<Tool[]>([])
     const userList = ref<User[]>([])
     const projectList = ref<Project[]>([])
+    const personnelProjects = ref<PersonnelProject[]>([])
+
+    const toolSearchKeyword = ref('')
+    const showToolDropdown = ref(false)
+    const selectedTool = ref<Tool | null>(null)
 
     let abortController: AbortController | null = null
+    let toolSearchTimer: ReturnType<typeof setTimeout> | null = null
 
     const totalPages = computed(() => {
       return Math.ceil(total.value / pageSize.value) || 1
+    })
+
+    const filteredToolList = computed(() => {
+      if (!toolSearchKeyword.value) {
+        return toolList.value.filter(t => t.stock > 0)
+      }
+      const keyword = toolSearchKeyword.value.toLowerCase()
+      return toolList.value.filter(t => 
+        t.stock > 0 && (
+          t.tool_name.toLowerCase().includes(keyword) ||
+          (t.tool_id && t.tool_id.toLowerCase().includes(keyword)) ||
+          (t.specification && t.specification.toLowerCase().includes(keyword))
+        )
+      )
+    })
+
+    const filteredUserList = computed(() => {
+      if (formData.value.project_id) {
+        const projectPersonnel = personnelProjects.value.find(pp => 
+          pp.projects.some(p => p.project_id === formData.value.project_id)
+        )
+        if (projectPersonnel) {
+          const personnelIds = personnelProjects.value
+            .filter(pp => pp.projects.some(p => p.project_id === formData.value.project_id))
+            .map(pp => pp.personnel_id)
+          return userList.value.filter(u => personnelIds.includes(u.id))
+        }
+      }
+      return userList.value
+    })
+
+    const filteredProjectList = computed(() => {
+      if (formData.value.user_id) {
+        const userProjects = personnelProjects.value.find(
+          pp => pp.personnel_id === Number(formData.value.user_id)
+        )
+        if (userProjects) {
+          return userProjects.projects
+        }
+      }
+      return projectList.value
     })
 
     const loadData = async () => {
@@ -292,7 +367,7 @@ export default defineComponent({
     const loadTools = async () => {
       try {
         const response = await apiClient.get('/repair-tools/stock', { 
-          params: { page: 0, size: 100 } 
+          params: { page: 0, size: 500 } 
         }) as unknown as ApiResponse<PaginatedResponse<Tool>>
         if (response && response.code === 200 && response.data) {
           toolList.value = response.data.items || response.data.content || []
@@ -306,7 +381,7 @@ export default defineComponent({
       try {
         const response = await apiClient.get('/personnel/all/list') as unknown as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
-          userList.value = Array.isArray(response.data) ? response.data : []
+          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.name && user.role === USER_ROLES.EMPLOYEE)
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)
@@ -315,14 +390,78 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info', { 
-          params: { page: 0, size: 100 } 
-        }) as unknown as ApiResponse<{ content: Project[] }>
+        const response = await apiClient.get('/project-info/all/list') as unknown as ApiResponse<Project[]>
         if (response && response.code === 200 && response.data) {
-          projectList.value = response.data.content || []
+          projectList.value = response.data || []
         }
       } catch (error) {
         console.error('加载项目列表失败:', error)
+      }
+    }
+
+    const loadPersonnelProjects = async () => {
+      try {
+        const response = await apiClient.get('/repair-tools/personnel-projects') as unknown as ApiResponse<PersonnelProject[]>
+        if (response && response.code === 200 && response.data) {
+          personnelProjects.value = response.data || []
+        }
+      } catch (error) {
+        console.error('加载人员项目关联失败:', error)
+      }
+    }
+
+    const handleToolSearch = () => {
+      if (toolSearchTimer) {
+        clearTimeout(toolSearchTimer)
+      }
+      toolSearchTimer = setTimeout(() => {
+        showToolDropdown.value = true
+      }, 300)
+    }
+
+    const selectTool = (tool: Tool) => {
+      selectedTool.value = tool
+      formData.value.tool_id = String(tool.id)
+      if (formData.value.quantity > tool.stock) {
+        formData.value.quantity = tool.stock
+      }
+      showToolDropdown.value = false
+      toolSearchKeyword.value = tool.tool_name
+    }
+
+    const handleUserChange = async () => {
+      if (formData.value.user_id) {
+        try {
+          const response = await apiClient.get('/repair-tools/personnel-projects', {
+            params: { personnel_id: formData.value.user_id }
+          }) as unknown as ApiResponse<Project[]>
+          if (response && response.code === 200 && response.data && response.data.length > 0) {
+            const userProjectIds = response.data.map((p: Project) => p.project_id)
+            if (formData.value.project_id && !userProjectIds.includes(formData.value.project_id)) {
+              formData.value.project_id = ''
+            }
+          }
+        } catch (error) {
+          console.error('加载用户关联项目失败:', error)
+        }
+      }
+    }
+
+    const handleProjectChange = async () => {
+      if (formData.value.project_id) {
+        try {
+          const response = await apiClient.get('/repair-tools/personnel-projects', {
+            params: { project_id: formData.value.project_id }
+          }) as unknown as ApiResponse<User[]>
+          if (response && response.code === 200 && response.data && response.data.length > 0) {
+            const projectUserIds = response.data.map((u: User) => u.id)
+            if (formData.value.user_id && !projectUserIds.includes(Number(formData.value.user_id))) {
+              formData.value.user_id = ''
+            }
+          }
+        } catch (error) {
+          console.error('加载项目关联人员失败:', error)
+        }
       }
     }
 
@@ -339,18 +478,15 @@ export default defineComponent({
         project_id: '',
         remark: ''
       }
+      toolSearchKeyword.value = ''
+      selectedTool.value = null
+      showToolDropdown.value = false
       showAddModal.value = true
     }
 
     const closeAddModal = () => {
       showAddModal.value = false
-    }
-
-    const handleToolChange = () => {
-      const tool = toolList.value.find(t => t.id === Number(formData.value.tool_id))
-      if (tool && formData.value.quantity > tool.stock) {
-        formData.value.quantity = tool.stock
-      }
+      showToolDropdown.value = false
     }
 
     const handleSubmit = async () => {
@@ -389,16 +525,33 @@ export default defineComponent({
       loadData()
     }
 
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.tool-search-wrapper')) {
+        showToolDropdown.value = false
+      }
+    }
+
     onMounted(() => {
       loadTools()
       loadUsers()
       loadProjects()
+      loadPersonnelProjects()
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
+      document.addEventListener('click', handleClickOutside)
     })
 
     onUnmounted(() => {
       if (abortController) abortController.abort()
+      if (toolSearchTimer) clearTimeout(toolSearchTimer)
+      window.removeEventListener('user-changed', handleUserChanged)
+      document.removeEventListener('click', handleClickOutside)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       loading,
@@ -413,11 +566,21 @@ export default defineComponent({
       toolList,
       userList,
       projectList,
+      personnelProjects,
       showAddModal,
+      toolSearchKeyword,
+      showToolDropdown,
+      selectedTool,
+      filteredToolList,
+      filteredUserList,
+      filteredProjectList,
       handleSearch,
       handleAdd,
       closeAddModal,
-      handleToolChange,
+      handleToolSearch,
+      selectTool,
+      handleUserChange,
+      handleProjectChange,
       handleSubmit,
       handlePageChange,
       handlePageSizeChange
@@ -701,6 +864,10 @@ export default defineComponent({
   overflow-y: auto;
 }
 
+.modal-content-large {
+  width: 600px;
+}
+
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -765,6 +932,72 @@ export default defineComponent({
 .form-textarea:focus {
   outline: none;
   border-color: #1976d2;
+}
+
+.tool-search-wrapper {
+  position: relative;
+}
+
+.tool-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.tool-option {
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tool-option:last-child {
+  border-bottom: none;
+}
+
+.tool-option:hover {
+  background: #f5f7fa;
+}
+
+.tool-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.tool-spec {
+  color: #666;
+  font-size: 12px;
+}
+
+.tool-stock {
+  color: #1976d2;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tool-empty {
+  padding: 20px;
+  text-align: center;
+  color: #999;
+}
+
+.selected-tool-info {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #e3f2fd;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #1976d2;
 }
 
 .modal-footer {

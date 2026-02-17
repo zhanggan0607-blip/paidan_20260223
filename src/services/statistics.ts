@@ -30,6 +30,35 @@ export interface EmployeeStats {
   total: number
 }
 
+export interface WorkOrderDetail {
+  id: number
+  orderType: string
+  orderNumber: string
+  projectName: string
+  maintenancePersonnel: string
+  planStartDate: string
+  planEndDate: string
+  status: string
+  content: string
+}
+
+export interface DetailResponse {
+  total: number
+  page: number
+  pageSize: number
+  data: WorkOrderDetail[]
+}
+
+export interface DetailParams {
+  year: number
+  data_type: string
+  employee_name?: string
+  project_name?: string
+  order_type?: string
+  page?: number
+  page_size?: number
+}
+
 export const statisticsService = {
   async getStatisticsOverview(year: number): Promise<StatisticsOverview> {
     const response = await apiClient.get('/statistics/overview', { params: { year } })
@@ -69,5 +98,11 @@ export const statisticsService = {
   async getSpotworkStats(year: number): Promise<EmployeeStats> {
     const response = await apiClient.get('/statistics/spotwork-stats', { params: { year } })
     return response.data
+  },
+
+  async getStatisticsDetail(params: DetailParams): Promise<DetailResponse> {
+    const response = await apiClient.get('/statistics/detail', { params }) as any
+    console.log('getStatisticsDetail raw response:', response)
+    return response.data as DetailResponse
   }
 }

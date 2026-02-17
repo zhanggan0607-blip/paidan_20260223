@@ -38,7 +38,8 @@ class ProjectInfoRepository:
         page: int = 0,
         size: int = 10,
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None
+        client_name: Optional[str] = None,
+        project_ids: Optional[List[str]] = None
     ) -> tuple[List[ProjectInfo], int]:
         try:
             query = self.db.query(ProjectInfo)
@@ -48,6 +49,9 @@ class ProjectInfoRepository:
 
             if client_name:
                 query = query.filter(ProjectInfo.client_name.like(f"%{client_name}%"))
+            
+            if project_ids:
+                query = query.filter(ProjectInfo.project_id.in_(project_ids))
 
             total = query.count()
             items = query.order_by(ProjectInfo.id.asc()).offset(page * size).limit(size).all()
@@ -56,9 +60,12 @@ class ProjectInfoRepository:
             logger.error(f"查询项目信息列表失败: {str(e)}")
             raise
 
-    def find_all_unpaginated(self) -> List[ProjectInfo]:
+    def find_all_unpaginated(self, project_ids: Optional[List[str]] = None) -> List[ProjectInfo]:
         try:
-            return self.db.query(ProjectInfo).order_by(ProjectInfo.created_at.desc()).all()
+            query = self.db.query(ProjectInfo)
+            if project_ids:
+                query = query.filter(ProjectInfo.project_id.in_(project_ids))
+            return query.order_by(ProjectInfo.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有项目信息失败: {str(e)}")
             raise

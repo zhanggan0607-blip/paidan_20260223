@@ -15,14 +15,54 @@ class ProjectInfoService:
         self.repository = ProjectInfoRepository(db)
         self.db = db
     
+    def _sync_customer_data(self, client_name: str, client_contact: Optional[str], client_contact_info: Optional[str], address: Optional[str], client_contact_position: Optional[str]):
+        """
+        同步客户数据到customer表
+        如果客户不存在则创建，存在则更新
+        """
+        from app.models.customer import Customer
+        
+        if not client_name:
+            return
+        
+        try:
+            existing_customer = self.db.query(Customer).filter(Customer.name == client_name).first()
+            
+            if existing_customer:
+                if client_contact and client_contact != existing_customer.contact_person:
+                    existing_customer.contact_person = client_contact
+                if client_contact_info and client_contact_info != existing_customer.phone:
+                    existing_customer.phone = client_contact_info
+                if address and address != existing_customer.address:
+                    existing_customer.address = address
+                if client_contact_position and client_contact_position != existing_customer.contact_position:
+                    existing_customer.contact_position = client_contact_position
+                self.db.commit()
+                logger.info(f"同步更新客户信息: {client_name}")
+            else:
+                new_customer = Customer(
+                    name=client_name,
+                    contact_person=client_contact or '',
+                    phone=client_contact_info or '',
+                    address=address or '',
+                    contact_position=client_contact_position or ''
+                )
+                self.db.add(new_customer)
+                self.db.commit()
+                logger.info(f"自动创建客户: {client_name}")
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"同步客户数据失败: {str(e)}")
+    
     def get_all(
         self, 
         page: int = 0, 
         size: int = 10, 
         project_name: Optional[str] = None, 
-        client_name: Optional[str] = None
+        client_name: Optional[str] = None,
+        project_ids: Optional[List[str]] = None
     ) -> tuple[List[ProjectInfo], int]:
-        return self.repository.find_all(page, size, project_name, client_name)
+        return self.repository.find_all(page, size, project_name, client_name, project_ids)
     
     def get_by_id(self, id: int) -> ProjectInfo:
         project_info = self.repository.find_by_id(id)
@@ -69,6 +109,15 @@ class ProjectInfoService:
 
         logger.info(f"📥 [Service] 准备保存到数据库: project_id={project_info.project_id}, project_name={project_info.project_name}")
         result = self.repository.create(project_info)
+        
+        self._sync_customer_data(
+            dto.client_name,
+            dto.client_contact,
+            dto.client_contact_info,
+            dto.address,
+            dto.client_contact_position
+        )
+        
         logger.info(f"✅ [Service] 数据库保存成功: id={result.id}, project_id={result.project_id}")
         return result
     
@@ -100,6 +149,14 @@ class ProjectInfoService:
         existing_project.client_contact_info = dto.client_contact_info
         
         result = self.repository.update(existing_project)
+        
+        self._sync_customer_data(
+            dto.client_name,
+            dto.client_contact,
+            dto.client_contact_info,
+            dto.address,
+            dto.client_contact_position
+        )
         
         if project_name_changed or client_name_changed:
             self._sync_related_tables(
@@ -155,7 +212,7 @@ class ProjectInfoService:
             sync_count += spare_parts_updated
             
             tools_issue_updated = self.db.query(RepairToolsIssue).filter(
-                RepairToolsIssue.project_id == project_pk
+                RepairToolsIssue.project_id == project_id
             ).update({"project_name": new_project_name}, synchronize_session=False)
             sync_count += tools_issue_updated
             
@@ -258,5 +315,36 @@ class ProjectInfoService:
             'deleted_related': deleted_counts
         }
     
-    def get_all_unpaginated(self) -> List[ProjectInfo]:
-        return self.repository.find_all_unpaginated()
+    def get_all_unpaginated(self, project_ids: Optional[List[str]] = None) -> List[ProjectInfo]:
+        return self.repository.find_all_unpaginated(project_ids)
+    
+    def get_user_project_ids(self, user_name: str) -> List[str]:
+        """获取用户关联的项目ID列表（通过工单关联）"""
+        from app.models.periodic_inspection import PeriodicInspection
+        from app.models.temporary_repair import TemporaryRepair
+        from app.models.spot_work import SpotWork
+        from app.models.work_plan import WorkPlan
+        
+        project_ids = set()
+        
+        periodic = self.db.query(PeriodicInspection.project_id).filter(
+            PeriodicInspection.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in periodic if p[0]])
+        
+        repair = self.db.query(TemporaryRepair.project_id).filter(
+            TemporaryRepair.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in repair if p[0]])
+        
+        spot = self.db.query(SpotWork.project_id).filter(
+            SpotWork.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in spot if p[0]])
+        
+        work_plan = self.db.query(WorkPlan.project_id).filter(
+            WorkPlan.maintenance_personnel == user_name
+        ).all()
+        project_ids.update([p[0] for p in work_plan if p[0]])
+        
+        return list(project_ids)

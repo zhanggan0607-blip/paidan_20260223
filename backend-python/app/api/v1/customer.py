@@ -6,6 +6,7 @@ from app.database import get_db
 from app.services.customer import CustomerService
 from app.schemas.customer import CustomerCreate, CustomerUpdate, CustomerResponse, CustomerListResponse
 from app.schemas.common import ApiResponse
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/customer", tags=["customer"])
 
@@ -15,10 +16,24 @@ def get_customers(
     size: int = Query(10, ge=1, le=100, description="每页数量"),
     name: Optional[str] = Query(None, description="客户名称"),
     contact_person: Optional[str] = Query(None, description="联系人"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     service = CustomerService(db)
-    result = service.get_list(page=page, size=size, name=name, contact_person=contact_person)
+    
+    user_name = None
+    is_manager = False
+    client_names = None
+    
+    if current_user:
+        user_name = current_user.get('sub') or current_user.get('name')
+        role = current_user.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+        
+        if not is_manager and user_name:
+            client_names = service.get_user_client_names(user_name)
+    
+    result = service.get_list(page=page, size=size, name=name, contact_person=contact_person, client_names=client_names)
     return ApiResponse(code=200, message="success", data=result)
 
 @router.get("/{customer_id}", response_model=ApiResponse[CustomerResponse])
@@ -46,26 +61,8 @@ def update_customer(customer_id: int, customer: CustomerUpdate, db: Session = De
 @router.delete("/{customer_id}", response_model=ApiResponse[None])
 def delete_customer(
     customer_id: int,
-    cascade: bool = Query(False, description="是否级联删除关联数据"),
     db: Session = Depends(get_db)
 ):
     service = CustomerService(db)
-    result = service.delete(customer_id, cascade=cascade)
-    
-    if result.get('deleted_related'):
-        deleted_info = []
-        for key, count in result['deleted_related'].items():
-            name_map = {
-                'project': '项目',
-                'work_plan': '工作计划',
-                'periodic_inspection': '定期巡检',
-                'temporary_repair': '临时维修',
-                'spot_work': '零星用工',
-                'maintenance_plan': '维保计划'
-            }
-            deleted_info.append(f"{count} 条{name_map.get(key, key)}")
-        message = f"已删除客户【{result['customer_name']}】及其关联的 {', '.join(deleted_info)}"
-    else:
-        message = "删除成功"
-    
-    return ApiResponse(code=200, message=message, data=None)
+    result = service.delete(customer_id)
+    return ApiResponse(code=200, message="删除成功", data=None)

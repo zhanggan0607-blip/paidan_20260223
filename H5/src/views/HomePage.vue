@@ -3,6 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
+import UserSelector from '../components/UserSelector.vue'
+import { authService, type User } from '../services/auth'
 
 const router = useRouter()
 
@@ -25,7 +27,9 @@ const statistics = ref<Statistics>({
 })
 
 const loading = ref(false)
+const userSelectorRef = ref<InstanceType<typeof UserSelector> | null>(null)
 const hasOverdue = computed(() => statistics.value.overdue > 0)
+const currentUser = ref<User | null>(null)
 
 const fetchStatistics = async () => {
   loading.value = true
@@ -41,21 +45,37 @@ const fetchStatistics = async () => {
   }
 }
 
-const statCards = computed(() => [
-  { key: 'expiringSoon', label: '临期工单', value: statistics.value.expiringSoon, color: '#ff976a', route: '/work-list?type=expiring' },
-  { key: 'overdue', label: '超期工单', value: statistics.value.overdue, color: '#ee0a24', route: '/work-list?type=overdue', showBadge: hasOverdue.value },
-  { key: 'yearlyCompleted', label: '本年完成', value: statistics.value.yearlyCompleted, color: '#07c160', route: '/work-list?type=completed' },
-  { key: 'periodicInspection', label: '定期巡检单', value: statistics.value.periodicInspection, color: '#1989fa', route: '/work-list?type=periodic' },
-  { key: 'temporaryRepair', label: '临时维修单', value: statistics.value.temporaryRepair, color: '#7232dd', route: '/work-list?type=repair' },
-  { key: 'spotWork', label: '零星用工单', value: statistics.value.spotWork, color: '#ff976a', route: '/work-list?type=spot' }
-])
+const handleUserChanged = () => {
+  currentUser.value = authService.getCurrentUser()
+  fetchStatistics()
+}
 
-const quickActions = [
-  { key: 'project', label: '项目信息', icon: 'info-o', color: '#1989fa', route: '/project-info' },
-  { key: 'periodic', label: '定期巡检', icon: 'todo-list-o', color: '#1989fa', route: '/periodic-inspection' },
-  { key: 'repair', label: '临时维修', icon: 'warning-o', color: '#ff976a', route: '/temporary-repair' },
-  { key: 'spot', label: '零星用工', icon: 'cluster-o', color: '#07c160', route: '/spot-work' }
-]
+const statCards = computed(() => {
+  const user = currentUser.value
+  const cards = [
+    { key: 'expiringSoon', label: '临期工单', value: statistics.value.expiringSoon, color: '#ff976a', route: '/work-list?type=expiring', show: authService.canViewWorkOrder(user) },
+    { key: 'overdue', label: '超期工单', value: statistics.value.overdue, color: '#ee0a24', route: '/work-list?type=overdue', showBadge: hasOverdue.value, show: authService.canViewWorkOrder(user) },
+    { key: 'yearlyCompleted', label: '本年完成', value: statistics.value.yearlyCompleted, color: '#07c160', route: '/work-list?type=completed', show: authService.canViewWorkOrder(user) },
+    { key: 'periodicInspection', label: '定期巡检单', value: statistics.value.periodicInspection, color: '#1989fa', route: '/work-list?type=periodic', show: authService.canViewPeriodicInspection(user) },
+    { key: 'temporaryRepair', label: '临时维修单', value: statistics.value.temporaryRepair, color: '#7232dd', route: '/work-list?type=repair', show: authService.canViewTemporaryRepair(user) },
+    { key: 'spotWork', label: '零星用工单', value: statistics.value.spotWork, color: '#ff976a', route: '/work-list?type=spot', show: authService.canViewSpotWork(user) }
+  ]
+  return cards.filter(card => card.show)
+})
+
+const quickActions = computed(() => {
+  const user = currentUser.value
+  const actions = [
+    { key: 'periodic', label: '定期巡检', icon: 'todo-list-o', color: '#1989fa', route: '/periodic-inspection', show: authService.canViewPeriodicInspection(user) },
+    { key: 'repair', label: '临时维修', icon: 'warning-o', color: '#ff976a', route: '/temporary-repair', show: authService.canViewTemporaryRepair(user) },
+    { key: 'spot', label: '零星用工', icon: 'cluster-o', color: '#07c160', route: '/spot-work', show: authService.canViewSpotWork(user) }
+  ]
+  return actions.filter(action => action.show)
+})
+
+const showQuickFill = computed(() => {
+  return authService.canQuickFillSpotWork(currentUser.value)
+})
 
 const handleCardClick = (card: { route: string }) => {
   router.push(card.route)
@@ -69,11 +89,8 @@ const handleQuickFill = () => {
   router.push('/spot-work/quick-fill')
 }
 
-const handleBack = () => {
-  router.back()
-}
-
 onMounted(() => {
+  currentUser.value = authService.getCurrentUser()
   fetchStatistics()
 })
 </script>
@@ -81,17 +98,14 @@ onMounted(() => {
 <template>
   <div class="home-page">
     <van-nav-bar title="SSTCP维保系统" fixed placeholder>
-      <template #left>
-        <div class="nav-left" @click="handleBack">
-          <van-icon name="arrow-left" />
-          <span>返回</span>
-        </div>
+      <template #right>
+        <UserSelector ref="userSelectorRef" @userChanged="handleUserChanged" />
       </template>
     </van-nav-bar>
     
     <div class="content">
       <div class="actions-section">
-        <van-grid :column-num="2" :border="false">
+        <van-grid :column-num="3" :border="false">
           <van-grid-item 
             v-for="action in quickActions" 
             :key="action.key"
@@ -105,7 +119,7 @@ onMounted(() => {
         </van-grid>
       </div>
 
-      <div class="quick-fill-section">
+      <div class="quick-fill-section" v-if="showQuickFill">
         <van-cell-group inset>
           <van-cell title="快捷填报" is-link @click="handleQuickFill">
             <template #icon>

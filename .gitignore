@@ -27,3 +27,25 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+.env.postgresql
+.env.sqlite
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+*.egg-info/
+.eggs/
+
+# Test reports and temporary files
+*_test.py
+test_report_*.json
+defects_report.json
+defects_report.md
+
+# Batch files
+*.bat

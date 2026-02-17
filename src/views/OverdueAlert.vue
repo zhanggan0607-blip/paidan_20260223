@@ -33,9 +33,6 @@
               </select>
             </div>
           </div>
-          <div class="search-actions">
-            <button class="btn btn-search" @click="handleSearch">搜索</button>
-          </div>
         </div>
 
         <div class="table-section">
@@ -50,7 +47,7 @@
                 <th>计划结束日期</th>
                 <th>提醒类型</th>
                 <th class="th-overdue-days">已超期（天）</th>
-                <th>执行人员</th>
+                <th>运维人员</th>
                 <th>工单状态</th>
                 <th>操作</th>
               </tr>
@@ -80,7 +77,7 @@
 
         <div class="pagination-section">
           <div class="pagination-info">
-            共 {{ allData.length }} 条记录
+            共 {{ filteredAllData.length }} 条记录
           </div>
           <div class="pagination-controls" v-if="totalPages > 0">
             <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
@@ -157,7 +154,7 @@
                 <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">执行人员</label>
+                <label class="form-label">运维人员</label>
                 <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
             </div>
@@ -181,8 +178,10 @@ import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
 import { spotWorkService, type SpotWork } from '../services/spotWork'
+import { authService, type User } from '../services/auth'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import SearchInput from '../components/SearchInput.vue'
+import { USER_ROLES } from '../config/constants'
 
 interface ViewData {
   id: number
@@ -205,6 +204,7 @@ export default defineComponent({
     SearchInput
   },
   setup() {
+    const currentUser = ref<User | null>(authService.getCurrentUser())
     const searchForm = reactive({
       projectName: '',
       customerName: '',
@@ -320,14 +320,24 @@ export default defineComponent({
       }
     }
 
+    const filteredAllData = computed(() => {
+      let result = allData.value
+      const user = currentUser.value
+      if (user && user.role === USER_ROLES.EMPLOYEE) {
+        result = result.filter(item => item.executor === user.name)
+      }
+      return result
+    })
+
     const filteredData = computed(() => {
+      const result = filteredAllData.value
       const start = (currentPage.value - 1) * pageSize.value
       const end = start + pageSize.value
-      return allData.value.slice(start, end)
+      return result.slice(start, end)
     })
 
     const totalPages = computed(() => {
-      return Math.ceil(allData.value.length / pageSize.value)
+      return Math.ceil(filteredAllData.value.length / pageSize.value)
     })
 
     const handleSearch = () => {
@@ -375,11 +385,19 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
+    const handleUserChanged = (event: CustomEvent) => {
+      currentUser.value = event.detail
+      loadData()
+    }
+
     return {
+      currentUser,
       searchForm,
       filteredData,
+      filteredAllData,
       allData,
       currentPage,
       pageSize,

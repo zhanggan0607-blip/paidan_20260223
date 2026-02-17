@@ -20,6 +20,8 @@ html, body {
   width: 100%;
   background-color: #f5f7fa;
   position: relative;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
 }
 
 .van-nav-bar--fixed {
@@ -27,6 +29,17 @@ html, body {
   transform: translateX(-50%) !important;
   max-width: 375px !important;
   width: 100% !important;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
+}
+
+.van-tabs--sticky .van-tabs__nav {
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  max-width: 375px !important;
+  width: 100% !important;
+  border-left: 1px solid #e5e5e5;
+  border-right: 1px solid #e5e5e5;
 }
 
 .nav-left {

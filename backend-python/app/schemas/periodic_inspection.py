@@ -5,7 +5,7 @@ from app.schemas.common import ApiResponse, PaginatedResponse
 
 
 class PeriodicInspectionBase(BaseModel):
-    inspection_id: str = Field(..., max_length=50, description="巡检单编号")
+    inspection_id: str = Field(..., max_length=50, description="工单编号")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
     plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")
@@ -25,7 +25,7 @@ class PeriodicInspectionBase(BaseModel):
 
 
 class PeriodicInspectionCreate(BaseModel):
-    inspection_id: str = Field(..., max_length=50, description="巡检单编号")
+    inspection_id: str = Field(..., max_length=50, description="工单编号")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
     plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")
@@ -38,7 +38,7 @@ class PeriodicInspectionCreate(BaseModel):
 
 
 class PeriodicInspectionUpdate(BaseModel):
-    inspection_id: str = Field(..., max_length=50, description="巡检单编号")
+    inspection_id: str = Field(..., max_length=50, description="工单编号")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
     plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")

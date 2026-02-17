@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import Layout from '@/components/Layout.vue'
+import LoginPage from '@/views/LoginPage.vue'
 import ProjectInfoManagement from '@/views/ProjectInfoManagement.vue'
 import MaintenancePlanManagement from '@/views/MaintenancePlanManagement.vue'
 import OverdueAlert from '@/views/OverdueAlert.vue'
@@ -15,106 +16,104 @@ import SpotWorkManagement from '@/views/SpotWorkManagement.vue'
 import SparePartsManagement from '@/views/SparePartsManagement.vue'
 import SparePartsIssue from '@/views/SparePartsIssue.vue'
 import SparePartsStock from '@/views/SparePartsStock.vue'
-import SparePartsInventory from '@/views/SparePartsInventory.vue'
 import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
 import CustomerManagement from '@/views/CustomerManagement.vue'
 import RepairToolsIssue from '@/views/RepairToolsIssue.vue'
-import RepairToolsInventory from '@/views/RepairToolsInventory.vue'
 import RepairToolsInbound from '@/views/RepairToolsInbound.vue'
+import { authService } from '@/services/auth'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'Login',
+    component: LoginPage,
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/',
     component: Layout,
+    meta: { requiresAuth: true },
     children: [
       {
         path: '',
         redirect: '/project-info'
       },
       {
-        path: '/statistics',
+        path: 'statistics',
         component: StatisticsPage
       },
       {
-        path: '/project-info',
+        path: 'project-info',
         component: ProjectInfoManagement
       },
       {
-        path: '/maintenance-plan',
+        path: 'maintenance-plan',
         component: MaintenancePlanManagement
       },
       {
-        path: '/overdue-alert',
+        path: 'overdue-alert',
         component: OverdueAlert
       },
       {
-        path: '/inspection-item',
+        path: 'inspection-item',
         component: InspectionItemPage
       },
       {
-        path: '/personnel',
+        path: 'personnel',
         component: PersonnelManagement
       },
       {
-        path: '/near-expiry-alert',
+        path: 'near-expiry-alert',
         component: NearExpiryReminders
       },
       {
-        path: '/work-order/temporary-repair',
+        path: 'work-order/temporary-repair',
         component: TemporaryRepairQuery
       },
       {
-        path: '/work-order/temporary-repair/detail',
+        path: 'work-order/temporary-repair/detail',
         name: 'TemporaryRepairDetail',
         component: TemporaryRepairDetail
       },
       {
-        path: '/work-order/periodic-inspection',
+        path: 'work-order/periodic-inspection',
         component: PeriodicInspectionQuery
       },
       {
-        path: '/work-order/spot-work',
+        path: 'work-order/spot-work',
         component: SpotWorkManagement
       },
       {
-        path: '/work-order/spot-work/detail',
+        path: 'work-order/spot-work/detail',
         name: 'SpotWorkDetail',
         component: SpotWorkDetail
       },
       {
-        path: '/spare-parts',
+        path: 'spare-parts',
         component: SparePartsManagement
       },
       {
-        path: '/spare-parts/issue',
+        path: 'spare-parts/issue',
         component: SparePartsIssue
       },
       {
-        path: '/spare-parts/stock',
+        path: 'spare-parts/stock',
         component: SparePartsStock
       },
       {
-        path: '/spare-parts/inventory',
-        component: SparePartsInventory
-      },
-      {
-        path: '/work-plan',
+        path: 'work-plan',
         component: WorkPlanManagement
       },
       {
-        path: '/customer',
+        path: 'customer',
         component: CustomerManagement
       },
       {
-        path: '/repair-tools/issue',
+        path: 'repair-tools/issue',
         component: RepairToolsIssue
       },
       {
-        path: '/repair-tools/stock',
-        component: RepairToolsInventory
-      },
-      {
-        path: '/repair-tools/inbound',
+        path: 'repair-tools/inbound',
         component: RepairToolsInbound
       }
     ]
@@ -124,6 +123,10 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.beforeEach((to, _from, next) => {
+  next()
 })
 
 export default router

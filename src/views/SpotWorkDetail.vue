@@ -24,6 +24,14 @@
               <label class="form-label">客户单位</label>
               <div class="form-value">{{ workData.client_name || '-' }}</div>
             </div>
+            <div class="form-item">
+              <label class="form-label">客户联系人</label>
+              <div class="form-value">{{ workData.client_contact || '-' }}</div>
+            </div>
+            <div class="form-item">
+              <label class="form-label">联系人职位</label>
+              <div class="form-value">{{ workData.client_contact_position || '-' }}</div>
+            </div>
           </div>
           <div class="form-column">
             <div class="form-item">
@@ -37,6 +45,14 @@
             <div class="form-item">
               <label class="form-label">运维人员</label>
               <div class="form-value">{{ workData.maintenance_personnel || '-' }}</div>
+            </div>
+            <div class="form-item">
+              <label class="form-label">客户联系方式</label>
+              <div class="form-value">{{ workData.client_contact_info || '-' }}</div>
+            </div>
+            <div class="form-item">
+              <label class="form-label">客户地址</label>
+              <div class="form-value">{{ workData.address || '-' }}</div>
             </div>
             <div class="form-item">
               <label class="form-label">备注</label>
@@ -65,6 +81,10 @@ interface WorkData {
   plan_start_date: string
   plan_end_date: string
   client_name: string
+  client_contact: string
+  client_contact_info: string
+  client_contact_position: string
+  address: string
   maintenance_personnel: string
   status: string
   remarks?: string
@@ -83,6 +103,10 @@ export default defineComponent({
       plan_start_date: '',
       plan_end_date: '',
       client_name: '',
+      client_contact: '',
+      client_contact_info: '',
+      client_contact_position: '',
+      address: '',
       maintenance_personnel: '',
       status: '',
       remarks: ''
@@ -112,7 +136,11 @@ export default defineComponent({
               project_name: item.project_name || item.plan_name,
               plan_start_date: item.plan_start_date,
               plan_end_date: item.plan_end_date,
-              client_name: item.responsible_department || '',
+              client_name: item.client_name || item.responsible_department || '',
+              client_contact: item.client_contact || '',
+              client_contact_info: item.client_contact_info || '',
+              client_contact_position: item.client_contact_position || '',
+              address: item.address || '',
               maintenance_personnel: item.responsible_person || '',
               status: item.plan_status || '待执行',
               remarks: item.remarks || ''

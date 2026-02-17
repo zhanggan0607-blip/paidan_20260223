@@ -622,11 +622,17 @@ const handleDrop = async (draggingNode: Node, dropNode: Node, dropType: string, 
 onMounted(() => {
   document.addEventListener('click', closeContextMenu)
   loadTreeData()
+  window.addEventListener('user-changed', handleUserChanged)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeContextMenu)
+  window.removeEventListener('user-changed', handleUserChanged)
 })
+
+const handleUserChanged = () => {
+  loadTreeData()
+}
 </script>
 
 <style scoped>

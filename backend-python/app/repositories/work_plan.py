@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.work_plan import WorkPlan
 import logging
 
@@ -21,10 +21,11 @@ class WorkPlanRepository:
         plan_type: Optional[str] = None,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[WorkPlan], int]:
         try:
-            query = self.db.query(WorkPlan)
+            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project))
 
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)
@@ -37,6 +38,9 @@ class WorkPlanRepository:
 
             if status:
                 query = query.filter(WorkPlan.status == status)
+            
+            if maintenance_personnel:
+                query = query.filter(WorkPlan.maintenance_personnel == maintenance_personnel)
 
             total = query.count()
             items = query.order_by(WorkPlan.created_at.desc()).offset(page * size).limit(size).all()
@@ -48,14 +52,14 @@ class WorkPlanRepository:
 
     def find_by_id(self, id: int) -> Optional[WorkPlan]:
         try:
-            return self.db.query(WorkPlan).filter(WorkPlan.id == id).first()
+            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(WorkPlan.id == id).first()
         except Exception as e:
             logger.error(f"查询工作计划失败 (id={id}): {str(e)}")
             raise
 
     def find_by_plan_id(self, plan_id: str) -> Optional[WorkPlan]:
         try:
-            return self.db.query(WorkPlan).filter(WorkPlan.plan_id == plan_id).first()
+            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(WorkPlan.plan_id == plan_id).first()
         except Exception as e:
             logger.error(f"查询工作计划失败 (plan_id={plan_id}): {str(e)}")
             raise
@@ -99,7 +103,7 @@ class WorkPlanRepository:
 
     def find_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
         try:
-            query = self.db.query(WorkPlan)
+            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project))
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)
             return query.order_by(WorkPlan.created_at.desc()).all()

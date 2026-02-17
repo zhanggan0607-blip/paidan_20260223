@@ -8,7 +8,7 @@ class MaintenancePlanBase(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
     plan_name: str = Field(..., max_length=200, description="计划名称")
     project_id: str = Field(..., max_length=50, description="关联项目编号")
-    plan_type: str = Field(..., max_length=20, description="计划类型")
+    plan_type: str = Field(..., max_length=20, description="工单类型")
     equipment_id: str = Field(..., max_length=50, description="设备编号")
     equipment_name: str = Field(..., max_length=200, description="设备名称")
     equipment_model: Optional[str] = Field(None, max_length=100, description="设备型号")
@@ -33,7 +33,7 @@ class MaintenancePlanBase(BaseModel):
     def validate_plan_type(cls, v):
         valid_types = ['定期维保', '预防性维保', '故障维修', '巡检', '其他']
         if v not in valid_types:
-            raise ValueError(f'计划类型必须是以下之一: {", ".join(valid_types)}')
+            raise ValueError(f'工单类型必须是以下之一: {", ".join(valid_types)}')
         return v
 
     @field_validator('plan_status')
@@ -67,7 +67,7 @@ class MaintenancePlanCreate(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
     plan_name: str = Field(..., max_length=200, description="计划名称")
     project_id: str = Field(..., max_length=50, description="关联项目编号")
-    plan_type: str = Field(..., max_length=20, description="计划类型")
+    plan_type: str = Field(..., max_length=20, description="工单类型")
     equipment_id: str = Field(..., max_length=50, description="设备编号")
     equipment_name: str = Field(..., max_length=200, description="设备名称")
     equipment_model: Optional[str] = Field(None, max_length=100, description="设备型号")
@@ -92,7 +92,7 @@ class MaintenancePlanUpdate(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
     plan_name: str = Field(..., max_length=200, description="计划名称")
     project_id: str = Field(..., max_length=50, description="关联项目编号")
-    plan_type: str = Field(..., max_length=20, description="计划类型")
+    plan_type: str = Field(..., max_length=20, description="工单类型")
     equipment_id: str = Field(..., max_length=50, description="设备编号")
     equipment_name: str = Field(..., max_length=200, description="设备名称")
     equipment_model: Optional[str] = Field(None, max_length=100, description="设备型号")

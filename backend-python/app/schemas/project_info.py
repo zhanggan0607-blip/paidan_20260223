@@ -13,7 +13,7 @@ class ProjectInfoBase(BaseModel):
     client_name: str = Field(..., max_length=100, description="客户单位名称")
     address: str = Field(..., max_length=200, description="客户地址")
     project_abbr: Optional[str] = Field(None, max_length=10, description="项目简称")
-    project_manager: Optional[str] = Field(None, max_length=50, description="项目负责人")
+    project_manager: Optional[str] = Field(None, max_length=50, description="运维人员")
     client_contact: Optional[str] = Field(None, max_length=50, description="客户联系人")
     client_contact_position: Optional[str] = Field(None, max_length=20, description="客户联系人职位")
     client_contact_info: Optional[str] = Field(None, max_length=50, description="客户联系方式")

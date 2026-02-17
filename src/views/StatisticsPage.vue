@@ -21,27 +21,27 @@
 
     <div class="content" v-if="!loading">
       <div class="top-cards-section">
-        <div class="mini-card mini-card-warning">
+        <div class="mini-card mini-card-warning clickable" @click="openDetailModal('nearDue', '临期工单')">
           <div class="mini-card-value">{{ overviewData.nearDueCount }}</div>
           <div class="mini-card-label">临期工单</div>
         </div>
-        <div class="mini-card mini-card-danger">
+        <div class="mini-card mini-card-danger clickable" @click="openDetailModal('overdue', '超期工单')">
           <div class="mini-card-value">{{ overviewData.overdueCount }}</div>
           <div class="mini-card-label">超期工单</div>
         </div>
-        <div class="mini-card mini-card-success">
+        <div class="mini-card mini-card-success clickable" @click="openDetailModal('yearCompleted', '本年完成')">
           <div class="mini-card-value">{{ overviewData.yearCompletedCount }}</div>
           <div class="mini-card-label">本年完成</div>
         </div>
-        <div class="mini-card mini-card-info">
+        <div class="mini-card mini-card-info clickable" @click="openDetailModal('regularInspection', '定期巡检单')">
           <div class="mini-card-value">{{ overviewData.regularInspectionCount }}</div>
           <div class="mini-card-label">定期巡检单</div>
         </div>
-        <div class="mini-card mini-card-purple">
+        <div class="mini-card mini-card-purple clickable" @click="openDetailModal('temporaryRepair', '临时维修单')">
           <div class="mini-card-value">{{ overviewData.temporaryRepairCount }}</div>
           <div class="mini-card-label">临时维修单</div>
         </div>
-        <div class="mini-card mini-card-cyan">
+        <div class="mini-card mini-card-cyan clickable" @click="openDetailModal('spotWork', '零星用工单')">
           <div class="mini-card-value">{{ overviewData.spotWorkCount }}</div>
           <div class="mini-card-label">零星用工单</div>
         </div>
@@ -60,7 +60,7 @@
                   <div v-for="tick in yAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(employee, index) in employeeStats.employees" :key="index" class="horizontal-bar-item">
+                  <div v-for="(employee, index) in employeeStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(employee.name)">
                     <div class="bar-label">{{ employee.name }}</div>
                     <div class="bar-track">
                       <div class="bar-fill" :style="{ width: getEmployeeBarWidth(employee.count) + '%' }">
@@ -89,10 +89,10 @@
                   <div v-for="tick in inspectionYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(item, index) in inspectionStats.employees" :key="index" class="horizontal-bar-item">
+                  <div v-for="(item, index) in inspectionStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(item.name, 'inspection')">
                     <div class="bar-label">{{ item.name }}</div>
                     <div class="bar-track">
-                      <div class="bar-fill" :style="{ width: getInspectionBarWidth(item.count) + '%' }">
+                      <div class="bar-fill bar-fill-green" :style="{ width: getInspectionBarWidth(item.count) + '%' }">
                         <span class="bar-value">{{ item.count }}</span>
                       </div>
                     </div>
@@ -118,10 +118,10 @@
                   <div v-for="tick in repairYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(item, index) in repairStats.employees" :key="index" class="horizontal-bar-item">
+                  <div v-for="(item, index) in repairStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(item.name, 'repair')">
                     <div class="bar-label">{{ item.name }}</div>
                     <div class="bar-track">
-                      <div class="bar-fill" :style="{ width: getRepairBarWidth(item.count) + '%' }">
+                      <div class="bar-fill bar-fill-red" :style="{ width: getRepairBarWidth(item.count) + '%' }">
                         <span class="bar-value">{{ item.count }}</span>
                       </div>
                     </div>
@@ -147,7 +147,7 @@
                   <div v-for="tick in spotworkYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(item, index) in spotworkStats.employees" :key="index" class="horizontal-bar-item">
+                  <div v-for="(item, index) in spotworkStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(item.name, 'spotwork')">
                     <div class="bar-label">{{ item.name }}</div>
                     <div class="bar-track">
                       <div class="bar-fill" :style="{ width: getSpotworkBarWidth(item.count) + '%' }">
@@ -168,11 +168,11 @@
           <div class="employee-chart-container">
             <div class="chart-caption">准时完成情况分布（{{ selectedYear }}）</div>
             <div class="pie-chart-wrapper">
-              <div class="pie-chart-container">
+              <div class="pie-chart-container clickable" @click="openDetailModal('onTime', '准时完成')">
                 <svg class="pie-svg" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#fac858" stroke-width="20" 
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#ff9800" stroke-width="20" 
                     :stroke-dasharray="pieDashArray" stroke-dashoffset="0" transform="rotate(-90 50 50)" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#5470c6" stroke-width="20" 
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="#4caf50" stroke-width="20" 
                     :stroke-dasharray="pieDashArray" :stroke-dashoffset="pieDashOffset" transform="rotate(-90 50 50)" />
                 </svg>
                 <div class="pie-center">
@@ -181,11 +181,11 @@
                 </div>
               </div>
               <div class="pie-legend">
-                <div class="legend-item">
+                <div class="legend-item clickable-legend" @click="openDetailModal('onTime', '准时完成')">
                   <div class="legend-color legend-color-ontime"></div>
                   <span>准时完成: {{ completionRate.onTimeCount }}单</span>
                 </div>
-                <div class="legend-item">
+                <div class="legend-item clickable-legend" @click="openDetailModal('delayed', '延期完成')">
                   <div class="legend-color legend-color-delayed"></div>
                   <span>延期完成: {{ completionRate.delayedCount }}单</span>
                 </div>
@@ -207,7 +207,7 @@
                     <div v-for="tick in topRepairYAxisTicks" :key="'grid-' + tick" class="v-grid-line"></div>
                   </div>
                   <div class="vertical-bars-container">
-                    <div v-for="(item, index) in topRepairs" :key="index" class="vertical-bar-col">
+                    <div v-for="(item, index) in topRepairs" :key="index" class="vertical-bar-col clickable-bar" @click="openProjectDetail(item.name, 'repair')">
                       <div class="v-bar-track">
                         <div class="v-bar-fill" :style="{ height: getTopRepairBarHeight(item.value) + '%' }">
                           <span class="v-bar-value">{{ item.value }}</span>
@@ -237,12 +237,65 @@
       <div class="loading-spinner"></div>
       <p>加载中...</p>
     </div>
+
+    <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3 class="modal-title">{{ detailModalTitle }}</h3>
+          <button class="modal-close" @click="closeDetailModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-loading" v-if="detailLoading">
+            <div class="loading-spinner small"></div>
+            <span>加载中...</span>
+          </div>
+          <div class="detail-content" v-else>
+            <div class="detail-stats">
+              <span class="detail-total">共 {{ detailTotal }} 条记录</span>
+            </div>
+            <div class="detail-table-wrapper">
+              <table class="detail-table">
+                <thead>
+                  <tr>
+                    <th>序号</th>
+                    <th>工单类型</th>
+                    <th>工单编号</th>
+                    <th>所属项目</th>
+                    <th>运维人员</th>
+                    <th>计划开始</th>
+                    <th>计划结束</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(item, index) in detailData" :key="index">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ item.orderType }}</td>
+                    <td>{{ item.orderNumber }}</td>
+                    <td>{{ item.projectName }}</td>
+                    <td>{{ item.maintenancePersonnel }}</td>
+                    <td>{{ item.planStartDate }}</td>
+                    <td>{{ item.planEndDate }}</td>
+                    <td>
+                      <span :class="['status-tag', getStatusClass(item.status)]">{{ getDisplayStatus(item.status) }}</span>
+                    </td>
+                  </tr>
+                  <tr v-if="detailData.length === 0">
+                    <td colspan="8" class="no-data">暂无数据</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed, inject } from 'vue'
-import { statisticsService, StatisticsOverview, CompletionRate, TopProject, EmployeeStats } from '@/services/statistics'
+import { statisticsService, StatisticsOverview, CompletionRate, TopProject, EmployeeStats, WorkOrderDetail } from '@/services/statistics'
 
 export default defineComponent({
   name: 'StatisticsPage',
@@ -291,6 +344,16 @@ export default defineComponent({
     })
     const loading = ref<boolean>(false)
     const isFullscreen = ref<boolean>(false)
+    
+    const showDetailModal = ref<boolean>(false)
+    const detailModalTitle = ref<string>('')
+    const detailLoading = ref<boolean>(false)
+    const detailData = ref<WorkOrderDetail[]>([])
+    const detailTotal = ref<number>(0)
+    const currentDataType = ref<string>('')
+    const currentEmployeeName = ref<string>('')
+    const currentProjectName = ref<string>('')
+    const currentOrderType = ref<string>('')
     
     const setFullscreenMode = inject<(value: boolean) => void>('setFullscreenMode')
 
@@ -497,11 +560,103 @@ export default defineComponent({
     onMounted(() => {
       handleYearChange()
       document.addEventListener('fullscreenchange', handleFullscreenChange)
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange)
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      handleYearChange()
+    }
+
+    const openDetailModal = async (dataType: string, title: string) => {
+      currentDataType.value = dataType
+      currentEmployeeName.value = ''
+      currentProjectName.value = ''
+      currentOrderType.value = ''
+      detailModalTitle.value = title
+      showDetailModal.value = true
+      await fetchDetailData()
+    }
+
+    const openEmployeeDetail = async (employeeName: string, orderType?: string) => {
+      currentDataType.value = 'employee'
+      currentEmployeeName.value = employeeName
+      currentProjectName.value = ''
+      currentOrderType.value = orderType || ''
+      detailModalTitle.value = `${employeeName} - 工单详情`
+      showDetailModal.value = true
+      await fetchDetailData()
+    }
+
+    const openProjectDetail = async (projectName: string, orderType?: string) => {
+      currentDataType.value = 'project'
+      currentProjectName.value = projectName
+      currentEmployeeName.value = ''
+      currentOrderType.value = orderType || ''
+      detailModalTitle.value = `${projectName} - 工单详情`
+      showDetailModal.value = true
+      await fetchDetailData()
+    }
+
+    const closeDetailModal = () => {
+      showDetailModal.value = false
+      detailData.value = []
+      detailTotal.value = 0
+    }
+
+    const fetchDetailData = async () => {
+      detailLoading.value = true
+      try {
+        const params: any = {
+          year: selectedYear.value,
+          data_type: currentDataType.value,
+          page: 1,
+          page_size: 10000
+        }
+        if (currentEmployeeName.value) {
+          params.employee_name = currentEmployeeName.value
+        }
+        if (currentProjectName.value) {
+          params.project_name = currentProjectName.value
+        }
+        if (currentOrderType.value) {
+          params.order_type = currentOrderType.value
+        }
+        console.log('fetchDetailData params:', params)
+        const response = await statisticsService.getStatisticsDetail(params)
+        console.log('fetchDetailData response:', response)
+        console.log('response.data:', response?.data)
+        console.log('response.total:', response?.total)
+        detailData.value = response?.data || []
+        detailTotal.value = response?.total || 0
+        console.log('detailData:', detailData.value)
+        console.log('detailTotal:', detailTotal.value)
+      } catch (error) {
+        console.error('获取详细数据失败:', error)
+        detailData.value = []
+        detailTotal.value = 0
+      } finally {
+        detailLoading.value = false
+      }
+    }
+
+    const getStatusClass = (status: string) => {
+      if (status === '已确认' || status === '已完成') return 'status-completed'
+      if (status === '待确认') return 'status-in-progress'
+      if (status === '未进行' || status === '已退回') return 'status-pending'
+      return 'status-default'
+    }
+
+    const getDisplayStatus = (status: string) => {
+      if (status === '已确认' || status === '已完成') return '已完成'
+      if (status === '待确认') return '待确认'
+      if (status === '未进行' || status === '已退回') return '待处理'
+      return status
+    }
 
     return {
       selectedYear,
@@ -535,7 +690,18 @@ export default defineComponent({
       truncateName,
       getLabelFontSize,
       toggleFullscreen,
-      handleYearChange
+      handleYearChange,
+      showDetailModal,
+      detailModalTitle,
+      detailLoading,
+      detailData,
+      detailTotal,
+      openDetailModal,
+      openEmployeeDetail,
+      openProjectDetail,
+      closeDetailModal,
+      getStatusClass,
+      getDisplayStatus
     }
   }
 })
@@ -715,6 +881,7 @@ export default defineComponent({
   grid-template-rows: repeat(2, 1fr);
   gap: 1px;
   background: #e0e0e0;
+  min-height: 300px;
 }
 
 .stat-card {
@@ -726,6 +893,7 @@ export default defineComponent({
   align-items: center;
   gap: 16px;
   transition: transform 0.2s, box-shadow 0.2s;
+  min-height: 0;
 }
 
 .stat-card:hover {
@@ -799,6 +967,8 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chart-caption {
@@ -814,7 +984,7 @@ export default defineComponent({
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 110px;
+  min-height: 0;
 }
 
 .chart-y-axis {
@@ -834,6 +1004,8 @@ export default defineComponent({
 .chart-content {
   flex: 1;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .chart-grid {
@@ -857,13 +1029,17 @@ export default defineComponent({
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  flex: 1;
+  justify-content: space-evenly;
+  height: 100%;
 }
 
 .horizontal-bar-item {
   display: flex;
   align-items: center;
-  height: 20px;
+  flex: 1;
+  min-height: 16px;
+  max-height: 28px;
 }
 
 .bar-label {
@@ -880,7 +1056,8 @@ export default defineComponent({
 
 .bar-track {
   flex: 1;
-  height: 14px;
+  height: 100%;
+  max-height: 18px;
   background: #f0f0f0;
   border-radius: 3px;
   overflow: hidden;
@@ -900,11 +1077,11 @@ export default defineComponent({
 }
 
 .bar-fill-green {
-  background: #91cc75;
+  background: #5470c6;
 }
 
 .bar-fill-red {
-  background: #ee6666;
+  background: #5470c6;
 }
 
 .bar-value {
@@ -975,11 +1152,11 @@ export default defineComponent({
 }
 
 .legend-color-ontime {
-  background: #5470c6;
+  background: #4caf50;
 }
 
 .legend-color-delayed {
-  background: #fac858;
+  background: #ff9800;
 }
 
 .employee-no-data {
@@ -1087,7 +1264,7 @@ export default defineComponent({
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 150px;
+  min-height: 0;
 }
 
 .vertical-chart-wrapper {
@@ -1095,6 +1272,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
+  min-height: 0;
 }
 
 .vertical-chart-yaxis {
@@ -1124,6 +1302,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   overflow: visible;
+  min-height: 0;
 }
 
 .vertical-chart-grid {
@@ -1152,6 +1331,8 @@ export default defineComponent({
   z-index: 1;
   margin-bottom: 35px;
   margin-top: auto;
+  flex: 1;
+  width: 100%;
 }
 
 .vertical-bar-col {
@@ -1159,11 +1340,14 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   flex: 1;
-  max-width: 50px;
+  max-width: 60px;
+  min-width: 30px;
 }
 
 .v-bar-track {
-  width: 20px;
+  width: 60%;
+  max-width: 24px;
+  min-width: 12px;
   height: 100px;
   background: #f0f0f0;
   border-radius: 3px;
@@ -1176,7 +1360,7 @@ export default defineComponent({
 }
 
 .v-bar-fill {
-  width: 20px;
+  width: 100%;
   background: #5470c6;
   border-radius: 3px 3px 0 0;
   display: flex;
@@ -1500,21 +1684,26 @@ export default defineComponent({
 :fullscreen .vertical-bars-container {
   margin-bottom: 40px;
   margin-top: auto;
+  flex: 1;
+  width: 100%;
 }
 
 :fullscreen .vertical-bar-col {
-  max-width: 50px;
+  max-width: 60px;
+  min-width: 30px;
 }
 
 :fullscreen .v-bar-track {
   height: 100px;
-  width: 20px;
+  width: 60%;
+  max-width: 24px;
+  min-width: 12px;
 }
 
 :fullscreen .v-bar-fill {
   min-height: 18px;
   padding-top: 3px;
-  width: 20px;
+  width: 100%;
 }
 
 :fullscreen .v-bar-value {
@@ -1540,5 +1729,227 @@ export default defineComponent({
 
 :fullscreen .employee-no-data {
   font-size: 14px;
+}
+
+.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.clickable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-bar {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.clickable-bar:hover {
+  background-color: rgba(84, 112, 198, 0.1);
+}
+
+.clickable-legend {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.clickable-legend:hover {
+  opacity: 0.8;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background: white;
+  border-radius: 12px;
+  width: 95%;
+  max-width: 1400px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+  flex-shrink: 0;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.detail-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: #666;
+  gap: 12px;
+}
+
+.loading-spinner.small {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.detail-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-total {
+  font-size: 14px;
+  color: #666;
+}
+
+.detail-table-wrapper {
+  overflow-x: auto;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.detail-table th,
+.detail-table td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.detail-table th {
+  background: #f5f7fa;
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+}
+
+.detail-table tr:hover {
+  background: #f9f9f9;
+}
+
+.no-data {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-completed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-in-progress {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.status-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-overdue {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-default {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 14px;
+  color: #666;
 }
 </style>

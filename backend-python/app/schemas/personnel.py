@@ -10,7 +10,7 @@ class PersonnelBase(BaseModel):
     gender: str = Field(..., max_length=10, description="性别")
     phone: Optional[str] = Field(None, max_length=20, description="联系电话")
     department: Optional[str] = Field(None, max_length=100, description="所属部门")
-    role: str = Field("员工", max_length=20, description="角色")
+    role: str = Field("运维人员", max_length=20, description="角色")
     address: Optional[str] = Field(None, max_length=200, description="地址")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
@@ -51,7 +51,7 @@ class PersonnelCreate(PersonnelBase):
     gender: str = Field(..., max_length=10, description="性别")
     phone: Optional[str] = Field(None, max_length=20, description="联系电话")
     department: Optional[str] = Field(None, max_length=100, description="所属部门")
-    role: str = Field("员工", max_length=20, description="角色")
+    role: str = Field("运维人员", max_length=20, description="角色")
     address: Optional[str] = Field(None, max_length=200, description="地址")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 

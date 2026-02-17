@@ -71,7 +71,7 @@ try:
     """)
     
     cursor.execute("""
-        COMMENT ON COLUMN periodic_inspection.inspection_id IS '巡检单编号';
+        COMMENT ON COLUMN periodic_inspection.inspection_id IS '工单编号';
     """)
     
     cursor.execute("""

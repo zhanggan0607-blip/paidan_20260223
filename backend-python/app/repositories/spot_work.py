@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.spot_work import SpotWork
 import logging
 
@@ -20,10 +20,11 @@ class SpotWorkRepository:
         size: int = 10,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[SpotWork], int]:
         try:
-            query = self.db.query(SpotWork)
+            query = self.db.query(SpotWork).options(joinedload(SpotWork.project))
 
             if project_name:
                 query = query.filter(SpotWork.project_name.like(f'%{project_name}%'))
@@ -33,9 +34,12 @@ class SpotWorkRepository:
 
             if status:
                 query = query.filter(SpotWork.status == status)
+            
+            if maintenance_personnel:
+                query = query.filter(SpotWork.maintenance_personnel == maintenance_personnel)
 
             total = query.count()
-            items = query.offset(page * size).limit(size).all()
+            items = query.order_by(SpotWork.created_at.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -44,14 +48,14 @@ class SpotWorkRepository:
 
     def find_by_id(self, id: int) -> Optional[SpotWork]:
         try:
-            return self.db.query(SpotWork).filter(SpotWork.id == id).first()
+            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(SpotWork.id == id).first()
         except Exception as e:
             logger.error(f"查询零星用工失败 (id={id}): {str(e)}")
             raise
 
     def find_by_work_id(self, work_id: str) -> Optional[SpotWork]:
         try:
-            return self.db.query(SpotWork).filter(SpotWork.work_id == work_id).first()
+            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(SpotWork.work_id == work_id).first()
         except Exception as e:
             logger.error(f"查询零星用工失败 (work_id={work_id}): {str(e)}")
             raise
@@ -95,7 +99,7 @@ class SpotWorkRepository:
 
     def find_all_unpaginated(self) -> List[SpotWork]:
         try:
-            return self.db.query(SpotWork).all()
+            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).all()
         except Exception as e:
             logger.error(f"查询所有零星用工失败: {str(e)}")
             raise

@@ -65,3 +65,12 @@ class PersonnelService:
     
     def get_all_unpaginated(self) -> List[Personnel]:
         return self.repository.find_all_unpaginated()
+    
+    def validate_personnel_exists(self, name: str) -> bool:
+        """验证人员姓名是否存在于personnel表中"""
+        return self.repository.find_by_name(name) is not None
+    
+    def get_all_names(self) -> List[str]:
+        """获取所有人员姓名列表"""
+        personnel_list = self.repository.find_all_unpaginated()
+        return [p.name for p in personnel_list]

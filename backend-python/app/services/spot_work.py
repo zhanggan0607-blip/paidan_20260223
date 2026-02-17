@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.models.spot_work import SpotWork
 from app.repositories.spot_work import SpotWorkRepository
 from app.utils.dictionary_helper import get_default_spot_work_status
+from app.services.sync_service import SyncService, PLAN_TYPE_SPOTWORK
 from pydantic import BaseModel
 
 
@@ -35,6 +36,7 @@ class SpotWorkUpdate(BaseModel):
 class SpotWorkService:
     def __init__(self, db: Session):
         self.repository = SpotWorkRepository(db)
+        self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         if date_value is None:
@@ -57,10 +59,11 @@ class SpotWorkService:
         size: int = 10, 
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[SpotWork], int]:
         return self.repository.find_all(
-            page, size, project_name, client_name, status
+            page, size, project_name, client_name, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> SpotWork:
@@ -102,7 +105,9 @@ class SpotWorkService:
             remarks=dto.remarks
         )
         
-        return self.repository.create(work)
+        result = self.repository.create(work)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
+        return result
     
     def update(self, id: int, dto: SpotWorkUpdate) -> SpotWork:
         existing_work = self.get_by_id(id)
@@ -123,10 +128,13 @@ class SpotWorkService:
         existing_work.status = dto.status
         existing_work.remarks = dto.remarks
         
-        return self.repository.update(existing_work)
+        result = self.repository.update(existing_work)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
+        return result
     
     def delete(self, id: int) -> None:
         work = self.get_by_id(id)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, work, is_delete=True)
         self.repository.delete(work)
     
     def get_all_unpaginated(self) -> List[SpotWork]:

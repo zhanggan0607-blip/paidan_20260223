@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.work_plan import WorkPlan
 from app.repositories.work_plan import WorkPlanRepository
+from app.services.sync_service import SyncService
 from pydantic import BaseModel
 
 
@@ -41,6 +42,7 @@ class WorkPlanUpdate(BaseModel):
 class WorkPlanService:
     def __init__(self, db: Session):
         self.repository = WorkPlanRepository(db)
+        self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         if date_value is None:
@@ -64,10 +66,11 @@ class WorkPlanService:
         plan_type: Optional[str] = None,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[WorkPlan], int]:
         return self.repository.find_all(
-            page, size, plan_type, project_name, client_name, status
+            page, size, plan_type, project_name, client_name, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> WorkPlan:
@@ -92,7 +95,7 @@ class WorkPlanService:
         if dto.plan_type not in PLAN_TYPES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"计划类型必须是以下之一: {', '.join(PLAN_TYPES)}"
+                detail=f"工单类型必须是以下之一: {', '.join(PLAN_TYPES)}"
             )
         
         if self.repository.exists_by_plan_id(dto.plan_id):
@@ -115,7 +118,9 @@ class WorkPlanService:
             remarks=dto.remarks
         )
         
-        return self.repository.create(work_plan)
+        result = self.repository.create(work_plan)
+        self.sync_service.sync_work_plan_to_order(result)
+        return result
     
     def update(self, id: int, dto: WorkPlanUpdate) -> WorkPlan:
         existing_plan = self.get_by_id(id)
@@ -123,7 +128,7 @@ class WorkPlanService:
         if dto.plan_type not in PLAN_TYPES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"计划类型必须是以下之一: {', '.join(PLAN_TYPES)}"
+                detail=f"工单类型必须是以下之一: {', '.join(PLAN_TYPES)}"
             )
         
         if existing_plan.plan_id != dto.plan_id and self.repository.exists_by_plan_id(dto.plan_id):
@@ -144,10 +149,13 @@ class WorkPlanService:
         existing_plan.filled_count = dto.filled_count or 0
         existing_plan.remarks = dto.remarks
         
-        return self.repository.update(existing_plan)
+        result = self.repository.update(existing_plan)
+        self.sync_service.sync_work_plan_to_order(result)
+        return result
     
     def delete(self, id: int) -> None:
         work_plan = self.get_by_id(id)
+        self.sync_service.sync_work_plan_to_order(work_plan, is_delete=True)
         self.repository.delete(work_plan)
     
     def get_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:

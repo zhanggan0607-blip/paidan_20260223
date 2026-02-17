@@ -5,13 +5,14 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConf
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
+import UserSelector from '../components/UserSelector.vue'
 
 const router = useRouter()
 const route = useRoute()
 
 interface WorkPlanDetail {
   id: number
-  plan_id: string
+  inspection_id: string
   plan_type: string
   project_id: string
   project_name: string
@@ -19,7 +20,8 @@ interface WorkPlanDetail {
   plan_end_date: string
   client_name: string
   client_contact: string
-  client_phone: string
+  client_contact_info: string
+  address: string
   maintenance_personnel: string
   status: string
   remarks: string
@@ -35,17 +37,28 @@ interface InspectionSystem {
   inspection_content: string
   inspection_result: string
   photos: string[]
+  check_content?: string
+  check_standard?: string
+  level: number
+  parent_id: number | null
+}
+
+interface InspectionItem {
+  id: number
+  item_code: string
+  item_name: string
+  item_type: string
+  level: number
+  parent_id: number | null
+  check_content?: string
+  check_standard?: string
+  children?: InspectionItem[]
 }
 
 const loading = ref(false)
 const detail = ref<WorkPlanDetail | null>(null)
-const inspectionSystems = ref<InspectionSystem[]>([
-  { id: 1, name: '门禁系统', inspected: false, photos_uploaded: false, inspection_content: '', inspection_result: '', photos: [] },
-  { id: 2, name: '视频监控人脸客流统计系统', inspected: false, photos_uploaded: false, inspection_content: '', inspection_result: '', photos: [] },
-  { id: 3, name: '综合布线及电话系统', inspected: false, photos_uploaded: false, inspection_content: '', inspection_result: '', photos: [] },
-  { id: 4, name: '视频会议及信息发布系统', inspected: false, photos_uploaded: false, inspection_content: '', inspection_result: '', photos: [] },
-  { id: 5, name: 'IPCamera系统', inspected: false, photos_uploaded: false, inspection_content: '', inspection_result: '', photos: [] }
-])
+const inspectionSystems = ref<InspectionSystem[]>([])
+const inspectionItemsLoading = ref(false)
 
 const showDatePicker = ref(false)
 const currentDate = ref(['2024', '01', '01'])
@@ -112,6 +125,56 @@ const fetchDetail = async () => {
     loading.value = false
     closeToast()
   }
+}
+
+/**
+ * 从后端API获取巡检事项树形数据
+ * 将三级检查项转换为巡检记录列表
+ */
+const fetchInspectionItems = async () => {
+  inspectionItemsLoading.value = true
+  try {
+    const response = await api.get<unknown, ApiResponse<InspectionItem[]>>('/inspection-item/tree')
+    if (response.code === 200 && response.data) {
+      const items = flattenInspectionItems(response.data)
+      inspectionSystems.value = items.map(item => ({
+        id: item.id,
+        name: item.item_name,
+        inspected: false,
+        photos_uploaded: false,
+        inspection_content: '',
+        inspection_result: '',
+        photos: [],
+        check_content: item.check_content || '',
+        check_standard: item.check_standard || '',
+        level: item.level,
+        parent_id: item.parent_id
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to fetch inspection items:', error)
+  } finally {
+    inspectionItemsLoading.value = false
+  }
+}
+
+/**
+ * 将树形巡检事项数据扁平化，只提取三级检查项
+ */
+const flattenInspectionItems = (items: InspectionItem[]): InspectionItem[] => {
+  const result: InspectionItem[] = []
+  const flatten = (itemList: InspectionItem[]) => {
+    for (const item of itemList) {
+      if (item.level === 3) {
+        result.push(item)
+      }
+      if (item.children && item.children.length > 0) {
+        flatten(item.children)
+      }
+    }
+  }
+  flatten(items)
+  return result
 }
 
 const loadSignature = () => {
@@ -290,6 +353,7 @@ const handleSave = async () => {
 
 onMounted(() => {
   fetchDetail()
+  fetchInspectionItems()
   loadSignature()
 })
 
@@ -311,21 +375,30 @@ onActivated(() => {
           <span>返回</span>
         </div>
       </template>
+      <template #right>
+        <UserSelector />
+      </template>
     </van-nav-bar>
     
     <div class="content" v-if="detail">
       <van-cell-group inset title="基本资料">
         <van-cell title="项目名称" :value="detail.project_name" />
-        <van-cell title="工单编号" :value="detail.plan_id" />
+        <van-cell title="工单编号" :value="detail.inspection_id" />
         <van-cell title="维保开始日期" :value="formatDate(detail.plan_start_date)" />
         <van-cell title="维保截止日期" :value="formatDate(detail.plan_end_date)" />
-        <van-cell title="客户联系人" :value="detail.client_name || '-'" />
-        <van-cell title="客户联系方式" :value="detail.client_phone || '-'" />
+        <van-cell title="客户单位" :value="detail.client_name || '-'" />
+        <van-cell title="客户联系人" :value="detail.client_contact || '-'" />
+        <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" />
       </van-cell-group>
 
       <van-cell-group inset title="巡检记录">
-        <div class="section-tip">基本资料中的信息，为自动带入，不可修改</div>
+        <div class="section-tip">巡检事项来自PC管理端配置，请依次完成各项巡检</div>
+        <div v-if="inspectionItemsLoading" class="loading-container">
+          <van-loading size="24px">加载巡检事项...</van-loading>
+        </div>
+        <van-empty v-else-if="inspectionSystems.length === 0" description="暂无巡检事项，请在PC管理端配置" />
         <van-cell 
+          v-else
           v-for="system in inspectionSystems" 
           :key="system.id"
           :title="system.name"
@@ -341,7 +414,12 @@ onActivated(() => {
       </van-cell-group>
 
       <van-cell-group inset title="图片上传">
+        <div v-if="inspectionItemsLoading" class="loading-container">
+          <van-loading size="24px">加载中...</van-loading>
+        </div>
+        <van-empty v-else-if="inspectionSystems.length === 0" description="暂无巡检事项" />
         <van-cell 
+          v-else
           v-for="system in inspectionSystems" 
           :key="system.id"
           :title="system.name"
@@ -427,7 +505,7 @@ onActivated(() => {
       v-model:show="showInspectionPopup" 
       position="bottom" 
       round 
-      :style="{ height: '60%' }"
+      :style="{ height: '70%' }"
     >
       <div class="popup-content" v-if="currentInspectionSystem">
         <div class="popup-header">
@@ -435,6 +513,16 @@ onActivated(() => {
           <van-icon name="cross" @click="showInspectionPopup = false" />
         </div>
         <div class="popup-body">
+          <div v-if="currentInspectionSystem.check_content || currentInspectionSystem.check_standard" class="check-reference">
+            <div v-if="currentInspectionSystem.check_content" class="check-item">
+              <div class="check-label">检查内容参考：</div>
+              <div class="check-value">{{ currentInspectionSystem.check_content }}</div>
+            </div>
+            <div v-if="currentInspectionSystem.check_standard" class="check-item">
+              <div class="check-label">检查标准参考：</div>
+              <div class="check-value">{{ currentInspectionSystem.check_standard }}</div>
+            </div>
+          </div>
           <van-field
             v-model="currentInspectionSystem.inspection_content"
             rows="3"
@@ -515,6 +603,13 @@ onActivated(() => {
   font-size: 12px;
   color: #969799;
   background: #fafafa;
+}
+
+.loading-container {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .status-done {
@@ -641,5 +736,31 @@ onActivated(() => {
   min-height: 44px;
   font-size: 16px;
   border-radius: 8px;
+}
+
+.check-reference {
+  padding: 12px 16px;
+  background: #f7f8fa;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.check-item {
+  margin-bottom: 8px;
+}
+
+.check-item:last-child {
+  margin-bottom: 0;
+}
+
+.check-label {
+  font-size: 12px;
+  color: #969799;
+  margin-bottom: 4px;
+}
+
+.check-value {
+  font-size: 14px;
+  color: #323233;
+  line-height: 1.5;
 }
 </style>

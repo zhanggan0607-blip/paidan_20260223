@@ -5,6 +5,7 @@ import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
+import UserSelector from '../components/UserSelector.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +54,10 @@ const handleItemClick = (item: any) => {
   router.push(`/work-detail/${item.id}`)
 }
 
+const handleUserChanged = () => {
+  fetchWorkList()
+}
+
 onMounted(() => {
   const tabIndex = tabs.findIndex(t => t.key === type.value)
   if (tabIndex >= 0) {
@@ -74,6 +79,9 @@ onMounted(() => {
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
+      </template>
+      <template #right>
+        <UserSelector @userChanged="handleUserChanged" />
       </template>
     </van-nav-bar>
     

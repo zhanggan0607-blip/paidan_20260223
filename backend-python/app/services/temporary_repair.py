@@ -5,6 +5,7 @@ from app.models.temporary_repair import TemporaryRepair
 from app.repositories.temporary_repair import TemporaryRepairRepository
 from app.exceptions import NotFoundException, DuplicateException
 from app.utils.dictionary_helper import get_default_temporary_repair_status
+from app.services.sync_service import SyncService, PLAN_TYPE_REPAIR
 from pydantic import BaseModel
 
 class TemporaryRepairCreate(BaseModel):
@@ -34,6 +35,7 @@ class TemporaryRepairUpdate(BaseModel):
 class TemporaryRepairService:
     def __init__(self, db: Session):
         self.repository = TemporaryRepairRepository(db)
+        self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         if date_value is None:
@@ -56,10 +58,11 @@ class TemporaryRepairService:
         size: int = 10, 
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[TemporaryRepair], int]:
         return self.repository.find_all(
-            page, size, project_name, client_name, status
+            page, size, project_name, client_name, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> TemporaryRepair:
@@ -92,7 +95,9 @@ class TemporaryRepairService:
             remarks=dto.remarks
         )
         
-        return self.repository.create(repair)
+        result = self.repository.create(repair)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
+        return result
     
     def update(self, id: int, dto: TemporaryRepairUpdate) -> TemporaryRepair:
         existing_repair = self.get_by_id(id)
@@ -113,10 +118,13 @@ class TemporaryRepairService:
         existing_repair.status = dto.status
         existing_repair.remarks = dto.remarks
         
-        return self.repository.update(existing_repair)
+        result = self.repository.update(existing_repair)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
+        return result
     
     def delete(self, id: int) -> None:
         repair = self.get_by_id(id)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, repair, is_delete=True)
         self.repository.delete(repair)
     
     def get_all_unpaginated(self) -> List[TemporaryRepair]:

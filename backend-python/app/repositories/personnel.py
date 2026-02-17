@@ -17,6 +17,13 @@ class PersonnelRepository:
             logger.error(f"查询人员信息失败 (id={id}): {str(e)}")
             raise
 
+    def find_by_name(self, name: str) -> Optional[Personnel]:
+        try:
+            return self.db.query(Personnel).filter(Personnel.name == name).first()
+        except Exception as e:
+            logger.error(f"查询人员信息失败 (name={name}): {str(e)}")
+            raise
+
     def find_all(
         self,
         page: int = 0,
@@ -39,7 +46,7 @@ class PersonnelRepository:
                 if current_user_role == '部门经理':
                     if current_user_department:
                         query = query.filter(Personnel.department == current_user_department)
-                elif current_user_role == '员工':
+                elif current_user_role == '运维人员':
                     if current_user_department:
                         query = query.filter(Personnel.department == current_user_department)
 

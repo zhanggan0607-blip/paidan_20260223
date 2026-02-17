@@ -55,7 +55,7 @@ def create_work_plan_table():
     COMMENT ON TABLE work_plan IS '工作计划表（统一管理定期巡检、临时维修、零星用工）';
     COMMENT ON COLUMN work_plan.id IS '主键ID';
     COMMENT ON COLUMN work_plan.plan_id IS '计划编号';
-    COMMENT ON COLUMN work_plan.plan_type IS '计划类型：定期巡检/临时维修/零星用工';
+    COMMENT ON COLUMN work_plan.plan_type IS '工单类型：定期巡检/临时维修/零星用工';
     COMMENT ON COLUMN work_plan.project_id IS '项目编号';
     COMMENT ON COLUMN work_plan.project_name IS '项目名称';
     COMMENT ON COLUMN work_plan.plan_start_date IS '计划开始日期';

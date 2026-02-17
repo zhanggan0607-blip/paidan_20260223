@@ -9,7 +9,7 @@ PLAN_TYPES = ['定期巡检', '临时维修', '零星用工']
 
 class WorkPlanBase(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
-    plan_type: str = Field(..., max_length=20, description="计划类型：定期巡检/临时维修/零星用工")
+    plan_type: str = Field(..., max_length=20, description="工单类型：定期巡检/临时维修/零星用工")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
     plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")
@@ -23,7 +23,7 @@ class WorkPlanBase(BaseModel):
     @classmethod
     def validate_plan_type(cls, v):
         if v not in PLAN_TYPES:
-            raise ValueError(f'计划类型必须是以下之一: {", ".join(PLAN_TYPES)}')
+            raise ValueError(f'工单类型必须是以下之一: {", ".join(PLAN_TYPES)}')
         return v
 
     @field_validator('status')
@@ -37,7 +37,7 @@ class WorkPlanBase(BaseModel):
 
 class WorkPlanCreate(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
-    plan_type: str = Field(..., max_length=20, description="计划类型：定期巡检/临时维修/零星用工")
+    plan_type: str = Field(..., max_length=20, description="工单类型：定期巡检/临时维修/零星用工")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
     plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")
@@ -50,7 +50,7 @@ class WorkPlanCreate(BaseModel):
 
 class WorkPlanUpdate(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
-    plan_type: str = Field(..., max_length=20, description="计划类型：定期巡检/临时维修/零星用工")
+    plan_type: str = Field(..., max_length=20, description="工单类型：定期巡检/临时维修/零星用工")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
     plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")

@@ -1,5 +1,5 @@
 from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, status, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -7,7 +7,9 @@ from app.database import get_db
 from app.schemas.common import ApiResponse
 from app.models.spare_parts_usage import SparePartsUsage
 from app.models.spare_parts_stock import SparePartsStock
+from app.models.project_info import ProjectInfo
 from app.services.spare_parts_usage import SparePartsUsageService
+from app.auth import get_current_user, get_current_user_from_headers
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ class SparePartsUsageCreate(BaseModel):
     brand: Optional[str] = Field(None, max_length=100, description="品牌")
     model: Optional[str] = Field(None, max_length=100, description="产品型号")
     quantity: int = Field(..., gt=0, description="领用数量")
-    user_name: str = Field(..., min_length=1, max_length=100, description="领用人员")
+    user_name: str = Field(..., min_length=1, max_length=100, description="运维人员员")
     issue_time: Union[str, datetime] = Field(..., description="领用时间")
     unit: str = Field("件", max_length=20, description="单位")
     project_id: Optional[str] = Field(None, max_length=50, description="项目编号")
@@ -58,6 +60,12 @@ def create_spare_parts_usage(
                 return ApiResponse(code=400, message=f"库存不足，当前库存: {stock.quantity}", data=None)
             stock.quantity -= data.quantity
         
+        project_name = data.project_name
+        if data.project_id and not project_name:
+            project = db.query(ProjectInfo).filter(ProjectInfo.project_id == data.project_id).first()
+            if project:
+                project_name = project.project_name
+        
         usage = SparePartsUsage(
             product_name=data.product_name,
             brand=data.brand or '',
@@ -67,7 +75,7 @@ def create_spare_parts_usage(
             issue_time=issue_time,
             unit=data.unit,
             project_id=data.project_id,
-            project_name=data.project_name
+            project_name=project_name
         )
         
         db.add(usage)
@@ -94,15 +102,28 @@ def create_spare_parts_usage(
 
 @router.get("/usage", response_model=ApiResponse)
 def get_spare_parts_usage(
-    user: Optional[str] = Query(None, description="领用人员"),
+    request: Request,
+    user: Optional[str] = Query(None, description="运维人员员"),
     product: Optional[str] = Query(None, description="产品名称"),
     project: Optional[str] = Query(None, description="项目名称"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
     pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     """查询备品备件领用记录"""
     logger.info(f"查询备品备件领用记录: user={user}, product={product}, project={project}, page={page}, pageSize={pageSize}")
+    
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    is_manager = False
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    
+    if not is_manager and user_name:
+        user = user_name
     
     service = SparePartsUsageService(db)
     items, total = service.get_all(

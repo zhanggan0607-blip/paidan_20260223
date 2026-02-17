@@ -28,9 +28,6 @@
         <button class="btn btn-add" @click="openModal">
           + 新增人员
         </button>
-        <button class="btn btn-search" @click="handleSearch">
-          搜索
-        </button>
       </div>
     </div>
 
@@ -144,7 +141,7 @@
                   <option value="管理员">管理员</option>
                   <option value="部门经理">部门经理</option>
                   <option value="材料员">材料员</option>
-                  <option value="员工">员工</option>
+                  <option value="运维人员">运维人员</option>
                 </select>
               </div>
               <div class="form-item">
@@ -225,6 +222,7 @@
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { personnelService, type Personnel, type PersonnelCreate, type PersonnelUpdate } from '../services/personnel'
+import { authService } from '../services/auth'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
@@ -269,7 +267,7 @@ export default defineComponent({
       gender: '',
       phone: '',
       department: '',
-      role: '员工',
+      role: '运维人员',
       address: '',
       remarks: ''
     })
@@ -290,7 +288,7 @@ export default defineComponent({
       }
     })
 
-    const currentUserRole = ref('管理员')
+    const currentUserRole = ref('运维人员')
     const currentUserDepartment = ref('')
 
     const viewData = reactive({
@@ -320,7 +318,7 @@ export default defineComponent({
           return 'role-manager'
         case '材料员':
           return 'role-material'
-        case '员工':
+        case '运维人员':
           return 'role-employee'
         default:
           return ''
@@ -429,7 +427,7 @@ export default defineComponent({
       formData.gender = ''
       formData.phone = ''
       formData.department = ''
-      formData.role = '员工'
+      formData.role = '运维人员'
       formData.address = ''
       formData.remarks = ''
     }
@@ -568,14 +566,30 @@ export default defineComponent({
     })
 
     onMounted(() => {
+      const user = authService.getCurrentUser()
+      if (user) {
+        currentUserRole.value = user.role
+        currentUserDepartment.value = user.department || ''
+      }
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       if (abortController) {
         abortController.abort()
       }
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      const user = authService.getCurrentUser()
+      if (user) {
+        currentUserRole.value = user.role
+        currentUserDepartment.value = user.department || ''
+      }
+      loadData()
+    }
 
     return {
       searchForm,

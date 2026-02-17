@@ -53,7 +53,7 @@ def create_maintenance_plan_table():
         COMMENT ON COLUMN maintenance_plan.plan_id IS '计划编号';
         COMMENT ON COLUMN maintenance_plan.plan_name IS '计划名称';
         COMMENT ON COLUMN maintenance_plan.project_id IS '关联项目编号';
-        COMMENT ON COLUMN maintenance_plan.plan_type IS '计划类型';
+        COMMENT ON COLUMN maintenance_plan.plan_type IS '工单类型';
         COMMENT ON COLUMN maintenance_plan.equipment_id IS '设备编号';
         COMMENT ON COLUMN maintenance_plan.equipment_name IS '设备名称';
         COMMENT ON COLUMN maintenance_plan.equipment_model IS '设备型号';

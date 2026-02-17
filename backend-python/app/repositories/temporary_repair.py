@@ -1,5 +1,5 @@
 from typing import List, Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.temporary_repair import TemporaryRepair
 import logging
 
@@ -20,10 +20,11 @@ class TemporaryRepairRepository:
         size: int = 10,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        status: Optional[str] = None
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[TemporaryRepair], int]:
         try:
-            query = self.db.query(TemporaryRepair)
+            query = self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project))
 
             if project_name:
                 query = query.filter(TemporaryRepair.project_name.like(f'%{project_name}%'))
@@ -33,9 +34,12 @@ class TemporaryRepairRepository:
 
             if status:
                 query = query.filter(TemporaryRepair.status == status)
+            
+            if maintenance_personnel:
+                query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
 
             total = query.count()
-            items = query.offset(page * size).limit(size).all()
+            items = query.order_by(TemporaryRepair.created_at.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -44,14 +48,14 @@ class TemporaryRepairRepository:
 
     def find_by_id(self, id: int) -> Optional[TemporaryRepair]:
         try:
-            return self.db.query(TemporaryRepair).filter(TemporaryRepair.id == id).first()
+            return self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project)).filter(TemporaryRepair.id == id).first()
         except Exception as e:
             logger.error(f"查询临时维修失败 (id={id}): {str(e)}")
             raise
 
     def find_by_repair_id(self, repair_id: str) -> Optional[TemporaryRepair]:
         try:
-            return self.db.query(TemporaryRepair).filter(TemporaryRepair.repair_id == repair_id).first()
+            return self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project)).filter(TemporaryRepair.repair_id == repair_id).first()
         except Exception as e:
             logger.error(f"查询临时维修失败 (repair_id={repair_id}): {str(e)}")
             raise
@@ -95,7 +99,7 @@ class TemporaryRepairRepository:
 
     def find_all_unpaginated(self) -> List[TemporaryRepair]:
         try:
-            return self.db.query(TemporaryRepair).all()
+            return self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project)).all()
         except Exception as e:
             logger.error(f"查询所有临时维修失败: {str(e)}")
             raise

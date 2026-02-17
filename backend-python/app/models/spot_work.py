@@ -33,14 +33,32 @@ class SpotWork(Base):
     )
     
     def to_dict(self):
+        project_name = self.project_name
+        client_name = self.client_name
+        client_contact = ''
+        client_contact_info = ''
+        address = ''
+        client_contact_position = ''
+        if self.project:
+            project_name = self.project.project_name or project_name
+            client_name = self.project.client_name or client_name
+            client_contact = self.project.client_contact or ''
+            client_contact_info = self.project.client_contact_info or ''
+            address = self.project.address or ''
+            client_contact_position = self.project.client_contact_position or ''
+        
         return {
             'id': self.id,
             'work_id': self.work_id,
             'project_id': self.project_id,
-            'project_name': self.project_name,
+            'project_name': project_name,
             'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
             'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': self.client_name,
+            'client_name': client_name,
+            'client_contact': client_contact,
+            'client_contact_info': client_contact_info,
+            'address': address,
+            'client_contact_position': client_contact_position,
             'maintenance_personnel': self.maintenance_personnel,
             'status': self.status,
             'remarks': self.remarks,

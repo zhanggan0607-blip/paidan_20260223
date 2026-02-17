@@ -11,11 +11,13 @@ class SparePartsUsage(Base):
     brand = Column(String(100), comment="品牌")
     model = Column(String(100), comment="产品型号")
     quantity = Column(Integer, nullable=False, comment="领用数量")
-    user_name = Column(String(100), nullable=False, comment="领用人员")
+    user_name = Column(String(100), nullable=False, comment="运维人员员")
     issue_time = Column(DateTime, nullable=False, comment="领用时间")
     unit = Column(String(20), nullable=False, default="件", comment="单位")
     project_id = Column(String(50), comment="项目编号")
     project_name = Column(String(200), comment="项目名称")
+    stock_id = Column(BigInteger, comment="库存记录ID")
+    status = Column(String(20), nullable=False, default="已使用", comment="状态：已使用")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
@@ -24,6 +26,7 @@ class SparePartsUsage(Base):
         Index('idx_usage_user_name', 'user_name'),
         Index('idx_usage_project_name', 'project_name'),
         Index('idx_usage_issue_time', 'issue_time'),
+        Index('idx_usage_status', 'status'),
         {'comment': '备品备件领用表'}
     )
     
@@ -39,6 +42,8 @@ class SparePartsUsage(Base):
             'unit': self.unit,
             'project_id': self.project_id or '',
             'project_name': self.project_name or '',
+            'stock_id': self.stock_id,
+            'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

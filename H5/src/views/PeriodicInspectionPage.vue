@@ -1,40 +1,48 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { WORK_STATUS, formatDate } from '../config/constants'
+import { formatDate } from '../config/constants'
+import UserSelector from '../components/UserSelector.vue'
 
 const router = useRouter()
 
 const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<any[]>([])
+const userReady = ref(false)
 
 const tabs = [
-  { key: '待处理', title: '待处理', statuses: ['待执行', '执行中', '已退回'] },
-  { key: '待确认', title: '待确认', statuses: ['待确认'] },
-  { key: '已完成', title: '已完成', statuses: ['已完成'] }
+  { key: '待处理', title: '待处理', statuses: ['未进行', '已退回'], color: '#ee0a24' },
+  { key: '待确认', title: '待确认', statuses: ['待确认'], color: '#ff976a' },
+  { key: '已完成', title: '已完成', statuses: ['已确认', '已完成'], color: '#07c160' }
 ]
 
 const currentTab = computed(() => tabs[activeTab.value])
+const currentTabColor = computed(() => tabs[activeTab.value]?.color || '#1989fa')
 
 const getStatusType = (status: string) => {
   switch (status) {
     case '已完成':
+    case '已确认':
       return 'success'
-    case '执行中':
-      return 'primary'
-    case '待执行':
-      return 'default'
+    case '未进行':
     case '已退回':
-      return 'warning'
+      return 'danger'
     case '待确认':
       return 'warning'
     default:
       return 'default'
   }
+}
+
+const getDisplayStatus = (status: string) => {
+  if (status === '已确认' || status === '已完成') return '已完成'
+  if (status === '待确认') return '待确认'
+  if (status === '未进行' || status === '已退回') return '待处理'
+  return status
 }
 
 const getWorkIdFontSize = (workId: string) => {
@@ -48,6 +56,7 @@ const getWorkIdFontSize = (workId: string) => {
 }
 
 const fetchWorkList = async () => {
+  if (!userReady.value) return
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
@@ -75,33 +84,23 @@ const handleView = (item: any) => {
   router.push(`/periodic-inspection/${item.id}`)
 }
 
-const handleFeedback = async (item: any) => {
-  try {
-    await showConfirmDialog({
-      title: '提示',
-      message: '确认要反馈该工单吗？'
-    })
-    showLoadingToast({ message: '处理中...', forbidClick: true })
-    const response = await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${item.id}`, {
-      ...item,
-      status: '待确认'
-    })
-    if (response.code === 200) {
-      showSuccessToast('反馈成功')
-      fetchWorkList()
-    }
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('Failed to feedback:', error)
-      showFailToast('反馈失败')
-    }
-  } finally {
-    closeToast()
-  }
+const handleBack = () => {
+  router.push('/')
+}
+
+const handleFeedback = () => {
+}
+
+const handleUserReady = () => {
+  userReady.value = true
+  fetchWorkList()
+}
+
+const handleUserChanged = () => {
+  fetchWorkList()
 }
 
 onMounted(() => {
-  fetchWorkList()
 })
 </script>
 
@@ -111,17 +110,20 @@ onMounted(() => {
       title="定期巡检单" 
       fixed 
       placeholder 
-      @click-left="router.back()" 
+      @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="router.back()">
+        <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
       </template>
+      <template #right>
+        <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
+      </template>
     </van-nav-bar>
     
-    <van-tabs v-model:active="activeTab" sticky @change="fetchWorkList">
+    <van-tabs v-model:active="activeTab" sticky @change="fetchWorkList" :color="currentTabColor">
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">
         <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
           <van-list :loading="loading" :finished="true">
@@ -134,7 +136,7 @@ onMounted(() => {
                 <div class="card-header">
                   <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.inspection_id) + 'px' }">{{ item.inspection_id }}</span>
                   <van-tag :type="getStatusType(item.status)" size="medium">
-                    {{ item.status }}
+                    {{ getDisplayStatus(item.status) }}
                   </van-tag>
                 </div>
                 <div class="card-body">
@@ -152,7 +154,7 @@ onMounted(() => {
                   </div>
                   <div class="info-row">
                     <span class="label">填写内容</span>
-                    <span class="value highlight">已填写 {{ item.filled_count || 0 }} 项</span>
+                    <span class="value highlight">共{{ item.total_count || 5 }}项（已填写 {{ item.filled_count || 0 }} 项）</span>
                   </div>
                 </div>
                 <div class="card-footer">
@@ -197,7 +199,7 @@ onMounted(() => {
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .card-header {
@@ -259,5 +261,22 @@ onMounted(() => {
 
 .card-footer .van-button {
   min-width: 60px;
+}
+
+:deep(.van-tabs__nav) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+:deep(.van-tab) {
+  flex: 1;
+}
+
+:deep(.van-pull-refresh) {
+  min-height: calc(100vh - 46px - 44px);
+}
+
+:deep(.van-tabs__line) {
+  transition: background-color 0.3s;
 }
 </style>

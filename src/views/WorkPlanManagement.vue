@@ -26,12 +26,6 @@
           </div>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-reset" @click="handleReset">
-            重置
-          </button>
-          <button class="btn btn-search" @click="handleSearch">
-            搜索
-          </button>
         </div>
       </div>
 
@@ -41,9 +35,9 @@
             <tr>
               <th>序号</th>
               <th>工单编号</th>
-              <th>计划类型</th>
-              <th>项目编号</th>
+              <th>工单类型</th>
               <th>项目名称</th>
+              <th>项目编号</th>
               <th>计划开始日期</th>
               <th>计划结束日期</th>
               <th>客户单位</th>
@@ -63,10 +57,10 @@
               <td>{{ currentPage * pageSize + index + 1 }}</td>
               <td>{{ item.plan_id }}</td>
               <td>
-                <span :class="getPlanTypeClass(item.plan_type)" class="type-badge">{{ item.plan_type }}</span>
+                <span :class="getOrderTypeClass(item.order_type_code)" class="type-badge">{{ item.plan_type }}</span>
               </td>
-              <td>{{ item.project_id }}</td>
               <td>{{ item.project_name }}</td>
+              <td>{{ item.project_id }}</td>
               <td>{{ formatDate(item.plan_start_date) }}</td>
               <td>{{ formatDate(item.plan_end_date) }}</td>
               <td>{{ item.client_name || '-' }}</td>
@@ -136,6 +130,22 @@
                 <div class="detail-value">{{ viewData.client_name || '-' }}</div>
               </div>
               <div class="detail-item">
+                <label class="detail-label">客户联系人</label>
+                <div class="detail-value">{{ viewData.client_contact || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <label class="detail-label">联系人职位</label>
+                <div class="detail-value">{{ viewData.client_contact_position || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <label class="detail-label">客户联系方式</label>
+                <div class="detail-value">{{ viewData.client_contact_info || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <label class="detail-label">客户地址</label>
+                <div class="detail-value">{{ viewData.address || '-' }}</div>
+              </div>
+              <div class="detail-item">
                 <label class="detail-label">合同剩余时间</label>
                 <div class="detail-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
               </div>
@@ -148,7 +158,7 @@
                 <div class="detail-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">维保人员</label>
+                <label class="detail-label">运维人员</label>
                 <div class="detail-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
             </div>
@@ -265,7 +275,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, reactive, watch, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
+import { workOrderService, type WorkOrder } from '@/services/workOrder'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
@@ -275,6 +285,7 @@ interface PlanItem {
   id: number
   plan_id: string
   plan_type: string
+  order_type_code: string
   project_id: string
   project_name: string
   plan_start_date: string
@@ -321,6 +332,10 @@ export default defineComponent({
       plan_start_date: '',
       plan_end_date: '',
       client_name: '',
+      client_contact: '',
+      client_contact_info: '',
+      client_contact_position: '',
+      address: '',
       maintenance_personnel: '',
       status: '',
       remarks: '',
@@ -430,19 +445,38 @@ export default defineComponent({
       }
     }
 
+    const getOrderTypeClass = (orderTypeCode: string) => {
+      switch (orderTypeCode) {
+        case 'inspection':
+          return 'type-inspection'
+        case 'repair':
+          return 'type-repair'
+        case 'spotwork':
+          return 'type-spot'
+        default:
+          return ''
+      }
+    }
+
     const getStatusClass = (status: string) => {
       switch (status) {
         case WORK_STATUS.NOT_STARTED:
         case '待执行':
+        case '未进行':
           return 'status-pending'
         case WORK_STATUS.PENDING_CONFIRM:
+        case '待确认':
           return 'status-waiting'
         case WORK_STATUS.IN_PROGRESS:
           return 'status-in-progress'
         case WORK_STATUS.COMPLETED:
+        case '已完成':
+        case '已确认':
           return 'status-completed'
         case WORK_STATUS.CANCELLED:
           return 'status-cancelled'
+        case '已退回':
+          return 'status-returned'
         default:
           return ''
       }
@@ -451,7 +485,7 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await maintenancePlanService.getList({
+        const response = await workOrderService.getList({
           page: currentPage.value,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
@@ -459,17 +493,18 @@ export default defineComponent({
         })
         
         if (response.code === 200) {
-          planData.value = response.data.content.map((item: MaintenancePlan) => ({
+          planData.value = response.data.content.map((item: WorkOrder) => ({
             id: item.id,
-            plan_id: item.plan_id,
-            plan_type: item.plan_type || '定期维保',
+            plan_id: item.order_id,
+            plan_type: item.order_type || '定期巡检单',
+            order_type_code: item.order_type_code || 'inspection',
             project_id: item.project_id,
-            project_name: item.plan_name,
+            project_name: item.project_name,
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
-            client_name: item.responsible_department || '',
-            maintenance_personnel: item.responsible_person || '',
-            status: item.plan_status || '待执行',
+            client_name: item.client_name || '',
+            maintenance_personnel: item.maintenance_personnel || '',
+            status: item.status || '未进行',
             remarks: item.remarks || ''
           }))
           totalElements.value = response.data.totalElements
@@ -500,7 +535,12 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     watch([currentPage, pageSize], () => {
       loadData()
@@ -515,6 +555,10 @@ export default defineComponent({
       viewData.plan_start_date = item.plan_start_date
       viewData.plan_end_date = item.plan_end_date
       viewData.client_name = item.client_name || ''
+      viewData.client_contact = ''
+      viewData.client_contact_info = ''
+      viewData.client_contact_position = ''
+      viewData.address = ''
       viewData.maintenance_personnel = item.maintenance_personnel || ''
       viewData.status = item.status
       viewData.remarks = item.remarks || ''
@@ -536,6 +580,12 @@ export default defineComponent({
         if (projectResponse.code === 200 && projectResponse.data) {
           const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
           if (project) {
+            viewData.project_name = project.project_name || viewData.project_name
+            viewData.client_name = project.client_name || viewData.client_name
+            viewData.client_contact = project.client_contact || ''
+            viewData.client_contact_info = project.client_contact_info || ''
+            viewData.client_contact_position = project.client_contact_position || ''
+            viewData.address = project.address || ''
             viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
           }
         }
@@ -602,6 +652,7 @@ export default defineComponent({
       formatDate,
       formatDateTime,
       getPlanTypeClass,
+      getOrderTypeClass,
       getStatusClass,
       getRemainingTimeClass,
       WORK_STATUS,
@@ -874,6 +925,11 @@ export default defineComponent({
 .status-cancelled {
   background: #ffebee;
   color: #c62828;
+}
+
+.status-returned {
+  background: #fce4ec;
+  color: #c2185b;
 }
 
 .remaining-normal {

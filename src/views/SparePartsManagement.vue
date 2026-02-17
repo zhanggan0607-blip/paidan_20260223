@@ -4,7 +4,7 @@
       <div class="search-section">
         <div class="search-form">
           <div class="search-item">
-            <label class="search-label">领用人员：</label>
+            <label class="search-label">运维人员员：</label>
             <select class="search-select" v-model="searchForm.personnel">
               <option value="">全部</option>
               <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
@@ -28,9 +28,6 @@
           </div>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-search" @click="handleSearch">
-            搜索
-          </button>
         </div>
       </div>
 
@@ -45,7 +42,7 @@
               <th>品牌</th>
               <th>产品型号</th>
               <th>领用数量</th>
-              <th>领用人</th>
+              <th>运维人员</th>
               <th>领用时间</th>
               <th>单位</th>
             </tr>

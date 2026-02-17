@@ -1,6 +1,6 @@
 export const API_CONFIG = {
   get BASE_URL() {
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+    return import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1'
   },
   TIMEOUT: 60000
 }
@@ -53,11 +53,35 @@ export const EXECUTION_STATUS = {
   ABNORMAL: '异常'
 } as const
 
+export const SPARE_PARTS_STATUS = {
+  IN_STOCK: '在库',
+  USED: '已使用',
+  OUT_OF_STOCK: '缺货'
+} as const
+
+export const SPARE_PARTS_STATUS_LIST = [
+  SPARE_PARTS_STATUS.IN_STOCK,
+  SPARE_PARTS_STATUS.USED,
+  SPARE_PARTS_STATUS.OUT_OF_STOCK
+] as const
+
+export const REPAIR_TOOLS_STATUS = {
+  RETURNED: '已归还',
+  ISSUED: '已领用',
+  DAMAGED: '已损坏'
+} as const
+
+export const REPAIR_TOOLS_STATUS_LIST = [
+  REPAIR_TOOLS_STATUS.RETURNED,
+  REPAIR_TOOLS_STATUS.ISSUED,
+  REPAIR_TOOLS_STATUS.DAMAGED
+] as const
+
 export const USER_ROLES = {
   ADMIN: '管理员',
   DEPARTMENT_MANAGER: '部门经理',
   MATERIAL_MANAGER: '材料员',
-  EMPLOYEE: '员工'
+  EMPLOYEE: '运维人员'
 } as const
 
 export const USER_ROLE_LIST = [

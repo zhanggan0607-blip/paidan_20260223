@@ -4,46 +4,36 @@
     <div class="content">
       <div class="search-section">
         <div class="search-form">
-          <div class="search-row">
-            <div class="search-item">
-              <label class="search-label">项目名称：</label>
-              <SearchInput
-                v-model="searchForm.project_name"
-                field-key="TemporaryRepairQuery_project_name"
-                placeholder="请输入项目名称"
-                @input="handleSearch"
-              />
-            </div>
-            <div class="search-item">
-              <label class="search-label">客户名称：</label>
-              <SearchInput
-                v-model="searchForm.client_name"
-                field-key="TemporaryRepairQuery_client_name"
-                placeholder="请输入客户名称"
-                @input="handleSearch"
-              />
-            </div>
+          <div class="search-item">
+            <label class="search-label">项目名称：</label>
+            <SearchInput
+              v-model="searchForm.project_name"
+              field-key="TemporaryRepairQuery_project_name"
+              placeholder="请输入项目名称"
+              @input="handleSearch"
+            />
           </div>
-          <div class="search-row">
-            <div class="search-item">
-              <label class="search-label">开始日期：</label>
-              <input type="date" class="search-input" v-model="searchForm.plan_start_date" />
-            </div>
-            <div class="search-item">
-              <label class="search-label">结束日期：</label>
-              <input type="date" class="search-input" v-model="searchForm.plan_end_date" />
-            </div>
+          <div class="search-item">
+            <label class="search-label">客户名称：</label>
+            <SearchInput
+              v-model="searchForm.client_name"
+              field-key="TemporaryRepairQuery_client_name"
+              placeholder="请输入客户名称"
+              @input="handleSearch"
+            />
+          </div>
+          <div class="search-item">
+            <label class="search-label">开始日期：</label>
+            <input type="date" class="search-input" v-model="searchForm.plan_start_date" />
+          </div>
+          <div class="search-item">
+            <label class="search-label">结束日期：</label>
+            <input type="date" class="search-input" v-model="searchForm.plan_end_date" />
           </div>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-reset" @click="handleReset">
-            重置
-          </button>
           <button class="btn btn-add" @click="handleAdd">
             新增临时工单
-          </button>
-          <button class="btn btn-search" @click="handleSearch">
-            搜索
           </button>
         </div>
       </div>
@@ -55,7 +45,7 @@
               <th>序号</th>
               <th>项目编号</th>
               <th>项目名称</th>
-              <th>维修单编号</th>
+              <th>工单编号</th>
               <th>计划开始日期</th>
               <th>计划结束日期</th>
               <th>客户单位</th>
@@ -147,36 +137,18 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 项目编号
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入项目编号" v-model="formData.project_id" readonly />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 维修单编号
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入维修单编号" v-model="formData.repair_id" readonly />
-              </div>
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户单位" v-model="formData.client_name" readonly />
-              </div>
-            </div>
-            <div class="form-column">
-              <div class="form-item">
-                <label class="form-label">
                   <span class="required">*</span> 计划开始日期
                 </label>
                 <input type="date" class="form-input" v-model="formData.plan_start_date" />
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 计划结束日期
+                  <span class="required">*</span> 客户联系人
                 </label>
-                <input type="date" class="form-input" v-model="formData.plan_end_date" />
+                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户联系人" v-model="formData.client_contact" readonly />
               </div>
+            </div>
+            <div class="form-column">
               <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 运维人员
@@ -190,11 +162,23 @@
               </div>
               <div class="form-item">
                 <label class="form-label">
-                  <span class="required">*</span> 维修内容
+                  <span class="required">*</span> 计划结束日期
                 </label>
-                <input type="text" class="form-input" placeholder="请输入维修内容" v-model="formData.remarks" maxlength="500" />
+                <input type="date" class="form-input" v-model="formData.plan_end_date" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">
+                  <span class="required">*</span> 客户联系方式
+                </label>
+                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户联系方式" v-model="formData.client_contact_info" readonly />
               </div>
             </div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">
+              <span class="required">*</span> 维修内容
+            </label>
+            <textarea class="form-input form-textarea" placeholder="请输入维修内容" v-model="formData.remarks" maxlength="500"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -213,7 +197,7 @@ import { defineComponent, ref, onMounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
-import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
+import { temporaryRepairService, type TemporaryRepair } from '@/services/temporaryRepair'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
@@ -269,6 +253,8 @@ export default defineComponent({
       project_id: '',
       repair_id: '',
       client_name: '',
+      client_contact: '',
+      client_contact_info: '',
       plan_start_date: '',
       plan_end_date: '',
       maintenance_personnel: '',
@@ -287,25 +273,24 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await maintenancePlanService.getList({
+        const response = await temporaryRepairService.getList({
           page: currentPage.value - 1,
           size: pageSize.value,
-          plan_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined,
-          plan_type: '临时维修'
+          project_name: searchForm.value.project_name || undefined,
+          client_name: searchForm.value.client_name || undefined
         })
         
         if (response.code === 200) {
-          repairData.value = response.data.content.map((item: MaintenancePlan) => ({
+          repairData.value = response.data.content.map((item: TemporaryRepair) => ({
             id: item.id,
-            repair_id: item.plan_id,
+            repair_id: item.repair_id,
             project_id: item.project_id,
-            project_name: item.project_name || item.plan_name,
+            project_name: item.project_name,
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
-            client_name: item.responsible_department || '',
-            maintenance_personnel: item.responsible_person || '',
-            status: item.plan_status || '待执行',
+            client_name: item.client_name || '',
+            maintenance_personnel: item.maintenance_personnel || '',
+            status: item.status || '待执行',
             remarks: item.remarks || ''
           }))
           totalElements.value = response.data.totalElements
@@ -368,6 +353,8 @@ export default defineComponent({
       if (selectedProject) {
         formData.value.project_id = selectedProject.project_id
         formData.value.client_name = selectedProject.client_name
+        formData.value.client_contact = selectedProject.client_contact || ''
+        formData.value.client_contact_info = selectedProject.client_contact_info || ''
         formData.value.maintenance_personnel = selectedProject.project_manager || ''
         await generateRepairId()
       }
@@ -377,23 +364,18 @@ export default defineComponent({
       if (!formData.value.project_id) return
       
       try {
-        const response = await maintenancePlanService.getList({
-          page: 0,
-          size: 100,
-          plan_name: formData.value.project_name,
-          plan_type: '临时维修'
-        })
+        const response = await temporaryRepairService.getAll()
         
         if (response.code === 200) {
-          const existingRepairs = response.data.content.filter(
+          const existingRepairs = response.data.filter(
             item => item.project_id === formData.value.project_id
           )
           const nextNumber = existingRepairs.length + 1
-          formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(nextNumber).padStart(2, '0')}`
+          formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(nextNumber).padStart(3, '0')}`
         }
       } catch (error) {
         console.error('生成维修单编号失败:', error)
-        formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-01`
+        formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-001`
       }
     }
 
@@ -401,11 +383,24 @@ export default defineComponent({
       loadProjects()
       loadPersonnel()
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     watch([currentPage, pageSize], () => {
       loadData()
     })
+
+    const getTodayDate = () => {
+      const today = new Date()
+      const year = today.getFullYear()
+      const month = String(today.getMonth() + 1).padStart(2, '0')
+      const day = String(today.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
 
     const handleAdd = () => {
       isAddModalOpen.value = true
@@ -417,13 +412,16 @@ export default defineComponent({
     }
 
     const resetForm = () => {
+      const today = getTodayDate()
       formData.value = {
         project_name: '',
         project_id: '',
         repair_id: '',
         client_name: '',
-        plan_start_date: '',
-        plan_end_date: '',
+        client_contact: '',
+        client_contact_info: '',
+        plan_start_date: today,
+        plan_end_date: today,
         maintenance_personnel: '',
         status: WORK_STATUS.NOT_STARTED,
         remarks: ''
@@ -437,8 +435,8 @@ export default defineComponent({
         showToast('请选择项目名称', 'error')
         return
       }
-      if (!formData.value.repair_id) {
-        showToast('维修单编号不能为空', 'error')
+      if (!formData.value.maintenance_personnel) {
+        showToast('请选择运维人员', 'error')
         return
       }
       if (!formData.value.plan_start_date) {
@@ -449,10 +447,6 @@ export default defineComponent({
         showToast('请选择计划结束日期', 'error')
         return
       }
-      if (!formData.value.maintenance_personnel) {
-        showToast('请选择运维人员', 'error')
-        return
-      }
       if (!formData.value.remarks) {
         showToast('请输入维修内容', 'error')
         return
@@ -461,20 +455,16 @@ export default defineComponent({
       saving.value = true
       
       try {
-        const response = await maintenancePlanService.create({
-          plan_id: formData.value.repair_id,
-          plan_name: formData.value.project_name,
+        const response = await temporaryRepairService.create({
+          repair_id: formData.value.repair_id,
           project_id: formData.value.project_id,
-          plan_type: '临时维修',
-          equipment_id: 'N/A',
-          equipment_name: '临时维修',
+          project_name: formData.value.project_name,
           plan_start_date: formData.value.plan_start_date,
           plan_end_date: formData.value.plan_end_date,
-          responsible_person: formData.value.maintenance_personnel,
-          responsible_department: formData.value.client_name,
-          maintenance_content: formData.value.remarks || '',
-          plan_status: '待执行',
-          execution_status: '未开始'
+          client_name: formData.value.client_name,
+          maintenance_personnel: formData.value.maintenance_personnel,
+          status: '未进行',
+          remarks: formData.value.remarks || ''
         })
         
         if (response.code === 200) {
@@ -637,18 +627,14 @@ export default defineComponent({
 }
 
 .search-form {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  align-items: flex-start;
   flex: 1;
 }
 
 .search-row {
-  display: flex;
-  gap: 16px;
-  align-items: center;
-  flex-wrap: wrap;
+  display: contents;
 }
 
 .action-buttons {
@@ -1042,6 +1028,19 @@ export default defineComponent({
   outline: none;
   border-color: #e0e0e0;
   box-shadow: none;
+}
+
+.form-item-full {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.form-textarea {
+  min-height: 100px;
+  resize: vertical;
+  line-height: 1.5;
 }
 
 .modal-footer {

@@ -11,6 +11,7 @@ from app.schemas.project_info import (
     PaginatedResponse,
     ApiResponse
 )
+from app.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -23,15 +24,55 @@ def get_project_info_list(
     size: int = Query(10, ge=1, le=100, description="每页大小"),
     project_name: Optional[str] = Query(None, description="项目名称（模糊查询）"),
     client_name: Optional[str] = Query(None, description="客户名称（模糊查询）"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     """
     获取项目信息列表，支持分页和条件查询
     """
     service = ProjectInfoService(db)
-    items, total = service.get_all(page, size, project_name, client_name)
+    
+    user_name = None
+    is_manager = False
+    project_ids = None
+    
+    if current_user:
+        user_name = current_user.get('sub') or current_user.get('name')
+        role = current_user.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+        
+        if not is_manager and user_name:
+            project_ids = service.get_user_project_ids(user_name)
+    
+    items, total = service.get_all(page, size, project_name, client_name, project_ids)
     items_dict = [item.to_dict() for item in items]
     return PaginatedResponse.success(items_dict, total, page, size)
+
+
+@router.get("/all/list", response_model=ApiResponse)
+def get_all_project_info(
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
+):
+    """
+    获取所有项目信息列表，不分页
+    """
+    service = ProjectInfoService(db)
+    
+    user_name = None
+    is_manager = False
+    project_ids = None
+    
+    if current_user:
+        user_name = current_user.get('sub') or current_user.get('name')
+        role = current_user.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+        
+        if not is_manager and user_name:
+            project_ids = service.get_user_project_ids(user_name)
+    
+    items = service.get_all_unpaginated(project_ids)
+    return ApiResponse.success([item.to_dict() for item in items])
 
 
 @router.get("/{id}", response_model=ApiResponse)
@@ -109,15 +150,3 @@ def delete_project_info(
         message = "删除成功"
     
     return ApiResponse.success(None, message)
-
-
-@router.get("/all/list", response_model=ApiResponse)
-def get_all_project_info(
-    db: Session = Depends(get_db)
-):
-    """
-    获取所有项目信息列表，不分页
-    """
-    service = ProjectInfoService(db)
-    items = service.get_all_unpaginated()
-    return ApiResponse.success([item.to_dict() for item in items])

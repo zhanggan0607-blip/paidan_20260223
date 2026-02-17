@@ -23,8 +23,6 @@
                 </option>
               </select>
             </div>
-
-            <button @click="handleSearch" class="search-button">搜索</button>
           </div>
 
           <div class="table-section">
@@ -38,19 +36,20 @@
                   <th>规格型号</th>
                   <th>单位</th>
                   <th>库存数量</th>
+                  <th>状态</th>
                   <th>存放位置</th>
                   <th>最后更新时间</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="9" class="loading-cell">
+                  <td colspan="10" class="loading-cell">
                     <div class="loading-spinner"></div>
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="dataList.length === 0">
-                  <td colspan="9" class="empty-cell">暂无数据</td>
+                  <td colspan="10" class="empty-cell">暂无数据</td>
                 </tr>
                 <tr v-else v-for="(item, index) in dataList" :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
@@ -62,6 +61,11 @@
                   <td>
                     <span :class="['stock-badge', item.stock <= item.min_stock ? 'stock-low' : 'stock-normal']">
                       {{ item.stock }}
+                    </span>
+                  </td>
+                  <td>
+                    <span :class="['status-badge', getStatusClass(item.status)]">
+                      {{ item.status || '已归还' }}
                     </span>
                   </td>
                   <td>{{ item.location }}</td>
@@ -135,6 +139,7 @@ interface RepairToolsInventoryItem {
   stock: number
   min_stock: number
   location: string
+  status: string
   last_stock_time: string
 }
 
@@ -156,6 +161,19 @@ export default defineComponent({
     })
 
     const categoryList = ref(['电动工具', '手动工具', '测量工具', '焊接工具', '起重工具', '其他'])
+
+    const getStatusClass = (status: string) => {
+      switch (status) {
+        case '已归还':
+          return 'status-returned'
+        case '已领用':
+          return 'status-issued'
+        case '已损坏':
+          return 'status-damaged'
+        default:
+          return 'status-returned'
+      }
+    }
 
     let abortController: AbortController | null = null
 
@@ -213,11 +231,17 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       if (abortController) abortController.abort()
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       loading,
@@ -228,6 +252,7 @@ export default defineComponent({
       totalPages,
       filters,
       categoryList,
+      getStatusClass,
       handleSearch,
       handlePageChange,
       handlePageSizeChange
@@ -398,6 +423,28 @@ export default defineComponent({
 }
 
 .stock-low {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-returned {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-issued {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-damaged {
   background: #ffebee;
   color: #c62828;
 }

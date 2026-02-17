@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_, and_
 from app.models.maintenance_plan import MaintenancePlan
 import logging
@@ -45,7 +45,8 @@ class MaintenancePlanRepository:
         responsible_person: Optional[str] = None,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
-        plan_type: Optional[str] = None
+        plan_type: Optional[str] = None,
+        responsible_person_filter: Optional[str] = None
     ) -> tuple[List[MaintenancePlan], int]:
         try:
             query = self.db.query(MaintenancePlan)
@@ -76,6 +77,9 @@ class MaintenancePlanRepository:
 
             if plan_type:
                 query = query.filter(MaintenancePlan.plan_type == plan_type)
+            
+            if responsible_person_filter:
+                query = query.filter(MaintenancePlan.responsible_person == responsible_person_filter)
 
             total = query.count()
             items = query.order_by(MaintenancePlan.created_at.desc()).offset(page * size).limit(size).all()
@@ -87,7 +91,9 @@ class MaintenancePlanRepository:
 
     def find_all_unpaginated(self) -> List[MaintenancePlan]:
         try:
-            return self.db.query(MaintenancePlan).order_by(MaintenancePlan.created_at.desc()).all()
+            return self.db.query(MaintenancePlan).options(
+                joinedload(MaintenancePlan.project)
+            ).order_by(MaintenancePlan.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有维保计划失败: {str(e)}")
             raise

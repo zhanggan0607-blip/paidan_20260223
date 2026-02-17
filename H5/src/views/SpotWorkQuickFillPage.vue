@@ -5,6 +5,7 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'v
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
+import UserSelector from '../components/UserSelector.vue'
 
 const router = useRouter()
 
@@ -67,6 +68,9 @@ const handleDateConfirm = (value: Date) => {
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
+      </template>
+      <template #right>
+        <UserSelector />
       </template>
     </van-nav-bar>
     

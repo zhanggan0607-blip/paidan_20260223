@@ -67,7 +67,7 @@ const getBarWidth = (value: number): number => {
 
 .bar {
   height: 100%;
-  background: linear-gradient(90deg, var(--color-success) 0%, var(--color-success-light) 100%);
+  background: linear-gradient(90deg, #5470c6 0%, #3a5ba0 100%);
   transition: width var(--transition-slow) ease;
 }
 

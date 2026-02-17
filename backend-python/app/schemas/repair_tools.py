@@ -36,12 +36,12 @@ class RepairToolsRestock(BaseModel):
 
 class RepairToolsIssueBase(BaseModel):
     tool_id: Optional[str] = Field(None, description="工具编号")
-    tool_name: str = Field(..., description="工具名称")
+    tool_name: Optional[str] = Field(None, description="工具名称")
     specification: Optional[str] = Field(None, description="规格型号")
     quantity: int = Field(..., gt=0, description="领用数量")
-    user_id: Optional[int] = Field(None, description="领用人ID")
-    user_name: str = Field(..., description="领用人姓名")
-    project_id: Optional[int] = Field(None, description="项目ID")
+    user_id: Optional[int] = Field(None, description="运维人员ID")
+    user_name: Optional[str] = Field(None, description="运维人员姓名")
+    project_id: Optional[str] = Field(None, description="项目编号")
     project_name: Optional[str] = Field(None, description="项目名称")
     remark: Optional[str] = Field(None, description="备注")
 
@@ -76,7 +76,7 @@ class RepairToolsIssueResponse(BaseModel):
     user_name: str
     issue_time: str
     return_time: Optional[str] = None
-    project_id: Optional[int] = None
+    project_id: Optional[str] = None
     project_name: Optional[str] = None
     status: str
     remark: Optional[str] = None

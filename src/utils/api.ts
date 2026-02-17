@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { API_CONFIG } from '../config/constants'
+import { authService } from '../services/auth'
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -15,6 +16,13 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers = config.headers || {}
       config.headers['Authorization'] = `Bearer ${token}`
+    }
+    
+    const currentUser = authService.getCurrentUser()
+    if (currentUser) {
+      config.headers = config.headers || {}
+      config.headers['X-User-Name'] = encodeURIComponent(currentUser.name)
+      config.headers['X-User-Role'] = encodeURIComponent(currentUser.role)
     }
     
     return config

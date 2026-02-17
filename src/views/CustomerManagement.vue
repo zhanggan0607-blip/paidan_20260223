@@ -28,9 +28,6 @@
         <button class="btn btn-add" @click="openModal">
           + 新增客户
         </button>
-        <button class="btn btn-search" @click="handleSearch">
-          搜索
-        </button>
       </div>
     </div>
 
@@ -524,13 +521,19 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       if (abortController) {
         abortController.abort()
       }
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       searchForm,

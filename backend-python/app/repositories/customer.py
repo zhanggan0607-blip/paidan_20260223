@@ -10,7 +10,7 @@ class CustomerRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self, skip: int = 0, limit: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None) -> tuple[List[Customer], int]:
+    def get_all(self, skip: int = 0, limit: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None, client_names: Optional[List[str]] = None) -> tuple[List[Customer], int]:
         try:
             query = self.db.query(Customer)
             
@@ -18,6 +18,8 @@ class CustomerRepository:
                 query = query.filter(Customer.name.ilike(f"%{name}%"))
             if contact_person:
                 query = query.filter(Customer.contact_person.ilike(f"%{contact_person}%"))
+            if client_names:
+                query = query.filter(Customer.name.in_(client_names))
             
             total = query.count()
             items = query.order_by(Customer.created_at.desc()).offset(skip).limit(limit).all()

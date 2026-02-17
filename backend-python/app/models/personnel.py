@@ -10,7 +10,7 @@ class Personnel(Base):
     gender = Column(String(10), nullable=False, comment="性别")
     phone = Column(String(20), comment="联系电话")
     department = Column(String(100), comment="所属部门")
-    role = Column(String(20), nullable=False, default="员工", comment="角色")
+    role = Column(String(20), nullable=False, default="运维人员", comment="角色")
     address = Column(String(200), comment="地址")
     remarks = Column(String(500), comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")

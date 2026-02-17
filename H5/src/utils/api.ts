@@ -12,6 +12,16 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr)
+        config.headers['X-User-Name'] = encodeURIComponent(user.name || '')
+        config.headers['X-User-Role'] = encodeURIComponent(user.role || '')
+      } catch (e) {
+        console.error('Failed to parse user info:', e)
+      }
+    }
     return config
   },
   (error) => Promise.reject(error)

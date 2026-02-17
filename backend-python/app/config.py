@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     redoc_url: str = "/redoc"
     openapi_url: str = "/openapi.json"
     
-    cors_origins: str = "http://localhost:3000,http://localhost:4173,http://localhost:5173,http://localhost:6173,http://localhost:7173,http://localhost:8173,http://localhost:9173"
+    cors_origins: str = "http://localhost:3000,http://localhost:4173,http://localhost:5173,http://localhost:5180,http://localhost:6173,http://localhost:7173,http://localhost:8173,http://localhost:9173"
     
     page_size: int = 10
     max_page_size: int = 100
@@ -83,7 +83,7 @@ class OverdueAlertConfig:
 
 
 class PersonnelConfig:
-    VALID_ROLES: List[str] = ['管理员', '部门经理', '材料员', '员工']
+    VALID_ROLES: List[str] = ['管理员', '部门经理', '材料员', '运维人员']
     
     @classmethod
     def get_valid_roles(cls) -> List[str]:

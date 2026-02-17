@@ -22,13 +22,21 @@
               @input="handleSearch"
             />
           </div>
+          <div class="search-item">
+            <label class="search-label">状态：</label>
+            <select class="search-select" v-model="searchForm.status" @change="handleSearch">
+              <option value="">全部</option>
+              <option value="未进行">未进行</option>
+              <option value="待确认">待确认</option>
+              <option value="执行中">执行中</option>
+              <option value="待审批">待审批</option>
+              <option value="已完成">已完成</option>
+            </select>
+          </div>
         </div>
         <div class="action-buttons">
           <button class="btn btn-add" @click="handleAdd">
             新增零星用工单
-          </button>
-          <button class="btn btn-search" @click="handleSearch">
-            搜索
           </button>
         </div>
       </div>
@@ -76,13 +84,7 @@
               <td>{{ item.remarks || '-' }}</td>
               <td class="action-cell">
                 <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="item.status === WORK_STATUS.NOT_STARTED" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-                <a href="#" v-if="item.status === WORK_STATUS.NOT_STARTED" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
-                <a href="#" v-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="action-link action-confirm" @click.prevent="handleConfirm(item)">确认</a>
-                <a href="#" v-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
-                <a href="#" v-if="item.status === WORK_STATUS.IN_PROGRESS" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="item.status === WORK_STATUS.IN_PROGRESS" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-                <a href="#" v-if="item.status === WORK_STATUS.IN_PROGRESS" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+                <a href="#" v-if="item.status === WORK_STATUS.COMPLETED" class="action-link action-export" @click.prevent="handleExport(item)">导出</a>
               </td>
             </tr>
           </tbody>
@@ -130,7 +132,7 @@
 import { defineComponent, ref, onMounted, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { maintenancePlanService, type MaintenancePlan } from '@/services/maintenancePlan'
+import { spotWorkService, type SpotWork } from '@/services/spotWork'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { WORK_STATUS, formatDate } from '@/config/constants'
@@ -180,7 +182,8 @@ export default defineComponent({
 
     const searchForm = ref({
       project_name: '',
-      client_name: ''
+      client_name: '',
+      status: ''
     })
 
     const workData = ref<WorkItem[]>([])
@@ -188,25 +191,25 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await maintenancePlanService.getList({
+        const response = await spotWorkService.getList({
           page: currentPage.value - 1,
           size: pageSize.value,
-          plan_name: searchForm.value.project_name || undefined,
+          project_name: searchForm.value.project_name || undefined,
           client_name: searchForm.value.client_name || undefined,
-          plan_type: '零星用工'
+          status: searchForm.value.status || undefined
         })
         
         if (response.code === 200) {
-          workData.value = response.data.content.map((item: MaintenancePlan) => ({
+          workData.value = response.data.content.map((item: SpotWork) => ({
             id: item.id,
-            work_id: item.plan_id,
+            work_id: item.work_id,
             project_id: item.project_id,
-            project_name: item.project_name || item.plan_name,
+            project_name: item.project_name,
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
-            client_name: item.responsible_department || '',
-            maintenance_personnel: item.responsible_person || '',
-            status: item.plan_status || '待执行',
+            client_name: item.client_name || '',
+            maintenance_personnel: item.maintenance_personnel || '',
+            status: item.status || '未进行',
             remarks: item.remarks || ''
           }))
           totalElements.value = response.data.totalElements
@@ -234,6 +237,11 @@ export default defineComponent({
       })
     }
 
+    const handleExport = (item: WorkItem) => {
+      console.log('导出:', item)
+      showToast('导出功能开发中', 'info')
+    }
+
     const handleEdit = (item: WorkItem) => {
     }
 
@@ -245,7 +253,7 @@ export default defineComponent({
           type: 'warning'
         })
         
-        await maintenancePlanService.delete(item.id)
+        await spotWorkService.delete(item.id)
         showToast('删除成功', 'success')
         loadData()
       } catch (error: any) {
@@ -258,20 +266,16 @@ export default defineComponent({
 
     const handleConfirm = async (item: WorkItem) => {
       try {
-        await maintenancePlanService.update(item.id, {
-          plan_id: item.work_id,
-          plan_name: item.project_name,
+        await spotWorkService.update(item.id, {
+          work_id: item.work_id,
           project_id: item.project_id,
-          plan_type: '零星用工',
-          equipment_id: 'N/A',
-          equipment_name: '零星用工',
+          project_name: item.project_name,
           plan_start_date: item.plan_start_date,
           plan_end_date: item.plan_end_date,
-          responsible_person: item.maintenance_personnel,
-          responsible_department: item.client_name,
-          maintenance_content: item.remarks || '',
-          plan_status: '待确认',
-          execution_status: '待确认'
+          client_name: item.client_name,
+          maintenance_personnel: item.maintenance_personnel,
+          status: '待确认',
+          remarks: item.remarks || ''
         })
         showToast('确认成功', 'success')
         loadData()
@@ -294,7 +298,12 @@ export default defineComponent({
 
     onMounted(() => {
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       currentPage,
@@ -311,6 +320,7 @@ export default defineComponent({
       handleSearch,
       handleAdd,
       handleView,
+      handleExport,
       handleEdit,
       handleDelete,
       handleConfirm,
@@ -367,6 +377,22 @@ export default defineComponent({
 }
 
 .search-input:focus {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.search-select {
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  min-width: 120px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.search-select:focus {
   border-color: #1976d2;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
@@ -489,6 +515,14 @@ export default defineComponent({
 
 .action-delete:hover {
   color: #d32f2f;
+}
+
+.action-export {
+  color: #4caf50;
+}
+
+.action-export:hover {
+  color: #45a049;
 }
 
 .status-tag {

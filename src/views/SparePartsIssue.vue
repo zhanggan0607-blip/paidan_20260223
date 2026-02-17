@@ -5,7 +5,7 @@
         <div class="content-wrapper">
           <div class="filter-section">
             <div class="filter-item">
-              <label class="filter-label">领用人员</label>
+              <label class="filter-label">运维人员员</label>
               <select v-model="filters.user" class="filter-select">
                 <option value="">全部</option>
                 <option v-for="user in userList" :key="user.id" :value="user.name">
@@ -28,13 +28,11 @@
               <label class="filter-label">项目名称</label>
               <select v-model="filters.project" class="filter-select">
                 <option value="">全部</option>
-                <option v-for="project in projectList" :key="project.id" :value="project.name">
-                  {{ project.name }}
+                <option v-for="project in projectList" :key="project.project_id" :value="project.project_name">
+                  {{ project.project_name }}
                 </option>
               </select>
             </div>
-
-            <button @click="handleSearch" class="search-button">搜索</button>
           </div>
 
           <div class="table-section">
@@ -48,7 +46,7 @@
                   <th>品牌</th>
                   <th>产品型号</th>
                   <th>领用数量</th>
-                  <th>领用人</th>
+                  <th>运维人员</th>
                   <th>领用时间</th>
                   <th>单位</th>
                 </tr>
@@ -162,8 +160,8 @@ interface User {
 }
 
 interface Project {
-  id: string
-  name: string
+  project_id: string
+  project_name: string
 }
 
 export default defineComponent({
@@ -258,9 +256,9 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list') as unknown as ApiResponse<any[]>
+        const response = await apiClient.get('/personnel/all/list') as unknown as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
-          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === USER_ROLES.MATERIAL_MANAGER)
+          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.name && user.role === USER_ROLES.EMPLOYEE)
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)
@@ -269,9 +267,9 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info', { params: { page: 0, size: 100 } }) as unknown as ApiResponse<{ content: Project[] }>
+        const response = await apiClient.get('/project-info/all/list') as unknown as ApiResponse<Project[]>
         if (response && response.code === 200 && response.data) {
-          projectList.value = (response.data.content || []).filter((project: Project) => project && project.id && project.name)
+          projectList.value = (response.data || []).filter((project: Project) => project && project.project_id && project.project_name)
         }
       } catch (error) {
         console.error('加载项目列表失败:', error)
@@ -282,14 +280,19 @@ export default defineComponent({
       loadUsers()
       loadProjects()
       loadData()
+      window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
-      // Clean up pending requests when component unmounts
       if (abortController) {
         abortController.abort()
       }
+      window.removeEventListener('user-changed', handleUserChanged)
     })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
 
     return {
       loading,

@@ -9,7 +9,7 @@ class WorkPlan(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), unique=True, nullable=False, comment="计划编号")
-    plan_type = Column(String(20), nullable=False, comment="计划类型：定期巡检/临时维修/零星用工")
+    plan_type = Column(String(20), nullable=False, comment="工单类型：定期巡检/临时维修/零星用工")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
     plan_start_date = Column(DateTime, nullable=False, comment="计划开始日期")
@@ -36,15 +36,33 @@ class WorkPlan(Base):
     )
     
     def to_dict(self):
+        project_name = self.project_name
+        client_name = self.client_name
+        client_contact = ''
+        client_contact_info = ''
+        address = ''
+        client_contact_position = ''
+        if self.project:
+            project_name = self.project.project_name or project_name
+            client_name = self.project.client_name or client_name
+            client_contact = self.project.client_contact or ''
+            client_contact_info = self.project.client_contact_info or ''
+            address = self.project.address or ''
+            client_contact_position = self.project.client_contact_position or ''
+        
         return {
             'id': self.id,
             'plan_id': self.plan_id,
             'plan_type': self.plan_type,
             'project_id': self.project_id,
-            'project_name': self.project_name,
+            'project_name': project_name,
             'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
             'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': self.client_name,
+            'client_name': client_name,
+            'client_contact': client_contact,
+            'client_contact_info': client_contact_info,
+            'address': address,
+            'client_contact_position': client_contact_position,
             'maintenance_personnel': self.maintenance_personnel,
             'status': self.status,
             'filled_count': self.filled_count or 0,

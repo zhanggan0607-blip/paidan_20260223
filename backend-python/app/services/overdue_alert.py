@@ -19,7 +19,8 @@ class OverdueAlertService:
         client_name: Optional[str] = None,
         work_order_type: Optional[str] = None,
         page: int = 0,
-        size: int = 10
+        size: int = 10,
+        maintenance_personnel: Optional[str] = None
     ) -> tuple[List[dict], int]:
         today = datetime.now()
         overdue_items = []
@@ -30,7 +31,8 @@ class OverdueAlertService:
                 size=size,
                 project_name=project_name,
                 client_name=client_name,
-                status=None
+                status=None,
+                maintenance_personnel=maintenance_personnel
             )
             
             for inspection in periodic_inspections[0]:
@@ -62,7 +64,8 @@ class OverdueAlertService:
                 size=size,
                 project_name=project_name,
                 client_name=client_name,
-                status=None
+                status=None,
+                maintenance_personnel=maintenance_personnel
             )
             
             for repair in temporary_repairs:
@@ -94,7 +97,8 @@ class OverdueAlertService:
                 size=size,
                 project_name=project_name,
                 client_name=client_name,
-                status=None
+                status=None,
+                maintenance_personnel=maintenance_personnel
             )
             
             for work in spot_works:

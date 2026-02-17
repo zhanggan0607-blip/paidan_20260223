@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.maintenance_plan import MaintenancePlanService
@@ -11,6 +11,7 @@ from app.schemas.maintenance_plan import (
     PaginatedResponse,
     ApiResponse
 )
+from app.auth import get_current_user, get_current_user_from_headers
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,30 +21,72 @@ router = APIRouter(prefix="/maintenance-plan", tags=["Maintenance Plan Managemen
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_maintenance_plan(
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     service = MaintenancePlanService(db)
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    is_manager = False
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    
     items = service.get_all_unpaginated()
+    
+    if not is_manager and user_name:
+        items = [item for item in items if item.responsible_person == user_name]
+    
     return ApiResponse.success([item.to_dict() for item in items])
 
 
 @router.get("/project/{project_id}", response_model=ApiResponse)
 def get_maintenance_plan_by_project(
     project_id: str,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     service = MaintenancePlanService(db)
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    is_manager = False
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    
     items = service.get_by_project_id(project_id)
+    
+    if not is_manager and user_name:
+        items = [item for item in items if item.responsible_person == user_name]
+    
     return ApiResponse.success([item.to_dict() for item in items])
 
 
 @router.get("/upcoming/list", response_model=ApiResponse)
 def get_upcoming_maintenance(
     days: int = Query(7, ge=1, le=365, description="Query days"),
-    db: Session = Depends(get_db)
+    request: Request = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     service = MaintenancePlanService(db)
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    is_manager = False
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    
     items = service.get_upcoming_maintenance(days)
+    
+    if not is_manager and user_name:
+        items = [item for item in items if item.responsible_person == user_name]
+    
     return ApiResponse.success([item.to_dict() for item in items])
 
 
@@ -51,7 +94,9 @@ def get_upcoming_maintenance(
 def get_maintenance_plan_by_date_range(
     start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
-    db: Session = Depends(get_db)
+    request: Request = None,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     try:
         start = datetime.fromisoformat(start_date)
@@ -63,12 +108,25 @@ def get_maintenance_plan_by_date_range(
         )
 
     service = MaintenancePlanService(db)
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    is_manager = False
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    
     items = service.get_by_date_range(start, end)
+    
+    if not is_manager and user_name:
+        items = [item for item in items if item.responsible_person == user_name]
+    
     return ApiResponse.success([item.to_dict() for item in items])
 
 
 @router.get("", response_model=PaginatedResponse)
 def get_maintenance_plan_list(
+    request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=100, description="Page size"),
     plan_name: Optional[str] = Query(None, description="Plan name (fuzzy search)"),
@@ -80,13 +138,24 @@ def get_maintenance_plan_list(
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     plan_type: Optional[str] = Query(None, description="Plan type (定期维保/临时维修/零星用工)"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     service = MaintenancePlanService(db)
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    is_manager = False
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
+        is_manager = role in ['管理员', '部门经理', '主管']
+    
+    responsible_person_filter = None if is_manager else user_name
+    
     items, total = service.get_all(
         page, size, plan_name, project_id, equipment_name,
         plan_status, execution_status, responsible_person,
-        project_name, client_name, plan_type
+        project_name, client_name, plan_type, responsible_person_filter
     )
     items_dict = [item.to_dict() for item in items]
     return PaginatedResponse.success(items_dict, total, page, size)
