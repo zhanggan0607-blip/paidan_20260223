@@ -27,6 +27,7 @@ class MaintenancePlanBase(BaseModel):
     execution_status: str = Field(..., max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
     remarks: Optional[str] = Field(None, description="备注")
+    inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
 
     @field_validator('plan_type')
     @classmethod
@@ -86,6 +87,7 @@ class MaintenancePlanCreate(BaseModel):
     execution_status: str = Field(..., max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
     remarks: Optional[str] = Field(None, description="备注")
+    inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
 
 
 class MaintenancePlanUpdate(BaseModel):
@@ -111,6 +113,7 @@ class MaintenancePlanUpdate(BaseModel):
     execution_status: str = Field(..., max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
     remarks: Optional[str] = Field(None, description="备注")
+    inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
 
 
 class MaintenancePlanResponse(BaseModel):
@@ -137,6 +140,7 @@ class MaintenancePlanResponse(BaseModel):
     execution_status: str
     completion_rate: Optional[int]
     remarks: Optional[str]
+    inspection_items: Optional[str]
     created_at: datetime
     updated_at: datetime
 

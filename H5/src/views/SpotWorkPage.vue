@@ -1,27 +1,41 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { showLoadingToast, closeToast } from 'vant'
+import { useRouter, useRoute } from 'vue-router'
+import { showLoadingToast, closeToast, showToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
+import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { authService, type User } from '../services/auth'
 
 const router = useRouter()
+const route = useRoute()
 
 const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<any[]>([])
 const userReady = ref(false)
+const currentUser = ref<User | null>(null)
 
-const tabs = [
+const canApprove = computed(() => authService.canApproveSpotWork(currentUser.value))
+
+const baseTabs = [
   { key: '待处理', title: '待处理', statuses: ['未进行', '已退回'], color: '#ee0a24' },
   { key: '待确认', title: '待确认', statuses: ['待确认'], color: '#ff976a' },
   { key: '已完成', title: '已完成', statuses: ['已确认', '已完成'], color: '#07c160' }
 ]
 
-const currentTab = computed(() => tabs[activeTab.value])
-const currentTabColor = computed(() => tabs[activeTab.value]?.color || '#1989fa')
+const approvalTab = { key: '审批', title: '审批', statuses: ['待确认'], color: '#1989fa' }
+
+const tabs = computed(() => {
+  if (canApprove.value) {
+    return [approvalTab, ...baseTabs]
+  }
+  return baseTabs
+})
+
+const currentTab = computed(() => tabs.value[activeTab.value])
+const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
 
 const getStatusType = (status: string) => {
   switch (status) {
@@ -41,18 +55,39 @@ const getStatusType = (status: string) => {
 const getDisplayStatus = (status: string) => {
   if (status === '已确认' || status === '已完成') return '已完成'
   if (status === '待确认') return '待确认'
-  if (status === '未进行' || status === '已退回') return '待处理'
+  if (status === '已退回') return '已退回'
+  if (status === '未进行') return '待处理'
   return status
 }
 
+/**
+ * 根据工单编号长度计算字体大小
+ * @param workId 工单编号
+ * @returns 字体大小(px)
+ */
 const getWorkIdFontSize = (workId: string) => {
   if (!workId) return 14
   const len = workId.length
-  if (len <= 20) return 14
-  if (len <= 25) return 12
-  if (len <= 30) return 11
-  if (len <= 35) return 10
-  return 9
+  if (len <= 18) return 14
+  if (len <= 22) return 12
+  if (len <= 26) return 11
+  if (len <= 30) return 10
+  if (len <= 35) return 9
+  if (len <= 40) return 8
+  return 7
+}
+
+/**
+ * 复制工单编号到剪贴板
+ * @param orderId 工单编号
+ */
+const copyOrderId = async (orderId: string) => {
+  try {
+    await navigator.clipboard.writeText(orderId)
+    showToast('工单编号已复制')
+  } catch {
+    showToast('复制失败')
+  }
 }
 
 const fetchWorkList = async () => {
@@ -68,9 +103,14 @@ const fetchWorkList = async () => {
     })
     if (response.code === 200) {
       const allItems = response.data?.content || []
-      workList.value = allItems.filter((item: any) => 
+      const filteredItems = allItems.filter((item: any) => 
         currentTab.value?.statuses.includes(item.status)
       )
+      workList.value = filteredItems.sort((a: any, b: any) => {
+        const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
+        const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
+        return dateB - dateA
+      })
     }
   } catch (error) {
     console.error('Failed to fetch work list:', error)
@@ -81,23 +121,41 @@ const fetchWorkList = async () => {
 }
 
 const handleView = (item: any) => {
-  router.push(`/spot-work/${item.id}`)
+  router.push(`/spot-work/${item.id}?tab=${activeTab.value}`)
 }
 
 const handleBack = () => {
   router.push('/')
 }
 
-const handleUserReady = () => {
+/**
+ * 处理审批操作
+ * @param item 工单数据
+ */
+const handleApprove = (item: any) => {
+  router.push(`/spot-work/${item.id}?tab=${activeTab.value}&mode=approve`)
+}
+
+const handleUserReady = (user: User) => {
+  currentUser.value = user
   userReady.value = true
   fetchWorkList()
 }
 
-const handleUserChanged = () => {
+const handleUserChanged = (user: User) => {
+  currentUser.value = user
   fetchWorkList()
 }
 
 onMounted(() => {
+  currentUser.value = authService.getCurrentUser()
+  const tabParam = route.query.tab
+  if (tabParam !== undefined && tabParam !== null) {
+    const tabIndex = parseInt(tabParam as string, 10)
+    if (!isNaN(tabIndex) && tabIndex >= 0 && tabIndex < tabs.value.length) {
+      activeTab.value = tabIndex
+    }
+  }
 })
 </script>
 
@@ -131,10 +189,13 @@ onMounted(() => {
                 class="work-card"
               >
                 <div class="card-header">
-                  <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.work_id) + 'px' }">{{ item.work_id }}</span>
-                  <van-tag :type="getStatusType(item.status)" size="medium">
+                  <van-tag :type="getStatusType(item.status)" size="medium" :class="{ 'returned-tag': item.status === '已退回' }">
                     {{ getDisplayStatus(item.status) }}
                   </van-tag>
+                  <div class="work-id-wrapper">
+                    <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.work_id) + 'px' }">{{ item.work_id }}</span>
+                    <van-button size="mini" type="primary" plain class="copy-btn" @click.stop="copyOrderId(item.work_id)">复制单号</van-button>
+                  </div>
                 </div>
                 <div class="card-body">
                   <div class="info-row">
@@ -153,8 +214,20 @@ onMounted(() => {
                     <span class="label">备注</span>
                     <span class="value">{{ item.remarks || '-' }}</span>
                   </div>
+                  <div class="info-row" v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'">
+                    <span class="label">提交时间</span>
+                    <span class="value">{{ formatDateTime(item.updated_at) }}</span>
+                  </div>
                 </div>
                 <div class="card-footer">
+                  <van-button 
+                    v-if="currentTab?.key === '审批'"
+                    type="success" 
+                    size="small"
+                    @click="handleApprove(item)"
+                  >
+                    审批
+                  </van-button>
                   <van-button 
                     type="primary" 
                     size="small"
@@ -201,12 +274,34 @@ onMounted(() => {
   flex-wrap: nowrap;
 }
 
+.work-id-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
 .work-id {
   font-weight: 600;
   color: #323233;
   white-space: nowrap;
+  text-align: right;
   flex: 1;
-  margin-right: 8px;
+  min-width: 0;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: scale(0.8);
+  transform-origin: right center;
+  margin-left: -4px;
 }
 
 .card-body {
@@ -258,6 +353,12 @@ onMounted(() => {
 
 :deep(.van-pull-refresh) {
   min-height: calc(100vh - 46px - 44px);
+}
+
+.returned-tag {
+  background-color: #ffcdd2 !important;
+  color: #c62828 !important;
+  border-color: #ef9a9a !important;
 }
 
 :deep(.van-tabs__line) {

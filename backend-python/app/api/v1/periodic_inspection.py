@@ -7,6 +7,7 @@ from app.services.personnel import PersonnelService
 from app.schemas.periodic_inspection import (
     PeriodicInspectionCreate,
     PeriodicInspectionUpdate,
+    PeriodicInspectionPartialUpdate,
     PeriodicInspectionResponse,
     PaginatedResponse,
     ApiResponse
@@ -46,7 +47,20 @@ def get_all_periodic_inspection(
     if not is_manager and user_name:
         items = [item for item in items if item.maintenance_personnel == user_name]
     
-    return ApiResponse.success([item.to_dict() for item in items])
+    result = []
+    for item in items:
+        item_dict = item.to_dict()
+        counts = service.get_inspection_counts(
+            item.inspection_id,
+            item.project_id,
+            item.plan_start_date,
+            item.plan_end_date
+        )
+        item_dict['total_count'] = counts['total_count']
+        item_dict['filled_count'] = counts['filled_count']
+        result.append(item_dict)
+    
+    return ApiResponse.success(result)
 
 
 @router.get("", response_model=PaginatedResponse)
@@ -75,8 +89,21 @@ def get_periodic_inspection_list(
     items, total = service.get_all(
         page, size, project_name, client_name, status, maintenance_personnel
     )
-    items_dict = [item.to_dict() for item in items]
-    return PaginatedResponse.success(items_dict, total, page, size)
+    
+    result = []
+    for item in items:
+        item_dict = item.to_dict()
+        counts = service.get_inspection_counts(
+            item.inspection_id,
+            item.project_id,
+            item.plan_start_date,
+            item.plan_end_date
+        )
+        item_dict['total_count'] = counts['total_count']
+        item_dict['filled_count'] = counts['filled_count']
+        result.append(item_dict)
+    
+    return PaginatedResponse.success(result, total, page, size)
 
 
 @router.get("/{id}", response_model=ApiResponse)
@@ -111,6 +138,17 @@ def update_periodic_inspection(
         validate_maintenance_personnel(db, dto.maintenance_personnel)
     service = PeriodicInspectionService(db)
     inspection = service.update(id, dto)
+    return ApiResponse.success(inspection.to_dict(), "Updated successfully")
+
+
+@router.patch("/{id}", response_model=ApiResponse)
+def partial_update_periodic_inspection(
+    id: int,
+    dto: PeriodicInspectionPartialUpdate,
+    db: Session = Depends(get_db)
+):
+    service = PeriodicInspectionService(db)
+    inspection = service.partial_update(id, dto)
     return ApiResponse.success(inspection.to_dict(), "Updated successfully")
 
 

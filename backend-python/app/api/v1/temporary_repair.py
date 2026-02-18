@@ -55,7 +55,7 @@ def get_temporary_repairs_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=100, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
-    client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
+    repair_id: Optional[str] = Query(None, description="Repair ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
@@ -72,7 +72,7 @@ def get_temporary_repairs_list(
     maintenance_personnel = None if is_manager else user_name
     
     items, total = service.get_all(
-        page=page, size=size, project_name=project_name, client_name=client_name, 
+        page=page, size=size, project_name=project_name, repair_id=repair_id, 
         status=status, maintenance_personnel=maintenance_personnel
     )
     items_dict = [item.to_dict() for item in items]
@@ -133,6 +133,24 @@ def update_temporary_repair(
         validate_maintenance_personnel(db, dto['maintenance_personnel'])
     service = TemporaryRepairService(db)
     repair = service.update(id, TemporaryRepairUpdate(**dto))
+    return ApiResponse(
+        code=200,
+        message="Updated successfully",
+        data=repair.to_dict()
+    )
+
+
+@router.patch("/{id}", response_model=ApiResponse)
+def partial_update_temporary_repair(
+    id: int,
+    dto: dict,
+    db: Session = Depends(get_db)
+):
+    from app.schemas.temporary_repair import TemporaryRepairPartialUpdate
+    if 'maintenance_personnel' in dto and dto['maintenance_personnel']:
+        validate_maintenance_personnel(db, dto['maintenance_personnel'])
+    service = TemporaryRepairService(db)
+    repair = service.partial_update(id, TemporaryRepairPartialUpdate(**dto))
     return ApiResponse(
         code=200,
         message="Updated successfully",

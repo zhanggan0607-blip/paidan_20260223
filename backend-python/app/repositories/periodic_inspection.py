@@ -62,7 +62,7 @@ class PeriodicInspectionRepository:
                 query = query.filter(PeriodicInspection.maintenance_personnel == maintenance_personnel)
 
             total = query.count()
-            items = query.order_by(PeriodicInspection.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(PeriodicInspection.updated_at.desc().nullslast(), PeriodicInspection.created_at.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -71,7 +71,7 @@ class PeriodicInspectionRepository:
 
     def find_all_unpaginated(self) -> List[PeriodicInspection]:
         try:
-            return self.db.query(PeriodicInspection).options(joinedload(PeriodicInspection.project)).order_by(PeriodicInspection.created_at.desc()).all()
+            return self.db.query(PeriodicInspection).options(joinedload(PeriodicInspection.project)).order_by(PeriodicInspection.updated_at.desc().nullslast(), PeriodicInspection.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有定期巡检失败: {str(e)}")
             raise

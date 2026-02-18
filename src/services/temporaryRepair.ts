@@ -64,7 +64,7 @@ export const temporaryRepairService = {
     page?: number
     size?: number
     project_name?: string
-    client_name?: string
+    repair_id?: string
     status?: string
   }): Promise<PaginatedResponse> {
     return await apiClient.get('/temporary-repair', { params })

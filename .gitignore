@@ -49,3 +49,6 @@ defects_report.md
 
 # Batch files
 *.bat
+
+# Uploads directory
+backend-python/app/uploads/

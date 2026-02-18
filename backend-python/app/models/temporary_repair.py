@@ -9,6 +9,7 @@ class TemporaryRepair(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     repair_id = Column(String(50), unique=True, nullable=False, comment="维修单编号")
+    plan_id = Column(String(50), ForeignKey('maintenance_plan.plan_id', ondelete='CASCADE'), nullable=True, index=True, comment="关联维保计划编号")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
     plan_start_date = Column(DateTime, nullable=False, comment="计划开始日期")
@@ -21,6 +22,7 @@ class TemporaryRepair(Base):
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
     project = relationship("ProjectInfo", back_populates="temporary_repairs")
+    maintenance_plan = relationship("MaintenancePlan", back_populates="temporary_repairs")
     
     __table_args__ = (
         Index('idx_temp_repair_id', 'repair_id'),
@@ -50,6 +52,7 @@ class TemporaryRepair(Base):
         return {
             'id': self.id,
             'repair_id': self.repair_id,
+            'plan_id': self.plan_id,
             'project_id': self.project_id,
             'project_name': project_name,
             'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,

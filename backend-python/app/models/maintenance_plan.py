@@ -30,10 +30,14 @@ class MaintenancePlan(Base):
     execution_status = Column(String(20), nullable=False, comment="执行状态")
     completion_rate = Column(Integer, default=0, comment="完成率")
     remarks = Column(Text, comment="备注")
+    inspection_items = Column(Text, comment="巡查项数据(JSON格式)")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
     project = relationship("ProjectInfo", back_populates="maintenance_plans")
+    periodic_inspections = relationship("PeriodicInspection", back_populates="maintenance_plan", passive_deletes=True)
+    temporary_repairs = relationship("TemporaryRepair", back_populates="maintenance_plan", passive_deletes=True)
+    spot_works = relationship("SpotWork", back_populates="maintenance_plan", passive_deletes=True)
     
     __table_args__ = (
         Index('idx_maintenance_plan_id', 'plan_id'),
@@ -81,6 +85,7 @@ class MaintenancePlan(Base):
             'execution_status': self.execution_status,
             'completion_rate': self.completion_rate,
             'remarks': self.remarks,
+            'inspection_items': self.inspection_items,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

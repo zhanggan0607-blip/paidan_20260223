@@ -18,6 +18,7 @@ class WorkPlan(Base):
     maintenance_personnel = Column(String(100), comment="运维人员")
     status = Column(String(20), nullable=False, default="未进行", comment="状态")
     filled_count = Column(Integer, default=0, comment="已填写检查项数量")
+    total_count = Column(Integer, default=5, comment="检查项总数量")
     remarks = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
@@ -66,6 +67,7 @@ class WorkPlan(Base):
             'maintenance_personnel': self.maintenance_personnel,
             'status': self.status,
             'filled_count': self.filled_count or 0,
+            'total_count': self.total_count or 5,
             'remarks': self.remarks,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

@@ -853,25 +853,19 @@ export default defineComponent({
       item.check_requirements = ''
       item.inspection_item = ''
       item.inspection_content = ''
-      
-      if (item.level1_id) {
-        const level1Node = inspectionTreeData.value.find(node => node.id === item.level1_id)
-        if (level1Node) {
-          item.inspection_item = level1Node.label
-        }
-      }
     }
 
     const handleLevel2Change = (index: number) => {
       const item = formData.itemList[index]
       item.level3_id = ''
       item.check_requirements = ''
+      item.inspection_content = ''
       
       if (item.level1_id && item.level2_id) {
         const level2Nodes = getLevel2Nodes(item.level1_id)
         const level2Node = level2Nodes.find(node => node.id === item.level2_id)
         if (level2Node) {
-          item.inspection_content = level2Node.label
+          item.inspection_item = level2Node.label
         }
       }
     }
@@ -884,6 +878,7 @@ export default defineComponent({
         const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
         const level3Node = level3Nodes.find(node => node.id === item.level3_id)
         if (level3Node) {
+          item.inspection_content = level3Node.label
           item.check_requirements = level3Node.checkRequirement || ''
         }
       }
@@ -1518,7 +1513,18 @@ export default defineComponent({
             plan_status: '待执行',
             execution_status: '未开始',
             completion_rate: 0,
-            remarks: plan.remarks
+            remarks: plan.remarks,
+            inspection_items: formData.itemList.length > 0 
+              ? JSON.stringify(formData.itemList.map(item => ({
+                  level1_id: item.level1_id || '',
+                  level2_id: item.level2_id || '',
+                  level3_id: item.level3_id || '',
+                  inspection_item: item.inspection_item || '',
+                  inspection_content: item.inspection_content || '',
+                  check_requirements: item.check_requirements || '',
+                  brief_description: item.brief_description || ''
+                })))
+              : undefined
           }
 
           try {
@@ -1671,26 +1677,21 @@ export default defineComponent({
       item.level2_id = ''
       item.level3_id = ''
       item.check_requirements = ''
-      
-      if (item.level1_id) {
-        const level1Nodes1 = level1Nodes.value
-        const level1Node = level1Nodes1.find(node => node.id === item.level1_id)
-        if (level1Node) {
-          item.inspection_item = level1Node.label
-        }
-      }
+      item.inspection_item = ''
+      item.inspection_content = ''
     }
 
     const handleEditLevel2Change = (index: number) => {
       const item = editData.itemList[index]
       item.level3_id = ''
       item.check_requirements = ''
+      item.inspection_content = ''
       
       if (item.level1_id && item.level2_id) {
         const level2Nodes = getLevel2Nodes(item.level1_id)
         const level2Node = level2Nodes.find(node => node.id === item.level2_id)
         if (level2Node) {
-          item.inspection_content = level2Node.label
+          item.inspection_item = level2Node.label
         }
       }
     }
@@ -1703,6 +1704,7 @@ export default defineComponent({
         const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
         const level3Node = level3Nodes.find(node => node.id === item.level3_id)
         if (level3Node) {
+          item.inspection_content = level3Node.label
           item.check_requirements = level3Node.checkRequirement || ''
         }
       }
@@ -1785,6 +1787,17 @@ export default defineComponent({
         const maintenanceRequirements = editData.itemList.length > 0 
           ? editData.itemList.map(item => item.check_requirements).filter(Boolean).join('; ')
           : undefined
+        const inspectionItemsJson = editData.itemList.length > 0 
+          ? JSON.stringify(editData.itemList.map(item => ({
+              level1_id: item.level1_id || '',
+              level2_id: item.level2_id || '',
+              level3_id: item.level3_id || '',
+              inspection_item: item.inspection_item || '',
+              inspection_content: item.inspection_content || '',
+              check_requirements: item.check_requirements || '',
+              brief_description: item.brief_description || ''
+            })))
+          : undefined
 
         for (const plan of editData.planList) {
           if (!plan.plan_start_date || !plan.plan_end_date) {
@@ -1812,7 +1825,8 @@ export default defineComponent({
             plan_status: plan.plan_status || '待执行',
             execution_status: plan.execution_status || '未开始',
             completion_rate: plan.completion_rate || 0,
-            remarks: plan.remarks
+            remarks: plan.remarks,
+            inspection_items: inspectionItemsJson
           }
 
           try {
@@ -1889,6 +1903,10 @@ export default defineComponent({
       })
     })
 
+    const handleProjectInfoChanged = () => {
+      loadProjectList()
+    }
+
     onMounted(() => {
       loadData()
       loadPersonnel()
@@ -1896,6 +1914,7 @@ export default defineComponent({
       loadProjectList()
       loadInspectionTree()
       window.addEventListener('user-changed', handleUserChanged)
+      window.addEventListener('project-info-changed', handleProjectInfoChanged)
     })
 
     onUnmounted(() => {
@@ -1903,6 +1922,7 @@ export default defineComponent({
         abortController.abort()
       }
       window.removeEventListener('user-changed', handleUserChanged)
+      window.removeEventListener('project-info-changed', handleProjectInfoChanged)
     })
 
     const handleUserChanged = () => {

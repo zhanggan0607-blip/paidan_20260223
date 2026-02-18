@@ -111,7 +111,7 @@ export const authService = {
   },
 
   canViewSparePartsIssue(user: User | null): boolean {
-    return this.isAdmin(user) || this.isEmployee(user) || this.isDepartmentManager(user)
+    return this.isAdmin(user) || this.isMaterialManager(user) || this.isEmployee(user) || this.isDepartmentManager(user)
   },
 
   canViewRepairToolsStock(user: User | null): boolean {
@@ -123,7 +123,7 @@ export const authService = {
   },
 
   canViewRepairToolsIssue(user: User | null): boolean {
-    return this.isAdmin(user) || this.isEmployee(user) || this.isDepartmentManager(user)
+    return this.isAdmin(user) || this.isMaterialManager(user) || this.isEmployee(user) || this.isDepartmentManager(user)
   },
 
   canViewAlerts(user: User | null): boolean {
@@ -136,6 +136,18 @@ export const authService = {
 
   canViewPeriodicInspection(user: User | null): boolean {
     return !this.isMaterialManager(user)
+  },
+
+  canApprovePeriodicInspection(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canApproveTemporaryRepair(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canApproveSpotWork(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
   },
 
   canViewTemporaryRepair(user: User | null): boolean {
@@ -151,6 +163,30 @@ export const authService = {
   },
 
   canQuickFillSpotWork(user: User | null): boolean {
+    return !this.isMaterialManager(user)
+  },
+
+  canViewMaintenanceLog(user: User | null): boolean {
+    return this.isEmployee(user) || this.isDepartmentManager(user)
+  },
+
+  canFillMaintenanceLog(user: User | null): boolean {
+    return this.isEmployee(user)
+  },
+
+  canViewAllMaintenanceLog(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canViewDepartmentWeeklyReport(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canViewWorkList(user: User | null): boolean {
+    return !this.isMaterialManager(user)
+  },
+
+  canViewSignature(user: User | null): boolean {
     return !this.isMaterialManager(user)
   },
 

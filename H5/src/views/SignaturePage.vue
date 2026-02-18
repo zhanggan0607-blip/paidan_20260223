@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import { showSuccessToast, showFailToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
+import api from '../utils/api'
+import type { ApiResponse } from '../types'
 
 const router = useRouter()
 const route = useRoute()
@@ -15,8 +17,8 @@ const signatureData = ref('')
 
 const lockOrientation = async () => {
   try {
-    if (screen.orientation && screen.orientation.lock) {
-      await screen.orientation.lock('landscape')
+    if (screen.orientation && 'lock' in screen.orientation) {
+      await (screen.orientation as any).lock('landscape')
     }
   } catch (e) {
     console.log('Orientation lock not supported')
@@ -25,8 +27,8 @@ const lockOrientation = async () => {
 
 const unlockOrientation = () => {
   try {
-    if (screen.orientation && screen.orientation.unlock) {
-      screen.orientation.unlock()
+    if (screen.orientation && 'unlock' in screen.orientation) {
+      (screen.orientation as any).unlock()
     }
   } catch (e) {
     console.log('Orientation unlock not supported')
@@ -59,7 +61,8 @@ const getCoordinates = (e: TouchEvent | MouseEvent) => {
   const rect = canvas.value.getBoundingClientRect()
   
   if (e.type.startsWith('touch')) {
-    const touch = (e as TouchEvent).touches[0] || (e as TouchEvent).changedTouches[0]
+    const touch = (e as TouchEvent).touches[0] ?? (e as TouchEvent).changedTouches[0]
+    if (!touch) return { x: 0, y: 0 }
     return {
       x: touch.clientX - rect.left,
       y: touch.clientY - rect.top
@@ -114,7 +117,7 @@ const handleClear = async () => {
   }
 }
 
-const handleConfirm = () => {
+const handleConfirm = async () => {
   if (!canvas.value) return
   
   const isEmpty = isCanvasEmpty()
@@ -127,8 +130,29 @@ const handleConfirm = () => {
   
   const from = route.query.from as string
   const type = route.query.type as string
+  const inspectionId = route.query.inspectionId as string
   
-  if (from) {
+  if (type === 'periodic-inspection' && inspectionId) {
+    showLoadingToast({ message: '保存签名...', forbidClick: true })
+    try {
+      const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${inspectionId}`, {
+        signature: signatureData.value
+      })
+      if (response.code === 200) {
+        localStorage.setItem('periodic_inspection_signature', signatureData.value)
+        showSuccessToast('签名保存成功')
+        unlockOrientation()
+        router.push(from || '/periodic-inspection')
+      } else {
+        showFailToast('签名保存失败')
+      }
+    } catch (error) {
+      console.error('Failed to save signature:', error)
+      showFailToast('签名保存失败')
+    } finally {
+      closeToast()
+    }
+  } else if (from) {
     if (type === 'periodic-inspection') {
       localStorage.setItem('periodic_inspection_signature', signatureData.value)
     } else if (type === 'temporary-repair') {
@@ -148,15 +172,25 @@ const handleConfirm = () => {
 
 const handleBack = () => {
   unlockOrientation()
-  router.back()
+  const from = route.query.from as string
+  if (from) {
+    router.push(from)
+  } else {
+    router.back()
+  }
 }
 
 const isCanvasEmpty = () => {
   if (!canvas.value || !ctx.value) return true
   
   const pixelData = ctx.value.getImageData(0, 0, canvas.value.width, canvas.value.height).data
-  for (let i = 3; i < pixelData.length; i += 4) {
-    if (pixelData[i] < 255) return false
+  for (let i = 0; i < pixelData.length; i += 4) {
+    const r = pixelData[i]
+    const g = pixelData[i + 1]
+    const b = pixelData[i + 2]
+    if (r !== 255 || g !== 255 || b !== 255) {
+      return false
+    }
   }
   return true
 }

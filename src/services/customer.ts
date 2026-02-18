@@ -54,26 +54,26 @@ export interface ApiResponse<T> {
 export const customerService = {
   async getList(params: CustomerListParams): Promise<ApiResponse<CustomerListResponse>> {
     const response = await api.get('/customer', { params })
-    return response as ApiResponse<CustomerListResponse>
+    return response as unknown as ApiResponse<CustomerListResponse>
   },
 
   async getById(id: number): Promise<ApiResponse<Customer>> {
     const response = await api.get(`/customer/${id}`)
-    return response as ApiResponse<Customer>
+    return response as unknown as ApiResponse<Customer>
   },
 
   async create(data: CustomerCreate): Promise<ApiResponse<Customer>> {
     const response = await api.post('/customer', data)
-    return response as ApiResponse<Customer>
+    return response as unknown as ApiResponse<Customer>
   },
 
   async update(id: number, data: CustomerUpdate): Promise<ApiResponse<Customer>> {
     const response = await api.put(`/customer/${id}`, data)
-    return response as ApiResponse<Customer>
+    return response as unknown as ApiResponse<Customer>
   },
 
   async delete(id: number, cascade: boolean = false): Promise<ApiResponse<void>> {
     const response = await api.delete(`/customer/${id}`, { params: { cascade } })
-    return response as ApiResponse<void>
+    return response as unknown as ApiResponse<void>
   }
 }

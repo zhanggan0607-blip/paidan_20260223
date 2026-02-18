@@ -269,7 +269,7 @@ async def get_issue_list(
     if user_info:
         current_user_name = user_info.get('sub') or user_info.get('name')
         role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+        is_manager = role in ['管理员', '部门经理', '主管', '物料管理员', '材料员']
     
     query = db.query(RepairToolsIssue)
     

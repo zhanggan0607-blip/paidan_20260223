@@ -4,6 +4,9 @@ from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.maintenance_plan import MaintenancePlan
+from app.models.periodic_inspection import PeriodicInspection
+from app.models.temporary_repair import TemporaryRepair
+from app.models.spot_work import SpotWork
 from app.repositories.maintenance_plan import MaintenancePlanRepository
 from app.schemas.maintenance_plan import MaintenancePlanCreate, MaintenancePlanUpdate
 
@@ -109,13 +112,68 @@ class MaintenancePlanService:
             plan_status=dto.plan_status,
             execution_status=dto.execution_status,
             completion_rate=dto.completion_rate,
-            remarks=dto.remarks
+            remarks=dto.remarks,
+            inspection_items=dto.inspection_items
         )
 
         logger.info(f"📥 [Service] 准备保存到数据库: plan_id={maintenance_plan.plan_id}, plan_name={maintenance_plan.plan_name}")
         result = self.repository.create(maintenance_plan)
         logger.info(f"✅ [Service] 数据库保存成功: id={result.id}, plan_id={result.plan_id}")
+        
+        self._create_work_order_for_plan(result)
+        
         return result
+    
+    def _create_work_order_for_plan(self, plan: MaintenancePlan) -> None:
+        """
+        根据维保计划自动创建对应的工单
+        """
+        try:
+            from app.models.project_info import ProjectInfo
+            
+            project = self.repository.db.query(ProjectInfo).filter(
+                ProjectInfo.project_id == plan.project_id
+            ).first()
+            
+            client_name = project.client_name if project else plan.responsible_department
+            
+            inspection_id = f"XJ-{plan.project_id}-{plan.plan_start_date.strftime('%Y%m%d') if plan.plan_start_date else datetime.now().strftime('%Y%m%d')}"
+            
+            existing = self.repository.db.query(PeriodicInspection).filter(
+                PeriodicInspection.inspection_id == inspection_id
+            ).first()
+            
+            if existing:
+                seq = 1
+                while True:
+                    inspection_id = f"XJ-{plan.project_id}-{plan.plan_start_date.strftime('%Y%m%d') if plan.plan_start_date else datetime.now().strftime('%Y%m%d')}-{seq:02d}"
+                    if not self.repository.db.query(PeriodicInspection).filter(
+                        PeriodicInspection.inspection_id == inspection_id
+                    ).first():
+                        break
+                    seq += 1
+            
+            work_order = PeriodicInspection(
+                inspection_id=inspection_id,
+                plan_id=plan.plan_id,
+                project_id=plan.project_id,
+                project_name=plan.project_name or (project.project_name if project else ''),
+                plan_start_date=plan.plan_start_date,
+                plan_end_date=plan.plan_end_date,
+                client_name=client_name,
+                maintenance_personnel=plan.responsible_person,
+                status='未进行',
+                remarks=plan.remarks
+            )
+            
+            self.repository.db.add(work_order)
+            self.repository.db.commit()
+            
+            logger.info(f"✅ [Service] 自动创建工单成功: inspection_id={inspection_id}, plan_id={plan.plan_id}")
+            
+        except Exception as e:
+            logger.error(f"❌ [Service] 创建工单失败: {str(e)}")
+            self.repository.db.rollback()
     
     def update(self, id: int, dto: MaintenancePlanUpdate) -> MaintenancePlan:
         existing_plan = self.get_by_id(id)
@@ -148,12 +206,52 @@ class MaintenancePlanService:
         existing_plan.execution_status = dto.execution_status
         existing_plan.completion_rate = dto.completion_rate
         existing_plan.remarks = dto.remarks
+        existing_plan.inspection_items = dto.inspection_items
         
         return self.repository.update(existing_plan)
     
-    def delete(self, id: int) -> None:
+    def delete(self, id: int) -> dict:
+        """
+        删除维保计划，并级联删除关联的工单数据
+        返回删除统计信息
+        """
         maintenance_plan = self.get_by_id(id)
-        self.repository.delete(maintenance_plan)
+        plan_id = maintenance_plan.plan_id
+        
+        logger.info(f"🗑️ [Service] 开始删除维保计划: id={id}, plan_id={plan_id}")
+        
+        deleted_stats = {
+            'plan_id': plan_id,
+            'periodic_inspections': 0,
+            'temporary_repairs': 0,
+            'spot_works': 0
+        }
+        
+        try:
+            deleted_stats['periodic_inspections'] = self.repository.db.query(PeriodicInspection).filter(
+                PeriodicInspection.plan_id == plan_id
+            ).delete(synchronize_session=False)
+            
+            deleted_stats['temporary_repairs'] = self.repository.db.query(TemporaryRepair).filter(
+                TemporaryRepair.plan_id == plan_id
+            ).delete(synchronize_session=False)
+            
+            deleted_stats['spot_works'] = self.repository.db.query(SpotWork).filter(
+                SpotWork.plan_id == plan_id
+            ).delete(synchronize_session=False)
+            
+            self.repository.delete(maintenance_plan)
+            
+            logger.info(f"✅ [Service] 维保计划删除成功: plan_id={plan_id}, "
+                       f"定期巡检={deleted_stats['periodic_inspections']}, "
+                       f"临时维修={deleted_stats['temporary_repairs']}, "
+                       f"零星用工={deleted_stats['spot_works']}")
+            
+            return deleted_stats
+            
+        except Exception as e:
+            logger.error(f"❌ [Service] 删除维保计划失败: plan_id={plan_id}, error={str(e)}")
+            raise
     
     def update_execution_status(self, id: int, status: str) -> MaintenancePlan:
         maintenance_plan = self.repository.update_execution_status(id, status)

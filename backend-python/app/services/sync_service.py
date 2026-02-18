@@ -94,6 +94,7 @@ class SyncService:
             existing_plan.maintenance_personnel = order.maintenance_personnel
             existing_plan.status = order.status
             existing_plan.filled_count = getattr(order, 'filled_count', 0) or 0
+            existing_plan.total_count = getattr(order, 'total_count', 5) or 5
             existing_plan.remarks = order.remarks
             
             result = self.work_plan_repo.update(existing_plan)
@@ -111,6 +112,7 @@ class SyncService:
                 maintenance_personnel=order.maintenance_personnel,
                 status=order.status,
                 filled_count=getattr(order, 'filled_count', 0) or 0,
+                total_count=getattr(order, 'total_count', 5) or 5,
                 remarks=order.remarks
             )
             

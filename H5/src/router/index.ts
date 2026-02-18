@@ -12,13 +12,13 @@ const routes = [
     path: '/project-info',
     name: 'ProjectInfo',
     component: () => import('../views/ProjectInfoPage.vue'),
-    meta: { title: '项目信息' }
+    meta: { title: '项目信息', permission: 'canViewProjectInfo' }
   },
   {
     path: '/work-list',
     name: 'WorkList',
     component: () => import('../views/WorkListPage.vue'),
-    meta: { title: '工单列表' }
+    meta: { title: '工单列表', permission: 'canViewWorkList' }
   },
   {
     path: '/periodic-inspection',
@@ -60,13 +60,73 @@ const routes = [
     path: '/spot-work/quick-fill',
     name: 'SpotWorkQuickFill',
     component: () => import('../views/SpotWorkQuickFillPage.vue'),
-    meta: { title: '零星用工快捷填报', permission: 'canQuickFillSpotWork' }
+    meta: { title: '申报用工', permission: 'canQuickFillSpotWork' }
+  },
+  {
+    path: '/spot-work/worker-entry',
+    name: 'WorkerEntry',
+    component: () => import('../views/WorkerEntryPage.vue'),
+    meta: { title: '施工人员录入', permission: 'canQuickFillSpotWork' }
   },
   {
     path: '/signature',
     name: 'Signature',
     component: () => import('../views/SignaturePage.vue'),
-    meta: { title: '签字确认' }
+    meta: { title: '签字确认', permission: 'canViewSignature' }
+  },
+  {
+    path: '/spot-work-apply',
+    name: 'SpotWorkApply',
+    component: () => import('../views/SpotWorkApplyPage.vue'),
+    meta: { title: '申报用工', permission: 'canQuickFillSpotWork' }
+  },
+  {
+    path: '/maintenance-log',
+    name: 'MaintenanceLog',
+    component: () => import('../views/MaintenanceLogFillPage.vue'),
+    meta: { title: '维保日志填报', permission: 'canFillMaintenanceLog' }
+  },
+  {
+    path: '/maintenance-log-list',
+    name: 'MaintenanceLogList',
+    component: () => import('../views/MaintenanceLogPage.vue'),
+    meta: { title: '已填报日志', permission: 'canViewMaintenanceLog' }
+  },
+  {
+    path: '/maintenance-log-detail/:id',
+    name: 'MaintenanceLogDetail',
+    component: () => import('../views/MaintenanceLogDetailPage.vue'),
+    meta: { title: '维保日志详情', permission: 'canViewMaintenanceLog' }
+  },
+  {
+    path: '/maintenance-log-all',
+    name: 'MaintenanceLogAll',
+    component: () => import('../views/MaintenanceLogAllPage.vue'),
+    meta: { title: '查看维保日志', permission: 'canViewAllMaintenanceLog' }
+  },
+  {
+    path: '/spare-parts-issue',
+    name: 'SparePartsIssue',
+    component: () => import('../views/SparePartsIssuePage.vue'),
+    meta: { title: '备品备件领用', permission: 'canViewSparePartsIssue' }
+  },
+  {
+    path: '/spare-parts-stock',
+    name: 'SparePartsStock',
+    component: () => import('../views/SparePartsStockPage.vue'),
+    meta: { title: '配品备件入库', permission: 'canViewSparePartsStock' }
+  },
+  {
+    path: '/repair-tools-issue',
+    name: 'RepairToolsIssue',
+    component: () => import('../views/RepairToolsIssuePage.vue'),
+    meta: { title: '维修工具领用', permission: 'canViewRepairToolsIssue' }
+  },
+  {
+    path: '/repair-tools-stock',
+    name: 'RepairToolsStock',
+    component: () => import('../views/RepairToolsStockPage.vue'),
+    meta: { title: '维修工具入库', permission: 'canViewRepairToolsInbound' }
   }
 ]
 

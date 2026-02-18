@@ -202,8 +202,8 @@ def delete_maintenance_plan(
     db: Session = Depends(get_db)
 ):
     service = MaintenancePlanService(db)
-    service.delete(id)
-    return ApiResponse.success(None, "Deleted successfully")
+    deleted_stats = service.delete(id)
+    return ApiResponse.success(deleted_stats, "删除成功")
 
 
 @router.patch("/{id}/status", response_model=ApiResponse)

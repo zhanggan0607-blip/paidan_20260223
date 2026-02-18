@@ -14,11 +14,11 @@
             />
           </div>
           <div class="search-item">
-            <label class="search-label">客户名称：</label>
+            <label class="search-label">工单编号：</label>
             <SearchInput
-              v-model="searchForm.client_name"
-              field-key="SpotWorkManagement_client_name"
-              placeholder="请输入"
+              v-model="searchForm.work_id"
+              field-key="SpotWorkManagement_work_id"
+              placeholder="请输入工单编号"
               @input="handleSearch"
             />
           </div>
@@ -182,7 +182,7 @@ export default defineComponent({
 
     const searchForm = ref({
       project_name: '',
-      client_name: '',
+      work_id: '',
       status: ''
     })
 
@@ -195,7 +195,7 @@ export default defineComponent({
           page: currentPage.value - 1,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined,
+          work_id: searchForm.value.work_id || undefined,
           status: searchForm.value.status || undefined
         })
         

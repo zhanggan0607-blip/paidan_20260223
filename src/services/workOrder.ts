@@ -13,6 +13,8 @@ export interface WorkOrder {
   maintenance_personnel: string
   status: string
   remarks: string
+  execution_result?: string
+  signature?: string
   created_at: string
   updated_at: string
 }
@@ -42,7 +44,7 @@ export const workOrderService = {
     page?: number
     size?: number
     project_name?: string
-    client_name?: string
+    order_id?: string
     order_type?: string
     status?: string
     maintenance_personnel?: string

@@ -20,7 +20,7 @@ def get_work_order_list(
     page: int = Query(0, ge=0, description="页码，从0开始"),
     size: int = Query(10, ge=1, le=100, description="每页数量"),
     project_name: Optional[str] = Query(None, description="项目名称(模糊搜索)"),
-    client_name: Optional[str] = Query(None, description="客户名称(模糊搜索)"),
+    order_id: Optional[str] = Query(None, description="工单编号(模糊搜索)"),
     order_type: Optional[str] = Query(None, description="工单类型: inspection/repair/spotwork"),
     status: Optional[str] = Query(None, description="状态"),
     maintenance_personnel: Optional[str] = Query(None, description="运维人员(模糊搜索)"),
@@ -44,8 +44,8 @@ def get_work_order_list(
         query = db.query(PeriodicInspection)
         if project_name:
             query = query.filter(PeriodicInspection.project_name.ilike(f'%{project_name}%'))
-        if client_name:
-            query = query.filter(PeriodicInspection.client_name.ilike(f'%{client_name}%'))
+        if order_id:
+            query = query.filter(PeriodicInspection.inspection_id.ilike(f'%{order_id}%'))
         if status:
             query = query.filter(PeriodicInspection.status == status)
         if maintenance_personnel:
@@ -67,6 +67,8 @@ def get_work_order_list(
                 'maintenance_personnel': item.maintenance_personnel,
                 'status': item.status,
                 'remarks': item.remarks,
+                'execution_result': item.execution_result,
+                'signature': item.signature,
                 'created_at': item.created_at.isoformat() if item.created_at else None,
                 'updated_at': item.updated_at.isoformat() if item.updated_at else None,
             })
@@ -75,8 +77,8 @@ def get_work_order_list(
         query = db.query(TemporaryRepair)
         if project_name:
             query = query.filter(TemporaryRepair.project_name.ilike(f'%{project_name}%'))
-        if client_name:
-            query = query.filter(TemporaryRepair.client_name.ilike(f'%{client_name}%'))
+        if order_id:
+            query = query.filter(TemporaryRepair.repair_id.ilike(f'%{order_id}%'))
         if status:
             query = query.filter(TemporaryRepair.status == status)
         if maintenance_personnel:
@@ -106,8 +108,8 @@ def get_work_order_list(
         query = db.query(SpotWork)
         if project_name:
             query = query.filter(SpotWork.project_name.ilike(f'%{project_name}%'))
-        if client_name:
-            query = query.filter(SpotWork.client_name.ilike(f'%{client_name}%'))
+        if order_id:
+            query = query.filter(SpotWork.work_id.ilike(f'%{order_id}%'))
         if status:
             query = query.filter(SpotWork.status == status)
         if maintenance_personnel:
@@ -178,6 +180,8 @@ def get_all_work_orders(
             'maintenance_personnel': item.maintenance_personnel,
             'status': item.status,
             'remarks': item.remarks,
+            'execution_result': item.execution_result,
+            'signature': item.signature,
         })
     
     for item in db.query(TemporaryRepair).all():

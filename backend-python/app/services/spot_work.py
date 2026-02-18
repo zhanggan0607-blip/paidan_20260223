@@ -58,12 +58,12 @@ class SpotWorkService:
         page: int = 0, 
         size: int = 10, 
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None,
+        work_id: Optional[str] = None,
         status: Optional[str] = None,
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[SpotWork], int]:
         return self.repository.find_all(
-            page, size, project_name, client_name, status, maintenance_personnel
+            page, size, project_name, work_id, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> SpotWork:
@@ -127,6 +127,37 @@ class SpotWorkService:
         existing_work.maintenance_personnel = dto.maintenance_personnel
         existing_work.status = dto.status
         existing_work.remarks = dto.remarks
+        
+        result = self.repository.update(existing_work)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
+        return result
+    
+    def partial_update(self, id: int, dto) -> SpotWork:
+        existing_work = self.get_by_id(id)
+        
+        if dto.work_id is not None:
+            if existing_work.work_id != dto.work_id and self.repository.exists_by_work_id(dto.work_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="用工单编号已存在"
+                )
+            existing_work.work_id = dto.work_id
+        if dto.project_id is not None:
+            existing_work.project_id = dto.project_id
+        if dto.project_name is not None:
+            existing_work.project_name = dto.project_name
+        if dto.plan_start_date is not None:
+            existing_work.plan_start_date = self._parse_date(dto.plan_start_date)
+        if dto.plan_end_date is not None:
+            existing_work.plan_end_date = self._parse_date(dto.plan_end_date)
+        if dto.client_name is not None:
+            existing_work.client_name = dto.client_name
+        if dto.maintenance_personnel is not None:
+            existing_work.maintenance_personnel = dto.maintenance_personnel
+        if dto.status is not None:
+            existing_work.status = dto.status
+        if dto.remarks is not None:
+            existing_work.remarks = dto.remarks
         
         result = self.repository.update(existing_work)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)

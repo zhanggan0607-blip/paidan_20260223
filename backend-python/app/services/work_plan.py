@@ -59,6 +59,13 @@ class WorkPlanService:
                     raise ValueError(f'日期格式无效: {date_value}')
         return None
     
+    def _get_date_value(self, date_field) -> Optional[datetime.date]:
+        if date_field is None:
+            return None
+        if isinstance(date_field, datetime):
+            return date_field.date()
+        return date_field
+    
     def get_all(
         self, 
         page: int = 0, 
@@ -162,50 +169,66 @@ class WorkPlanService:
         return self.repository.find_all_unpaginated(plan_type)
     
     def get_statistics(self, user_name: Optional[str] = None, is_manager: bool = False) -> dict:
+        """
+        获取统计数据
+        
+        临期工单：计划开始日期在未来7天内且未完成
+        超期工单：计划结束日期已过且未完成
+        """
+        from app.repositories.periodic_inspection import PeriodicInspectionRepository
+        from app.repositories.temporary_repair import TemporaryRepairRepository
+        from app.repositories.spot_work import SpotWorkRepository
+        
         today = datetime.now().date()
         year_start = datetime(today.year, 1, 1).date()
         
-        all_plans = self.repository.find_all_unpaginated()
+        inspection_repo = PeriodicInspectionRepository(self.repository.db)
+        repair_repo = TemporaryRepairRepository(self.repository.db)
+        spotwork_repo = SpotWorkRepository(self.repository.db)
+        
+        all_inspections = inspection_repo.find_all_unpaginated()
+        all_repairs = repair_repo.find_all_unpaginated()
+        all_spotworks = spotwork_repo.find_all_unpaginated()
         
         if not is_manager and user_name:
-            all_plans = [p for p in all_plans if p.maintenance_personnel == user_name]
+            all_inspections = [p for p in all_inspections if p.maintenance_personnel == user_name]
+            all_repairs = [p for p in all_repairs if p.maintenance_personnel == user_name]
+            all_spotworks = [p for p in all_spotworks if p.maintenance_personnel == user_name]
         
         expiring_soon = 0
         overdue = 0
         yearly_completed = 0
-        periodic_inspection = 0
-        temporary_repair = 0
-        spot_work = 0
         
-        for plan in all_plans:
-            plan_end = plan.plan_end_date
-            if isinstance(plan_end, datetime):
-                plan_end = plan_end.date()
+        all_orders = []
+        for item in all_inspections:
+            all_orders.append(('定期巡检', item))
+        for item in all_repairs:
+            all_orders.append(('临时维修', item))
+        for item in all_spotworks:
+            all_orders.append(('零星用工', item))
+        
+        for plan_type, order in all_orders:
+            plan_start = self._get_date_value(order.plan_start_date)
+            plan_end = self._get_date_value(order.plan_end_date)
             
-            if plan_end:
-                if plan_end < today and plan.status != '已完成':
-                    overdue += 1
-                elif plan_end <= today + timedelta(days=7) and plan.status != '已完成':
-                    expiring_soon += 1
+            if order.status not in ['已完成', '已确认']:
+                if plan_start:
+                    if today <= plan_start <= today + timedelta(days=7):
+                        expiring_soon += 1
+                
+                if plan_end:
+                    if plan_end < today:
+                        overdue += 1
             
-            if plan.status == '已完成' and plan_end:
-                if isinstance(plan_end, datetime):
-                    plan_end = plan_end.date()
+            if order.status in ['已完成', '已确认'] and plan_end:
                 if plan_end >= year_start:
                     yearly_completed += 1
-            
-            if plan.plan_type == '定期巡检':
-                periodic_inspection += 1
-            elif plan.plan_type == '临时维修':
-                temporary_repair += 1
-            elif plan.plan_type == '零星用工':
-                spot_work += 1
         
         return {
             'expiringSoon': expiring_soon,
             'overdue': overdue,
             'yearlyCompleted': yearly_completed,
-            'periodicInspection': periodic_inspection,
-            'temporaryRepair': temporary_repair,
-            'spotWork': spot_work
+            'periodicInspection': len(all_inspections),
+            'temporaryRepair': len(all_repairs),
+            'spotWork': len(all_spotworks)
         }

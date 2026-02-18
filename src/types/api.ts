@@ -9,6 +9,8 @@ export interface PaginatedResponse<T = unknown> {
   total: number
   page: number
   pageSize: number
+  content?: T[]
+  totalElements?: number
 }
 
 export interface QueryParams {

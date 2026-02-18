@@ -8,6 +8,10 @@ export interface PeriodicInspection {
   plan_start_date: string
   plan_end_date: string
   client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  client_contact_position?: string
+  address?: string
   maintenance_personnel?: string
   status: string
   remarks?: string
@@ -90,3 +94,4 @@ export const periodicInspectionService = {
     return await apiClient.get('/periodic-inspection/all/list')
   }
 }
+

@@ -173,7 +173,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, onMounted } from 'vue'
+import { defineComponent, reactive, ref, computed, onMounted, onUnmounted } from 'vue'
 import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
@@ -383,15 +383,20 @@ export default defineComponent({
       }
     }
 
+    const handleUserChanged = ((event: Event) => {
+      const customEvent = event as CustomEvent
+      currentUser.value = customEvent.detail
+      loadData()
+    }) as EventListener
+
     onMounted(() => {
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
     })
 
-    const handleUserChanged = (event: CustomEvent) => {
-      currentUser.value = event.detail
-      loadData()
-    }
+    onUnmounted(() => {
+      window.removeEventListener('user-changed', handleUserChanged)
+    })
 
     return {
       currentUser,

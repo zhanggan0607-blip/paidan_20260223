@@ -13,12 +13,13 @@ class PeriodicInspectionBase(BaseModel):
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field("未进行", max_length=20, description="状态")
-    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    execution_result: Optional[str] = Field(None, description="发现问题")
+    remarks: Optional[str] = Field(None, max_length=500, description="处理结果")
 
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消']
+        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -34,7 +35,8 @@ class PeriodicInspectionCreate(BaseModel):
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: Optional[str] = Field(None, max_length=20, description="状态")
     filled_count: Optional[int] = Field(0, description="已填写检查项数量")
-    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    execution_result: Optional[str] = Field(None, description="发现问题")
+    remarks: Optional[str] = Field(None, max_length=500, description="处理结果")
 
 
 class PeriodicInspectionUpdate(BaseModel):
@@ -47,7 +49,27 @@ class PeriodicInspectionUpdate(BaseModel):
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field(..., max_length=20, description="状态")
     filled_count: Optional[int] = Field(0, description="已填写检查项数量")
-    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    total_count: Optional[int] = Field(5, description="检查项总数量")
+    execution_result: Optional[str] = Field(None, description="发现问题")
+    remarks: Optional[str] = Field(None, max_length=500, description="处理结果")
+    signature: Optional[str] = Field(None, description="用户签名(base64)")
+
+
+class PeriodicInspectionPartialUpdate(BaseModel):
+    signature: Optional[str] = Field(None, description="用户签名(base64)")
+    execution_result: Optional[str] = Field(None, description="发现问题")
+    remarks: Optional[str] = Field(None, max_length=500, description="处理结果")
+    status: Optional[str] = Field(None, max_length=20, description="状态")
+
+    @field_validator('status')
+    @classmethod
+    def validate_status(cls, v):
+        if v is None:
+            return v
+        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '已退回']
+        if v not in valid_statuses:
+            raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
+        return v
 
 
 class PeriodicInspectionResponse(BaseModel):
@@ -60,7 +82,9 @@ class PeriodicInspectionResponse(BaseModel):
     client_name: Optional[str]
     maintenance_personnel: Optional[str]
     status: str
+    execution_result: Optional[str]
     remarks: Optional[str]
+    signature: Optional[str]
     created_at: datetime
     updated_at: datetime
 

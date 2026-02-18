@@ -14,6 +14,7 @@ import {
   Button,
   Field,
   Popup,
+  Picker,
   DatePicker,
   Tabs,
   Tab,
@@ -23,10 +24,12 @@ import {
   Empty,
   ActionSheet,
   Popover,
+  ImagePreview,
   showLoadingToast,
   closeToast,
   showSuccessToast,
   showFailToast,
+  showConfirmDialog,
 } from 'vant'
 import 'vant/lib/index.css'
 
@@ -42,6 +45,7 @@ app.use(Icon)
 app.use(Button)
 app.use(Field)
 app.use(Popup)
+app.use(Picker)
 app.use(DatePicker)
 app.use(Tabs)
 app.use(Tab)
@@ -51,6 +55,7 @@ app.use(Tag)
 app.use(Empty)
 app.use(ActionSheet)
 app.use(Popover)
+app.use(ImagePreview)
 
 app.use(router)
 app.mount('#app')

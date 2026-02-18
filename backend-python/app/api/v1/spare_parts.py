@@ -120,7 +120,7 @@ def get_spare_parts_usage(
     if user_info:
         user_name = user_info.get('sub') or user_info.get('name')
         role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+        is_manager = role in ['管理员', '部门经理', '主管', '物料管理员', '材料员']
     
     if not is_manager and user_name:
         user = user_name

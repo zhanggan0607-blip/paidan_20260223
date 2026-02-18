@@ -28,7 +28,7 @@ api.interceptors.request.use(
 )
 
 api.interceptors.response.use(
-  (response): ApiResponse => {
+  (response): any => {
     return response.data as ApiResponse
   },
   (error) => {

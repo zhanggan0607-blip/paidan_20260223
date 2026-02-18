@@ -64,7 +64,7 @@ export const spotWorkService = {
     page?: number
     size?: number
     project_name?: string
-    client_name?: string
+    work_id?: string
     status?: string
   }): Promise<PaginatedResponse> {
     return await apiClient.get('/spot-work', { params })

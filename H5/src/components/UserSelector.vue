@@ -6,8 +6,8 @@ import type { ApiResponse } from '../types'
 import { authService, type User } from '../services/auth'
 
 const emit = defineEmits<{
-  (e: 'userChanged'): void
-  (e: 'ready'): void
+  (e: 'userChanged', user: User): void
+  (e: 'ready', user: User): void
 }>()
 
 const currentUser = ref<User | null>(null)
@@ -24,16 +24,23 @@ const loadUserList = async () => {
       if (savedUser) {
         currentUser.value = savedUser
       } else if (userList.value.length > 0) {
-        currentUser.value = userList.value[0]
-        authService.updateStoredUser(userList.value[0])
+        const firstUser = userList.value[0]
+        if (firstUser) {
+          currentUser.value = firstUser
+          authService.updateStoredUser(firstUser)
+        }
       }
       isReady.value = true
-      emit('ready')
+      if (currentUser.value) {
+        emit('ready', currentUser.value)
+      }
     }
   } catch (error) {
     console.error('加载用户列表失败:', error)
     isReady.value = true
-    emit('ready')
+    if (currentUser.value) {
+      emit('ready', currentUser.value)
+    }
   }
 }
 
@@ -42,7 +49,7 @@ const selectUser = (user: User) => {
   authService.updateStoredUser(user)
   showPopover.value = false
   showSuccessToast(`已切换到用户: ${user.name}`)
-  emit('userChanged')
+  emit('userChanged', user)
 }
 
 const userOptions = computed(() => {

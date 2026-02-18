@@ -539,6 +539,12 @@ export default defineComponent({
       })
     }
 
+    const handleUserChanged = ((event: Event) => {
+      const customEvent = event as CustomEvent
+      currentUser.value = customEvent.detail
+      loadData()
+    }) as EventListener
+
     onMounted(() => {
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
@@ -547,11 +553,6 @@ export default defineComponent({
     onUnmounted(() => {
       window.removeEventListener('user-changed', handleUserChanged)
     })
-
-    const handleUserChanged = (event: CustomEvent) => {
-      currentUser.value = event.detail
-      loadData()
-    }
 
     watch(() => authService.getCurrentUser(), (newUser) => {
       currentUser.value = newUser

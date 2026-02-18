@@ -34,7 +34,7 @@ export const authService = {
     const response = await apiClient.post('/auth/login-json', {
       username,
       password
-    })
+    }) as unknown as ApiResponse<LoginResponse>
     
     if (response.code === 200 && response.data) {
       localStorage.setItem(TOKEN_STORAGE_KEY, response.data.access_token)

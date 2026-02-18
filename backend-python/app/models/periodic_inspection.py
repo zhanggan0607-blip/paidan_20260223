@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -9,6 +9,7 @@ class PeriodicInspection(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     inspection_id = Column(String(50), unique=True, nullable=False, comment="工单编号")
+    plan_id = Column(String(50), ForeignKey('maintenance_plan.plan_id', ondelete='CASCADE'), nullable=True, index=True, comment="关联维保计划编号")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
     plan_start_date = Column(DateTime, nullable=False, comment="计划开始日期")
@@ -18,11 +19,14 @@ class PeriodicInspection(Base):
     status = Column(String(20), nullable=False, default="未进行", comment="状态")
     filled_count = Column(Integer, default=0, comment="已填写检查项数量")
     total_count = Column(Integer, default=5, comment="检查项总数量")
-    remarks = Column(String(500), comment="备注")
+    execution_result = Column(Text, comment="发现问题")
+    remarks = Column(String(500), comment="处理结果")
+    signature = Column(Text, comment="用户签名(base64)")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
     project = relationship("ProjectInfo", back_populates="periodic_inspections")
+    maintenance_plan = relationship("MaintenancePlan", back_populates="periodic_inspections")
     
     __table_args__ = (
         Index('idx_periodic_inspection_id', 'inspection_id'),
@@ -52,6 +56,7 @@ class PeriodicInspection(Base):
         return {
             'id': self.id,
             'inspection_id': self.inspection_id,
+            'plan_id': self.plan_id,
             'project_id': self.project_id,
             'project_name': project_name,
             'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
@@ -65,7 +70,9 @@ class PeriodicInspection(Base):
             'status': self.status,
             'filled_count': self.filled_count or 0,
             'total_count': self.total_count or 5,
+            'execution_result': self.execution_result,
             'remarks': self.remarks,
+            'signature': self.signature,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

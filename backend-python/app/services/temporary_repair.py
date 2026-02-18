@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 from datetime import datetime
 from sqlalchemy.orm import Session
+from fastapi import HTTPException, status
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.temporary_repair import TemporaryRepairRepository
 from app.exceptions import NotFoundException, DuplicateException
@@ -57,12 +58,12 @@ class TemporaryRepairService:
         page: int = 0, 
         size: int = 10, 
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None,
+        repair_id: Optional[str] = None,
         status: Optional[str] = None,
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[TemporaryRepair], int]:
         return self.repository.find_all(
-            page, size, project_name, client_name, status, maintenance_personnel
+            page, size, project_name, repair_id, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> TemporaryRepair:
@@ -117,6 +118,37 @@ class TemporaryRepairService:
         existing_repair.maintenance_personnel = dto.maintenance_personnel
         existing_repair.status = dto.status
         existing_repair.remarks = dto.remarks
+        
+        result = self.repository.update(existing_repair)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
+        return result
+    
+    def partial_update(self, id: int, dto) -> TemporaryRepair:
+        existing_repair = self.get_by_id(id)
+        
+        if dto.repair_id is not None:
+            if existing_repair.repair_id != dto.repair_id and self.repository.exists_by_repair_id(dto.repair_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="维修单编号已存在"
+                )
+            existing_repair.repair_id = dto.repair_id
+        if dto.project_id is not None:
+            existing_repair.project_id = dto.project_id
+        if dto.project_name is not None:
+            existing_repair.project_name = dto.project_name
+        if dto.plan_start_date is not None:
+            existing_repair.plan_start_date = self._parse_date(dto.plan_start_date)
+        if dto.plan_end_date is not None:
+            existing_repair.plan_end_date = self._parse_date(dto.plan_end_date)
+        if dto.client_name is not None:
+            existing_repair.client_name = dto.client_name
+        if dto.maintenance_personnel is not None:
+            existing_repair.maintenance_personnel = dto.maintenance_personnel
+        if dto.status is not None:
+            existing_repair.status = dto.status
+        if dto.remarks is not None:
+            existing_repair.remarks = dto.remarks
         
         result = self.repository.update(existing_repair)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)

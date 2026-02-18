@@ -532,6 +532,11 @@ export default defineComponent({
       }
     }
 
+    const handleProjectInfoChanged = () => {
+      loadProjects()
+      loadPersonnelProjects()
+    }
+
     onMounted(() => {
       loadTools()
       loadUsers()
@@ -539,6 +544,7 @@ export default defineComponent({
       loadPersonnelProjects()
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
+      window.addEventListener('project-info-changed', handleProjectInfoChanged)
       document.addEventListener('click', handleClickOutside)
     })
 
@@ -546,6 +552,7 @@ export default defineComponent({
       if (abortController) abortController.abort()
       if (toolSearchTimer) clearTimeout(toolSearchTimer)
       window.removeEventListener('user-changed', handleUserChanged)
+      window.removeEventListener('project-info-changed', handleProjectInfoChanged)
       document.removeEventListener('click', handleClickOutside)
     })
 

@@ -15,11 +15,11 @@
               />
             </div>
             <div class="search-item">
-              <label class="search-label">客户名称：</label>
+              <label class="search-label">工单编号：</label>
               <SearchInput
-                v-model="searchForm.client_name"
-                field-key="WorkPlanManagement_client_name"
-                placeholder="请输入客户名称"
+                v-model="searchForm.order_id"
+                field-key="WorkPlanManagement_order_id"
+                placeholder="请输入工单编号"
                 @input="handleSearch"
               />
             </div>
@@ -126,6 +126,14 @@
                 <div class="detail-value">{{ viewData.project_name || '-' }}</div>
               </div>
               <div class="detail-item">
+                <label class="detail-label">项目编号</label>
+                <div class="detail-value">{{ viewData.project_id || '-' }}</div>
+              </div>
+              <div class="detail-item">
+                <label class="detail-label">合同剩余时间</label>
+                <div class="detail-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
+              </div>
+              <div class="detail-item">
                 <label class="detail-label">客户单位</label>
                 <div class="detail-value">{{ viewData.client_name || '-' }}</div>
               </div>
@@ -134,20 +142,12 @@
                 <div class="detail-value">{{ viewData.client_contact || '-' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">联系人职位</label>
-                <div class="detail-value">{{ viewData.client_contact_position || '-' }}</div>
-              </div>
-              <div class="detail-item">
                 <label class="detail-label">客户联系方式</label>
                 <div class="detail-value">{{ viewData.client_contact_info || '-' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">客户地址</label>
-                <div class="detail-value">{{ viewData.address || '-' }}</div>
-              </div>
-              <div class="detail-item">
-                <label class="detail-label">合同剩余时间</label>
-                <div class="detail-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
+                <label class="detail-label">运维人员</label>
+                <div class="detail-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
               <div class="detail-item">
                 <label class="detail-label">计划开始日期</label>
@@ -156,10 +156,6 @@
               <div class="detail-item">
                 <label class="detail-label">计划结束日期</label>
                 <div class="detail-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
-              </div>
-              <div class="detail-item">
-                <label class="detail-label">运维人员</label>
-                <div class="detail-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
             </div>
           </div>
@@ -170,11 +166,10 @@
               <thead>
                 <tr>
                   <th style="width: 60px;">序号</th>
-                  <th style="width: 120px;">巡检项</th>
-                  <th style="width: 150px;">巡检内容</th>
-                  <th style="width: 150px;">检查要求</th>
-                  <th style="width: 150px;">简要说明</th>
-                  <th style="width: 80px;">是否正常</th>
+                  <th style="width: 150px;">巡查项</th>
+                  <th style="width: 200px;">巡查内容</th>
+                  <th style="width: 200px;">检查要求</th>
+                  <th style="width: 200px;">简要说明</th>
                 </tr>
               </thead>
               <tbody>
@@ -184,14 +179,9 @@
                   <td>{{ item.inspection_content || '-' }}</td>
                   <td>{{ item.check_requirement || '-' }}</td>
                   <td>{{ item.brief_description || '-' }}</td>
-                  <td>
-                    <span :class="item.is_normal ? 'status-normal' : 'status-abnormal'">
-                      {{ item.is_normal ? '正常' : '异常' }}
-                    </span>
-                  </td>
                 </tr>
                 <tr v-if="viewInspectionItems.length === 0">
-                  <td colspan="6" style="text-align: center; padding: 20px; color: #999;">暂无巡检内容</td>
+                  <td colspan="5" style="text-align: center; padding: 20px; color: #999;">暂无巡检内容</td>
                 </tr>
               </tbody>
             </table>
@@ -277,6 +267,7 @@ import { defineComponent, ref, onMounted, reactive, watch, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { workOrderService, type WorkOrder } from '@/services/workOrder'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
+import { maintenancePlanService } from '@/services/maintenancePlan'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { PLAN_TYPES, WORK_STATUS, formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/config/constants'
@@ -294,6 +285,8 @@ interface PlanItem {
   maintenance_personnel: string
   status: string
   remarks?: string
+  execution_result?: string
+  signature?: string
 }
 
 export default defineComponent({
@@ -320,7 +313,7 @@ export default defineComponent({
 
     const searchForm = ref({
       project_name: '',
-      client_name: ''
+      order_id: ''
     })
 
     const viewData = reactive({
@@ -489,7 +482,7 @@ export default defineComponent({
           page: currentPage.value,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined
+          order_id: searchForm.value.order_id || undefined
         })
         
         if (response.code === 200) {
@@ -505,7 +498,9 @@ export default defineComponent({
             client_name: item.client_name || '',
             maintenance_personnel: item.maintenance_personnel || '',
             status: item.status || '未进行',
-            remarks: item.remarks || ''
+            remarks: item.remarks || '',
+            execution_result: item.execution_result || '',
+            signature: item.signature || ''
           }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
@@ -527,7 +522,7 @@ export default defineComponent({
     const handleReset = () => {
       searchForm.value = {
         project_name: '',
-        client_name: ''
+        order_id: ''
       }
       currentPage.value = 0
       loadData()
@@ -572,8 +567,16 @@ export default defineComponent({
       viewInspectionItems.value = []
       viewFieldHandling.value = []
       viewInspectionImages.value = []
-      viewSignature.value = ''
+      viewSignature.value = item.signature || ''
       viewConfirmationRecords.value = []
+      
+      if (item.execution_result || item.remarks) {
+        viewFieldHandling.value.push({
+          fault_situation: item.execution_result || '',
+          solution: item.remarks || '',
+          is_resolved: true
+        })
+      }
       
       try {
         const projectResponse = await projectInfoService.getAll()
@@ -596,13 +599,44 @@ export default defineComponent({
       try {
         const response = await maintenancePlanService.getByProjectId(item.project_id)
         if (response.code === 200 && response.data) {
-          viewInspectionItems.value = response.data.map((plan: any) => ({
-            inspection_item: plan.plan_id,
-            inspection_content: plan.maintenance_content || '',
-            check_requirement: plan.maintenance_requirements || '',
-            brief_description: plan.remarks || '',
-            is_normal: plan.execution_status === WORK_STATUS.COMPLETED
-          }))
+          const orderStartDate = item.plan_start_date ? new Date(item.plan_start_date) : null
+          const orderEndDate = item.plan_end_date ? new Date(item.plan_end_date) : null
+          if (orderStartDate) orderStartDate.setHours(0, 0, 0, 0)
+          if (orderEndDate) orderEndDate.setHours(0, 0, 0, 0)
+          
+          const filteredPlans = response.data.filter((plan: any) => {
+            if (!plan.plan_start_date || !plan.plan_end_date) return false
+            const planStartDate = new Date(plan.plan_start_date)
+            planStartDate.setHours(0, 0, 0, 0)
+            const planEndDate = new Date(plan.plan_end_date)
+            planEndDate.setHours(0, 0, 0, 0)
+            if (orderStartDate && orderEndDate) {
+              return orderStartDate <= planEndDate && orderEndDate >= planStartDate
+            }
+            return false
+          })
+          
+          const allItems: any[] = []
+          filteredPlans.forEach((plan: any) => {
+            if (plan.inspection_items) {
+              try {
+                const items = JSON.parse(plan.inspection_items)
+                items.forEach((item: any) => {
+                  allItems.push({
+                    inspection_item: item.inspection_item || '',
+                    inspection_content: item.inspection_content || '',
+                    check_requirement: item.check_requirements || '',
+                    brief_description: item.brief_description || '',
+                    is_normal: plan.execution_status === WORK_STATUS.COMPLETED
+                  })
+                })
+              } catch (e) {
+                console.error('解析巡查项数据失败:', e)
+              }
+            }
+          })
+          
+          viewInspectionItems.value = allItems
         }
       } catch (error) {
         console.error('获取巡检内容失败:', error)

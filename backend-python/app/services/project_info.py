@@ -132,9 +132,11 @@ class ProjectInfoService:
         
         old_project_name = existing_project.project_name
         old_client_name = existing_project.client_name
+        old_project_manager = existing_project.project_manager
         
         project_name_changed = old_project_name != dto.project_name
         client_name_changed = old_client_name != dto.client_name
+        project_manager_changed = old_project_manager != dto.project_manager
         
         existing_project.project_name = dto.project_name
         existing_project.completion_date = dto.completion_date
@@ -164,6 +166,12 @@ class ProjectInfoService:
                 existing_project.id,
                 dto.project_name if project_name_changed else None,
                 dto.client_name if client_name_changed else None
+            )
+        
+        if project_manager_changed and dto.project_manager:
+            self._sync_maintenance_plan_responsible_person(
+                existing_project.project_id,
+                dto.project_manager
             )
         
         return result
@@ -245,6 +253,25 @@ class ProjectInfoService:
         if sync_count > 0:
             self.db.commit()
             logger.info(f"✅ [Service] 同步更新关联表数据: project_id={project_id}, 更新记录数={sync_count}")
+    
+    def _sync_maintenance_plan_responsible_person(self, project_id: str, new_responsible_person: str):
+        """
+        同步更新维保计划的负责人
+        当项目信息的运维人员变更时，自动更新所有关联维保计划的负责人
+        """
+        from app.models.maintenance_plan import MaintenancePlan
+        
+        try:
+            updated_count = self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.project_id == project_id
+            ).update({"responsible_person": new_responsible_person}, synchronize_session=False)
+            
+            if updated_count > 0:
+                self.db.commit()
+                logger.info(f"✅ [Service] 同步更新维保计划负责人: project_id={project_id}, 新负责人={new_responsible_person}, 更新记录数={updated_count}")
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"❌ [Service] 同步更新维保计划负责人失败: {str(e)}")
     
     def delete(self, id: int, cascade: bool = False) -> dict:
         project_info = self.get_by_id(id)

@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { authService, type User } from '../services/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -35,6 +36,7 @@ interface RepairDetail {
 
 const loading = ref(false)
 const detail = ref<RepairDetail | null>(null)
+const currentUser = ref<User | null>(null)
 
 const showDatePicker = ref(false)
 const currentDate = ref(['2024', '01', '01'])
@@ -59,6 +61,20 @@ const canSubmit = computed(() => {
          formData.value.solution
 })
 
+const returnTab = computed(() => {
+  return route.query.tab as string || '0'
+})
+
+const canApprove = computed(() => authService.canApproveTemporaryRepair(currentUser.value))
+
+const isApproveMode = computed(() => {
+  return route.query.mode === 'approve' && canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
+})
+
+const handleBackToList = () => {
+  router.push(`/temporary-repair?tab=${returnTab.value}`)
+}
+
 const minDate = computed(() => {
   if (detail.value?.plan_start_date) {
     return new Date(detail.value.plan_start_date)
@@ -69,6 +85,36 @@ const minDate = computed(() => {
 const maxDate = computed(() => {
   return new Date()
 })
+
+/**
+ * 复制工单编号到剪贴板
+ * @param orderId 工单编号
+ */
+const copyOrderId = async (orderId: string) => {
+  try {
+    await navigator.clipboard.writeText(orderId)
+    showToast('工单编号已复制')
+  } catch {
+    showToast('复制失败')
+  }
+}
+
+/**
+ * 根据工单编号长度计算字体大小
+ * @param workId 工单编号
+ * @returns 字体大小(px)
+ */
+const getWorkIdFontSize = (workId: string) => {
+  if (!workId) return 14
+  const len = workId.length
+  if (len <= 18) return 14
+  if (len <= 22) return 12
+  if (len <= 26) return 11
+  if (len <= 30) return 10
+  if (len <= 35) return 9
+  if (len <= 40) return 8
+  return 7
+}
 
 const fetchDetail = async () => {
   const id = route.params.id
@@ -202,7 +248,7 @@ const handleSubmit = async () => {
     if (response.code === 200) {
       localStorage.removeItem('temporary_repair_signature')
       showSuccessToast('提交成功')
-      router.back()
+      router.push(`/temporary-repair?tab=${returnTab.value}`)
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -236,7 +282,78 @@ const handleSave = async () => {
   }
 }
 
+/**
+ * 审批通过
+ */
+const handleApprovePass = async () => {
+  if (!detail.value?.id) return
+  
+  try {
+    await showConfirmDialog({
+      title: '审批确认',
+      message: '确认审批通过该工单吗？'
+    })
+    
+    showLoadingToast({ message: '处理中...', forbidClick: true })
+    
+    const submitData = {
+      status: '已确认'
+    }
+    
+    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
+    
+    if (response.code === 200) {
+      showSuccessToast('审批通过')
+      router.push('/temporary-repair?tab=3')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to approve:', error)
+      showFailToast('审批失败')
+    }
+  } finally {
+    closeToast()
+  }
+}
+
+/**
+ * 审批退回
+ */
+const handleApproveReject = async () => {
+  if (!detail.value?.id) return
+  
+  try {
+    await showConfirmDialog({
+      title: '退回确认',
+      message: '确认退回该工单吗？退回后员工需重新填写。',
+      confirmButtonText: '确认退回',
+      confirmButtonColor: '#ee0a24'
+    })
+    
+    showLoadingToast({ message: '处理中...', forbidClick: true })
+    
+    const submitData = {
+      status: '已退回'
+    }
+    
+    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
+    
+    if (response.code === 200) {
+      showSuccessToast('已退回')
+      router.push('/temporary-repair?tab=1')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to reject:', error)
+      showFailToast('退回失败')
+    }
+  } finally {
+    closeToast()
+  }
+}
+
 onMounted(() => {
+  currentUser.value = authService.getCurrentUser()
   fetchDetail()
   loadSignature()
 })
@@ -250,7 +367,7 @@ onMounted(() => {
       placeholder 
     >
       <template #left>
-        <div class="nav-left" @click="router.back()">
+        <div class="nav-left" @click="handleBackToList">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
@@ -262,13 +379,30 @@ onMounted(() => {
     
     <div class="content" v-if="detail">
       <van-cell-group inset title="基本资料">
-        <van-cell title="项目名称" :value="detail.project_name" />
-        <van-cell title="工单编号" :value="detail.repair_id" />
-        <van-cell title="维保开始日期" :value="formatDate(detail.plan_start_date)" />
-        <van-cell title="维保截止日期" :value="formatDate(detail.plan_end_date)" />
-        <van-cell title="客户单位" :value="detail.client_name || '-'" />
-        <van-cell title="客户联系人" :value="detail.client_contact || '-'" />
-        <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" />
+        <div class="two-column-form">
+          <div class="form-row">
+            <van-cell title="项目名称" :value="detail.project_name" class="form-cell" />
+            <van-cell title="工单编号" class="form-cell">
+              <template #value>
+                <div class="order-id-cell">
+                  <span :style="{ fontSize: getWorkIdFontSize(detail.repair_id) + 'px' }">{{ detail.repair_id }}</span>
+                  <van-button size="mini" type="primary" plain @click.stop="copyOrderId(detail.repair_id)">复制单号</van-button>
+                </div>
+              </template>
+            </van-cell>
+          </div>
+          <div class="form-row">
+            <van-cell title="维保开始日期" :value="formatDate(detail.plan_start_date)" class="form-cell" />
+            <van-cell title="维保截止日期" :value="formatDate(detail.plan_end_date)" class="form-cell" />
+          </div>
+          <div class="form-row">
+            <van-cell title="客户单位" :value="detail.client_name || '-'" class="form-cell" />
+            <van-cell title="客户联系人" :value="detail.client_contact || '-'" class="form-cell" />
+          </div>
+          <div class="form-row">
+            <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" class="form-cell" />
+          </div>
+        </div>
       </van-cell-group>
 
       <van-cell-group inset title="维修内容">
@@ -347,6 +481,11 @@ onMounted(() => {
       <div class="action-buttons" v-if="isEditable">
         <van-button type="default" size="large" @click="handleSave">保存</van-button>
         <van-button type="primary" size="large" @click="handleSubmit" :disabled="!canSubmit">提交</van-button>
+      </div>
+
+      <div class="action-buttons" v-if="isApproveMode">
+        <van-button type="danger" size="large" @click="handleApproveReject">退回</van-button>
+        <van-button type="success" size="large" @click="handleApprovePass">审批通过</van-button>
       </div>
     </div>
     
@@ -535,5 +674,62 @@ onMounted(() => {
   min-height: 44px;
   font-size: 16px;
   border-radius: 8px;
+}
+
+.order-id-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+.order-id-cell span {
+  color: #323233;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.order-id-cell :deep(.van-button) {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: scale(0.8);
+  transform-origin: right center;
+  margin-left: -4px;
+}
+
+.two-column-form {
+  padding: 0;
+}
+
+.form-row {
+  display: flex;
+  border-bottom: 1px solid #ebedf0;
+}
+
+.form-row:last-child {
+  border-bottom: none;
+}
+
+.form-cell {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-cell :deep(.van-cell) {
+  padding: 10px 12px;
+}
+
+.form-cell :deep(.van-cell__title) {
+  font-size: 12px;
+  color: #969799;
+}
+
+.form-cell :deep(.van-cell__value) {
+  font-size: 14px;
+  color: #323233;
 }
 </style>

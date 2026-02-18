@@ -276,11 +276,16 @@ export default defineComponent({
       }
     }
 
+    const handleProjectInfoChanged = () => {
+      loadProjects()
+    }
+
     onMounted(() => {
       loadUsers()
       loadProjects()
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
+      window.addEventListener('project-info-changed', handleProjectInfoChanged)
     })
 
     onUnmounted(() => {
@@ -288,6 +293,7 @@ export default defineComponent({
         abortController.abort()
       }
       window.removeEventListener('user-changed', handleUserChanged)
+      window.removeEventListener('project-info-changed', handleProjectInfoChanged)
     })
 
     const handleUserChanged = () => {

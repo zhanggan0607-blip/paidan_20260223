@@ -68,25 +68,27 @@ const quickActions = computed(() => {
   const actions = [
     { key: 'periodic', label: '定期巡检', icon: 'todo-list-o', color: '#1989fa', route: '/periodic-inspection', show: authService.canViewPeriodicInspection(user) },
     { key: 'repair', label: '临时维修', icon: 'warning-o', color: '#ff976a', route: '/temporary-repair', show: authService.canViewTemporaryRepair(user) },
-    { key: 'spot', label: '零星用工', icon: 'cluster-o', color: '#07c160', route: '/spot-work', show: authService.canViewSpotWork(user) }
+    { key: 'spot', label: '申报用工', icon: 'cluster-o', color: '#07c160', route: '/spot-work-apply', show: authService.canViewSpotWork(user) },
+    { key: 'newLog', label: '新维保日志', icon: 'edit', color: '#7232dd', route: '/maintenance-log', show: authService.canFillMaintenanceLog(user) },
+    { key: 'historyLog', label: '已填报日志', icon: 'description', color: '#1989fa', route: '/maintenance-log-list', show: authService.canViewMaintenanceLog(user) && !authService.isAdmin(user) && !authService.isDepartmentManager(user) },
+    { key: 'weeklyReport', label: '部门周报', icon: 'calendar-o', color: '#7232dd', route: '/maintenance-log', show: authService.canViewDepartmentWeeklyReport(user) && !authService.isAdmin(user) },
+    { key: 'weeklyHistory', label: '已填报周报', icon: 'description', color: '#1989fa', route: '/maintenance-log-list', show: authService.canViewDepartmentWeeklyReport(user) && !authService.isAdmin(user) },
+    { key: 'viewAllLog', label: '查看维保日志', icon: 'eye-o', color: '#07c160', route: '/maintenance-log-all', show: authService.canViewAllMaintenanceLog(user) },
+    { key: 'viewWeekly', label: '查看维保周报', icon: 'calendar-o', color: '#7232dd', route: '/maintenance-log-all', show: authService.isAdmin(user) },
+    { key: 'sparePartsIssue', label: '备品备件领用', icon: 'shopping-cart-o', color: '#1989fa', route: '/spare-parts-issue', show: authService.canViewSparePartsIssue(user) && authService.isMaterialManager(user) },
+    { key: 'sparePartsInbound', label: '配品备件入库', icon: 'logistics', color: '#07c160', route: '/spare-parts-stock', show: authService.canViewSparePartsStock(user) && authService.isMaterialManager(user) },
+    { key: 'repairToolsIssue', label: '维修工具领用', icon: 'tools', color: '#ff976a', route: '/repair-tools-issue', show: authService.canViewRepairToolsIssue(user) && authService.isMaterialManager(user) },
+    { key: 'repairToolsInbound', label: '维修工具入库', icon: 'bag-o', color: '#7232dd', route: '/repair-tools-stock', show: authService.canViewRepairToolsInbound(user) && authService.isMaterialManager(user) }
   ]
   return actions.filter(action => action.show)
 })
-
-const showQuickFill = computed(() => {
-  return authService.canQuickFillSpotWork(currentUser.value)
-})
-
-const handleCardClick = (card: { route: string }) => {
-  router.push(card.route)
-}
 
 const handleQuickAction = (action: { route: string }) => {
   router.push(action.route)
 }
 
-const handleQuickFill = () => {
-  router.push('/spot-work/quick-fill')
+const handleCardClick = (card: { route: string }) => {
+  router.push(card.route)
 }
 
 onMounted(() => {
@@ -105,7 +107,7 @@ onMounted(() => {
     
     <div class="content">
       <div class="actions-section">
-        <van-grid :column-num="3" :border="false">
+        <van-grid :column-num="2" :border="false">
           <van-grid-item 
             v-for="action in quickActions" 
             :key="action.key"
@@ -113,35 +115,23 @@ onMounted(() => {
             @click="handleQuickAction(action)"
           >
             <template #icon>
-              <van-icon :name="action.icon" :color="action.color" size="28" />
+              <van-icon :name="action.icon" :color="action.color" size="32" />
             </template>
           </van-grid-item>
         </van-grid>
       </div>
 
-      <div class="quick-fill-section" v-if="showQuickFill">
-        <van-cell-group inset>
-          <van-cell title="快捷填报" is-link @click="handleQuickFill">
-            <template #icon>
-              <van-icon name="edit" class="quick-fill-icon" />
-            </template>
-            <template #label>
-              <span class="quick-fill-label">零星用工快捷填报</span>
-            </template>
-          </van-cell>
-        </van-cell-group>
-      </div>
-
       <div class="statistics-section">
-        <van-grid :column-num="3" :border="false">
+        <van-grid :column-num="2" :border="false">
           <van-grid-item 
             v-for="card in statCards" 
             :key="card.key"
             @click="handleCardClick(card)"
+            :class="{ 'stat-item-highlight': card.value > 0 }"
           >
             <template #text>
               <div class="stat-card">
-                <div class="stat-value" :style="{ color: card.color }">
+                <div class="stat-value" :style="{ color: card.color }" :class="{ 'has-value': card.value > 0 }">
                   {{ card.value }}
                   <van-badge v-if="card.showBadge" dot class="overdue-badge" />
                 </div>
@@ -170,21 +160,6 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.quick-fill-section {
-  margin-bottom: 12px;
-}
-
-.quick-fill-icon {
-  font-size: 20px;
-  color: #1989fa;
-  margin-right: 8px;
-}
-
-.quick-fill-label {
-  color: #969799;
-  font-size: 12px;
-}
-
 .statistics-section {
   margin-bottom: 12px;
 }
@@ -200,6 +175,12 @@ onMounted(() => {
   font-size: 24px;
   font-weight: bold;
   position: relative;
+  transition: transform 0.2s ease;
+}
+
+.stat-value.has-value {
+  transform: scale(1.1);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stat-label {
@@ -214,11 +195,13 @@ onMounted(() => {
   right: -8px;
 }
 
-:deep(.van-cell-group--inset) {
-  margin: 0;
-}
-
 :deep(.van-grid-item__content) {
   padding: 16px 8px;
+}
+
+:deep(.van-grid-item.stat-item-highlight .van-grid-item__content) {
+  background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,245,255,0.9) 100%);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 </style>

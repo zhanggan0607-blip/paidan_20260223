@@ -19,9 +19,10 @@ class SpotWorkRepository:
         page: int = 0,
         size: int = 10,
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None,
+        work_id: Optional[str] = None,
         status: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None
+        maintenance_personnel: Optional[str] = None,
+        client_name: Optional[str] = None
     ) -> tuple[List[SpotWork], int]:
         try:
             query = self.db.query(SpotWork).options(joinedload(SpotWork.project))
@@ -29,14 +30,17 @@ class SpotWorkRepository:
             if project_name:
                 query = query.filter(SpotWork.project_name.like(f'%{project_name}%'))
 
-            if client_name:
-                query = query.filter(SpotWork.client_name.like(f'%{client_name}%'))
+            if work_id:
+                query = query.filter(SpotWork.work_id.like(f'%{work_id}%'))
 
             if status:
                 query = query.filter(SpotWork.status == status)
             
             if maintenance_personnel:
                 query = query.filter(SpotWork.maintenance_personnel == maintenance_personnel)
+            
+            if client_name:
+                query = query.filter(SpotWork.client_name.like(f'%{client_name}%'))
 
             total = query.count()
             items = query.order_by(SpotWork.created_at.desc()).offset(page * size).limit(size).all()

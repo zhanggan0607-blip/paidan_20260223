@@ -19,9 +19,10 @@ class TemporaryRepairRepository:
         page: int = 0,
         size: int = 10,
         project_name: Optional[str] = None,
-        client_name: Optional[str] = None,
+        repair_id: Optional[str] = None,
         status: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None
+        maintenance_personnel: Optional[str] = None,
+        client_name: Optional[str] = None
     ) -> tuple[List[TemporaryRepair], int]:
         try:
             query = self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project))
@@ -29,14 +30,17 @@ class TemporaryRepairRepository:
             if project_name:
                 query = query.filter(TemporaryRepair.project_name.like(f'%{project_name}%'))
 
-            if client_name:
-                query = query.filter(TemporaryRepair.client_name.like(f'%{client_name}%'))
+            if repair_id:
+                query = query.filter(TemporaryRepair.repair_id.like(f'%{repair_id}%'))
 
             if status:
                 query = query.filter(TemporaryRepair.status == status)
             
             if maintenance_personnel:
                 query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
+            
+            if client_name:
+                query = query.filter(TemporaryRepair.client_name.like(f'%{client_name}%'))
 
             total = query.count()
             items = query.order_by(TemporaryRepair.created_at.desc()).offset(page * size).limit(size).all()

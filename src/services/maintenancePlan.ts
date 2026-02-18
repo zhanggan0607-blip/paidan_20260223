@@ -7,6 +7,9 @@ export interface MaintenancePlan {
   project_id: string
   project_name?: string
   client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  client_contact_position?: string
   address?: string
   plan_type: string
   equipment_id: string
@@ -27,6 +30,7 @@ export interface MaintenancePlan {
   execution_status: string
   completion_rate?: number
   remarks?: string
+  inspection_items?: string
   created_at: string
   updated_at: string
 }
@@ -66,6 +70,7 @@ export interface MaintenancePlanCreate {
   execution_status: string
   completion_rate?: number
   remarks?: string
+  inspection_items?: string
 }
 
 export interface MaintenancePlanUpdate {
@@ -91,6 +96,7 @@ export interface MaintenancePlanUpdate {
   execution_status: string
   completion_rate?: number
   remarks?: string
+  inspection_items?: string
 }
 
 export interface ApiResponse<T = any> {

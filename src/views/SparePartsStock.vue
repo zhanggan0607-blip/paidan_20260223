@@ -342,7 +342,7 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list')
+        const response = await apiClient.get('/personnel/all/list') as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
           userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === USER_ROLES.MATERIAL_MANAGER)
         }

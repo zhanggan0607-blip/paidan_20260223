@@ -14,11 +14,11 @@
             />
           </div>
           <div class="search-item">
-            <label class="search-label">客户名称：</label>
+            <label class="search-label">工单编号：</label>
             <SearchInput
-              v-model="searchForm.client_name"
-              field-key="TemporaryRepairQuery_client_name"
-              placeholder="请输入客户名称"
+              v-model="searchForm.repair_id"
+              field-key="TemporaryRepairQuery_repair_id"
+              placeholder="请输入工单编号"
               @input="handleSearch"
             />
           </div>
@@ -193,7 +193,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, reactive, watch } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
@@ -240,7 +240,7 @@ export default defineComponent({
 
     const searchForm = ref({
       project_name: '',
-      client_name: '',
+      repair_id: '',
       plan_start_date: '',
       plan_end_date: ''
     })
@@ -277,7 +277,7 @@ export default defineComponent({
           page: currentPage.value - 1,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
-          client_name: searchForm.value.client_name || undefined
+          repair_id: searchForm.value.repair_id || undefined
         })
         
         if (response.code === 200) {
@@ -318,7 +318,7 @@ export default defineComponent({
     const handleReset = () => {
       searchForm.value = {
         project_name: '',
-        client_name: '',
+        repair_id: '',
         plan_start_date: '',
         plan_end_date: ''
       }
@@ -379,11 +379,21 @@ export default defineComponent({
       }
     }
 
+    const handleProjectInfoChanged = () => {
+      loadProjects()
+    }
+
     onMounted(() => {
       loadProjects()
       loadPersonnel()
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
+      window.addEventListener('project-info-changed', handleProjectInfoChanged)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('user-changed', handleUserChanged)
+      window.removeEventListener('project-info-changed', handleProjectInfoChanged)
     })
 
     const handleUserChanged = () => {

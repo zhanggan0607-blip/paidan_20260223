@@ -702,6 +702,7 @@ export default defineComponent({
           
           currentPage.value = 0
           await loadData()
+          window.dispatchEvent(new CustomEvent('project-info-changed'))
         } else {
           showToast(response.message || '创建失败', 'error')
         }
@@ -825,6 +826,7 @@ export default defineComponent({
           showToast('更新成功', 'success')
           closeEditModal()
           await loadData()
+          window.dispatchEvent(new CustomEvent('project-info-changed'))
         } else {
           showToast(response.message || '更新失败', 'error')
         }
