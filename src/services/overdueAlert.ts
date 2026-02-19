@@ -29,7 +29,14 @@ export const overdueAlertService = {
     project_name?: string
     client_name?: string
     work_order_type?: string
+    page?: number
+    size?: number
   }): Promise<ApiResponse<OverdueAlertResponse>> {
-    return await apiClient.get('/overdue-alert', { params })
+    const queryParams = {
+      page: 0,
+      size: 1000,
+      ...params
+    }
+    return await apiClient.get('/overdue-alert', { params: queryParams })
   }
 }

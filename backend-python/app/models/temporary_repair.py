@@ -1,4 +1,4 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -18,6 +18,11 @@ class TemporaryRepair(Base):
     maintenance_personnel = Column(String(100), comment="运维人员")
     status = Column(String(20), nullable=False, default="未进行", comment="状态")
     remarks = Column(String(500), comment="备注")
+    fault_description = Column(Text, comment="故障描述")
+    solution = Column(Text, comment="解决方案")
+    photos = Column(Text, comment="现场图片JSON数组")
+    signature = Column(Text, comment="用户签字Base64")
+    execution_date = Column(DateTime, comment="执行日期")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
@@ -49,6 +54,14 @@ class TemporaryRepair(Base):
             address = self.project.address or ''
             client_contact_position = self.project.client_contact_position or ''
         
+        import json
+        photos = []
+        if self.photos:
+            try:
+                photos = json.loads(self.photos)
+            except:
+                photos = []
+        
         return {
             'id': self.id,
             'repair_id': self.repair_id,
@@ -65,6 +78,11 @@ class TemporaryRepair(Base):
             'maintenance_personnel': self.maintenance_personnel,
             'status': self.status,
             'remarks': self.remarks,
+            'fault_description': self.fault_description or '',
+            'solution': self.solution or '',
+            'photos': photos,
+            'signature': self.signature or '',
+            'execution_date': self.execution_date.isoformat() if self.execution_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

@@ -8,6 +8,7 @@ from app.exceptions import NotFoundException, DuplicateException
 from app.utils.dictionary_helper import get_default_temporary_repair_status
 from app.services.sync_service import SyncService, PLAN_TYPE_REPAIR
 from pydantic import BaseModel
+import json
 
 class TemporaryRepairCreate(BaseModel):
     repair_id: str
@@ -31,6 +32,11 @@ class TemporaryRepairUpdate(BaseModel):
     maintenance_personnel: Optional[str] = None
     status: str
     remarks: Optional[str] = None
+    fault_description: Optional[str] = None
+    solution: Optional[str] = None
+    photos: Optional[List[str]] = None
+    signature: Optional[str] = None
+    execution_date: Optional[Union[str, datetime]] = None
 
 
 class TemporaryRepairService:
@@ -118,6 +124,11 @@ class TemporaryRepairService:
         existing_repair.maintenance_personnel = dto.maintenance_personnel
         existing_repair.status = dto.status
         existing_repair.remarks = dto.remarks
+        existing_repair.fault_description = dto.fault_description
+        existing_repair.solution = dto.solution
+        existing_repair.photos = json.dumps(dto.photos) if dto.photos else None
+        existing_repair.signature = dto.signature
+        existing_repair.execution_date = self._parse_date(dto.execution_date)
         
         result = self.repository.update(existing_repair)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
@@ -149,6 +160,16 @@ class TemporaryRepairService:
             existing_repair.status = dto.status
         if dto.remarks is not None:
             existing_repair.remarks = dto.remarks
+        if hasattr(dto, 'fault_description') and dto.fault_description is not None:
+            existing_repair.fault_description = dto.fault_description
+        if hasattr(dto, 'solution') and dto.solution is not None:
+            existing_repair.solution = dto.solution
+        if hasattr(dto, 'photos') and dto.photos is not None:
+            existing_repair.photos = json.dumps(dto.photos)
+        if hasattr(dto, 'signature') and dto.signature is not None:
+            existing_repair.signature = dto.signature
+        if hasattr(dto, 'execution_date') and dto.execution_date is not None:
+            existing_repair.execution_date = self._parse_date(dto.execution_date)
         
         result = self.repository.update(existing_repair)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)

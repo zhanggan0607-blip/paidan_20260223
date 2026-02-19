@@ -139,7 +139,7 @@ async def search_tools(
 @router.get("/stock", summary="获取维修工具库存列表")
 async def get_stock_list(
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
     tool_name: Optional[str] = Query(None, description="工具名称"),
     category: Optional[str] = Query(None, description="工具分类"),
     db: Session = Depends(get_db)

@@ -177,6 +177,17 @@ onMounted(() => {
   margin: 12px;
 }
 
+:deep(.van-cell__title) {
+  flex: none;
+  width: 28%;
+  min-width: 90px;
+}
+
+:deep(.van-cell__value) {
+  flex: 1;
+  width: 72%;
+}
+
 .content-box {
   padding: 12px 16px;
   font-size: 14px;

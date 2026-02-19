@@ -14,6 +14,11 @@ class TemporaryRepairBase(BaseModel):
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field("未进行", max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    fault_description: Optional[str] = Field(None, description="故障描述")
+    solution: Optional[str] = Field(None, description="解决方案")
+    photos: Optional[List[str]] = Field(None, description="现场图片列表")
+    signature: Optional[str] = Field(None, description="用户签字Base64")
+    execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
     @field_validator('status')
     @classmethod
@@ -46,6 +51,11 @@ class TemporaryRepairUpdate(BaseModel):
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field(..., max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    fault_description: Optional[str] = Field(None, description="故障描述")
+    solution: Optional[str] = Field(None, description="解决方案")
+    photos: Optional[List[str]] = Field(None, description="现场图片列表")
+    signature: Optional[str] = Field(None, description="用户签字Base64")
+    execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
 
 class TemporaryRepairPartialUpdate(BaseModel):
@@ -58,6 +68,11 @@ class TemporaryRepairPartialUpdate(BaseModel):
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: Optional[str] = Field(None, max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    fault_description: Optional[str] = Field(None, description="故障描述")
+    solution: Optional[str] = Field(None, description="解决方案")
+    photos: Optional[List[str]] = Field(None, description="现场图片列表")
+    signature: Optional[str] = Field(None, description="用户签字Base64")
+    execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
     @field_validator('status')
     @classmethod
@@ -81,6 +96,11 @@ class TemporaryRepairResponse(BaseModel):
     maintenance_personnel: Optional[str]
     status: str
     remarks: Optional[str]
+    fault_description: Optional[str]
+    solution: Optional[str]
+    photos: Optional[List[str]]
+    signature: Optional[str]
+    execution_date: Optional[datetime]
     created_at: datetime
     updated_at: datetime
 

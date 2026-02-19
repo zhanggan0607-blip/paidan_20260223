@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
@@ -37,7 +37,6 @@ interface WorkPlanItem {
 const route = useRoute()
 const router = useRouter()
 
-const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<WorkPlanItem[]>([])
 const overdueList = ref<AlertItem[]>([])
@@ -54,10 +53,17 @@ const tabs = [
   { key: 'spot', title: '零星用工', status: null, planType: '零星用工' }
 ]
 
-const currentTab = computed(() => tabs[activeTab.value])
+const currentTab = computed(() => {
+  const tabKey = type.value
+  const found = tabs.find(t => t.key === tabKey)
+  return found ?? tabs[0]!
+})
+
+const pageTitle = computed(() => currentTab.value?.title || '工单列表')
 
 const displayList = computed(() => {
-  if (currentTab.value?.key === 'overdue') {
+  const tabKey = currentTab.value?.key
+  if (tabKey === 'overdue') {
     return overdueList.value.map(item => ({
       id: parseInt(item.id),
       projectName: item.projectName,
@@ -70,7 +76,7 @@ const displayList = computed(() => {
       daysRemaining: item.daysRemaining
     }))
   }
-  if (currentTab.value?.key === 'expiring') {
+  if (tabKey === 'expiring') {
     return expiringList.value.map(item => ({
       id: parseInt(item.id),
       projectName: item.projectName,
@@ -91,7 +97,7 @@ const fetchOverdueList = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
     const response = await api.get<unknown, ApiResponse<{ items: AlertItem[], total: number }>>('/overdue-alert', {
-      params: { page: 0, size: 100 }
+      params: { page: 0, size: 1000 }
     })
     if (response.code === 200) {
       overdueList.value = response.data?.items || []
@@ -109,7 +115,7 @@ const fetchExpiringList = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
     const response = await api.get<unknown, ApiResponse<{ items: AlertItem[], total: number }>>('/expiring-soon', {
-      params: { page: 0, size: 100 }
+      params: { page: 0, size: 1000 }
     })
     if (response.code === 200) {
       expiringList.value = response.data?.items || []
@@ -123,12 +129,14 @@ const fetchExpiringList = async () => {
 }
 
 const fetchWorkList = async () => {
-  if (currentTab.value?.key === 'overdue') {
+  const tabKey = currentTab.value?.key
+  
+  if (tabKey === 'overdue') {
     await fetchOverdueList()
     return
   }
   
-  if (currentTab.value?.key === 'expiring') {
+  if (tabKey === 'expiring') {
     await fetchExpiringList()
     return
   }
@@ -136,16 +144,68 @@ const fetchWorkList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const params: any = { page: 0, size: 100 }
-    if (currentTab.value?.planType) {
-      params.plan_type = currentTab.value.planType
+    let endpoint = ''
+    const params: any = { page: 0, size: 1000 }
+    
+    switch (tabKey) {
+      case 'completed':
+        endpoint = '/periodic-inspection'
+        params.status = '已完成'
+        break
+      case 'periodic':
+        endpoint = '/periodic-inspection'
+        break
+      case 'repair':
+        endpoint = '/temporary-repair'
+        break
+      case 'spot':
+        endpoint = '/spot-work'
+        break
+      default:
+        endpoint = '/work-plan'
+        if (currentTab.value?.planType) {
+          params.plan_type = currentTab.value.planType
+        }
+        if (currentTab.value?.status) {
+          params.status = currentTab.value.status
+        }
     }
-    if (currentTab.value?.status) {
-      params.status = currentTab.value.status
-    }
-    const response = await api.get<unknown, ApiResponse<{ content: WorkPlanItem[] }>>('/work-plan', { params })
+    
+    const response = await api.get<unknown, ApiResponse<{ items: any[], content: any[], total: number }>>(endpoint, { params })
     if (response.code === 200) {
-      workList.value = response.data?.content || []
+      let items = response.data?.items || response.data?.content || []
+      
+      if (tabKey === 'completed') {
+        const [repairRes, spotRes] = await Promise.all([
+          api.get<unknown, ApiResponse<{ items: any[] }>>('/temporary-repair', { params: { page: 0, size: 1000, status: '已完成' } }),
+          api.get<unknown, ApiResponse<{ items: any[] }>>('/spot-work', { params: { page: 0, size: 1000, status: '已完成' } })
+        ])
+        
+        if (repairRes.code === 200 && repairRes.data?.items) {
+          items = items.concat(repairRes.data.items.map((item: any) => ({ ...item, planType: '临时维修' })))
+        }
+        if (spotRes.code === 200 && spotRes.data?.items) {
+          items = items.concat(spotRes.data.items.map((item: any) => ({ ...item, planType: '零星用工' })))
+        }
+        
+        const currentYear = new Date().getFullYear()
+        items = items.filter((item: any) => {
+          const endDate = item.plan_end_date || item.planEndDate
+          if (!endDate) return false
+          const year = new Date(endDate).getFullYear()
+          return year === currentYear
+        })
+      }
+      
+      workList.value = items.map((item: any) => ({
+        id: item.id,
+        projectName: item.project_name || item.projectName,
+        planStartDate: item.plan_start_date || item.planStartDate,
+        planEndDate: item.plan_end_date || item.planEndDate,
+        status: item.status,
+        planType: item.plan_type || item.planType || currentTab.value?.planType,
+        workOrderNo: item.inspection_id || item.repair_id || item.work_id
+      }))
     }
   } catch (error) {
     console.error('Failed to fetch work list:', error)
@@ -161,7 +221,8 @@ const getAlertItem = (id: number): AlertItem | undefined => {
 }
 
 const handleItemClick = (item: any) => {
-  if (currentTab.value?.key === 'overdue' || currentTab.value?.key === 'expiring') {
+  const tabKey = currentTab.value?.key
+  if (tabKey === 'overdue' || tabKey === 'expiring') {
     const alertItem = getAlertItem(item.id)
     if (alertItem) {
       if (alertItem.workOrderType === '定期巡检') {
@@ -173,7 +234,16 @@ const handleItemClick = (item: any) => {
       }
     }
   } else {
-    router.push(`/work-detail/${item.id}`)
+    const planType = item.planType || currentTab.value?.planType
+    if (planType === '定期巡检') {
+      router.push(`/periodic-inspection/${item.id}`)
+    } else if (planType === '临时维修') {
+      router.push(`/temporary-repair/${item.id}`)
+    } else if (planType === '零星用工') {
+      router.push(`/spot-work/${item.id}`)
+    } else {
+      router.push(`/work-detail/${item.id}`)
+    }
   }
 }
 
@@ -181,15 +251,19 @@ const handleUserChanged = () => {
   fetchWorkList()
 }
 
-watch(activeTab, () => {
-  fetchWorkList()
-})
+const getStatusLabel = (item: WorkPlanItem) => {
+  const tabKey = currentTab.value?.key
+  if (tabKey === 'expiring') {
+    return `${formatDate(item.planStartDate)} | ${item.status}`
+  }
+  let label = `${formatDate(item.planEndDate)} | ${item.status}`
+  if (tabKey === 'completed') {
+    label += ` | ${item.planType}`
+  }
+  return label
+}
 
 onMounted(() => {
-  const tabIndex = tabs.findIndex(t => t.key === type.value)
-  if (tabIndex >= 0) {
-    activeTab.value = tabIndex
-  }
   fetchWorkList()
 })
 </script>
@@ -197,7 +271,7 @@ onMounted(() => {
 <template>
   <div class="work-list-page">
     <van-nav-bar 
-      title="工单列表" 
+      :title="pageTitle" 
       fixed 
       placeholder 
     >
@@ -212,47 +286,43 @@ onMounted(() => {
       </template>
     </van-nav-bar>
     
-    <van-tabs v-model:active="activeTab" sticky>
-      <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">
-        <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
-          <van-list :loading="loading" :finished="true">
-            <van-cell-group inset>
-              <van-cell 
-                v-for="item in displayList" 
-                :key="item.id"
-                :title="item.projectName"
-                :label="tab.key === 'expiring' ? `${formatDate(item.planStartDate)} | ${item.status}` : `${formatDate(item.planEndDate)} | ${item.status}`"
-                is-link
-                @click="handleItemClick(item)"
-              >
-                <template #value>
-                  <div class="cell-value">
-                    <van-tag 
-                      v-if="tab.key === 'overdue' && item.overdueDays" 
-                      type="danger" 
-                      class="alert-tag"
-                    >
-                      超{{ item.overdueDays }}天
-                    </van-tag>
-                    <van-tag 
-                      v-if="tab.key === 'expiring' && item.daysRemaining !== undefined" 
-                      type="warning" 
-                      class="alert-tag"
-                    >
-                      {{ item.daysRemaining }}天后开始
-                    </van-tag>
-                    <van-tag :type="item.status === WORK_STATUS.COMPLETED ? 'success' : 'primary'">
-                      {{ item.status }}
-                    </van-tag>
-                  </div>
-                </template>
-              </van-cell>
-            </van-cell-group>
-            <van-empty v-if="!loading && displayList.length === 0" description="暂无数据" />
-          </van-list>
-        </van-pull-refresh>
-      </van-tab>
-    </van-tabs>
+    <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
+      <van-list :loading="loading" :finished="true">
+        <van-cell-group inset>
+          <van-cell 
+            v-for="item in displayList" 
+            :key="item.id"
+            :title="item.projectName"
+            :label="getStatusLabel(item)"
+            is-link
+            @click="handleItemClick(item)"
+          >
+            <template #value>
+              <div class="cell-value">
+                <van-tag 
+                  v-if="currentTab.key === 'overdue' && item.overdueDays" 
+                  type="danger" 
+                  class="alert-tag"
+                >
+                  超{{ item.overdueDays }}天
+                </van-tag>
+                <van-tag 
+                  v-if="currentTab.key === 'expiring' && item.daysRemaining !== undefined" 
+                  type="warning" 
+                  class="alert-tag"
+                >
+                  {{ item.daysRemaining }}天后开始
+                </van-tag>
+                <van-tag :type="item.status === WORK_STATUS.COMPLETED ? 'success' : 'primary'">
+                  {{ item.status }}
+                </van-tag>
+              </div>
+            </template>
+          </van-cell>
+        </van-cell-group>
+        <van-empty v-if="!loading && displayList.length === 0" description="暂无数据" />
+      </van-list>
+    </van-pull-refresh>
   </div>
 </template>
 

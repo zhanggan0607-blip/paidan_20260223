@@ -178,9 +178,12 @@ class WorkPlanService:
         from app.repositories.periodic_inspection import PeriodicInspectionRepository
         from app.repositories.temporary_repair import TemporaryRepairRepository
         from app.repositories.spot_work import SpotWorkRepository
+        from app.config import OverdueAlertConfig
         
         today = datetime.now().date()
         year_start = datetime(today.year, 1, 1).date()
+        
+        valid_statuses = OverdueAlertConfig.VALID_STATUSES
         
         inspection_repo = PeriodicInspectionRepository(self.repository.db)
         repair_repo = TemporaryRepairRepository(self.repository.db)
@@ -211,7 +214,7 @@ class WorkPlanService:
             plan_start = self._get_date_value(order.plan_start_date)
             plan_end = self._get_date_value(order.plan_end_date)
             
-            if order.status not in ['已完成', '已确认']:
+            if order.status in valid_statuses:
                 if plan_start:
                     if today <= plan_start <= today + timedelta(days=7):
                         expiring_soon += 1
@@ -220,7 +223,7 @@ class WorkPlanService:
                     if plan_end < today:
                         overdue += 1
             
-            if order.status in ['已完成', '已确认'] and plan_end:
+            if order.status == '已完成' and plan_end:
                 if plan_end >= year_start:
                     yearly_completed += 1
         

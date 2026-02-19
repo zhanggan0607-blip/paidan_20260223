@@ -176,9 +176,9 @@
           </div>
           <div class="form-item-full">
             <label class="form-label">
-              <span class="required">*</span> 维修内容
+              <span class="required">*</span> 报修内容
             </label>
-            <textarea class="form-input form-textarea" placeholder="请输入维修内容" v-model="formData.remarks" maxlength="500"></textarea>
+            <textarea class="form-input form-textarea" placeholder="请输入报修内容" v-model="formData.remarks" maxlength="500"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -458,7 +458,7 @@ export default defineComponent({
         return
       }
       if (!formData.value.remarks) {
-        showToast('请输入维修内容', 'error')
+        showToast('请输入报修内容', 'error')
         return
       }
       

@@ -184,16 +184,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
-import { workPlanService, type WorkPlan } from '../services/workPlan'
-import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
-import { spotWorkService, type SpotWork } from '../services/spotWork'
-import { authService, type User } from '../services/auth'
+import { defineComponent, ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import apiClient from '../utils/api'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
-import { PLAN_TYPES, formatDate, USER_ROLES, WORK_STATUS } from '../config/constants'
+import { formatDate, USER_ROLES, WORK_STATUS } from '../config/constants'
+import type { ApiResponse } from '../types/api'
 
 interface NearExpiryItem {
   id: number
@@ -215,7 +213,7 @@ export default defineComponent({
   },
   setup() {
     const loading = ref(false)
-    const currentUser = ref<User | null>(authService.getCurrentUser())
+    const currentUser = ref<any>(null)
     const isViewModalOpen = ref(false)
     const searchForm = reactive({
       projectName: '',
@@ -269,17 +267,6 @@ export default defineComponent({
       })
     }
 
-    const getDaysFromToday = (dateStr: string): number => {
-      if (!dateStr) return 999
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const targetDate = new Date(dateStr)
-      targetDate.setHours(0, 0, 0, 0)
-      const diffTime = targetDate.getTime() - today.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      return diffDays
-    }
-
     const getDaysClass = (days: number): string => {
       return 'days-warning'
     }
@@ -287,65 +274,22 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const [workPlansRes, tempRepairsRes, spotWorksRes] = await Promise.all([
-          workPlanService.getAll({ plan_type: PLAN_TYPES.PERIODIC_INSPECTION }),
-          temporaryRepairService.getAll(),
-          spotWorkService.getAll()
-        ])
-
+        const response = await apiClient.get<unknown, ApiResponse<{ items: any[], total: number }>>('/expiring-soon', { params: { page: 0, size: 1000 } })
+        
         const items: NearExpiryItem[] = []
 
-        if (workPlansRes.code === 200 && workPlansRes.data) {
-          workPlansRes.data.forEach((item: WorkPlan) => {
-            const days = getDaysFromToday(item.plan_start_date)
-            if (days <= 3 && days >= 0) {
-              items.push({
-                id: item.id,
-                workOrderId: item.plan_id,
-                projectId: item.project_id,
-                projectName: item.project_name,
-                workOrderType: PLAN_TYPES.PERIODIC_INSPECTION,
-                planStartDate: item.plan_start_date,
-                daysFromToday: days,
-                executor: item.maintenance_personnel
-              })
-            }
-          })
-        }
-
-        if (tempRepairsRes.code === 200 && tempRepairsRes.data) {
-          tempRepairsRes.data.forEach((item: TemporaryRepair) => {
-            const days = getDaysFromToday(item.plan_start_date)
-            if (days <= 3 && days >= 0) {
-              items.push({
-                id: item.id,
-                workOrderId: item.repair_id,
-                projectId: item.project_id,
-                projectName: item.project_name,
-                workOrderType: PLAN_TYPES.TEMPORARY_REPAIR,
-                planStartDate: item.plan_start_date,
-                daysFromToday: days,
-                executor: item.maintenance_personnel
-              })
-            }
-          })
-        }
-
-        if (spotWorksRes.code === 200 && spotWorksRes.data) {
-          spotWorksRes.data.forEach((item: SpotWork) => {
-            const days = getDaysFromToday(item.plan_start_date)
-            if (days <= 3 && days >= 0) {
-              items.push({
-                id: item.id,
-                workOrderId: item.work_id,
-                projectId: item.project_id,
-                projectName: item.project_name,
-                workOrderType: '零星用工',
-                planStartDate: item.plan_start_date,
-                daysFromToday: days,
-                executor: item.maintenance_personnel
-              })
-            }
+        if (response.code === 200 && response.data?.items) {
+          response.data.items.forEach((item: any) => {
+            items.push({
+              id: parseInt(item.id),
+              workOrderId: item.workOrderNo,
+              projectId: item.project_id,
+              projectName: item.projectName,
+              workOrderType: item.workOrderType,
+              planStartDate: item.planStartDate,
+              daysFromToday: item.daysRemaining,
+              executor: item.executor
+            })
           })
         }
 
@@ -552,10 +496,6 @@ export default defineComponent({
 
     onUnmounted(() => {
       window.removeEventListener('user-changed', handleUserChanged)
-    })
-
-    watch(() => authService.getCurrentUser(), (newUser) => {
-      currentUser.value = newUser
     })
 
     return {

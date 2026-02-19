@@ -13,12 +13,12 @@
               <div class="form-value">{{ repairData.project_name || '-' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">项目编号</label>
-              <div class="form-value">{{ repairData.project_id || '-' }}</div>
+              <label class="form-label">计划开始日期</label>
+              <div class="form-value">{{ formatDate(repairData.plan_start_date) }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">工单编号</label>
-              <div class="form-value">{{ repairData.repair_id || '-' }}</div>
+              <label class="form-label">运维人员</label>
+              <div class="form-value">{{ repairData.maintenance_personnel || '-' }}</div>
             </div>
             <div class="form-item">
               <label class="form-label">客户单位</label>
@@ -28,37 +28,33 @@
               <label class="form-label">客户联系人</label>
               <div class="form-value">{{ repairData.client_contact || '-' }}</div>
             </div>
-            <div class="form-item">
-              <label class="form-label">联系人职位</label>
-              <div class="form-value">{{ repairData.client_contact_position || '-' }}</div>
-            </div>
           </div>
           <div class="form-column">
             <div class="form-item">
-              <label class="form-label">计划开始日期</label>
-              <div class="form-value">{{ formatDate(repairData.plan_start_date) }}</div>
+              <label class="form-label">项目编号</label>
+              <div class="form-value">{{ repairData.project_id || '-' }}</div>
             </div>
             <div class="form-item">
               <label class="form-label">计划结束日期</label>
               <div class="form-value">{{ formatDate(repairData.plan_end_date) }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">运维人员</label>
-              <div class="form-value">{{ repairData.maintenance_personnel || '-' }}</div>
-            </div>
-            <div class="form-item">
-              <label class="form-label">客户联系方式</label>
-              <div class="form-value">{{ repairData.client_contact_info || '-' }}</div>
+              <label class="form-label">工单编号</label>
+              <div class="form-value">{{ repairData.repair_id || '-' }}</div>
             </div>
             <div class="form-item">
               <label class="form-label">客户地址</label>
               <div class="form-value">{{ repairData.address || '-' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">维修内容</label>
-              <div class="form-value">{{ repairData.remarks || '-' }}</div>
+              <label class="form-label">客户联系方式</label>
+              <div class="form-value">{{ repairData.client_contact_info || '-' }}</div>
             </div>
           </div>
+        </div>
+        <div class="form-item-full">
+          <label class="form-label">报修内容</label>
+          <div class="form-value form-value-large">{{ repairData.remarks || '-' }}</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -71,7 +67,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { maintenancePlanService } from '@/services/maintenancePlan'
+import { temporaryRepairService } from '@/services/temporaryRepair'
 
 interface RepairData {
   id: number
@@ -126,23 +122,23 @@ export default defineComponent({
       const id = route.query.id as string
       if (id) {
         try {
-          const response = await maintenancePlanService.getById(parseInt(id))
+          const response = await temporaryRepairService.getById(parseInt(id))
           if (response.code === 200) {
             const item = response.data
             repairData.value = {
               id: item.id,
-              repair_id: item.plan_id,
+              repair_id: item.repair_id,
               project_id: item.project_id,
-              project_name: item.project_name || item.plan_name,
+              project_name: item.project_name,
               plan_start_date: item.plan_start_date,
               plan_end_date: item.plan_end_date,
-              client_name: item.client_name || item.responsible_department || '',
+              client_name: item.client_name || '',
               client_contact: item.client_contact || '',
               client_contact_info: item.client_contact_info || '',
               client_contact_position: item.client_contact_position || '',
               address: item.address || '',
-              maintenance_personnel: item.responsible_person || '',
-              status: item.plan_status || '待执行',
+              maintenance_personnel: item.maintenance_personnel || '',
+              status: item.status,
               remarks: item.remarks || ''
             }
           }
@@ -262,6 +258,24 @@ export default defineComponent({
   min-height: 36px;
   display: flex;
   align-items: center;
+}
+
+.form-item-full {
+  margin-top: 24px;
+}
+
+.form-item-full .form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #424242;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-value-large {
+  min-height: 108px;
+  align-items: flex-start;
+  padding-top: 12px;
 }
 
 .modal-footer {

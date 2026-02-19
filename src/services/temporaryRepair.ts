@@ -8,9 +8,18 @@ export interface TemporaryRepair {
   plan_start_date: string
   plan_end_date: string
   client_name: string
+  client_contact?: string
+  client_contact_info?: string
+  client_contact_position?: string
+  address?: string
   maintenance_personnel: string
   status: string
   remarks?: string
+  fault_description?: string
+  solution?: string
+  photos?: string[]
+  signature?: string
+  execution_date?: string
   created_at: string
   updated_at: string
 }

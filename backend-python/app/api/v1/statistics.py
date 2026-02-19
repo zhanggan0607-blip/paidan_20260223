@@ -44,7 +44,7 @@ def get_statistics_overview(
     current_year = today.year
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
-    near_due_days = 3
+    near_due_days = 7
     valid_statuses = OverdueAlertConfig.VALID_STATUSES
     
     near_due_count = 0
@@ -53,8 +53,6 @@ def get_statistics_overview(
     regular_inspection_count = 0
     temporary_repair_count = 0
     spot_work_count = 0
-    
-    is_current_year = (year == current_year)
     
     inspection_query = db.query(PeriodicInspection)
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
@@ -70,14 +68,13 @@ def get_statistics_overview(
         if plan_start:
             if plan_start >= year_start and plan_start <= year_end:
                 regular_inspection_count += 1
-        
-        if is_current_year and plan_start:
+            
             days_from_today = (plan_start - today).days
             if 0 <= days_from_today <= near_due_days:
                 near_due_count += 1
         
         if plan_end:
-            check_date = today if is_current_year else year_end
+            check_date = today if year == current_year else year_end
             if plan_end < check_date and inspection.status in valid_statuses:
                 overdue_count += 1
         
@@ -99,14 +96,13 @@ def get_statistics_overview(
         if plan_start:
             if plan_start >= year_start and plan_start <= year_end:
                 temporary_repair_count += 1
-        
-        if is_current_year and plan_start:
+            
             days_from_today = (plan_start - today).days
             if 0 <= days_from_today <= near_due_days:
                 near_due_count += 1
         
         if plan_end:
-            check_date = today if is_current_year else year_end
+            check_date = today if year == current_year else year_end
             if plan_end < check_date and repair.status in valid_statuses:
                 overdue_count += 1
         
@@ -128,14 +124,13 @@ def get_statistics_overview(
         if plan_start:
             if plan_start >= year_start and plan_start <= year_end:
                 spot_work_count += 1
-        
-        if is_current_year and plan_start:
+            
             days_from_today = (plan_start - today).days
             if 0 <= days_from_today <= near_due_days:
                 near_due_count += 1
         
         if plan_end:
-            check_date = today if is_current_year else year_end
+            check_date = today if year == current_year else year_end
             if plan_end < check_date and work.status in valid_statuses:
                 overdue_count += 1
         
@@ -636,7 +631,7 @@ def get_statistics_detail(
     current_year = today.year
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
-    near_due_days = 3
+    near_due_days = 7
     valid_statuses = OverdueAlertConfig.VALID_STATUSES
     
     results = []

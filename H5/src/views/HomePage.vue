@@ -27,7 +27,6 @@ const statistics = ref<Statistics>({
 })
 
 const loading = ref(false)
-const userSelectorRef = ref<InstanceType<typeof UserSelector> | null>(null)
 const hasOverdue = computed(() => statistics.value.overdue > 0)
 const currentUser = ref<User | null>(null)
 
@@ -101,7 +100,7 @@ onMounted(() => {
   <div class="home-page">
     <van-nav-bar title="SSTCP维保系统" fixed placeholder>
       <template #right>
-        <UserSelector ref="userSelectorRef" @userChanged="handleUserChanged" />
+        <UserSelector @userChanged="handleUserChanged" />
       </template>
     </van-nav-bar>
     

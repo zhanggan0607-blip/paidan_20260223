@@ -197,8 +197,6 @@ const fetchDetail = async () => {
         formData.value.execution_result = response.data.execution_result || ''
         formData.value.remarks = response.data.remarks || ''
         formData.value.signature = response.data.signature || ''
-        originalExecutionResult = formData.value.execution_result
-        originalRemarks = formData.value.remarks
       }
     }
   } catch (error) {
@@ -602,7 +600,7 @@ const handleApproveReject = async () => {
   if (!detail.value?.id) return
   
   try {
-    const result = await showConfirmDialog({
+    await showConfirmDialog({
       title: '退回确认',
       message: '确认退回该工单吗？退回后员工需重新填写。',
       confirmButtonText: '确认退回',
@@ -632,8 +630,6 @@ const handleApproveReject = async () => {
 }
 
 let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
-let originalExecutionResult = ''
-let originalRemarks = ''
 
 /**
  * 自动保存现场处理内容到后端（防抖）
@@ -665,9 +661,6 @@ const autoSaveFieldContent = async () => {
       }
       
       await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, saveData)
-      
-      originalExecutionResult = formData.value.execution_result
-      originalRemarks = formData.value.remarks
     } catch (error) {
       console.error('Auto save failed:', error)
     }
@@ -718,30 +711,20 @@ onActivated(() => {
     
     <div class="content" v-if="detail">
       <van-cell-group inset title="基本资料">
-        <div class="two-column-form">
-          <div class="form-row">
-            <van-cell title="项目名称" :value="detail.project_name" class="form-cell" />
-            <van-cell title="工单编号" class="form-cell">
-              <template #value>
-                <div class="order-id-cell">
-                  <span :style="{ fontSize: getWorkIdFontSize(detail.inspection_id) + 'px' }">{{ detail.inspection_id }}</span>
-                  <van-button size="mini" type="primary" plain @click.stop="copyOrderId(detail.inspection_id)">复制单号</van-button>
-                </div>
-              </template>
-            </van-cell>
-          </div>
-          <div class="form-row">
-            <van-cell title="维保开始日期" :value="formatDate(detail.plan_start_date)" class="form-cell" />
-            <van-cell title="维保截止日期" :value="formatDate(detail.plan_end_date)" class="form-cell" />
-          </div>
-          <div class="form-row">
-            <van-cell title="客户单位" :value="detail.client_name || '-'" class="form-cell" />
-            <van-cell title="客户联系人" :value="detail.client_contact || '-'" class="form-cell" />
-          </div>
-          <div class="form-row">
-            <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" class="form-cell" />
-          </div>
-        </div>
+        <van-cell title="项目名称" :value="detail.project_name" />
+        <van-cell title="工单编号">
+          <template #value>
+            <div class="order-id-cell">
+              <div class="order-id-text" :style="{ fontSize: getWorkIdFontSize(detail.inspection_id) + 'px' }">{{ detail.inspection_id }}</div>
+              <van-button size="mini" type="primary" plain @click.stop="copyOrderId(detail.inspection_id)">复制单号</van-button>
+            </div>
+          </template>
+        </van-cell>
+        <van-cell title="维保开始日期" :value="formatDate(detail.plan_start_date)" />
+        <van-cell title="维保截止日期" :value="formatDate(detail.plan_end_date)" />
+        <van-cell title="客户单位" :value="detail.client_name || '-'" />
+        <van-cell title="客户联系人" :value="detail.client_contact || '-'" />
+        <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" />
       </van-cell-group>
 
       <van-cell-group inset>
@@ -765,7 +748,7 @@ onActivated(() => {
                 <span class="inspection-title">{{ system.inspection_item || system.name }}</span>
               </div>
               <div class="inspection-item-right">
-                <span :class="system.inspected ? 'status-done' : 'status-pending'">
+                <span :class="system.inspected ? 'status-done' : 'status-action'">
                   {{ system.inspected ? '已处理' : '去处理' }}
                 </span>
                 <van-icon name="arrow" />
@@ -932,6 +915,17 @@ onActivated(() => {
   margin: 12px;
 }
 
+:deep(.van-cell__title) {
+  flex: none;
+  width: 28%;
+  min-width: 90px;
+}
+
+:deep(.van-cell__value) {
+  flex: 1;
+  width: 72%;
+}
+
 .section-tip {
   padding: 8px 16px;
   font-size: 12px;
@@ -947,11 +941,30 @@ onActivated(() => {
 }
 
 .status-done {
-  color: #07c160;
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background-color: #07c160;
+  border-radius: 4px;
 }
 
 .status-pending {
-  color: #1989fa;
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background-color: #1989fa;
+  border-radius: 4px;
+}
+
+.status-action {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 14px;
+  color: #fff;
+  background-color: #ff976a;
+  border-radius: 4px;
 }
 
 .status-disabled {
@@ -1184,15 +1197,14 @@ onActivated(() => {
 
 .order-id-cell {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 4px;
-  flex-wrap: nowrap;
-  justify-content: flex-end;
 }
 
-.order-id-cell span {
+.order-id-text {
   color: #323233;
-  white-space: nowrap;
+  word-break: break-all;
   text-align: right;
 }
 
@@ -1216,35 +1228,5 @@ onActivated(() => {
   margin-right: 2px;
 }
 
-.two-column-form {
-  padding: 0;
-}
 
-.form-row {
-  display: flex;
-  border-bottom: 1px solid #ebedf0;
-}
-
-.form-row:last-child {
-  border-bottom: none;
-}
-
-.form-cell {
-  flex: 1;
-  min-width: 0;
-}
-
-.form-cell :deep(.van-cell) {
-  padding: 10px 12px;
-}
-
-.form-cell :deep(.van-cell__title) {
-  font-size: 12px;
-  color: #969799;
-}
-
-.form-cell :deep(.van-cell__value) {
-  font-size: 14px;
-  color: #323233;
-}
 </style>

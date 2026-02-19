@@ -158,7 +158,7 @@ export const authService = {
     return !this.isMaterialManager(user)
   },
 
-  canViewProjectInfo(user: User | null): boolean {
+  canViewProjectInfo(_user: User | null): boolean {
     return true
   },
 
