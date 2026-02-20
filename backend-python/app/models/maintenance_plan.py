@@ -20,15 +20,17 @@ class MaintenancePlan(Base):
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
     execution_date = Column(DateTime, comment="执行日期")
     next_maintenance_date = Column(DateTime, comment="下次维保日期")
-    responsible_person = Column(String(50), nullable=False, comment="负责人")
+    maintenance_personnel = Column(String(100), comment="运维人员")
     responsible_department = Column(String(100), comment="负责部门")
     contact_info = Column(String(50), comment="联系方式")
     maintenance_content = Column(Text, nullable=False, comment="维保内容")
     maintenance_requirements = Column(Text, comment="维保要求")
     maintenance_standard = Column(Text, comment="维保标准")
     plan_status = Column(String(20), nullable=False, comment="计划状态")
-    execution_status = Column(String(20), nullable=False, comment="执行状态")
+    status = Column(String(20), nullable=False, default="未进行", comment="执行状态")
     completion_rate = Column(Integer, default=0, comment="完成率")
+    filled_count = Column(Integer, default=0, comment="已填写检查项数量")
+    total_count = Column(Integer, default=5, comment="检查项总数量")
     remarks = Column(Text, comment="备注")
     inspection_items = Column(Text, comment="巡查项数据(JSON格式)")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
@@ -44,19 +46,26 @@ class MaintenancePlan(Base):
         Index('idx_maintenance_project_id', 'project_id'),
         Index('idx_maintenance_equipment_id', 'equipment_id'),
         Index('idx_maintenance_plan_status', 'plan_status'),
-        Index('idx_maintenance_execution_status', 'execution_status'),
+        Index('idx_maintenance_status', 'status'),
         Index('idx_maintenance_execution_date', 'execution_date'),
+        Index('idx_maintenance_personnel', 'maintenance_personnel'),
         {'comment': '维保计划表'}
     )
     
     def to_dict(self):
         project_name = self.project_name
         client_name = ''
+        client_contact = ''
+        client_contact_info = ''
         address = ''
+        client_contact_position = ''
         if self.project:
             project_name = self.project.project_name or project_name
             client_name = self.project.client_name or ''
+            client_contact = self.project.client_contact or ''
+            client_contact_info = self.project.client_contact_info or ''
             address = self.project.address or ''
+            client_contact_position = self.project.client_contact_position or ''
         
         return {
             'id': self.id,
@@ -65,7 +74,10 @@ class MaintenancePlan(Base):
             'project_id': self.project_id,
             'project_name': project_name or '',
             'client_name': client_name,
+            'client_contact': client_contact,
+            'client_contact_info': client_contact_info,
             'address': address,
+            'client_contact_position': client_contact_position,
             'plan_type': self.plan_type,
             'equipment_id': self.equipment_id,
             'equipment_name': self.equipment_name,
@@ -75,15 +87,17 @@ class MaintenancePlan(Base):
             'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
             'execution_date': self.execution_date.isoformat() if self.execution_date else None,
             'next_maintenance_date': self.next_maintenance_date.isoformat() if self.next_maintenance_date else None,
-            'responsible_person': self.responsible_person,
+            'maintenance_personnel': self.maintenance_personnel,
             'responsible_department': self.responsible_department,
             'contact_info': self.contact_info,
             'maintenance_content': self.maintenance_content,
             'maintenance_requirements': self.maintenance_requirements,
             'maintenance_standard': self.maintenance_standard,
             'plan_status': self.plan_status,
-            'execution_status': self.execution_status,
+            'status': self.status,
             'completion_rate': self.completion_rate,
+            'filled_count': self.filled_count or 0,
+            'total_count': self.total_count or 5,
             'remarks': self.remarks,
             'inspection_items': self.inspection_items,
             'created_at': self.created_at.isoformat() if self.created_at else None,

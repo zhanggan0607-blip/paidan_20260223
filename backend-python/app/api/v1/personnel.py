@@ -26,7 +26,7 @@ def get_all_personnel(
 @router.get("", response_model=PaginatedResponse)
 def get_personnel_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=2000, description="Page size"),
     name: Optional[str] = Query(None, description="Name (fuzzy search)"),
     department: Optional[str] = Query(None, description="Department (fuzzy search)"),
     current_user_role: Optional[str] = Query(None, description="Current user role"),

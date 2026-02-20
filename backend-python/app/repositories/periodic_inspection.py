@@ -43,6 +43,7 @@ class PeriodicInspectionRepository:
         size: int = 10,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
+        inspection_id: Optional[str] = None,
         status: Optional[str] = None,
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[PeriodicInspection], int]:
@@ -54,6 +55,9 @@ class PeriodicInspectionRepository:
 
             if client_name:
                 query = query.filter(PeriodicInspection.client_name.like(f"%{client_name}%"))
+
+            if inspection_id:
+                query = query.filter(PeriodicInspection.inspection_id.like(f"%{inspection_id}%"))
 
             if status:
                 query = query.filter(PeriodicInspection.status == status)

@@ -1,38 +1,28 @@
 import apiClient from '../utils/api'
+import type { PeriodicInspection as PeriodicInspectionType, ApiResponse } from '../types/api'
 
-export interface PeriodicInspection {
-  id: number
-  inspection_id: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name?: string
-  client_contact?: string
-  client_contact_info?: string
-  client_contact_position?: string
-  address?: string
-  maintenance_personnel?: string
-  status: string
-  remarks?: string
-  created_at: string
-  updated_at: string
-}
+export type PeriodicInspection = PeriodicInspectionType
 
 export interface PeriodicInspectionCreate {
   inspection_id: string
+  plan_id?: string
   project_id: string
   project_name: string
   plan_start_date: string
   plan_end_date: string
   client_name?: string
   maintenance_personnel?: string
-  status: string
+  status?: string
+  filled_count?: number
+  total_count?: number
+  execution_result?: string
   remarks?: string
+  signature?: string
 }
 
 export interface PeriodicInspectionUpdate {
   inspection_id: string
+  plan_id?: string
   project_id: string
   project_name: string
   plan_start_date: string
@@ -40,16 +30,14 @@ export interface PeriodicInspectionUpdate {
   client_name?: string
   maintenance_personnel?: string
   status: string
+  filled_count?: number
+  total_count?: number
+  execution_result?: string
   remarks?: string
+  signature?: string
 }
 
-export interface ApiResponse<T = any> {
-  code: number
-  message: string
-  data: T
-}
-
-export interface PaginatedResponse {
+export interface PeriodicInspectionPaginatedResponse {
   code: number
   message: string
   data: {
@@ -69,8 +57,9 @@ export const periodicInspectionService = {
     size?: number
     project_name?: string
     client_name?: string
+    inspection_id?: string
     status?: string
-  }): Promise<PaginatedResponse> {
+  }): Promise<PeriodicInspectionPaginatedResponse> {
     return await apiClient.get('/periodic-inspection', { params })
   },
 
@@ -94,4 +83,3 @@ export const periodicInspectionService = {
     return await apiClient.get('/periodic-inspection/all/list')
   }
 }
-

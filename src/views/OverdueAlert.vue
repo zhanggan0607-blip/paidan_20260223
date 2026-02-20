@@ -5,32 +5,25 @@
       <div class="content-area">
         <div class="search-section">
           <div class="search-form">
-            <div class="search-item">
-              <label class="search-label">项目名称</label>
-              <SearchInput
-                v-model="searchForm.projectName"
-                field-key="OverdueAlert_projectName"
-                placeholder="请输入"
-                @input="handleSearch"
-              />
-            </div>
-            <div class="search-item">
-              <label class="search-label">客户名称</label>
-              <SearchInput
-                v-model="searchForm.customerName"
-                field-key="OverdueAlert_customerName"
-                placeholder="请输入"
-                @input="handleSearch"
-              />
-            </div>
-            <div class="search-item">
-              <label class="search-label">工单类型</label>
-              <select class="search-select" v-model="searchForm.workOrderType">
-                <option value="">请选择工单类型</option>
-                <option value="定期巡检">定期巡检单</option>
-                <option value="临时维修">临时维修单</option>
-                <option value="零星用工">零星用工单</option>
-              </select>
+            <div class="search-row">
+              <div class="search-item">
+                <label class="search-label">项目名称：</label>
+                <SearchInput
+                  v-model="searchForm.projectName"
+                  field-key="OverdueAlert_projectName"
+                  placeholder="请输入项目名称"
+                  @input="handleSearch"
+                />
+              </div>
+              <div class="search-item">
+                <label class="search-label">客户名称：</label>
+                <SearchInput
+                  v-model="searchForm.customerName"
+                  field-key="OverdueAlert_customerName"
+                  placeholder="请输入客户名称"
+                  @input="handleSearch"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -207,8 +200,7 @@ export default defineComponent({
     const currentUser = ref<User | null>(authService.getCurrentUser())
     const searchForm = reactive({
       projectName: '',
-      customerName: '',
-      workOrderType: ''
+      customerName: ''
     })
 
     const currentPage = ref(1)
@@ -270,8 +262,8 @@ export default defineComponent({
       viewData.work_order_type = '临时维修单'
       viewData.plan_start_date = data.plan_start_date
       viewData.plan_end_date = data.plan_end_date
-      viewData.client_name = data.client_name
-      viewData.maintenance_personnel = data.maintenance_personnel
+      viewData.client_name = data.client_name || ''
+      viewData.maintenance_personnel = data.maintenance_personnel || ''
       viewData.status = data.status
       viewData.remarks = data.remarks || ''
     }
@@ -284,8 +276,8 @@ export default defineComponent({
       viewData.work_order_type = '零星用工单'
       viewData.plan_start_date = data.plan_start_date
       viewData.plan_end_date = data.plan_end_date
-      viewData.client_name = data.client_name
-      viewData.maintenance_personnel = data.maintenance_personnel
+      viewData.client_name = data.client_name || ''
+      viewData.maintenance_personnel = data.maintenance_personnel || ''
       viewData.status = data.status
       viewData.remarks = data.remarks || ''
     }
@@ -304,9 +296,6 @@ export default defineComponent({
         }
         if (searchForm.customerName.trim()) {
           params.client_name = searchForm.customerName.trim()
-        }
-        if (searchForm.workOrderType) {
-          params.work_order_type = searchForm.workOrderType
         }
 
         const response = await overdueAlertService.getOverdueAlerts(params)
@@ -451,8 +440,16 @@ export default defineComponent({
 
 .search-form {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.search-row {
+  display: flex;
+  gap: 16px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .search-item {

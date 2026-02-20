@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.maintenance_log import MaintenanceLog
 from app.models.personnel import Personnel
+from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.auth import get_current_user, get_current_user_from_headers
 from pydantic import BaseModel
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/maintenance-log", tags=["Maintenance Log Management"
 class MaintenanceLogCreate(BaseModel):
     project_id: str
     project_name: str
-    log_type: str = "spot"
+    log_type: str = "maintenance"
     log_date: str
     work_content: Optional[str] = None
     images: Optional[List[str]] = None
@@ -27,11 +28,12 @@ class MaintenanceLogCreate(BaseModel):
 def get_log_type_prefix(log_type: str) -> str:
     """
     获取日志类型前缀
+    维修日志前缀为WX
     """
     prefix_map = {
-        'spot': 'YG'
+        'maintenance': 'WX'
     }
-    return prefix_map.get(log_type, 'YG')
+    return prefix_map.get(log_type, 'WX')
 
 
 def generate_log_id(project_id: str, log_type: str, db: Session) -> str:
@@ -52,14 +54,42 @@ def generate_log_id(project_id: str, log_type: str, db: Session) -> str:
     return f"{base_id}-{sequence}"
 
 
+def record_operation_log(
+    db: Session,
+    work_order_type: str,
+    work_order_id: int,
+    work_order_no: str,
+    operator_name: str,
+    operation_type_code: str,
+    operation_type_name: str,
+    operation_remark: str = None
+):
+    """
+    记录操作日志
+    """
+    log = WorkOrderOperationLog(
+        work_order_type=work_order_type,
+        work_order_id=work_order_id,
+        work_order_no=work_order_no,
+        operator_name=operator_name,
+        operation_type_code=operation_type_code,
+        operation_type_name=operation_type_name,
+        operation_remark=operation_remark
+    )
+    
+    db.add(log)
+    db.commit()
+
+
 @router.get("", response_model=ApiResponse)
 def get_maintenance_logs(
     request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
+    size: int = Query(10, ge=1, le=2000, description="每页数量"),
     project_name: Optional[str] = Query(None, description="项目名称(模糊搜索)"),
     log_type: Optional[str] = Query(None, description="日志类型"),
     log_date: Optional[str] = Query(None, description="日志日期"),
+    created_by: Optional[str] = Query(None, description="创建者"),
     created_by_role: Optional[str] = Query(None, description="创建者角色"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
@@ -75,6 +105,8 @@ def get_maintenance_logs(
         query = query.filter(MaintenanceLog.log_type == log_type)
     if log_date:
         query = query.filter(MaintenanceLog.log_date == log_date)
+    if created_by:
+        query = query.filter(MaintenanceLog.created_by == created_by)
     
     if created_by_role:
         subquery = db.query(Personnel.name).filter(Personnel.role == created_by_role).subquery()
@@ -173,6 +205,19 @@ def create_maintenance_log(
     db.commit()
     db.refresh(log)
     
+    # 记录操作日志
+    if created_by:
+        record_operation_log(
+            db=db,
+            work_order_type='maintenance_log',
+            work_order_id=log.id,
+            work_order_no=log.log_id,
+            operator_name=created_by,
+            operation_type_code='create',
+            operation_type_name='创建',
+            operation_remark='创建维保日志'
+        )
+    
     return ApiResponse(
         code=200,
         message="创建成功",
@@ -238,4 +283,85 @@ def delete_maintenance_log(
         code=200,
         message="删除成功",
         data=None
+    )
+
+
+@router.get("/{id}/operation-logs", response_model=ApiResponse)
+def get_maintenance_log_operation_logs(
+    id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    获取维保日志操作日志
+    """
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    if not log:
+        return ApiResponse(
+            code=404,
+            message="维保日志不存在",
+            data=None
+        )
+    
+    operation_logs = db.query(WorkOrderOperationLog).filter(
+        WorkOrderOperationLog.work_order_type == 'maintenance_log',
+        WorkOrderOperationLog.work_order_id == id
+    ).order_by(WorkOrderOperationLog.created_at.desc()).all()
+    
+    return ApiResponse(
+        code=200,
+        message="success",
+        data=[log.to_dict() for log in operation_logs]
+    )
+
+
+class RejectRequest(BaseModel):
+    reject_reason: str
+
+
+@router.post("/{id}/reject", response_model=ApiResponse)
+def reject_maintenance_log(
+    id: int,
+    dto: RejectRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
+):
+    """
+    退回维保日志
+    """
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    if not log:
+        return ApiResponse(
+            code=404,
+            message="维保日志不存在",
+            data=None
+        )
+    
+    user_info = current_user or get_current_user_from_headers(request)
+    operator_name = None
+    if user_info:
+        operator_name = user_info.get('sub') or user_info.get('name')
+    
+    log.status = 'rejected'
+    log.reject_reason = dto.reject_reason
+    
+    db.commit()
+    db.refresh(log)
+    
+    if operator_name:
+        record_operation_log(
+            db=db,
+            work_order_type='maintenance_log',
+            work_order_id=log.id,
+            work_order_no=log.log_id,
+            operator_name=operator_name,
+            operation_type_code='reject',
+            operation_type_name='审批退回',
+            operation_remark=f'退回原因: {dto.reject_reason}'
+        )
+    
+    return ApiResponse(
+        code=200,
+        message="退回成功",
+        data=log.to_dict()
     )

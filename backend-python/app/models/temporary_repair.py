@@ -23,6 +23,7 @@ class TemporaryRepair(Base):
     photos = Column(Text, comment="现场图片JSON数组")
     signature = Column(Text, comment="用户签字Base64")
     execution_date = Column(DateTime, comment="执行日期")
+    actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
@@ -83,6 +84,7 @@ class TemporaryRepair(Base):
             'photos': photos,
             'signature': self.signature or '',
             'execution_date': self.execution_date.isoformat() if self.execution_date else None,
+            'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

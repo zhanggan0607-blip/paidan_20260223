@@ -30,9 +30,6 @@ const logList = ref<MaintenanceLogItem[]>([])
 const currentUser = ref<User | null>(null)
 
 const pageTitle = computed(() => {
-  if (authService.isAdmin(currentUser.value)) {
-    return '查看维保周报'
-  }
   return '查看维保日志'
 })
 
@@ -56,11 +53,11 @@ const getLogIdFontSize = (logId: string) => {
  */
 const getLogTypeName = (logType: string) => {
   const typeMap: Record<string, string> = {
-    'spot': '用工日志',
-    'inspection': '巡检日志',
+    'maintenance': '维修日志',
+    'spot': '维修日志',
     'repair': '维修日志'
   }
-  return typeMap[logType] || logType
+  return typeMap[logType] || '维修日志'
 }
 
 /**
@@ -74,10 +71,6 @@ const fetchLogList = async () => {
     const params: Record<string, any> = { 
       page: 0,
       size: 100
-    }
-    
-    if (authService.isAdmin(currentUser.value)) {
-      params.created_by_role = '部门经理'
     }
     
     const response = await api.get<unknown, ApiResponse<{ content: MaintenanceLogItem[] }>>('/maintenance-log', { 

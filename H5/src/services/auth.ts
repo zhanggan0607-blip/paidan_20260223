@@ -29,6 +29,24 @@ const USER_STORAGE_KEY = 'user'
 const TOKEN_STORAGE_KEY = 'token'
 
 export const authService = {
+  async login(username: string, password: string): Promise<ApiResponse<LoginResponse>> {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'}/auth/login-json`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ username, password })
+    })
+    const result: ApiResponse<LoginResponse> = await response.json()
+    
+    if (result.code === 200 && result.data) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, result.data.access_token)
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(result.data.user))
+    }
+    
+    return result
+  },
+
   logout(): void {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
@@ -87,7 +105,7 @@ export const authService = {
   },
 
   canViewPersonnel(user: User | null): boolean {
-    return this.isAdmin(user)
+    return this.isAdmin(user) || this.isDepartmentManager(user)
   },
 
   canViewStatistics(user: User | null): boolean {
@@ -158,6 +176,10 @@ export const authService = {
     return !this.isMaterialManager(user)
   },
 
+  canApplySpotWork(user: User | null): boolean {
+    return !this.isMaterialManager(user)
+  },
+
   canViewProjectInfo(_user: User | null): boolean {
     return true
   },
@@ -167,7 +189,11 @@ export const authService = {
   },
 
   canViewMaintenanceLog(user: User | null): boolean {
-    return this.isEmployee(user) || this.isDepartmentManager(user)
+    return this.isEmployee(user)
+  },
+
+  canViewMaintenanceLogDetail(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user) || this.isEmployee(user)
   },
 
   canFillMaintenanceLog(user: User | null): boolean {
@@ -179,6 +205,10 @@ export const authService = {
   },
 
   canViewDepartmentWeeklyReport(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canViewAllWeeklyReport(user: User | null): boolean {
     return this.isAdmin(user) || this.isDepartmentManager(user)
   },
 

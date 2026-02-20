@@ -4,31 +4,25 @@
     <div class="content">
       <div class="search-section">
         <div class="search-form">
-          <div class="search-item">
-            <label class="search-label">项目名称：</label>
-            <SearchInput
-              v-model="searchForm.project_name"
-              field-key="TemporaryRepairQuery_project_name"
-              placeholder="请输入项目名称"
-              @input="handleSearch"
-            />
-          </div>
-          <div class="search-item">
-            <label class="search-label">工单编号：</label>
-            <SearchInput
-              v-model="searchForm.repair_id"
-              field-key="TemporaryRepairQuery_repair_id"
-              placeholder="请输入工单编号"
-              @input="handleSearch"
-            />
-          </div>
-          <div class="search-item">
-            <label class="search-label">开始日期：</label>
-            <input type="date" class="search-input" v-model="searchForm.plan_start_date" />
-          </div>
-          <div class="search-item">
-            <label class="search-label">结束日期：</label>
-            <input type="date" class="search-input" v-model="searchForm.plan_end_date" />
+          <div class="search-row">
+            <div class="search-item">
+              <label class="search-label">项目名称：</label>
+              <SearchInput
+                v-model="searchForm.project_name"
+                field-key="TemporaryRepairQuery_project_name"
+                placeholder="请输入项目名称"
+                @input="handleSearch"
+              />
+            </div>
+            <div class="search-item">
+              <label class="search-label">工单编号：</label>
+              <SearchInput
+                v-model="searchForm.repair_id"
+                field-key="TemporaryRepairQuery_repair_id"
+                placeholder="请输入工单编号"
+                @input="handleSearch"
+              />
+            </div>
           </div>
         </div>
         <div class="action-buttons">
@@ -364,18 +358,30 @@ export default defineComponent({
       if (!formData.value.project_id) return
       
       try {
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const dateStr = `${year}${month}${day}`
+        const prefix = `WX-${formData.value.project_id}-${dateStr}`
+        
         const response = await temporaryRepairService.getAll()
         
         if (response.code === 200) {
           const existingRepairs = response.data.filter(
-            item => item.project_id === formData.value.project_id
+            item => item.repair_id && item.repair_id.startsWith(prefix)
           )
           const nextNumber = existingRepairs.length + 1
-          formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(nextNumber).padStart(3, '0')}`
+          formData.value.repair_id = `${prefix}-${String(nextNumber).padStart(2, '0')}`
         }
       } catch (error) {
         console.error('生成维修单编号失败:', error)
-        formData.value.repair_id = `WX-${formData.value.project_id}-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-001`
+        const today = new Date()
+        const year = today.getFullYear()
+        const month = String(today.getMonth() + 1).padStart(2, '0')
+        const day = String(today.getDate()).padStart(2, '0')
+        const dateStr = `${year}${month}${day}`
+        formData.value.repair_id = `WX-${formData.value.project_id}-${dateStr}-01`
       }
     }
 
@@ -631,20 +637,26 @@ export default defineComponent({
 
 .search-section {
   display: flex;
-  gap: 16px;
-  margin-bottom: 20px;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .search-form {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
   gap: 16px;
+  align-items: center;
   flex: 1;
 }
 
 .search-row {
-  display: contents;
+  display: flex;
+  gap: 16px;
+  align-items: center;
 }
 
 .action-buttons {

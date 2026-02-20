@@ -5,23 +5,25 @@
 
     <div class="search-section">
       <div class="search-form">
-        <div class="search-item">
-          <label class="search-label">项目名称：</label>
-          <SearchInput
-            v-model="searchForm.projectName"
-            field-key="PeriodicInspectionQuery_projectName"
-            placeholder="请输入"
-            @input="handleSearch"
-          />
-        </div>
-        <div class="search-item">
-          <label class="search-label">客户名称：</label>
-          <SearchInput
-            v-model="searchForm.clientName"
-            field-key="PeriodicInspectionQuery_clientName"
-            placeholder="请输入"
-            @input="handleSearch"
-          />
+        <div class="search-row">
+          <div class="search-item">
+            <label class="search-label">项目名称：</label>
+            <SearchInput
+              v-model="searchForm.projectName"
+              field-key="PeriodicInspectionQuery_projectName"
+              placeholder="请输入项目名称"
+              @input="handleSearch"
+            />
+          </div>
+          <div class="search-item">
+            <label class="search-label">客户名称：</label>
+            <SearchInput
+              v-model="searchForm.clientName"
+              field-key="PeriodicInspectionQuery_clientName"
+              placeholder="请输入客户名称"
+              @input="handleSearch"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -171,6 +173,29 @@
             <label class="form-label">备注</label>
             <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
           </div>
+
+          <div class="operation-log-section" v-if="operationLogs.length > 0">
+            <div class="section-title">内部确认区</div>
+            <div class="timeline">
+              <div 
+                v-for="(log, index) in operationLogs" 
+                :key="log.id" 
+                class="timeline-item"
+                :class="{ 'last': index === operationLogs.length - 1 }"
+              >
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
+                  <span class="timeline-operator">{{ log.operator_name }}</span>
+                  <span class="timeline-action">{{ log.operation_type_name }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="operation-log-section" v-else-if="!loadingLogs">
+            <div class="section-title">内部确认区</div>
+            <div class="no-logs">暂无操作记录</div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
@@ -186,10 +211,25 @@ import { useRoute } from 'vue-router'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import { workPlanService, type WorkPlan } from '../services/workPlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
+import apiClient from '../utils/api'
+import type { ApiResponse } from '../types/api'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '../config/constants'
+
+interface OperationLogItem {
+  id: number
+  work_order_type: string
+  work_order_id: number
+  work_order_no: string
+  operator_name: string
+  operator_id: number | null
+  operation_type_code: string
+  operation_type_name: string
+  operation_remark: string | null
+  created_at: string
+}
 
 interface InspectionItem {
   id: number
@@ -260,6 +300,9 @@ export default defineComponent({
       remainingTime: ''
     })
 
+    const operationLogs = ref<OperationLogItem[]>([])
+    const loadingLogs = ref(false)
+
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
     let abortController: AbortController | null = null
@@ -284,6 +327,39 @@ export default defineComponent({
         hour: '2-digit',
         minute: '2-digit'
       })
+    }
+
+    /**
+     * 格式化操作时间
+     */
+    const formatOperationTime = (dateStr: string) => {
+      if (!dateStr) return '-'
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    }
+
+    /**
+     * 获取操作日志
+     */
+    const fetchOperationLogs = async (workOrderId: number) => {
+      if (!workOrderId) return
+      loadingLogs.value = true
+      try {
+        const response = await apiClient.get(`/work-order-operation-log?work_order_type=periodic_inspection&work_order_id=${workOrderId}`) as unknown as ApiResponse<OperationLogItem[]>
+        if (response.code === 200) {
+          operationLogs.value = response.data || []
+        }
+      } catch (error) {
+        console.error('获取操作日志失败:', error)
+        operationLogs.value = []
+      } finally {
+        loadingLogs.value = false
+      }
     }
 
     const calculateRemainingTime = (endDate: string): string => {
@@ -430,11 +506,13 @@ export default defineComponent({
         console.error('获取项目信息失败:', error)
       }
 
+      fetchOperationLogs(item.id)
       isViewModalOpen.value = true
     }
 
     const closeViewModal = () => {
       isViewModalOpen.value = false
+      operationLogs.value = []
     }
 
     const handleExport = (item: InspectionItem) => {
@@ -536,6 +614,8 @@ export default defineComponent({
       loading,
       viewData,
       toast,
+      operationLogs,
+      loadingLogs,
       openModal: () => {},
       closeModal: () => {},
       handleView,
@@ -546,6 +626,7 @@ export default defineComponent({
       handlePageSizeChange,
       formatDate,
       formatDateTime,
+      formatOperationTime,
       getStatusClass,
       getRemainingTimeClass,
       WORK_STATUS
@@ -575,7 +656,15 @@ export default defineComponent({
 
 .search-form {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.search-row {
+  display: flex;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -1000,5 +1089,90 @@ export default defineComponent({
 
 .btn-cancel:hover:not(:disabled) {
   background: #f5f5f5;
+}
+
+.operation-log-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-left: 12px;
+  border-left: 3px solid #1976d2;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timeline-item.last {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1976d2;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #1976d2;
+}
+
+.timeline-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timeline-time {
+  font-size: 14px;
+  color: #666;
+  font-family: monospace;
+}
+
+.timeline-operator {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.timeline-action {
+  font-size: 13px;
+  color: #1976d2;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.no-logs {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 20px 0;
 }
 </style>

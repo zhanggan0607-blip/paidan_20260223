@@ -1,5 +1,6 @@
 from sqlalchemy import Column, BigInteger, String, Integer, Index, DateTime
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 
 
@@ -15,6 +16,8 @@ class SparePartsStock(Base):
     status = Column(String(20), nullable=False, default="在库", comment="状态：在库/已使用/缺货")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+    
+    usages = relationship("SparePartsUsage", back_populates="stock", passive_deletes=True)
     
     __table_args__ = (
         Index('idx_product_name_brand_model', 'product_name', 'brand', 'model'),

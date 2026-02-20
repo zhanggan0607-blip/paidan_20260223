@@ -96,13 +96,37 @@ const routes = [
     path: '/maintenance-log-detail/:id',
     name: 'MaintenanceLogDetail',
     component: () => import('../views/MaintenanceLogDetailPage.vue'),
-    meta: { title: '维保日志详情', permission: 'canViewMaintenanceLog' }
+    meta: { title: '维保日志详情', permission: 'canViewMaintenanceLogDetail' }
   },
   {
     path: '/maintenance-log-all',
     name: 'MaintenanceLogAll',
     component: () => import('../views/MaintenanceLogAllPage.vue'),
     meta: { title: '查看维保日志', permission: 'canViewAllMaintenanceLog' }
+  },
+  {
+    path: '/weekly-report',
+    name: 'WeeklyReportFill',
+    component: () => import('../views/WeeklyReportFillPage.vue'),
+    meta: { title: '部门周报填报', permission: 'canViewDepartmentWeeklyReport' }
+  },
+  {
+    path: '/weekly-report-list',
+    name: 'WeeklyReportList',
+    component: () => import('../views/WeeklyReportListPage.vue'),
+    meta: { title: '已报部门周报', permission: 'canViewDepartmentWeeklyReport' }
+  },
+  {
+    path: '/weekly-report-all',
+    name: 'WeeklyReportAll',
+    component: () => import('../views/WeeklyReportAllPage.vue'),
+    meta: { title: '查看部门周报', permission: 'canViewAllWeeklyReport' }
+  },
+  {
+    path: '/weekly-report-detail/:id',
+    name: 'WeeklyReportDetail',
+    component: () => import('../views/WeeklyReportDetailPage.vue'),
+    meta: { title: '部门周报详情', permission: 'canViewAllWeeklyReport' }
   },
   {
     path: '/spare-parts-issue',
@@ -126,7 +150,13 @@ const routes = [
     path: '/repair-tools-stock',
     name: 'RepairToolsStock',
     component: () => import('../views/RepairToolsStockPage.vue'),
-    meta: { title: '维修工具入库', permission: 'canViewRepairToolsInbound' }
+    meta: { title: '维修工具库存', permission: 'canViewRepairToolsInbound' }
+  },
+  {
+    path: '/repair-tools-return',
+    name: 'RepairToolsReturn',
+    component: () => import('../views/RepairToolsReturnPage.vue'),
+    meta: { title: '维修工具归还', permission: 'canViewRepairToolsIssue' }
   }
 ]
 

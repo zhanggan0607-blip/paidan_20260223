@@ -11,11 +11,13 @@ class MaintenanceLog(Base):
     log_id = Column(String(50), unique=True, nullable=False, comment="日志编号")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
-    log_type = Column(String(20), nullable=False, default="periodic", comment="日志类型: periodic巡检/repair维修/spot用工")
+    log_type = Column(String(20), nullable=False, default="maintenance", comment="日志类型: maintenance维修日志")
     log_date = Column(DateTime, nullable=False, comment="日志日期")
     work_content = Column(Text, comment="工作内容")
     images = Column(Text, comment="现场照片JSON数组")
     remark = Column(String(500), comment="备注")
+    status = Column(String(20), default="submitted", comment="状态: submitted已提交/rejected已退回")
+    reject_reason = Column(String(500), comment="退回原因")
     created_by = Column(String(100), comment="创建人")
     is_deleted = Column(BigInteger, default=0, comment="是否删除: 0否/1是")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
@@ -30,6 +32,7 @@ class MaintenanceLog(Base):
         Index('idx_maintenance_log_type', 'log_type'),
         Index('idx_maintenance_log_date', 'log_date'),
         Index('idx_maintenance_log_created_by', 'created_by'),
+        Index('idx_maintenance_log_status', 'status'),
         {'comment': '维保日志表'}
     )
     
@@ -44,6 +47,8 @@ class MaintenanceLog(Base):
             'work_content': self.work_content,
             'images': self.images,
             'remark': self.remark,
+            'status': self.status,
+            'reject_reason': self.reject_reason,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

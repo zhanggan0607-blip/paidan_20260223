@@ -30,6 +30,7 @@ class ProjectInfo(Base):
     periodic_inspections = relationship("PeriodicInspection", back_populates="project", passive_deletes=True)
     work_plans = relationship("WorkPlan", back_populates="project", passive_deletes=True)
     maintenance_logs = relationship("MaintenanceLog", back_populates="project", passive_deletes=True)
+    weekly_reports = relationship("WeeklyReport", back_populates="project", passive_deletes=True)
     
     __table_args__ = (
         Index('idx_project_info_id', 'project_id'),

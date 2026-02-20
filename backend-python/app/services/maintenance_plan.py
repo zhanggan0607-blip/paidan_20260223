@@ -9,6 +9,7 @@ from app.models.temporary_repair import TemporaryRepair
 from app.models.spot_work import SpotWork
 from app.repositories.maintenance_plan import MaintenancePlanRepository
 from app.schemas.maintenance_plan import MaintenancePlanCreate, MaintenancePlanUpdate
+from app.services.sync_service import SyncService
 
 logger = logging.getLogger(__name__)
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 class MaintenancePlanService:
     def __init__(self, db: Session):
         self.repository = MaintenancePlanRepository(db)
+        self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         if date_value is None:
@@ -40,17 +42,17 @@ class MaintenancePlanService:
         project_id: Optional[str] = None,
         equipment_name: Optional[str] = None,
         plan_status: Optional[str] = None,
-        execution_status: Optional[str] = None,
-        responsible_person: Optional[str] = None,
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
         plan_type: Optional[str] = None,
-        responsible_person_filter: Optional[str] = None
+        maintenance_personnel_filter: Optional[str] = None
     ) -> tuple[List[MaintenancePlan], int]:
         return self.repository.find_all(
             page, size, plan_name, project_id, equipment_name, 
-            plan_status, execution_status, responsible_person,
-            project_name, client_name, plan_type, responsible_person_filter
+            plan_status, status, maintenance_personnel,
+            project_name, client_name, plan_type, maintenance_personnel_filter
         )
     
     def get_by_id(self, id: int) -> MaintenancePlan:
@@ -103,15 +105,17 @@ class MaintenancePlanService:
             plan_end_date=self._parse_date(dto.plan_end_date),
             execution_date=self._parse_date(dto.execution_date),
             next_maintenance_date=self._parse_date(dto.next_maintenance_date),
-            responsible_person=dto.responsible_person,
+            maintenance_personnel=dto.maintenance_personnel,
             responsible_department=dto.responsible_department,
             contact_info=dto.contact_info,
             maintenance_content=dto.maintenance_content,
             maintenance_requirements=dto.maintenance_requirements,
             maintenance_standard=dto.maintenance_standard,
             plan_status=dto.plan_status,
-            execution_status=dto.execution_status,
+            status=dto.status,
             completion_rate=dto.completion_rate,
+            filled_count=dto.filled_count or 0,
+            total_count=dto.total_count or 5,
             remarks=dto.remarks,
             inspection_items=dto.inspection_items
         )
@@ -121,6 +125,9 @@ class MaintenancePlanService:
         logger.info(f"✅ [Service] 数据库保存成功: id={result.id}, plan_id={result.plan_id}")
         
         self._create_work_order_for_plan(result)
+        
+        self.sync_service.sync_maintenance_plan_to_work_plan(result)
+        logger.info(f"✅ [Service] 同步到WorkPlan成功: plan_id={result.plan_id}")
         
         return result
     
@@ -161,7 +168,7 @@ class MaintenancePlanService:
                 plan_start_date=plan.plan_start_date,
                 plan_end_date=plan.plan_end_date,
                 client_name=client_name,
-                maintenance_personnel=plan.responsible_person,
+                maintenance_personnel=plan.maintenance_personnel,
                 status='未进行',
                 remarks=plan.remarks
             )
@@ -196,19 +203,26 @@ class MaintenancePlanService:
         existing_plan.plan_end_date = self._parse_date(dto.plan_end_date)
         existing_plan.execution_date = self._parse_date(dto.execution_date)
         existing_plan.next_maintenance_date = self._parse_date(dto.next_maintenance_date)
-        existing_plan.responsible_person = dto.responsible_person
+        existing_plan.maintenance_personnel = dto.maintenance_personnel
         existing_plan.responsible_department = dto.responsible_department
         existing_plan.contact_info = dto.contact_info
         existing_plan.maintenance_content = dto.maintenance_content
         existing_plan.maintenance_requirements = dto.maintenance_requirements
         existing_plan.maintenance_standard = dto.maintenance_standard
         existing_plan.plan_status = dto.plan_status
-        existing_plan.execution_status = dto.execution_status
+        existing_plan.status = dto.status
         existing_plan.completion_rate = dto.completion_rate
+        existing_plan.filled_count = dto.filled_count or 0
+        existing_plan.total_count = dto.total_count or 5
         existing_plan.remarks = dto.remarks
         existing_plan.inspection_items = dto.inspection_items
         
-        return self.repository.update(existing_plan)
+        result = self.repository.update(existing_plan)
+        
+        self.sync_service.sync_maintenance_plan_to_work_plan(result)
+        logger.info(f"✅ [Service] 同步更新WorkPlan成功: plan_id={result.plan_id}")
+        
+        return result
     
     def delete(self, id: int) -> dict:
         """
@@ -224,7 +238,8 @@ class MaintenancePlanService:
             'plan_id': plan_id,
             'periodic_inspections': 0,
             'temporary_repairs': 0,
-            'spot_works': 0
+            'spot_works': 0,
+            'work_plan': False
         }
         
         try:
@@ -240,6 +255,9 @@ class MaintenancePlanService:
                 SpotWork.plan_id == plan_id
             ).delete(synchronize_session=False)
             
+            self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan, is_delete=True)
+            deleted_stats['work_plan'] = True
+            
             self.repository.delete(maintenance_plan)
             
             logger.info(f"✅ [Service] 维保计划删除成功: plan_id={plan_id}, "
@@ -253,13 +271,14 @@ class MaintenancePlanService:
             logger.error(f"❌ [Service] 删除维保计划失败: plan_id={plan_id}, error={str(e)}")
             raise
     
-    def update_execution_status(self, id: int, status: str) -> MaintenancePlan:
-        maintenance_plan = self.repository.update_execution_status(id, status)
+    def update_status(self, id: int, status: str) -> MaintenancePlan:
+        maintenance_plan = self.repository.update_status(id, status)
         if not maintenance_plan:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="维保计划不存在"
             )
+        self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan)
         return maintenance_plan
     
     def update_completion_rate(self, id: int, rate: int) -> MaintenancePlan:
@@ -274,6 +293,7 @@ class MaintenancePlanService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="维保计划不存在"
             )
+        self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan)
         return maintenance_plan
     
     def get_all_unpaginated(self) -> List[MaintenancePlan]:

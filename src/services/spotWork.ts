@@ -1,51 +1,45 @@
 import apiClient from '../utils/api'
+import type { SpotWork as SpotWorkType, SpotWorkWorker, ApiResponse, PaginatedResponse } from '../types/api'
 
-export interface SpotWork {
-  id: number
-  work_id: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name: string
-  maintenance_personnel: string
-  status: string
-  remarks?: string
-  created_at: string
-  updated_at: string
-}
+export type SpotWork = SpotWorkType
 
 export interface SpotWorkCreate {
   work_id: string
+  plan_id?: string
   project_id: string
   project_name: string
   plan_start_date: string
   plan_end_date: string
-  client_name: string
-  maintenance_personnel: string
-  status: string
+  client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  maintenance_personnel?: string
+  work_content?: string
+  photos?: string
+  signature?: string
+  status?: string
   remarks?: string
 }
 
 export interface SpotWorkUpdate {
   work_id?: string
+  plan_id?: string
   project_id?: string
   project_name?: string
   plan_start_date?: string
   plan_end_date?: string
   client_name?: string
+  client_contact?: string
+  client_contact_info?: string
   maintenance_personnel?: string
+  work_content?: string
+  photos?: string
+  signature?: string
   status?: string
   remarks?: string
 }
 
-export interface ApiResponse<T = any> {
-  code: number
-  message: string
-  data: T
-}
-
-export interface PaginatedResponse {
+export interface SpotWorkPaginatedResponse {
   code: number
   message: string
   data: {
@@ -66,7 +60,7 @@ export const spotWorkService = {
     project_name?: string
     work_id?: string
     status?: string
-  }): Promise<PaginatedResponse> {
+  }): Promise<SpotWorkPaginatedResponse> {
     return await apiClient.get('/spot-work', { params })
   },
 

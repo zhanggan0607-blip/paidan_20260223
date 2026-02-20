@@ -219,7 +219,7 @@ onMounted(() => {
 <template>
   <div class="repair-tools-stock-page">
     <van-nav-bar 
-      title="维修工具入库" 
+      title="维修工具库存" 
       fixed 
       placeholder 
       @click-left="handleBack" 

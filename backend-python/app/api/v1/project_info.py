@@ -1,6 +1,6 @@
 from typing import Optional
 import logging
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.services.project_info import ProjectInfoService
@@ -11,7 +11,7 @@ from app.schemas.project_info import (
     PaginatedResponse,
     ApiResponse
 )
-from app.auth import get_current_user
+from app.auth import get_current_user, get_current_user_from_headers
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,9 @@ router = APIRouter(prefix="/project-info", tags=["项目信息管理"])
 
 @router.get("", response_model=PaginatedResponse)
 def get_project_info_list(
+    request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    size: int = Query(10, ge=1, le=100, description="每页大小"),
+    size: int = Query(10, ge=1, le=2000, description="每页大小"),
     project_name: Optional[str] = Query(None, description="项目名称（模糊查询）"),
     client_name: Optional[str] = Query(None, description="客户名称（模糊查询）"),
     db: Session = Depends(get_db),
@@ -29,20 +30,25 @@ def get_project_info_list(
 ):
     """
     获取项目信息列表，支持分页和条件查询
+    普通用户只能看到自己是运维人员的项目
+    如果用户名与项目运维人员不匹配，返回空列表
     """
     service = ProjectInfoService(db)
     
+    user_info = current_user or get_current_user_from_headers(request)
     user_name = None
     is_manager = False
     project_ids = None
     
-    if current_user:
-        user_name = current_user.get('sub') or current_user.get('name')
-        role = current_user.get('role', '')
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
         is_manager = role in ['管理员', '部门经理', '主管']
         
         if not is_manager and user_name:
             project_ids = service.get_user_project_ids(user_name)
+            if not project_ids:
+                return PaginatedResponse.success([], 0, page, size)
     
     items, total = service.get_all(page, size, project_name, client_name, project_ids)
     items_dict = [item.to_dict() for item in items]
@@ -51,25 +57,31 @@ def get_project_info_list(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_project_info(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
     """
     获取所有项目信息列表，不分页
+    普通用户只能看到自己是运维人员的项目
+    如果用户名与项目运维人员不匹配，返回空列表
     """
     service = ProjectInfoService(db)
     
+    user_info = current_user or get_current_user_from_headers(request)
     user_name = None
     is_manager = False
     project_ids = None
     
-    if current_user:
-        user_name = current_user.get('sub') or current_user.get('name')
-        role = current_user.get('role', '')
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+        role = user_info.get('role', '')
         is_manager = role in ['管理员', '部门经理', '主管']
         
         if not is_manager and user_name:
             project_ids = service.get_user_project_ids(user_name)
+            if not project_ids:
+                return ApiResponse.success([])
     
     items = service.get_all_unpaginated(project_ids)
     return ApiResponse.success([item.to_dict() for item in items])

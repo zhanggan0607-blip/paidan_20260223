@@ -3,34 +3,23 @@
     <div class="main-layout">
       <div class="content-area">
         <div class="content-wrapper">
-          <div class="header-section">
-            <h2 class="page-title">备品备件入库</h2>
-          </div>
-
-          <div class="filter-section">
-            <div class="filter-fields">
-              <div class="filter-group">
-                <label class="filter-label">产品名称</label>
-                <SearchInput
-                  v-model="filters.product"
-                  field-key="SparePartsStock_product"
-                  placeholder="请输入产品名称"
-                  @input="handleSearch"
-                />
-              </div>
-              <div class="filter-group">
-                <label class="filter-label">入库人</label>
-                <select v-model="filters.user" class="filter-select">
-                  <option value="">全部</option>
-                  <option v-for="user in userList" :key="user.id" :value="user.name">
-                    {{ user.name }}
-                  </option>
-                </select>
+          <div class="search-section">
+            <div class="search-form">
+              <div class="search-row">
+                <div class="search-item">
+                  <label class="search-label">产品名称：</label>
+                  <SearchInput
+                    v-model="filters.product"
+                    field-key="SparePartsStock_product"
+                    placeholder="请输入产品名称"
+                    @input="handleSearch"
+                  />
+                </div>
               </div>
             </div>
-            <button @click="showAddModal = true" class="add-button">
-              新增备品备件
-            </button>
+            <div class="action-buttons">
+              <a v-if="isMaterialManager" href="#" class="action-link action-add" @click.prevent="showAddModal = true">新增入库</a>
+            </div>
           </div>
 
           <div class="table-section">
@@ -124,7 +113,7 @@
     <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>新增备品备件入库</h3>
+          <h3>新增备品备件库存</h3>
           <button @click="showAddModal = false" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
@@ -230,6 +219,7 @@ import type { ApiResponse, PaginatedResponse, SparePartsStockQueryParams } from 
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { USER_ROLES } from '@/config/constants'
+import { authService } from '@/services/auth'
 
 interface InboundRecord {
   id: number
@@ -276,10 +266,10 @@ export default defineComponent({
       remarks: ''
     })
     const filters = ref({
-      product: '',
-      user: ''
+      product: ''
     })
     const userList = ref<User[]>([])
+    const isMaterialManager = ref(false)
 
     // Toast state
     const toast = ref({
@@ -316,9 +306,6 @@ export default defineComponent({
         }
         if (filters.value.product) {
           params.product = filters.value.product
-        }
-        if (filters.value.user) {
-          params.user = filters.value.user
         }
         const response = await apiClient.get<ApiResponse<PaginatedResponse<InboundRecord>>>(
           '/spare-parts/inbound-records',
@@ -425,6 +412,8 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      const currentUser = authService.getCurrentUser()
+      isMaterialManager.value = authService.isMaterialManagerOnly(currentUser)
       loadUsers()
       loadRecords()
       window.addEventListener('user-changed', handleUserChanged)
@@ -453,6 +442,7 @@ export default defineComponent({
       inboundForm,
       filters,
       userList,
+      isMaterialManager,
       toast,
       handleInboundSubmit,
       handleResetForm,
@@ -491,20 +481,9 @@ export default defineComponent({
   overflow-y: auto;
 }
 
-.header-section {
-  margin-bottom: 20px;
-}
-
-.page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-  margin: 0;
-}
-
 .add-button {
   padding: 8px 24px;
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+  background: linear-gradient(135deg, #388e3c 0%, #66bb6a 100%);
   color: #fff;
   border: none;
   border-radius: 4px;
@@ -512,61 +491,85 @@ export default defineComponent({
   font-weight: 500;
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+  height: 38px;
 }
 
 .add-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+  box-shadow: 0 4px 12px rgba(56, 142, 60, 0.3);
 }
 
-.filter-section {
+.search-section {
   display: flex;
   gap: 16px;
-  align-items: flex-end;
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+  align-items: flex-start;
 }
 
-.filter-fields {
-  display: flex;
-  gap: 16px;
-  align-items: flex-end;
-  flex: 2;
-}
-
-.filter-group {
+.search-form {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
+  align-items: flex-start;
   flex: 1;
 }
 
-.filter-label {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
+.search-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.filter-input,
-.filter-select {
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.search-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #d0d7de;
   border-radius: 4px;
   font-size: 14px;
-  transition: border-color 0.2s;
+  outline: none;
+  min-width: 180px;
 }
 
-.filter-input:focus,
-.filter-select:focus {
-  outline: none;
+.search-input:focus {
   border-color: #1976d2;
-  box-shadow: 0 0 3px rgba(25, 118, 210, 0.1);
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.action-link {
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.2s;
+  padding: 8px 16px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.action-add {
+  color: #fff;
+  background: linear-gradient(135deg, #388e3c 0%, #66bb6a 100%);
+}
+
+.action-add:hover {
+  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
 }
 
 .search-button {

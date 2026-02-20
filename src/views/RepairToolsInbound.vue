@@ -3,27 +3,23 @@
     <div class="main-layout">
       <div class="content-area">
         <div class="content-wrapper">
-          <div class="filter-section">
-            <div class="filter-item">
-              <label class="filter-label">工具名称</label>
-              <SearchInput
-                v-model="filters.toolName"
-                field-key="RepairToolsInbound_toolName"
-                placeholder="请输入工具名称"
-                @input="handleSearch"
-              />
+          <div class="search-section">
+            <div class="search-form">
+              <div class="search-row">
+                <div class="search-item">
+                  <label class="search-label">工具名称：</label>
+                  <SearchInput
+                    v-model="filters.toolName"
+                    field-key="RepairToolsInbound_toolName"
+                    placeholder="请输入工具名称"
+                    @input="handleSearch"
+                  />
+                </div>
+              </div>
             </div>
-
-            <div class="filter-item">
-              <label class="filter-label">工具分类</label>
-              <select v-model="filters.category" class="filter-select">
-                <option value="">全部</option>
-                <option v-for="cat in categoryList" :key="cat" :value="cat">
-                  {{ cat }}
-                </option>
-              </select>
+            <div class="action-buttons">
+              <button v-if="isMaterialManager" @click="handleAdd" class="btn btn-add">新增入库</button>
             </div>
-            <button @click="handleAdd" class="add-button">新增入库</button>
           </div>
 
           <div class="table-section">
@@ -222,6 +218,7 @@ import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import SearchInput from '@/components/SearchInput.vue'
+import { authService } from '@/services/auth'
 
 interface RepairToolsStockItem {
   id: number
@@ -253,8 +250,7 @@ export default defineComponent({
     const isEdit = ref(false)
 
     const filters = ref({
-      toolName: '',
-      category: ''
+      toolName: ''
     })
 
     const formData = ref({
@@ -279,6 +275,8 @@ export default defineComponent({
 
     const categoryList = ref(['电动工具', '手动工具', '测量工具', '焊接工具', '起重工具', '其他'])
 
+    const isMaterialManager = ref(false)
+
     let abortController: AbortController | null = null
 
     const totalPages = computed(() => {
@@ -298,7 +296,6 @@ export default defineComponent({
           size: pageSize.value
         }
         if (filters.value.toolName) params.tool_name = filters.value.toolName
-        if (filters.value.category) params.category = filters.value.category
 
         const response = await apiClient.get('/repair-tools/stock', { 
           params, 
@@ -443,6 +440,8 @@ export default defineComponent({
     }
 
     onMounted(() => {
+      const currentUser = authService.getCurrentUser()
+      isMaterialManager.value = authService.isMaterialManagerOnly(currentUser)
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
     })
@@ -471,6 +470,7 @@ export default defineComponent({
       showAddModal,
       showRestockModal,
       isEdit,
+      isMaterialManager,
       handleSearch,
       handleAdd,
       handleEdit,
@@ -513,15 +513,43 @@ export default defineComponent({
   overflow-y: auto;
 }
 
-.filter-section {
+.search-section {
   display: flex;
   gap: 16px;
-  align-items: flex-end;
+  margin-bottom: 20px;
+  align-items: flex-start;
   padding: 16px;
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.search-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
   flex-wrap: wrap;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .filter-item {

@@ -55,10 +55,12 @@ def create_spare_parts_usage(
             SparePartsStock.model == (data.model or '')
         ).first()
         
+        stock_id = None
         if stock:
             if stock.quantity < data.quantity:
                 return ApiResponse(code=400, message=f"库存不足，当前库存: {stock.quantity}", data=None)
             stock.quantity -= data.quantity
+            stock_id = stock.id
         
         project_name = data.project_name
         if data.project_id and not project_name:
@@ -75,14 +77,15 @@ def create_spare_parts_usage(
             issue_time=issue_time,
             unit=data.unit,
             project_id=data.project_id,
-            project_name=project_name
+            project_name=project_name,
+            stock_id=stock_id
         )
         
         db.add(usage)
         db.commit()
         db.refresh(usage)
         
-        logger.info(f"备品备件领用记录创建成功: id={usage.id}")
+        logger.info(f"备品备件领用记录创建成功: id={usage.id}, stock_id={stock_id}")
         
         return ApiResponse(
             code=200,
@@ -91,7 +94,8 @@ def create_spare_parts_usage(
                 'id': usage.id,
                 'product_name': usage.product_name,
                 'quantity': usage.quantity,
-                'user_name': usage.user_name
+                'user_name': usage.user_name,
+                'stock_id': stock_id
             }
         )
     except Exception as e:
@@ -107,7 +111,7 @@ def get_spare_parts_usage(
     product: Optional[str] = Query(None, description="产品名称"),
     project: Optional[str] = Query(None, description="项目名称"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
+    pageSize: int = Query(10, ge=1, le=2000, description="每页数量"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showFailToast } from 'vant'
+import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
@@ -22,23 +22,51 @@ interface MaintenanceLogDetail {
   updated_at: string
 }
 
+interface OperationLogItem {
+  id: number
+  work_order_type: string
+  work_order_id: number
+  work_order_no: string
+  operator_name: string
+  operator_id: number | null
+  operation_type_code: string
+  operation_type_name: string
+  operation_remark: string | null
+  created_at: string
+}
+
 const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
 const logDetail = ref<MaintenanceLogDetail | null>(null)
 const imageList = ref<string[]>([])
+const operationLogs = ref<OperationLogItem[]>([])
 
 /**
  * 获取日志类型名称
  */
 const getLogTypeName = (logType: string) => {
   const typeMap: Record<string, string> = {
-    'spot': '用工日志',
-    'inspection': '巡检日志',
+    'maintenance': '维修日志',
+    'spot': '维修日志',
     'repair': '维修日志'
   }
-  return typeMap[logType] || logType
+  return typeMap[logType] || '维修日志'
+}
+
+/**
+ * 格式化操作时间
+ */
+const formatOperationTime = (dateStr: string) => {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 /**
@@ -46,6 +74,7 @@ const getLogTypeName = (logType: string) => {
  */
 const fetchLogDetail = async () => {
   const id = route.params.id
+  console.log('fetchLogDetail called, id:', id, 'route.params:', route.params)
   if (!id) {
     showFailToast('日志ID不存在')
     return
@@ -55,7 +84,10 @@ const fetchLogDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
-    const response = await api.get<unknown, ApiResponse<MaintenanceLogDetail>>(`/maintenance-log/${id}`)
+    const url = `/maintenance-log/${id}`
+    console.log('Fetching detail from:', url)
+    const response = await api.get<unknown, ApiResponse<MaintenanceLogDetail>>(url)
+    console.log('Detail response:', response)
     
     if (response.code === 200 && response.data) {
       logDetail.value = response.data
@@ -67,6 +99,9 @@ const fetchLogDetail = async () => {
           imageList.value = []
         }
       }
+      
+      // 获取操作日志
+      fetchOperationLogs(Number(id))
     } else {
       showFailToast(response.message || '获取详情失败')
     }
@@ -80,12 +115,25 @@ const fetchLogDetail = async () => {
 }
 
 /**
+ * 获取操作日志
+ */
+const fetchOperationLogs = async (logId: number) => {
+  try {
+    const response = await api.get<unknown, ApiResponse<OperationLogItem[]>>(`/maintenance-log/${logId}/operation-logs`)
+    if (response.code === 200) {
+      operationLogs.value = response.data || []
+    }
+  } catch (error) {
+    console.error('Failed to fetch operation logs:', error)
+  }
+}
+
+/**
  * 预览图片
  */
 const handlePreviewImage = (index: number) => {
   if (imageList.value.length > 0) {
-    const { ImagePreview } = require('vant')
-    ImagePreview({
+    showImagePreview({
       images: imageList.value,
       startPosition: index
     })
@@ -93,7 +141,7 @@ const handlePreviewImage = (index: number) => {
 }
 
 const handleBack = () => {
-  router.push('/maintenance-log-list')
+  router.back()
 }
 
 onMounted(() => {
@@ -152,7 +200,27 @@ onMounted(() => {
               class="image-item"
               @click="handlePreviewImage(index)"
             >
-              <img :src="img" alt="现场照片" />
+              <img :src="img" alt="现场照片" loading="lazy" />
+            </div>
+          </div>
+        </div>
+      </van-cell-group>
+      
+      <van-cell-group inset title="内部确认区" v-if="operationLogs.length > 0">
+        <div class="operation-log-section">
+          <div class="timeline">
+            <div 
+              v-for="(log, index) in operationLogs" 
+              :key="log.id" 
+              class="timeline-item"
+              :class="{ 'last': index === operationLogs.length - 1 }"
+            >
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
+                <span class="timeline-operator">{{ log.operator_name }}</span>
+                <span class="timeline-action">{{ log.operation_type_name }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -225,5 +293,72 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   color: #323233;
+}
+
+.operation-log-section {
+  padding: 12px 16px;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 20px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 12px;
+}
+
+.timeline-item.last {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -16px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #1989fa;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #1989fa;
+}
+
+.timeline-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-time {
+  font-size: 13px;
+  color: #666;
+  font-family: monospace;
+}
+
+.timeline-operator {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+}
+
+.timeline-action {
+  font-size: 12px;
+  color: #1989fa;
+  background: #e8f4ff;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 </style>

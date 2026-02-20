@@ -171,6 +171,20 @@ export default defineComponent({
           return authService.canViewRepairToolsInbound(user)
         case 'repair-tools-issue':
           return authService.canViewRepairToolsIssue(user)
+        case 'repair-tools-return':
+          return authService.canViewRepairToolsIssue(user)
+        case 'maintenance-log-fill':
+          return authService.canFillMaintenanceLog(user)
+        case 'maintenance-log-list':
+          return authService.canViewMaintenanceLog(user)
+        case 'maintenance-log-all':
+          return authService.canViewAllMaintenanceLog(user)
+        case 'weekly-report-fill':
+          return authService.canFillWeeklyReport(user)
+        case 'weekly-report-list':
+          return authService.isDepartmentManager(user)
+        case 'weekly-report-all':
+          return authService.canViewWeeklyReport(user)
         default:
           return false
       }
@@ -196,9 +210,9 @@ export default defineComponent({
         id: 'work-order',
         label: '工单管理',
         children: [
-          { id: 'work-plan', label: '定期巡检单管理', path: '/work-plan' },
+          { id: 'work-plan', label: '定期巡检单查询', path: '/work-plan' },
           { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
-          { id: 'spot-work', label: '零星用工管理', path: '/work-order/spot-work' }
+          { id: 'spot-work', label: '零星用工单查询', path: '/work-order/spot-work' }
         ]
       },
       {
@@ -206,7 +220,7 @@ export default defineComponent({
         label: '备品备件管理',
         children: [
           { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
-          { id: 'spare-parts-stock', label: '备品备件入库', path: '/spare-parts/stock' }
+          { id: 'spare-parts-stock', label: '备品备件库存', path: '/spare-parts/stock' }
         ]
       },
       {
@@ -214,7 +228,20 @@ export default defineComponent({
         label: '维修工具管理',
         children: [
           { id: 'repair-tools-issue', label: '维修工具领用', path: '/repair-tools/issue' },
-          { id: 'repair-tools-inbound', label: '维修工具入库', path: '/repair-tools/inbound' }
+          { id: 'repair-tools-return', label: '维修工具归还', path: '/repair-tools/return' },
+          { id: 'repair-tools-inbound', label: '维修工具库存', path: '/repair-tools/inbound' }
+        ]
+      },
+      {
+        id: 'maintenance-log',
+        label: '维保日志',
+        children: [
+          { id: 'maintenance-log-fill', label: '新报维保日志', path: '/maintenance-log/fill' },
+          { id: 'maintenance-log-list', label: '已报维保日志', path: '/maintenance-log/list' },
+          { id: 'maintenance-log-all', label: '查看维保日志', path: '/maintenance-log/all' },
+          { id: 'weekly-report-fill', label: '新报部门周报', path: '/weekly-report/fill' },
+          { id: 'weekly-report-list', label: '已报部门周报', path: '/weekly-report/list' },
+          { id: 'weekly-report-all', label: '查看部门周报', path: '/weekly-report/all' }
         ]
       },
       {
@@ -277,15 +304,15 @@ export default defineComponent({
       if (path === '/work-order/spot-work') {
         return {
           level1: '工单管理',
-          level2: '零星用工管理',
-          full: '工单管理 / 零星用工管理'
+          level2: '零星用工单查询',
+          full: '工单管理 / 零星用工单查询'
         }
       }
       if (path === '/work-plan') {
         return {
           level1: '工单管理',
-          level2: '定期巡检单管理',
-          full: '工单管理 / 定期巡检单管理'
+          level2: '定期巡检单查询',
+          full: '工单管理 / 定期巡检单查询'
         }
       }
       if (path === '/spare-parts/issue') {
@@ -298,8 +325,8 @@ export default defineComponent({
       if (path === '/spare-parts/stock') {
         return {
           level1: '备品备件管理',
-          level2: '备品备件入库',
-          full: '备品备件管理 / 备品备件入库'
+          level2: '',
+          full: '备品备件管理'
         }
       }
       if (path === '/spare-parts') {
@@ -316,11 +343,60 @@ export default defineComponent({
           full: '维修工具管理 / 维修工具领用'
         }
       }
+      if (path === '/repair-tools/return') {
+        return {
+          level1: '维修工具管理',
+          level2: '维修工具归还',
+          full: '维修工具管理 / 维修工具归还'
+        }
+      }
       if (path === '/repair-tools/inbound') {
         return {
           level1: '维修工具管理',
-          level2: '维修工具入库',
-          full: '维修工具管理 / 维修工具入库'
+          level2: '维修工具库存',
+          full: '维修工具管理 / 维修工具库存'
+        }
+      }
+      if (path === '/maintenance-log/fill') {
+        return {
+          level1: '维保日志',
+          level2: '新报维保日志',
+          full: '维保日志 / 新报维保日志'
+        }
+      }
+      if (path === '/maintenance-log/list') {
+        return {
+          level1: '维保日志',
+          level2: '已报维保日志',
+          full: '维保日志 / 已报维保日志'
+        }
+      }
+      if (path === '/maintenance-log/all') {
+        return {
+          level1: '维保日志',
+          level2: '查看维保日志',
+          full: '维保日志 / 查看维保日志'
+        }
+      }
+      if (path === '/weekly-report/fill') {
+        return {
+          level1: '维保日志',
+          level2: '新报部门周报',
+          full: '维保日志 / 新报部门周报'
+        }
+      }
+      if (path === '/weekly-report/list') {
+        return {
+          level1: '维保日志',
+          level2: '已报部门周报',
+          full: '维保日志 / 已报部门周报'
+        }
+      }
+      if (path === '/weekly-report/all') {
+        return {
+          level1: '维保日志',
+          level2: '查看部门周报',
+          full: '维保日志 / 查看部门周报'
         }
       }
       return {

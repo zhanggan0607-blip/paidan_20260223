@@ -22,6 +22,7 @@ class PeriodicInspection(Base):
     execution_result = Column(Text, comment="发现问题")
     remarks = Column(String(500), comment="处理结果")
     signature = Column(Text, comment="用户签名(base64)")
+    actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
@@ -73,6 +74,7 @@ class PeriodicInspection(Base):
             'execution_result': self.execution_result,
             'remarks': self.remarks,
             'signature': self.signature,
+            'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

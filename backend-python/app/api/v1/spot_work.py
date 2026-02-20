@@ -5,6 +5,7 @@ from app.database import get_db
 from app.services.spot_work import SpotWorkService
 from app.services.personnel import PersonnelService
 from app.schemas.common import ApiResponse, PaginatedResponse
+from app.schemas.spot_work import SpotWorkCreate, SpotWorkUpdate, SpotWorkPartialUpdate
 from app.auth import get_current_user, get_current_user_from_headers
 from pydantic import BaseModel
 
@@ -14,7 +15,12 @@ router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
 
 class WorkerInfo(BaseModel):
     name: str
+    gender: Optional[str] = None
+    birthDate: Optional[str] = None
+    address: Optional[str] = None
     idCardNumber: str
+    issuingAuthority: Optional[str] = None
+    validPeriod: Optional[str] = None
     idCardFront: str
     idCardBack: str
 
@@ -26,6 +32,10 @@ class QuickFillRequest(BaseModel):
     plan_end_date: str
     work_content: Optional[str] = None
     remark: Optional[str] = None
+    client_contact: Optional[str] = None
+    client_contact_info: Optional[str] = None
+    photos: Optional[str] = None
+    signature: Optional[str] = None
 
 
 class WorkersRequest(BaseModel):
@@ -78,13 +88,16 @@ def get_all_spot_works(
 def get_spot_works_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=2000, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     work_id: Optional[str] = Query(None, description="Work ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
+    from app.models.spot_work_worker import SpotWorkWorker
+    from sqlalchemy import func as sql_func
+    
     service = SpotWorkService(db)
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -100,7 +113,36 @@ def get_spot_works_list(
         page=page, size=size, project_name=project_name, work_id=work_id, 
         status=status, maintenance_personnel=maintenance_personnel
     )
-    items_dict = [item.to_dict() for item in items]
+    
+    items_dict = []
+    for item in items:
+        item_dict = item.to_dict()
+        
+        query = db.query(SpotWorkWorker).filter(
+            SpotWorkWorker.project_id == item.project_id
+        )
+        
+        if item.plan_start_date:
+            query = query.filter(
+                sql_func.date(SpotWorkWorker.start_date) == item.plan_start_date.date()
+            )
+        if item.plan_end_date:
+            query = query.filter(
+                sql_func.date(SpotWorkWorker.end_date) == item.plan_end_date.date()
+            )
+        
+        workers = query.all()
+        worker_count = len(workers)
+        
+        days = 0
+        if item.plan_start_date and item.plan_end_date:
+            delta = (item.plan_end_date - item.plan_start_date).days + 1
+            days = max(0, delta)
+        
+        item_dict['worker_count'] = worker_count
+        item_dict['work_days'] = days * worker_count
+        items_dict.append(item_dict)
+    
     return ApiResponse(
         code=200,
         message="success",
@@ -119,18 +161,36 @@ def get_spot_works_list(
 @router.post("/quick-fill", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def quick_fill_spot_work(
     dto: QuickFillRequest,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
     """
     快速填报零星用工
+    自动生成工单编号：YG-项目编号-年月日-序号
     """
     from app.services.spot_work import SpotWorkCreate
+    from app.models.spot_work import SpotWork
+    from app.models.work_order_operation_log import WorkOrderOperationLog
     from datetime import datetime
     
     service = SpotWorkService(db)
     
+    user_info = current_user or get_current_user_from_headers(request)
+    maintenance_personnel = None
+    operator_name = None
+    operator_id = None
+    if user_info:
+        maintenance_personnel = user_info.get('sub') or user_info.get('name')
+        operator_name = user_info.get('name') or user_info.get('sub')
+        operator_id = user_info.get('id')
+    
     today = datetime.now().strftime("%Y%m%d")
-    work_id = f"YG-{dto.project_id}-{today}"
+    prefix = f"YG-{dto.project_id}-{today}"
+    
+    count = db.query(SpotWork).filter(SpotWork.work_id.like(f"{prefix}%")).count()
+    sequence = str(count + 1).zfill(2)
+    work_id = f"{prefix}-{sequence}"
     
     create_dto = SpotWorkCreate(
         work_id=work_id,
@@ -139,15 +199,36 @@ def quick_fill_spot_work(
         plan_start_date=dto.plan_start_date,
         plan_end_date=dto.plan_end_date,
         client_name='',
-        status='未进行',
+        client_contact=dto.client_contact,
+        client_contact_info=dto.client_contact_info,
+        maintenance_personnel=maintenance_personnel,
+        work_content=dto.work_content,
+        photos=dto.photos,
+        signature=dto.signature,
+        status='待确认',
         remarks=dto.remark
     )
     
     work = service.create(create_dto)
+    
+    if operator_name and work.id:
+        operation_log = WorkOrderOperationLog(
+            work_order_type='spot_work',
+            work_order_id=work.id,
+            work_order_no=work.work_id,
+            operator_name=operator_name,
+            operator_id=operator_id,
+            operation_type_code='submit',
+            operation_type_name='提交',
+            operation_remark='员工提交工单'
+        )
+        db.add(operation_log)
+        db.commit()
+    
     return ApiResponse(
         code=200,
         message="提交成功",
-        data=work.to_dict()
+        data={"work_id": work.work_id}
     )
 
 
@@ -161,10 +242,29 @@ def get_workers(
     """
     获取施工人员列表
     """
+    from app.models.spot_work_worker import SpotWorkWorker
+    from datetime import datetime
+    
+    try:
+        start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
+        end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
+    except:
+        start = None
+        end = None
+    
+    query = db.query(SpotWorkWorker).filter(SpotWorkWorker.project_id == project_id)
+    
+    if start:
+        query = query.filter(SpotWorkWorker.start_date == start)
+    if end:
+        query = query.filter(SpotWorkWorker.end_date == end)
+    
+    workers = query.all()
+    
     return ApiResponse(
         code=200,
         message="success",
-        data=[]
+        data=[w.to_dict() for w in workers]
     )
 
 
@@ -175,11 +275,95 @@ def save_workers(
 ):
     """
     保存施工人员信息
+    根据身份证号码+项目编号+日期范围判断是否已存在，避免重复保存
+    包含身份证号码强认证
     """
+    import logging
+    from app.models.spot_work_worker import SpotWorkWorker
+    from app.utils.id_card_validator import validate_id_card
+    from datetime import datetime
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"收到施工人员保存请求: project_id={dto.project_id}, workers_count={len(dto.workers)}")
+    
+    try:
+        start = datetime.strptime(dto.start_date, '%Y-%m-%d') if dto.start_date else None
+        end = datetime.strptime(dto.end_date, '%Y-%m-%d') if dto.end_date else None
+    except Exception as e:
+        logger.error(f"日期解析错误: {e}")
+        start = None
+        end = None
+    
+    saved_count = 0
+    skipped_count = 0
+    
+    for worker_data in dto.workers:
+        is_valid, id_card_msg, birth_date_from_id, gender_from_id = validate_id_card(worker_data.idCardNumber)
+        if not is_valid:
+            logger.warning(f"身份证验证失败: name={worker_data.name}, id_card={worker_data.idCardNumber}, msg={id_card_msg}")
+            return ApiResponse(
+                code=400,
+                message=f"施工人员'{worker_data.name}'的身份证号码无效: {id_card_msg}",
+                data=None
+            )
+        
+        if birth_date_from_id and worker_data.birthDate and worker_data.birthDate != birth_date_from_id:
+            return ApiResponse(
+                code=400,
+                message=f"施工人员'{worker_data.name}'的身份证号码与出生日期不匹配，根据身份证应为{birth_date_from_id}",
+                data=None
+            )
+        
+        if gender_from_id and worker_data.gender and worker_data.gender != gender_from_id:
+            return ApiResponse(
+                code=400,
+                message=f"施工人员'{worker_data.name}'的身份证号码与性别不匹配，根据身份证应为{gender_from_id}",
+                data=None
+            )
+        
+        existing = db.query(SpotWorkWorker).filter(
+            SpotWorkWorker.project_id == dto.project_id,
+            SpotWorkWorker.id_card_number == worker_data.idCardNumber,
+            SpotWorkWorker.start_date == start,
+            SpotWorkWorker.end_date == end
+        ).first()
+        
+        if existing:
+            logger.info(f"施工人员已存在，跳过: name={worker_data.name}, id_card={worker_data.idCardNumber}")
+            skipped_count += 1
+            continue
+        
+        logger.info(f"保存施工人员: name={worker_data.name}, id_card={worker_data.idCardNumber}")
+        worker = SpotWorkWorker(
+            project_id=dto.project_id,
+            project_name=dto.project_name,
+            start_date=start,
+            end_date=end,
+            name=worker_data.name,
+            gender=worker_data.gender,
+            birth_date=worker_data.birthDate,
+            address=worker_data.address,
+            id_card_number=worker_data.idCardNumber,
+            issuing_authority=worker_data.issuingAuthority,
+            valid_period=worker_data.validPeriod,
+            id_card_front=worker_data.idCardFront,
+            id_card_back=worker_data.idCardBack
+        )
+        db.add(worker)
+        saved_count += 1
+    
+    try:
+        db.commit()
+        logger.info(f"施工人员保存成功，新增 {saved_count} 条，跳过 {skipped_count} 条重复数据")
+    except Exception as e:
+        logger.error(f"保存施工人员失败: {e}")
+        db.rollback()
+        return ApiResponse(code=500, message=f"保存失败: {str(e)}", data=None)
+    
     return ApiResponse(
         code=200,
-        message="保存成功",
-        data={"count": len(dto.workers)}
+        message=f"保存成功，新增{saved_count}人，跳过{skipped_count}人重复数据",
+        data={"saved_count": saved_count, "skipped_count": skipped_count}
     )
 
 
@@ -188,25 +372,84 @@ def get_spot_work_by_id(
     id: int,
     db: Session = Depends(get_db)
 ):
+    from app.models.spot_work_worker import SpotWorkWorker
+    from datetime import datetime
+    from sqlalchemy import func as sql_func
+    
     service = SpotWorkService(db)
     work = service.get_by_id(id)
+    work_dict = work.to_dict()
+    
+    query = db.query(SpotWorkWorker).filter(
+        SpotWorkWorker.project_id == work.project_id
+    )
+    
+    if work.plan_start_date:
+        query = query.filter(
+            sql_func.date(SpotWorkWorker.start_date) == work.plan_start_date.date()
+        )
+    if work.plan_end_date:
+        query = query.filter(
+            sql_func.date(SpotWorkWorker.end_date) == work.plan_end_date.date()
+        )
+    
+    workers = query.all()
+    
+    worker_count = len(workers)
+    
+    days = 0
+    if work.plan_start_date and work.plan_end_date:
+        delta = (work.plan_end_date - work.plan_start_date).days + 1
+        days = max(0, delta)
+    
+    work_days = days * worker_count
+    
+    work_dict['worker_count'] = worker_count
+    work_dict['work_days'] = work_days
+    work_dict['workers'] = [w.to_dict() for w in workers]
+    
     return ApiResponse(
         code=200,
         message="success",
-        data=work.to_dict()
+        data=work_dict
     )
 
 
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_spot_work(
-    dto: dict,
-    db: Session = Depends(get_db)
+    dto: SpotWorkCreate,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
-    from app.services.spot_work import SpotWorkCreate
-    if 'maintenance_personnel' in dto and dto['maintenance_personnel']:
-        validate_maintenance_personnel(db, dto['maintenance_personnel'])
+    from app.models.work_order_operation_log import WorkOrderOperationLog
+    
+    if dto.maintenance_personnel:
+        validate_maintenance_personnel(db, dto.maintenance_personnel)
     service = SpotWorkService(db)
-    work = service.create(SpotWorkCreate(**dto))
+    work = service.create(dto)
+    
+    user_info = current_user or get_current_user_from_headers(request)
+    operator_name = None
+    operator_id = None
+    if user_info:
+        operator_name = user_info.get('name') or user_info.get('sub')
+        operator_id = user_info.get('id')
+    
+    if operator_name and work.id:
+        operation_log = WorkOrderOperationLog(
+            work_order_type='spot_work',
+            work_order_id=work.id,
+            work_order_no=work.work_id,
+            operator_name=operator_name,
+            operator_id=operator_id,
+            operation_type_code='create',
+            operation_type_name='创建',
+            operation_remark='创建零星用工工单'
+        )
+        db.add(operation_log)
+        db.commit()
+    
     return ApiResponse(
         code=200,
         message="Created successfully",
@@ -217,14 +460,13 @@ def create_spot_work(
 @router.put("/{id}", response_model=ApiResponse)
 def update_spot_work(
     id: int,
-    dto: dict,
+    dto: SpotWorkUpdate,
     db: Session = Depends(get_db)
 ):
-    from app.services.spot_work import SpotWorkUpdate
-    if 'maintenance_personnel' in dto and dto['maintenance_personnel']:
-        validate_maintenance_personnel(db, dto['maintenance_personnel'])
+    if dto.maintenance_personnel:
+        validate_maintenance_personnel(db, dto.maintenance_personnel)
     service = SpotWorkService(db)
-    work = service.update(id, SpotWorkUpdate(**dto))
+    work = service.update(id, dto)
     return ApiResponse(
         code=200,
         message="Updated successfully",
@@ -235,14 +477,13 @@ def update_spot_work(
 @router.patch("/{id}", response_model=ApiResponse)
 def partial_update_spot_work(
     id: int,
-    dto: dict,
+    dto: SpotWorkPartialUpdate,
     db: Session = Depends(get_db)
 ):
-    from app.schemas.spot_work import SpotWorkPartialUpdate
-    if 'maintenance_personnel' in dto and dto['maintenance_personnel']:
-        validate_maintenance_personnel(db, dto['maintenance_personnel'])
+    if dto.maintenance_personnel:
+        validate_maintenance_personnel(db, dto.maintenance_personnel)
     service = SpotWorkService(db)
-    work = service.partial_update(id, SpotWorkPartialUpdate(**dto))
+    work = service.partial_update(id, dto)
     return ApiResponse(
         code=200,
         message="Updated successfully",
@@ -253,9 +494,26 @@ def partial_update_spot_work(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_spot_work(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
+    from app.models.work_order_operation_log import WorkOrderOperationLog
     service = SpotWorkService(db)
+    work = service.get_by_id(id)
+    work_id = work.work_id
+    
+    log = WorkOrderOperationLog(
+        work_order_type='spot_work',
+        work_order_id=id,
+        work_order_no=work_id,
+        operator_name=current_user.get('name', '系统') if current_user else '系统',
+        operator_id=current_user.get('id') if current_user else None,
+        operation_type_code='delete',
+        operation_type_name='删除',
+        operation_remark=f'删除零星用工单 {work_id}'
+    )
+    db.add(log)
+    
     service.delete(id)
     return ApiResponse(
         code=200,

@@ -7,16 +7,18 @@
             <h2 class="page-title">备品备件库存</h2>
           </div>
 
-          <div class="filter-section">
-            <div class="filter-fields">
-              <div class="filter-group">
-                <label class="filter-label">产品名称</label>
-                <SearchInput
-                  v-model="filters.product_name"
-                  field-key="SparePartsInventory_product_name"
-                  placeholder="请输入产品名称"
-                  @input="handleSearch"
-                />
+          <div class="search-section">
+            <div class="search-form">
+              <div class="search-row">
+                <div class="search-item">
+                  <label class="search-label">产品名称：</label>
+                  <SearchInput
+                    v-model="filters.product_name"
+                    field-key="SparePartsInventory_product_name"
+                    placeholder="请输入产品名称"
+                    @input="handleSearch"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -256,35 +258,43 @@ export default defineComponent({
   margin: 0;
 }
 
-.filter-section {
+.search-section {
   display: flex;
   gap: 16px;
-  align-items: flex-end;
+  margin-bottom: 20px;
+  align-items: flex-start;
   background: #fff;
   padding: 16px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-.filter-fields {
-  display: flex;
-  gap: 16px;
-  align-items: flex-end;
-  flex: 1;
-}
-
-.filter-group {
+.search-form {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
+  align-items: flex-start;
   flex: 1;
-  max-width: 300px;
 }
 
-.filter-label {
+.search-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-label {
   font-size: 14px;
-  color: #333;
+  color: #666;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .filter-input {

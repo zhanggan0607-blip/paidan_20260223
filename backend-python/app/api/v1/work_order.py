@@ -18,7 +18,7 @@ router = APIRouter(prefix="/work-order", tags=["Work Order Management"])
 def get_work_order_list(
     request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
+    size: int = Query(10, ge=1, le=2000, description="每页数量"),
     project_name: Optional[str] = Query(None, description="项目名称(模糊搜索)"),
     order_id: Optional[str] = Query(None, description="工单编号(模糊搜索)"),
     order_type: Optional[str] = Query(None, description="工单类型: inspection/repair/spotwork"),

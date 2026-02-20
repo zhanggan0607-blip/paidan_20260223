@@ -81,6 +81,10 @@ export const authService = {
     return user?.role === USER_ROLES.MATERIAL_MANAGER
   },
 
+  isMaterialManagerOnly(user: User | null): boolean {
+    return user?.role === USER_ROLES.MATERIAL_MANAGER
+  },
+
   isEmployee(user: User | null): boolean {
     return user?.role === USER_ROLES.EMPLOYEE
   },
@@ -139,6 +143,26 @@ export const authService = {
 
   canViewSystemManagement(user: User | null): boolean {
     return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canFillMaintenanceLog(user: User | null): boolean {
+    return this.isEmployee(user)
+  },
+
+  canViewMaintenanceLog(user: User | null): boolean {
+    return this.isEmployee(user)
+  },
+
+  canViewAllMaintenanceLog(user: User | null): boolean {
+    return this.isAdmin(user) || this.isDepartmentManager(user)
+  },
+
+  canFillWeeklyReport(user: User | null): boolean {
+    return this.isDepartmentManager(user)
+  },
+
+  canViewWeeklyReport(user: User | null): boolean {
+    return this.isAdmin(user)
   },
 
   async getCurrentUserInfo(): Promise<ApiResponse<User>> {

@@ -9,6 +9,7 @@ PLAN_TYPES = ['定期巡检', '临时维修', '零星用工']
 
 class WorkPlanBase(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
+    plan_name: Optional[str] = Field(None, max_length=200, description="计划名称")
     plan_type: str = Field(..., max_length=20, description="工单类型：定期巡检/临时维修/零星用工")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
@@ -17,6 +18,8 @@ class WorkPlanBase(BaseModel):
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field("未进行", max_length=20, description="状态")
+    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
+    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
 
     @field_validator('plan_type')
@@ -37,6 +40,7 @@ class WorkPlanBase(BaseModel):
 
 class WorkPlanCreate(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
+    plan_name: Optional[str] = Field(None, max_length=200, description="计划名称")
     plan_type: str = Field(..., max_length=20, description="工单类型：定期巡检/临时维修/零星用工")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
@@ -45,11 +49,14 @@ class WorkPlanCreate(BaseModel):
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field("未进行", max_length=20, description="状态")
+    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
+    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
 
 
 class WorkPlanUpdate(BaseModel):
     plan_id: str = Field(..., max_length=50, description="计划编号")
+    plan_name: Optional[str] = Field(None, max_length=200, description="计划名称")
     plan_type: str = Field(..., max_length=20, description="工单类型：定期巡检/临时维修/零星用工")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
@@ -58,12 +65,15 @@ class WorkPlanUpdate(BaseModel):
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     status: str = Field(..., max_length=20, description="状态")
+    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
+    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
 
 
 class WorkPlanResponse(BaseModel):
     id: int
     plan_id: str
+    plan_name: Optional[str]
     plan_type: str
     project_id: str
     project_name: str
@@ -72,6 +82,8 @@ class WorkPlanResponse(BaseModel):
     client_name: Optional[str]
     maintenance_personnel: Optional[str]
     status: str
+    filled_count: Optional[int]
+    total_count: Optional[int]
     remarks: Optional[str]
     created_at: datetime
     updated_at: datetime

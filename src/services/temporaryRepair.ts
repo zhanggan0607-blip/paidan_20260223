@@ -1,43 +1,29 @@
 import apiClient from '../utils/api'
+import type { TemporaryRepair as TemporaryRepairType, ApiResponse } from '../types/api'
 
-export interface TemporaryRepair {
-  id: number
+export type TemporaryRepair = TemporaryRepairType
+
+export interface TemporaryRepairCreate {
   repair_id: string
+  plan_id?: string
   project_id: string
   project_name: string
   plan_start_date: string
   plan_end_date: string
-  client_name: string
-  client_contact?: string
-  client_contact_info?: string
-  client_contact_position?: string
-  address?: string
-  maintenance_personnel: string
-  status: string
+  client_name?: string
+  maintenance_personnel?: string
+  status?: string
   remarks?: string
   fault_description?: string
   solution?: string
   photos?: string[]
   signature?: string
   execution_date?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface TemporaryRepairCreate {
-  repair_id: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name: string
-  maintenance_personnel: string
-  status: string
-  remarks?: string
 }
 
 export interface TemporaryRepairUpdate {
   repair_id?: string
+  plan_id?: string
   project_id?: string
   project_name?: string
   plan_start_date?: string
@@ -46,15 +32,14 @@ export interface TemporaryRepairUpdate {
   maintenance_personnel?: string
   status?: string
   remarks?: string
+  fault_description?: string
+  solution?: string
+  photos?: string[]
+  signature?: string
+  execution_date?: string
 }
 
-export interface ApiResponse<T = any> {
-  code: number
-  message: string
-  data: T
-}
-
-export interface PaginatedResponse {
+export interface TemporaryRepairPaginatedResponse {
   code: number
   message: string
   data: {
@@ -75,7 +60,7 @@ export const temporaryRepairService = {
     project_name?: string
     repair_id?: string
     status?: string
-  }): Promise<PaginatedResponse> {
+  }): Promise<TemporaryRepairPaginatedResponse> {
     return await apiClient.get('/temporary-repair', { params })
   },
 

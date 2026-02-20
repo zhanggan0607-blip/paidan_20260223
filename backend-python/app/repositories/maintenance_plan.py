@@ -41,12 +41,12 @@ class MaintenancePlanRepository:
         project_id: Optional[str] = None,
         equipment_name: Optional[str] = None,
         plan_status: Optional[str] = None,
-        execution_status: Optional[str] = None,
-        responsible_person: Optional[str] = None,
+        status: Optional[str] = None,
+        maintenance_personnel: Optional[str] = None,
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
         plan_type: Optional[str] = None,
-        responsible_person_filter: Optional[str] = None
+        maintenance_personnel_filter: Optional[str] = None
     ) -> tuple[List[MaintenancePlan], int]:
         try:
             query = self.db.query(MaintenancePlan)
@@ -63,11 +63,11 @@ class MaintenancePlanRepository:
             if plan_status:
                 query = query.filter(MaintenancePlan.plan_status == plan_status)
 
-            if execution_status:
-                query = query.filter(MaintenancePlan.execution_status == execution_status)
+            if status:
+                query = query.filter(MaintenancePlan.status == status)
 
-            if responsible_person:
-                query = query.filter(MaintenancePlan.responsible_person.like(f"%{responsible_person}%"))
+            if maintenance_personnel:
+                query = query.filter(MaintenancePlan.maintenance_personnel.like(f"%{maintenance_personnel}%"))
 
             if project_name:
                 query = query.filter(MaintenancePlan.plan_name.like(f"%{project_name}%"))
@@ -78,8 +78,8 @@ class MaintenancePlanRepository:
             if plan_type:
                 query = query.filter(MaintenancePlan.plan_type == plan_type)
             
-            if responsible_person_filter:
-                query = query.filter(MaintenancePlan.responsible_person == responsible_person_filter)
+            if maintenance_personnel_filter:
+                query = query.filter(MaintenancePlan.maintenance_personnel == maintenance_personnel_filter)
 
             total = query.count()
             items = query.order_by(MaintenancePlan.created_at.desc()).offset(page * size).limit(size).all()
@@ -131,7 +131,7 @@ class MaintenancePlanRepository:
                 and_(
                     MaintenancePlan.execution_date >= start_date,
                     MaintenancePlan.execution_date <= end_date,
-                    MaintenancePlan.execution_status == '未开始'
+                    MaintenancePlan.status == '未进行'
                 )
             ).order_by(MaintenancePlan.execution_date.asc()).all()
         except Exception as e:
@@ -172,11 +172,11 @@ class MaintenancePlanRepository:
             logger.error(f"删除维保计划失败: {str(e)}")
             raise
 
-    def update_execution_status(self, id: int, status: str) -> Optional[MaintenancePlan]:
+    def update_status(self, id: int, status: str) -> Optional[MaintenancePlan]:
         try:
             maintenance_plan = self.find_by_id(id)
             if maintenance_plan:
-                maintenance_plan.execution_status = status
+                maintenance_plan.status = status
                 self.db.commit()
                 self.db.refresh(maintenance_plan)
             return maintenance_plan

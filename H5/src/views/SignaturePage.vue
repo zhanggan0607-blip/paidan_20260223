@@ -159,6 +159,8 @@ const handleConfirm = async () => {
       localStorage.setItem('temporary_repair_signature', signatureData.value)
     } else if (type === 'spot-work') {
       localStorage.setItem('spot_work_signature', signatureData.value)
+    } else if (type === 'spot-work-apply') {
+      localStorage.setItem('spot_work_apply_signature', signatureData.value)
     }
     
     showSuccessToast('签名成功')

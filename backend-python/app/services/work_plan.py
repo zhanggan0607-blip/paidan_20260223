@@ -13,6 +13,7 @@ PLAN_TYPES = ['定期巡检', '临时维修', '零星用工']
 
 class WorkPlanCreate(BaseModel):
     plan_id: str
+    plan_name: Optional[str] = None
     plan_type: str
     project_id: str
     project_name: str
@@ -22,11 +23,13 @@ class WorkPlanCreate(BaseModel):
     maintenance_personnel: Optional[str] = None
     status: Optional[str] = None
     filled_count: Optional[int] = 0
+    total_count: Optional[int] = 5
     remarks: Optional[str] = None
 
 
 class WorkPlanUpdate(BaseModel):
     plan_id: str
+    plan_name: Optional[str] = None
     plan_type: str
     project_id: str
     project_name: str
@@ -36,6 +39,7 @@ class WorkPlanUpdate(BaseModel):
     maintenance_personnel: Optional[str] = None
     status: str
     filled_count: Optional[int] = 0
+    total_count: Optional[int] = 5
     remarks: Optional[str] = None
 
 
@@ -113,6 +117,7 @@ class WorkPlanService:
         
         work_plan = WorkPlan(
             plan_id=dto.plan_id,
+            plan_name=dto.plan_name,
             plan_type=dto.plan_type,
             project_id=dto.project_id,
             project_name=dto.project_name,
@@ -122,11 +127,13 @@ class WorkPlanService:
             maintenance_personnel=dto.maintenance_personnel,
             status=dto.status or "未进行",
             filled_count=dto.filled_count or 0,
+            total_count=dto.total_count or 5,
             remarks=dto.remarks
         )
         
         result = self.repository.create(work_plan)
         self.sync_service.sync_work_plan_to_order(result)
+        self.sync_service.sync_work_plan_to_maintenance_plan(result)
         return result
     
     def update(self, id: int, dto: WorkPlanUpdate) -> WorkPlan:
@@ -145,6 +152,7 @@ class WorkPlanService:
             )
         
         existing_plan.plan_id = dto.plan_id
+        existing_plan.plan_name = dto.plan_name
         existing_plan.plan_type = dto.plan_type
         existing_plan.project_id = dto.project_id
         existing_plan.project_name = dto.project_name
@@ -154,15 +162,18 @@ class WorkPlanService:
         existing_plan.maintenance_personnel = dto.maintenance_personnel
         existing_plan.status = dto.status
         existing_plan.filled_count = dto.filled_count or 0
+        existing_plan.total_count = dto.total_count or 5
         existing_plan.remarks = dto.remarks
         
         result = self.repository.update(existing_plan)
         self.sync_service.sync_work_plan_to_order(result)
+        self.sync_service.sync_work_plan_to_maintenance_plan(result)
         return result
     
     def delete(self, id: int) -> None:
         work_plan = self.get_by_id(id)
         self.sync_service.sync_work_plan_to_order(work_plan, is_delete=True)
+        self.sync_service.sync_work_plan_to_maintenance_plan(work_plan, is_delete=True)
         self.repository.delete(work_plan)
     
     def get_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
@@ -182,6 +193,7 @@ class WorkPlanService:
         
         today = datetime.now().date()
         year_start = datetime(today.year, 1, 1).date()
+        year_end = datetime(today.year, 12, 31).date()
         
         valid_statuses = OverdueAlertConfig.VALID_STATUSES
         
@@ -201,14 +213,26 @@ class WorkPlanService:
         expiring_soon = 0
         overdue = 0
         yearly_completed = 0
+        periodic_inspection_count = 0
+        temporary_repair_count = 0
+        spot_work_count = 0
         
         all_orders = []
         for item in all_inspections:
             all_orders.append(('定期巡检', item))
+            plan_start = self._get_date_value(item.plan_start_date)
+            if plan_start and year_start <= plan_start <= year_end:
+                periodic_inspection_count += 1
         for item in all_repairs:
             all_orders.append(('临时维修', item))
+            plan_start = self._get_date_value(item.plan_start_date)
+            if plan_start and year_start <= plan_start <= year_end:
+                temporary_repair_count += 1
         for item in all_spotworks:
             all_orders.append(('零星用工', item))
+            plan_start = self._get_date_value(item.plan_start_date)
+            if plan_start and year_start <= plan_start <= year_end:
+                spot_work_count += 1
         
         for plan_type, order in all_orders:
             plan_start = self._get_date_value(order.plan_start_date)
@@ -223,15 +247,15 @@ class WorkPlanService:
                     if plan_end < today:
                         overdue += 1
             
-            if order.status == '已完成' and plan_end:
-                if plan_end >= year_start:
+            if order.status == '已完成' and plan_start:
+                if year_start <= plan_start <= year_end:
                     yearly_completed += 1
         
         return {
             'expiringSoon': expiring_soon,
             'overdue': overdue,
             'yearlyCompleted': yearly_completed,
-            'periodicInspection': len(all_inspections),
-            'temporaryRepair': len(all_repairs),
-            'spotWork': len(all_spotworks)
+            'periodicInspection': periodic_inspection_count,
+            'temporaryRepair': temporary_repair_count,
+            'spotWork': spot_work_count
         }

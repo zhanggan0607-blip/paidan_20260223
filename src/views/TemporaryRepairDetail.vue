@@ -56,6 +56,29 @@
           <label class="form-label">报修内容</label>
           <div class="form-value form-value-large">{{ repairData.remarks || '-' }}</div>
         </div>
+
+        <div class="operation-log-section" v-if="operationLogs.length > 0">
+          <div class="section-title">内部确认区</div>
+          <div class="timeline">
+            <div 
+              v-for="(log, index) in operationLogs" 
+              :key="log.id" 
+              class="timeline-item"
+              :class="{ 'last': index === operationLogs.length - 1 }"
+            >
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
+                <span class="timeline-operator">{{ log.operator_name }}</span>
+                <span class="timeline-action">{{ log.operation_type_name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="operation-log-section" v-else-if="!loadingLogs">
+          <div class="section-title">内部确认区</div>
+          <div class="no-logs">暂无操作记录</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-cancel" @click="goBack">关闭</button>
@@ -68,6 +91,8 @@
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { temporaryRepairService } from '@/services/temporaryRepair'
+import apiClient from '@/utils/api'
+import type { ApiResponse } from '@/types/api'
 
 interface RepairData {
   id: number
@@ -84,6 +109,19 @@ interface RepairData {
   maintenance_personnel: string
   status: string
   remarks?: string
+}
+
+interface OperationLogItem {
+  id: number
+  work_order_type: string
+  work_order_id: number
+  work_order_no: string
+  operator_name: string
+  operator_id: number | null
+  operation_type_code: string
+  operation_type_name: string
+  operation_remark: string | null
+  created_at: string
 }
 
 export default defineComponent({
@@ -108,10 +146,46 @@ export default defineComponent({
       remarks: ''
     })
 
+    const operationLogs = ref<OperationLogItem[]>([])
+    const loadingLogs = ref(false)
+
     const formatDate = (dateStr: string) => {
       if (!dateStr) return '-'
       const date = new Date(dateStr)
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+    }
+
+    /**
+     * 格式化操作时间
+     */
+    const formatOperationTime = (dateStr: string) => {
+      if (!dateStr) return '-'
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    }
+
+    /**
+     * 获取操作日志
+     */
+    const fetchOperationLogs = async (workOrderId: number) => {
+      if (!workOrderId) return
+      loadingLogs.value = true
+      try {
+        const response = await apiClient.get(`/work-order-operation-log?work_order_type=temporary_repair&work_order_id=${workOrderId}`) as unknown as ApiResponse<OperationLogItem[]>
+        if (response.code === 200) {
+          operationLogs.value = response.data || []
+        }
+      } catch (error) {
+        console.error('获取操作日志失败:', error)
+        operationLogs.value = []
+      } finally {
+        loadingLogs.value = false
+      }
     }
 
     const goBack = () => {
@@ -141,6 +215,7 @@ export default defineComponent({
               status: item.status,
               remarks: item.remarks || ''
             }
+            fetchOperationLogs(item.id)
           }
         } catch (error) {
           console.error('加载数据失败:', error)
@@ -154,7 +229,10 @@ export default defineComponent({
 
     return {
       repairData,
+      operationLogs,
+      loadingLogs,
       formatDate,
+      formatOperationTime,
       goBack
     }
   }
@@ -304,5 +382,90 @@ export default defineComponent({
 
 .btn-cancel:hover:not(:disabled) {
   background: #f5f5f5;
+}
+
+.operation-log-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-left: 12px;
+  border-left: 3px solid #1976d2;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timeline-item.last {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1976d2;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #1976d2;
+}
+
+.timeline-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timeline-time {
+  font-size: 14px;
+  color: #666;
+  font-family: monospace;
+}
+
+.timeline-operator {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.timeline-action {
+  font-size: 13px;
+  color: #1976d2;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.no-logs {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 20px 0;
 }
 </style>

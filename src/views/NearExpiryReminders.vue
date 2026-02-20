@@ -5,32 +5,25 @@
 
     <div class="search-section">
       <div class="search-form">
-        <div class="search-item">
-          <label class="search-label">项目名称：</label>
-          <SearchInput
-            v-model="searchForm.projectName"
-            field-key="NearExpiryReminders_projectName"
-            placeholder="请输入"
-            @input="handleSearch"
-          />
-        </div>
-        <div class="search-item">
-          <label class="search-label">客户名称：</label>
-          <SearchInput
-            v-model="searchForm.clientName"
-            field-key="NearExpiryReminders_clientName"
-            placeholder="请输入"
-            @input="handleSearch"
-          />
-        </div>
-        <div class="search-item">
-          <label class="search-label">工单类型：</label>
-          <select class="search-select" v-model="searchForm.workOrderType">
-            <option value="">全部</option>
-            <option value="定期巡检">定期巡检工单</option>
-            <option value="临时维修">临时维修工单</option>
-            <option value="零星用工">零星用工工单</option>
-          </select>
+        <div class="search-row">
+          <div class="search-item">
+            <label class="search-label">项目名称：</label>
+            <SearchInput
+              v-model="searchForm.projectName"
+              field-key="NearExpiryReminders_projectName"
+              placeholder="请输入项目名称"
+              @input="handleSearch"
+            />
+          </div>
+          <div class="search-item">
+            <label class="search-label">客户名称：</label>
+            <SearchInput
+              v-model="searchForm.clientName"
+              field-key="NearExpiryReminders_clientName"
+              placeholder="请输入客户名称"
+              @input="handleSearch"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -217,8 +210,7 @@ export default defineComponent({
     const isViewModalOpen = ref(false)
     const searchForm = reactive({
       projectName: '',
-      clientName: '',
-      workOrderType: ''
+      clientName: ''
     })
 
     const currentPage = ref(0)
@@ -322,10 +314,6 @@ export default defineComponent({
         )
       }
 
-      if (searchForm.workOrderType) {
-        result = result.filter(item => item.workOrderType === searchForm.workOrderType)
-      }
-
       return result
     })
 
@@ -358,7 +346,6 @@ export default defineComponent({
     const handleReset = () => {
       searchForm.projectName = ''
       searchForm.clientName = ''
-      searchForm.workOrderType = ''
       currentPage.value = 0
     }
 
@@ -551,7 +538,15 @@ export default defineComponent({
 
 .search-form {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.search-row {
+  display: flex;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
 }

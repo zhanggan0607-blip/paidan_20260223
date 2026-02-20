@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showToast, showSuccessToast, showFailToast } from 'vant'
+import { showLoadingToast, closeToast, showToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { authService, type User } from '../services/auth'
+import { processPhoto } from '../utils/watermark'
 
 interface ProjectInfo {
   id: number
   project_id: string
   project_name: string
   client_name: string
+  client_contact?: string
+  client_contact_info?: string
 }
 
 const router = useRouter()
@@ -30,6 +33,8 @@ const applyFormData = ref({
   projectId: '',
   projectIdDisplay: '',
   projectName: '',
+  clientContact: '',
+  clientContactInfo: '',
   workDateStart: formatDate(new Date()),
   workDateEnd: formatDate(new Date()),
   workContent: '',
@@ -43,6 +48,10 @@ const selectedProjectName = ref('')
 const submitLoading = ref(false)
 const workerCount = ref(0)
 const generatedWorkId = ref('')
+
+const currentPhotos = ref<string[]>([])
+const showPhotoPopup = ref(false)
+const signature = ref('')
 
 const minDate = new Date(2020, 0, 1)
 const maxDate = new Date(2030, 11, 31)
@@ -187,15 +196,21 @@ const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOpt
       applyFormData.value.projectIdDisplay = project.project_id
       applyFormData.value.projectName = project.project_name
       selectedProjectName.value = project.project_name
+      applyFormData.value.clientContact = project.client_contact || ''
+      applyFormData.value.clientContactInfo = project.client_contact_info || ''
     }
   } else if (selectedOptions && selectedOptions.length > 0) {
     const selected = selectedOptions[0]
-    const project = projectList.value.find(p => p.id.toString() === selected.value)
-    if (project) {
-      applyFormData.value.projectId = project.project_id
-      applyFormData.value.projectIdDisplay = project.project_id
-      applyFormData.value.projectName = project.project_name
-      selectedProjectName.value = project.project_name
+    if (selected) {
+      const project = projectList.value.find(p => p.id.toString() === selected.value)
+      if (project) {
+        applyFormData.value.projectId = project.project_id
+        applyFormData.value.projectIdDisplay = project.project_id
+        applyFormData.value.projectName = project.project_name
+        selectedProjectName.value = project.project_name
+        applyFormData.value.clientContact = project.client_contact || ''
+        applyFormData.value.clientContactInfo = project.client_contact_info || ''
+      }
     }
   }
   showProjectPicker.value = false
@@ -239,6 +254,18 @@ const handleSubmit = async () => {
     showFailToast('请输入工作内容')
     return
   }
+  if (workerCount.value <= 0) {
+    showFailToast('请录入施工人员')
+    return
+  }
+  if (currentPhotos.value.length === 0) {
+    showFailToast('请上传现场照片')
+    return
+  }
+  if (!signature.value) {
+    showFailToast('请完成班组签字')
+    return
+  }
   
   submitLoading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
@@ -251,7 +278,11 @@ const handleSubmit = async () => {
       plan_end_date: applyFormData.value.workDateEnd,
       work_content: applyFormData.value.workContent,
       remark: applyFormData.value.remark,
-      worker_count: workerCount.value
+      worker_count: workerCount.value,
+      client_contact: applyFormData.value.clientContact,
+      client_contact_info: applyFormData.value.clientContactInfo,
+      photos: JSON.stringify(currentPhotos.value),
+      signature: signature.value
     })
     if (response.code === 200) {
       generatedWorkId.value = response.data?.work_id || ''
@@ -263,6 +294,8 @@ const handleSubmit = async () => {
         projectId: '',
         projectIdDisplay: '',
         projectName: '',
+        clientContact: '',
+        clientContactInfo: '',
         workDateStart: formatDate(new Date()),
         workDateEnd: formatDate(new Date()),
         workContent: '',
@@ -270,6 +303,17 @@ const handleSubmit = async () => {
       }
       selectedProjectName.value = ''
       workerCount.value = 0
+      currentPhotos.value = []
+      signature.value = ''
+      localStorage.removeItem('spot_work_apply_signature')
+      
+      // 提交成功后切换到"待确认"tab
+      const pendingConfirmTabIndex = tabs.value.findIndex(tab => tab.key === '待确认')
+      if (pendingConfirmTabIndex !== -1) {
+        activeTab.value = pendingConfirmTabIndex
+        // 刷新待确认列表
+        fetchWorkList()
+      }
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -300,11 +344,13 @@ const handleApprove = (item: any) => {
 const handleUserReady = (user: User) => {
   currentUser.value = user
   userReady.value = true
+  fetchProjectList()
   fetchWorkList()
 }
 
 const handleUserChanged = (user: User) => {
   currentUser.value = user
+  fetchProjectList()
   fetchWorkList()
 }
 
@@ -313,13 +359,135 @@ const projectColumns = computed(() => {
     text: p.project_name,
     value: p.id.toString(),
     project_id: p.project_id,
-    client_name: p.client_name
+    client_name: p.client_name,
+    client_contact: p.client_contact,
+    client_contact_info: p.client_contact_info
   }))
 })
+
+/**
+ * 获取施工人员数量
+ */
+const fetchWorkerCount = async () => {
+  if (!applyFormData.value.projectId) {
+    workerCount.value = 0
+    return
+  }
+  
+  try {
+    const response = await api.get<unknown, ApiResponse<any[]>>('/spot-work/workers', {
+      params: {
+        project_id: applyFormData.value.projectId,
+        start_date: applyFormData.value.workDateStart,
+        end_date: applyFormData.value.workDateEnd
+      }
+    })
+    if (response.code === 200) {
+      workerCount.value = response.data?.length || 0
+    }
+  } catch (error) {
+    console.error('Failed to fetch worker count:', error)
+  }
+}
+
+/**
+ * 处理现场图片上传弹窗
+ */
+const handlePhotoUpload = () => {
+  showPhotoPopup.value = true
+}
+
+/**
+ * 拍照上传
+ */
+const handlePhotoCapture = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.capture = 'environment'
+  
+  input.onchange = async (e: Event) => {
+    const target = e.target as HTMLInputElement
+    const file = target.files?.[0]
+    if (!file) return
+    
+    showLoadingToast({ message: '处理中...', forbidClick: true })
+    
+    try {
+      const userName = currentUser.value?.name || '未知用户'
+      const processedFile = await processPhoto(file, userName)
+      
+      const formDataObj = new FormData()
+      formDataObj.append('file', processedFile)
+      
+      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      
+      if (response.code === 200 && response.data) {
+        currentPhotos.value.push(response.data.url)
+        showSuccessToast('上传成功')
+      }
+    } catch (error) {
+      console.error('Failed to upload photo:', error)
+      showFailToast('上传失败')
+    } finally {
+      closeToast()
+    }
+  }
+  
+  input.click()
+}
+
+/**
+ * 删除图片
+ */
+const handleRemovePhoto = async (index: number) => {
+  try {
+    await showConfirmDialog({
+      title: '提示',
+      message: '是否要删除，新增的图片会重新打水印'
+    })
+    currentPhotos.value.splice(index, 1)
+  } catch {
+  }
+}
+
+/**
+ * 保存图片
+ */
+const handlePhotoSave = () => {
+  showPhotoPopup.value = false
+  showSuccessToast('保存成功')
+}
+
+/**
+ * 跳转签字页面
+ */
+const handleSignature = () => {
+  router.push({
+    path: '/signature',
+    query: { 
+      from: route.fullPath,
+      type: 'spot-work-apply'
+    }
+  })
+}
+
+/**
+ * 加载签字
+ */
+const loadSignature = () => {
+  const signatureData = localStorage.getItem('spot_work_apply_signature')
+  if (signatureData) {
+    signature.value = signatureData
+  }
+}
 
 onMounted(() => {
   currentUser.value = authService.getCurrentUser()
   fetchProjectList()
+  loadSignature()
   const tabParam = route.query.tab
   if (tabParam !== undefined && tabParam !== null) {
     const tabIndex = parseInt(tabParam as string, 10)
@@ -327,6 +495,11 @@ onMounted(() => {
       activeTab.value = tabIndex
     }
   }
+})
+
+onActivated(() => {
+  fetchWorkerCount()
+  loadSignature()
 })
 </script>
 
@@ -353,40 +526,41 @@ onMounted(() => {
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">
         <template v-if="tab.key === '申报用工'">
           <van-cell-group inset title="基本信息" class="form-group">
-            <div class="two-column-form">
-              <div class="form-row">
-                <van-cell 
-                  :title="selectedProjectName || '选择项目'"
-                  label="项目名称"
-                  is-link
-                  required
-                  @click="showProjectPicker = true"
-                  class="form-cell"
-                />
-                <van-cell 
-                  v-if="applyFormData.projectIdDisplay"
-                  :title="applyFormData.projectIdDisplay"
-                  label="项目编号"
-                  class="form-cell"
-                />
-              </div>
-              <div class="form-row">
-                <van-cell 
-                  :title="dateDisplayText"
-                  label="用工周期"
-                  is-link
-                  required
-                  @click="showDateRangePicker = true"
-                  class="form-cell"
-                />
-                <van-cell 
-                  v-if="workDays > 0"
-                  :title="workDays + ' 天'"
-                  label="用工天数"
-                  class="form-cell"
-                />
-              </div>
-            </div>
+            <van-cell 
+              :title="selectedProjectName || '选择项目'"
+              label="项目名称"
+              is-link
+              required
+              @click="showProjectPicker = true"
+            />
+            <van-cell 
+              v-if="applyFormData.projectIdDisplay"
+              :title="applyFormData.projectIdDisplay"
+              label="项目编号"
+            />
+            <van-cell 
+              :title="dateDisplayText"
+              label="用工周期"
+              is-link
+              required
+              @click="showDateRangePicker = true"
+            />
+            <van-cell 
+              v-if="workDays > 0"
+              title="用工天数"
+              :value="workDays + ' 天'"
+            />
+            <van-field 
+              v-model="applyFormData.clientContact" 
+              label="客户联系人" 
+              placeholder="请输入客户联系人"
+            />
+            <van-field 
+              v-model="applyFormData.clientContactInfo" 
+              label="客户联系电话" 
+              placeholder="请输入客户联系电话"
+              type="tel"
+            />
             <van-field 
               v-model="applyFormData.workContent" 
               label="工作内容" 
@@ -400,6 +574,7 @@ onMounted(() => {
             <van-cell 
               is-link 
               @click="handleWorkerEntry"
+              required
             >
               <template #title>
                 <van-button type="primary" size="small">施工人员录入</van-button>
@@ -407,9 +582,28 @@ onMounted(() => {
             </van-cell>
             <van-cell 
               v-if="workerCount > 0"
-              :title="workerCount + ' 人'"
-              label="施工人数"
+              title="施工人数"
+              :value="workerCount + ' 人'"
             />
+            <van-cell is-link @click="handlePhotoUpload" required>
+              <template #title>
+                <span>现场图片</span>
+              </template>
+              <template #value>
+                <span :class="currentPhotos.length > 0 ? 'status-done' : 'status-action'">
+                  {{ currentPhotos.length > 0 ? `已上传${currentPhotos.length}张` : '去上传' }}
+                </span>
+              </template>
+            </van-cell>
+            <van-cell is-link @click="handleSignature" required>
+              <template #title>
+                <span>班组签字</span>
+              </template>
+              <template #value>
+                <img v-if="signature" :src="signature" class="signature-preview" loading="lazy" />
+                <span v-else class="status-pending">待签字</span>
+              </template>
+            </van-cell>
             <van-field 
               v-model="applyFormData.remark" 
               label="备注" 
@@ -453,28 +647,18 @@ onMounted(() => {
                       <van-button size="mini" type="primary" plain class="copy-btn" @click.stop="copyOrderId(item.work_id)">复制单号</van-button>
                     </div>
                   </div>
-                  <div class="card-body">
-                    <div class="info-row">
-                      <span class="label">项目名称</span>
-                      <span class="value">{{ item.project_name }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">客户单位</span>
-                      <span class="value">{{ item.client_name || '-' }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">运维时间</span>
-                      <span class="value">{{ formatDate(item.plan_start_date) }} -- {{ formatDate(item.plan_end_date) }}</span>
-                    </div>
-                    <div class="info-row">
-                      <span class="label">备注</span>
-                      <span class="value">{{ item.remarks || '-' }}</span>
-                    </div>
-                    <div class="info-row" v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'">
-                      <span class="label">提交时间</span>
-                      <span class="value">{{ formatDateTime(item.updated_at) }}</span>
-                    </div>
-                  </div>
+                  <van-cell-group inset class="card-body-cells">
+                    <van-cell title="项目名称" :value="item.project_name" />
+                    <van-cell v-if="item.project_id" title="项目编号" :value="item.project_id" />
+                    <van-cell title="用工周期" :value="`${formatDate(item.plan_start_date)} -- ${formatDate(item.plan_end_date)}`" />
+                    <van-cell v-if="item.worker_count" title="施工人数" :value="item.worker_count + ' 人'" />
+                    <van-cell v-if="item.work_days" title="工天" :value="item.work_days + ' 工天'" />
+                    <van-cell v-if="item.client_contact" title="客户联系人" :value="item.client_contact" />
+                    <van-cell v-if="item.client_contact_info" title="客户联系电话" :value="item.client_contact_info" />
+                    <van-cell v-if="item.work_content" title="工作内容" :value="item.work_content" />
+                    <van-cell v-if="item.remarks" title="备注" :value="item.remarks" />
+                    <van-cell v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'" title="提交时间" :value="formatDateTime(item.updated_at)" />
+                  </van-cell-group>
                   <div class="card-footer">
                     <van-button 
                       v-if="currentTab?.key === '审批'"
@@ -521,6 +705,42 @@ onMounted(() => {
       @confirm="handleDateRangeConfirm"
       color="#1989fa"
     />
+
+    <van-popup 
+      v-model:show="showPhotoPopup" 
+      position="bottom" 
+      round 
+      :style="{ height: '60%' }"
+    >
+      <div class="popup-content">
+        <div class="popup-header">
+          <span class="popup-title">现场图片</span>
+          <van-icon name="cross" @click="showPhotoPopup = false" />
+        </div>
+        <div class="popup-body">
+          <div class="photo-section">
+            <div class="photo-grid">
+              <div 
+                v-for="(photo, index) in currentPhotos" 
+                :key="index" 
+                class="photo-item"
+              >
+                <img :src="photo" alt="现场照片" loading="lazy" />
+                <van-icon name="delete" class="delete-icon" @click.stop="handleRemovePhoto(index)" />
+              </div>
+              <div class="photo-add" @click="handlePhotoCapture" v-if="currentPhotos.length < 9">
+                <van-icon name="photograph" size="24" />
+                <span>拍照</span>
+              </div>
+            </div>
+            <div class="photo-tip">只支持拍照，最多上传9张</div>
+          </div>
+        </div>
+        <div class="popup-footer">
+          <van-button type="primary" block @click="handlePhotoSave">保存</van-button>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -595,30 +815,23 @@ onMounted(() => {
   margin-left: -4px;
 }
 
-.card-body {
-  padding: 12px 16px;
+.card-body-cells {
+  margin: 0;
 }
 
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 6px 0;
-  font-size: 13px;
+.card-body-cells :deep(.van-cell) {
+  padding: 8px 12px;
 }
 
-.info-row .label {
-  color: #969799;
-  flex-shrink: 0;
+.card-body-cells :deep(.van-cell__title) {
+  flex: none;
   width: 70px;
+  color: #969799;
 }
 
-.info-row .value {
-  color: #323233;
-  text-align: right;
+.card-body-cells :deep(.van-cell__value) {
   flex: 1;
-  margin-left: 12px;
-  word-break: break-all;
+  color: #323233;
 }
 
 .card-footer {
@@ -661,35 +874,126 @@ onMounted(() => {
   margin: 12px;
 }
 
-.two-column-form {
-  padding: 0;
+.status-done {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background-color: #07c160;
+  border-radius: 4px;
 }
 
-.form-row {
+.status-pending {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #fff;
+  background-color: #1989fa;
+  border-radius: 4px;
+}
+
+.status-action {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 14px;
+  color: #fff;
+  background-color: #ff976a;
+  border-radius: 4px;
+}
+
+.signature-preview {
+  width: 80px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.popup-content {
+  height: 100%;
   display: flex;
+  flex-direction: column;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
   border-bottom: 1px solid #ebedf0;
 }
 
-.form-row:last-child {
-  border-bottom: none;
+.popup-title {
+  font-size: 16px;
+  font-weight: 500;
 }
 
-.form-cell {
+.popup-body {
   flex: 1;
-  min-width: 0;
+  overflow-y: auto;
+  padding: 12px 0;
 }
 
-.form-cell :deep(.van-cell) {
-  padding: 10px 12px;
+.popup-footer {
+  padding: 12px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  border-top: 1px solid #ebedf0;
 }
 
-.form-cell :deep(.van-cell__title) {
+.popup-footer .van-button {
+  min-height: 44px;
+  font-size: 16px;
+  border-radius: 8px;
+}
+
+.photo-section {
+  padding: 12px 16px;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.delete-icon {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 18px;
+  color: #ee0a24;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.photo-add {
+  aspect-ratio: 1;
+  border: 1px dashed #dcdee0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: #969799;
+  font-size: 12px;
+}
+
+.photo-tip {
+  margin-top: 8px;
   font-size: 12px;
   color: #969799;
-}
-
-.form-cell :deep(.van-cell__value) {
-  font-size: 14px;
-  color: #323233;
 }
 </style>

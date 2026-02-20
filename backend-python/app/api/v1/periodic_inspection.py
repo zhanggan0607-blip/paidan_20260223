@@ -67,9 +67,10 @@ def get_all_periodic_inspection(
 def get_periodic_inspection_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=2000, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
+    inspection_id: Optional[str] = Query(None, description="Inspection ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
@@ -87,7 +88,7 @@ def get_periodic_inspection_list(
     maintenance_personnel = None if is_manager else user_name
     
     items, total = service.get_all(
-        page, size, project_name, client_name, status, maintenance_personnel
+        page, size, project_name, client_name, inspection_id, status, maintenance_personnel
     )
     
     result = []
@@ -155,8 +156,25 @@ def partial_update_periodic_inspection(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_periodic_inspection(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
+    from app.models.work_order_operation_log import WorkOrderOperationLog
     service = PeriodicInspectionService(db)
+    inspection = service.get_by_id(id)
+    inspection_id = inspection.inspection_id
+    
+    log = WorkOrderOperationLog(
+        work_order_type='periodic_inspection',
+        work_order_id=id,
+        work_order_no=inspection_id,
+        operator_name=current_user.get('name', '系统') if current_user else '系统',
+        operator_id=current_user.get('id') if current_user else None,
+        operation_type_code='delete',
+        operation_type_name='删除',
+        operation_remark=f'删除定期巡检单 {inspection_id}'
+    )
+    db.add(log)
+    
     service.delete(id)
     return ApiResponse.success(None, "Deleted successfully")

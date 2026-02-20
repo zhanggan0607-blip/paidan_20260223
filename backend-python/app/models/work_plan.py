@@ -9,6 +9,7 @@ class WorkPlan(Base):
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), unique=True, nullable=False, comment="计划编号")
+    plan_name = Column(String(200), comment="计划名称")
     plan_type = Column(String(20), nullable=False, comment="工单类型：定期巡检/临时维修/零星用工")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
@@ -54,6 +55,7 @@ class WorkPlan(Base):
         return {
             'id': self.id,
             'plan_id': self.plan_id,
+            'plan_name': self.plan_name,
             'plan_type': self.plan_type,
             'project_id': self.project_id,
             'project_name': project_name,

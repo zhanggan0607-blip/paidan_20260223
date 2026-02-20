@@ -30,7 +30,11 @@ def get_statistics_overview(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取统计数据概览 - 从三种工单表获取数据"""
+    """
+    获取统计数据概览 - 从三种工单表获取数据
+    年份过滤统一使用 plan_start_date
+    本年完成使用 actual_completion_date 判断
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -60,10 +64,13 @@ def get_statistics_overview(
     for inspection in inspection_query.all():
         plan_start = inspection.plan_start_date
         plan_end = inspection.plan_end_date
+        actual_completion = inspection.actual_completion_date
         if isinstance(plan_start, datetime):
             plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
+        if isinstance(actual_completion, datetime):
+            actual_completion = actual_completion.date()
         
         if plan_start:
             if plan_start >= year_start and plan_start <= year_end:
@@ -78,8 +85,8 @@ def get_statistics_overview(
             if plan_end < check_date and inspection.status in valid_statuses:
                 overdue_count += 1
         
-        if inspection.status == '已完成' and plan_end:
-            if plan_end >= year_start and plan_end <= year_end:
+        if inspection.status == '已完成' and actual_completion:
+            if actual_completion >= year_start and actual_completion <= year_end:
                 year_completed_count += 1
     
     repair_query = db.query(TemporaryRepair)
@@ -88,10 +95,13 @@ def get_statistics_overview(
     for repair in repair_query.all():
         plan_start = repair.plan_start_date
         plan_end = repair.plan_end_date
+        actual_completion = repair.actual_completion_date
         if isinstance(plan_start, datetime):
             plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
+        if isinstance(actual_completion, datetime):
+            actual_completion = actual_completion.date()
         
         if plan_start:
             if plan_start >= year_start and plan_start <= year_end:
@@ -106,8 +116,8 @@ def get_statistics_overview(
             if plan_end < check_date and repair.status in valid_statuses:
                 overdue_count += 1
         
-        if repair.status == '已完成' and plan_end:
-            if plan_end >= year_start and plan_end <= year_end:
+        if repair.status == '已完成' and actual_completion:
+            if actual_completion >= year_start and actual_completion <= year_end:
                 year_completed_count += 1
     
     work_query = db.query(SpotWork)
@@ -116,10 +126,13 @@ def get_statistics_overview(
     for work in work_query.all():
         plan_start = work.plan_start_date
         plan_end = work.plan_end_date
+        actual_completion = work.actual_completion_date
         if isinstance(plan_start, datetime):
             plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
+        if isinstance(actual_completion, datetime):
+            actual_completion = actual_completion.date()
         
         if plan_start:
             if plan_start >= year_start and plan_start <= year_end:
@@ -134,8 +147,8 @@ def get_statistics_overview(
             if plan_end < check_date and work.status in valid_statuses:
                 overdue_count += 1
         
-        if work.status == '已完成' and plan_end:
-            if plan_end >= year_start and plan_end <= year_end:
+        if work.status == '已完成' and actual_completion:
+            if actual_completion >= year_start and actual_completion <= year_end:
                 year_completed_count += 1
     
     total_work_orders = regular_inspection_count + temporary_repair_count + spot_work_count
@@ -159,7 +172,11 @@ def get_completion_rate(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取准时完成率 - 从三种工单表获取数据"""
+    """
+    获取准时完成率 - 从三种工单表获取数据
+    使用 actual_completion_date 判断实际完成时间
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -179,48 +196,60 @@ def get_completion_rate(
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
+        plan_start = inspection.plan_start_date
         plan_end = inspection.plan_end_date
-        actual_end = inspection.updated_at
+        actual_completion = inspection.actual_completion_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
-        if isinstance(actual_end, datetime):
-            actual_end = actual_end.date()
-        if plan_end and actual_end:
-            if plan_end >= year_start and plan_end <= year_end:
+        if isinstance(actual_completion, datetime):
+            actual_completion = actual_completion.date()
+        
+        if plan_start and actual_completion:
+            if plan_start >= year_start and plan_start <= year_end:
                 total_count += 1
-                if actual_end <= plan_end:
+                if actual_completion <= plan_end:
                     on_time_count += 1
     
     repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成')
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
+        plan_start = repair.plan_start_date
         plan_end = repair.plan_end_date
-        actual_end = repair.updated_at
+        actual_completion = repair.actual_completion_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
-        if isinstance(actual_end, datetime):
-            actual_end = actual_end.date()
-        if plan_end and actual_end:
-            if plan_end >= year_start and plan_end <= year_end:
+        if isinstance(actual_completion, datetime):
+            actual_completion = actual_completion.date()
+        
+        if plan_start and actual_completion:
+            if plan_start >= year_start and plan_start <= year_end:
                 total_count += 1
-                if actual_end <= plan_end:
+                if actual_completion <= plan_end:
                     on_time_count += 1
     
     work_query = db.query(SpotWork).filter(SpotWork.status == '已完成')
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
+        plan_start = work.plan_start_date
         plan_end = work.plan_end_date
-        actual_end = work.updated_at
+        actual_completion = work.actual_completion_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
         if isinstance(plan_end, datetime):
             plan_end = plan_end.date()
-        if isinstance(actual_end, datetime):
-            actual_end = actual_end.date()
-        if plan_end and actual_end:
-            if plan_end >= year_start and plan_end <= year_end:
+        if isinstance(actual_completion, datetime):
+            actual_completion = actual_completion.date()
+        
+        if plan_start and actual_completion:
+            if plan_start >= year_start and plan_start <= year_end:
                 total_count += 1
-                if actual_end <= plan_end:
+                if actual_completion <= plan_end:
                     on_time_count += 1
     
     delayed_count = total_count - on_time_count
@@ -243,7 +272,10 @@ def get_top_projects(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取年度前五项目（工单数量）- 从三种工单表获取数据"""
+    """
+    获取年度前五项目（工单数量）- 从三种工单表获取数据
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -262,10 +294,10 @@ def get_top_projects(
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
-        plan_end = inspection.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = inspection.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             if inspection.project_id:
                 if inspection.project_id not in project_stats:
                     project_stats[inspection.project_id] = 0
@@ -275,10 +307,10 @@ def get_top_projects(
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
-        plan_end = repair.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = repair.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             if repair.project_id:
                 if repair.project_id not in project_stats:
                     project_stats[repair.project_id] = 0
@@ -288,10 +320,10 @@ def get_top_projects(
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
-        plan_end = work.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = work.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             if work.project_id:
                 if work.project_id not in project_stats:
                     project_stats[work.project_id] = 0
@@ -321,7 +353,10 @@ def get_top_repairs(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取临时维修单年度前五 - 按项目统计临时维修单数量"""
+    """
+    获取临时维修单年度前五 - 按项目统计临时维修单数量
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -340,10 +375,10 @@ def get_top_repairs(
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
-        plan_end = repair.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = repair.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             if repair.project_id:
                 if repair.project_id not in project_stats:
                     project_stats[repair.project_id] = 0
@@ -372,7 +407,10 @@ def get_employee_stats(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取运维人员工单数量统计 - 按运维人员分组统计"""
+    """
+    获取运维人员工单数量统计 - 按运维人员分组统计
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -391,10 +429,10 @@ def get_employee_stats(
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
-        plan_end = inspection.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = inspection.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             personnel = inspection.maintenance_personnel or '未知'
             if personnel not in employee_stats:
                 employee_stats[personnel] = 0
@@ -404,10 +442,10 @@ def get_employee_stats(
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
-        plan_end = repair.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = repair.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             personnel = repair.maintenance_personnel or '未知'
             if personnel not in employee_stats:
                 employee_stats[personnel] = 0
@@ -417,10 +455,10 @@ def get_employee_stats(
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
-        plan_end = work.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = work.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             personnel = work.maintenance_personnel or '未知'
             if personnel not in employee_stats:
                 employee_stats[personnel] = 0
@@ -450,7 +488,10 @@ def get_repair_stats(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取临时维修单完成数量统计 - 按运维人员分组统计已完成的临时维修单"""
+    """
+    获取临时维修单完成数量统计 - 按运维人员分组统计已完成的临时维修单
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -469,10 +510,10 @@ def get_repair_stats(
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
-        plan_end = repair.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = repair.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             personnel = repair.maintenance_personnel or '未知'
             if personnel not in repair_stats:
                 repair_stats[personnel] = 0
@@ -502,7 +543,10 @@ def get_spotwork_stats(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取零星用工单完成数量统计 - 按运维人员分组统计已完成的零星用工单"""
+    """
+    获取零星用工单完成数量统计 - 按运维人员分组统计已完成的零星用工单
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -521,10 +565,10 @@ def get_spotwork_stats(
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
-        plan_end = work.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = work.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             personnel = work.maintenance_personnel or '未知'
             if personnel not in spotwork_stats:
                 spotwork_stats[personnel] = 0
@@ -554,7 +598,10 @@ def get_inspection_stats(
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
-    """获取定期巡检单完成数量统计 - 按运维人员分组统计已完成的定期巡检单"""
+    """
+    获取定期巡检单完成数量统计 - 按运维人员分组统计已完成的定期巡检单
+    使用 plan_start_date 过滤年份
+    """
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -573,10 +620,10 @@ def get_inspection_stats(
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
-        plan_end = inspection.plan_end_date
-        if isinstance(plan_end, datetime):
-            plan_end = plan_end.date()
-        if plan_end and plan_end >= year_start and plan_end <= year_end:
+        plan_start = inspection.plan_start_date
+        if isinstance(plan_start, datetime):
+            plan_start = plan_start.date()
+        if plan_start and plan_start >= year_start and plan_start <= year_end:
             personnel = inspection.maintenance_personnel or '未知'
             if personnel not in inspection_stats:
                 inspection_stats[personnel] = 0
@@ -617,6 +664,8 @@ def get_statistics_detail(
     data_type: nearDue-临期工单, overdue-超期工单, yearCompleted-本年完成, 
                regularInspection-定期巡检单, temporaryRepair-临时维修单, spotWork-零星用工单,
                onTime-准时完成, delayed-延期完成, employee-运维人员工单详情, project-项目工单详情
+    年份过滤统一使用 plan_start_date
+    本年完成使用 actual_completion_date 判断
     """
     
     user_info = current_user or get_current_user_from_headers(request)
@@ -724,11 +773,11 @@ def get_statistics_detail(
     
     elif data_type == 'yearCompleted':
         def check_year_completed(item):
-            plan_end = item.plan_end_date
-            if isinstance(plan_end, datetime):
-                plan_end = plan_end.date()
-            if item.status == '已完成' and plan_end:
-                return year_start <= plan_end <= year_end
+            actual_completion = item.actual_completion_date
+            if isinstance(actual_completion, datetime):
+                actual_completion = actual_completion.date()
+            if item.status == '已完成' and actual_completion:
+                return year_start <= actual_completion <= year_end
             return False
         
         results.extend(filter_and_paginate(
@@ -782,15 +831,18 @@ def get_statistics_detail(
     
     elif data_type == 'onTime':
         def check_on_time(item):
+            plan_start = item.plan_start_date
             plan_end = item.plan_end_date
-            actual_end = item.updated_at
+            actual_completion = item.actual_completion_date
+            if isinstance(plan_start, datetime):
+                plan_start = plan_start.date()
             if isinstance(plan_end, datetime):
                 plan_end = plan_end.date()
-            if isinstance(actual_end, datetime):
-                actual_end = actual_end.date()
-            if item.status == '已完成' and plan_end and actual_end:
-                if year_start <= plan_end <= year_end:
-                    return actual_end <= plan_end
+            if isinstance(actual_completion, datetime):
+                actual_completion = actual_completion.date()
+            if item.status == '已完成' and plan_start and actual_completion:
+                if year_start <= plan_start <= year_end:
+                    return actual_completion <= plan_end
             return False
         
         results.extend(filter_and_paginate(
@@ -805,15 +857,18 @@ def get_statistics_detail(
     
     elif data_type == 'delayed':
         def check_delayed(item):
+            plan_start = item.plan_start_date
             plan_end = item.plan_end_date
-            actual_end = item.updated_at
+            actual_completion = item.actual_completion_date
+            if isinstance(plan_start, datetime):
+                plan_start = plan_start.date()
             if isinstance(plan_end, datetime):
                 plan_end = plan_end.date()
-            if isinstance(actual_end, datetime):
-                actual_end = actual_end.date()
-            if item.status == '已完成' and plan_end and actual_end:
-                if year_start <= plan_end <= year_end:
-                    return actual_end > plan_end
+            if isinstance(actual_completion, datetime):
+                actual_completion = actual_completion.date()
+            if item.status == '已完成' and plan_start and actual_completion:
+                if year_start <= plan_start <= year_end:
+                    return actual_completion > plan_end
             return False
         
         results.extend(filter_and_paginate(
@@ -828,10 +883,10 @@ def get_statistics_detail(
     
     elif data_type == 'employee' and employee_name:
         def check_employee(item, require_completed=False):
-            plan_end = item.plan_end_date
-            if isinstance(plan_end, datetime):
-                plan_end = plan_end.date()
-            if plan_end and year_start <= plan_end <= year_end:
+            plan_start = item.plan_start_date
+            if isinstance(plan_start, datetime):
+                plan_start = plan_start.date()
+            if plan_start and year_start <= plan_start <= year_end:
                 if item.maintenance_personnel == employee_name:
                     if require_completed:
                         return item.status == '已完成'
@@ -870,10 +925,10 @@ def get_statistics_detail(
         
         if project_id:
             def check_project(item, require_completed=False):
-                plan_end = item.plan_end_date
-                if isinstance(plan_end, datetime):
-                    plan_end = plan_end.date()
-                if plan_end and year_start <= plan_end <= year_end:
+                plan_start = item.plan_start_date
+                if isinstance(plan_start, datetime):
+                    plan_start = plan_start.date()
+                if plan_start and year_start <= plan_start <= year_end:
                     if item.project_id == project_id:
                         if require_completed:
                             return item.status == '已完成'

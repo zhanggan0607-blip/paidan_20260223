@@ -5,22 +5,27 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConf
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import UserSelector from '../components/UserSelector.vue'
+import { authService, type User } from '../services/auth'
+import { processPhoto } from '../utils/watermark'
+import { validateIdCard } from '../utils/idCardValidator'
 
 interface WorkerInfo {
   id?: number
-  name: string
-  gender: string
-  birthDate: string
-  address: string
-  idCardNumber: string
-  issuingAuthority: string
-  validPeriod: string
-  idCardFront: string
-  idCardBack: string
+  name?: string
+  gender?: string
+  birthDate?: string
+  address?: string
+  idCardNumber?: string
+  issuingAuthority?: string
+  validPeriod?: string
+  idCardFront?: string
+  idCardBack?: string
 }
 
 const router = useRouter()
 const route = useRoute()
+
+const currentUser = ref<User | null>(null)
 
 const projectId = ref('')
 const projectName = ref('')
@@ -110,22 +115,82 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
     const file = target.files?.[0]
     if (!file) return
     
-    showLoadingToast({ message: '上传中...', forbidClick: true })
+    showLoadingToast({ message: '正在识别身份证...', forbidClick: true })
     
     try {
+      const originalBase64 = await fileToBase64(file)
+      
+      try {
+        const ocrResponse = await api.post<unknown, ApiResponse<{
+          name?: string
+          gender?: string
+          birthDate?: string
+          address?: string
+          idCardNumber?: string
+          issuingAuthority?: string
+          validPeriod?: string
+        }>>('/ocr/idcard', {
+          imageBase64: originalBase64,
+          side: side === 'front' ? 'face' : 'back'
+        })
+        
+        if (ocrResponse.code === 200 && ocrResponse.data) {
+          const ocrData = ocrResponse.data
+          
+          if (side === 'front') {
+            if (ocrData.name) currentWorker.value.name = ocrData.name
+            if (ocrData.gender) currentWorker.value.gender = ocrData.gender
+            if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
+            if (ocrData.address) currentWorker.value.address = ocrData.address
+            if (ocrData.idCardNumber) {
+              currentWorker.value.idCardNumber = ocrData.idCardNumber
+              const validation = validateIdCard(ocrData.idCardNumber)
+              if (!validation.valid) {
+                idCardError.value = validation.message
+              } else {
+                idCardError.value = ''
+              }
+            }
+          } else {
+            if (ocrData.issuingAuthority) currentWorker.value.issuingAuthority = ocrData.issuingAuthority
+            if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
+          }
+          
+          if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
+            showFailToast('身份证识别失败，请确保图片清晰')
+          } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
+            showFailToast('身份证反面识别失败，请确保图片清晰')
+          }
+        } else if (ocrResponse.code !== 200) {
+          showFailToast(ocrResponse.message || 'OCR识别失败')
+        }
+      } catch (ocrError) {
+        console.error('OCR识别失败:', ocrError)
+        showFailToast('OCR识别失败，请手动填写信息')
+      }
+      
+      showLoadingToast({ message: '处理图片...', forbidClick: true })
+      
+      const userName = currentUser.value?.name || '未知用户'
+      const processedFile = await processPhoto(file, userName)
+      
+      showLoadingToast({ message: '上传图片...', forbidClick: true })
+      
       const formDataObj = new FormData()
-      formDataObj.append('file', file)
+      formDataObj.append('file', processedFile)
       
       const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       
       if (response.code === 200 && response.data) {
+        const imageUrl = response.data.url
         if (side === 'front') {
-          currentWorker.value.idCardFront = response.data.url
+          currentWorker.value.idCardFront = imageUrl
         } else {
-          currentWorker.value.idCardBack = response.data.url
+          currentWorker.value.idCardBack = imageUrl
         }
+        
         showSuccessToast('上传成功')
       } else {
         showFailToast(response.message || '上传失败')
@@ -140,6 +205,48 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
   }
   
   input.click()
+}
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64 = result.split(',')[1] || ''
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+const idCardError = ref('')
+
+const handleIdCardChange = () => {
+  const idCard = currentWorker.value.idCardNumber
+  if (!idCard) {
+    idCardError.value = ''
+    return
+  }
+  
+  if (idCard.length === 18) {
+    const validation = validateIdCard(idCard)
+    if (validation.valid) {
+      idCardError.value = ''
+      if (validation.birthDate) {
+        currentWorker.value.birthDate = validation.birthDate
+      }
+      if (validation.gender) {
+        currentWorker.value.gender = validation.gender
+      }
+    } else {
+      idCardError.value = validation.message
+    }
+  } else if (idCard.length > 0) {
+    idCardError.value = idCard.length < 18 ? `已输入${idCard.length}位，还需${18 - idCard.length}位` : '身份证号码超出18位'
+  } else {
+    idCardError.value = ''
+  }
 }
 
 const handleSaveWorker = () => {
@@ -163,6 +270,23 @@ const handleSaveWorker = () => {
     showFailToast('请输入身份证号码')
     return
   }
+  
+  const idCardValidation = validateIdCard(currentWorker.value.idCardNumber)
+  if (!idCardValidation.valid) {
+    showFailToast(idCardValidation.message)
+    return
+  }
+  
+  if (idCardValidation.birthDate && currentWorker.value.birthDate !== idCardValidation.birthDate) {
+    showFailToast(`身份证号码与出生日期不匹配，根据身份证应为${idCardValidation.birthDate}`)
+    return
+  }
+  
+  if (idCardValidation.gender && currentWorker.value.gender !== idCardValidation.gender) {
+    showFailToast(`身份证号码与性别不匹配，根据身份证应为${idCardValidation.gender}`)
+    return
+  }
+  
   if (!currentWorker.value.issuingAuthority) {
     showFailToast('请输入签发机关')
     return
@@ -208,7 +332,16 @@ const handleSubmit = async () => {
       workers: workerList.value
     })
     if (response.code === 200) {
-      showSuccessToast(`提交成功，共${workerList.value.length}人`)
+      const personCount = workerList.value.length
+      let dayCount = 1
+      if (workDateStart.value && workDateEnd.value) {
+        const startDate = new Date(workDateStart.value)
+        const endDate = new Date(workDateEnd.value)
+        const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
+        dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+      }
+      const workDays = personCount * dayCount
+      showSuccessToast(`提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`)
       router.back()
     } else {
       showFailToast(response.message || '提交失败')
@@ -223,6 +356,7 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
+  currentUser.value = authService.getCurrentUser()
   projectId.value = route.query.projectId as string || ''
   projectName.value = route.query.projectName as string || ''
   workDateStart.value = route.query.workDateStart as string || ''
@@ -254,12 +388,8 @@ onMounted(() => {
     
     <div class="page-info" v-if="projectName">
       <van-cell-group inset>
-        <div class="two-column-form">
-          <div class="form-row">
-            <van-cell title="项目名称" :value="projectName" class="form-cell" />
-            <van-cell title="用工周期" :value="workDateStart === workDateEnd ? workDateStart : `${workDateStart} 至 ${workDateEnd}`" class="form-cell" />
-          </div>
-        </div>
+        <van-cell title="项目名称" :value="projectName" />
+        <van-cell title="用工周期" :value="workDateStart === workDateEnd ? workDateStart : `${workDateStart} 至 ${workDateEnd}`" />
       </van-cell-group>
     </div>
 
@@ -322,7 +452,7 @@ onMounted(() => {
             <van-cell title="身份证正面" is-link @click="handleUploadIdCard('front')">
               <template #value>
                 <div class="id-card-preview">
-                  <img v-if="currentWorker.idCardFront" :src="currentWorker.idCardFront" alt="正面" />
+                  <img v-if="currentWorker.idCardFront" :src="currentWorker.idCardFront" alt="正面" loading="lazy" />
                   <div v-else class="id-card-placeholder">
                     <van-icon name="photograph" size="24" />
                     <span>点击拍照</span>
@@ -333,7 +463,7 @@ onMounted(() => {
             <van-cell title="身份证反面" is-link @click="handleUploadIdCard('back')">
               <template #value>
                 <div class="id-card-preview">
-                  <img v-if="currentWorker.idCardBack" :src="currentWorker.idCardBack" alt="反面" />
+                  <img v-if="currentWorker.idCardBack" :src="currentWorker.idCardBack" alt="反面" loading="lazy" />
                   <div v-else class="id-card-placeholder">
                     <van-icon name="photograph" size="24" />
                     <span>点击拍照</span>
@@ -344,40 +474,35 @@ onMounted(() => {
           </van-cell-group>
 
           <van-cell-group inset title="身份信息">
-            <div class="two-column-form">
-              <div class="form-row">
-                <van-field 
-                  v-model="currentWorker.name" 
-                  label="姓名" 
-                  placeholder="请输入姓名"
-                  required
-                  class="form-cell"
-                />
-                <van-field 
-                  v-model="currentWorker.gender" 
-                  label="性别" 
-                  placeholder="请输入性别"
-                  required
-                  class="form-cell"
-                />
-              </div>
-              <div class="form-row">
-                <van-field 
-                  v-model="currentWorker.birthDate" 
-                  label="出生日期" 
-                  placeholder="格式：YYYY-MM-DD"
-                  required
-                  class="form-cell"
-                />
-                <van-field 
-                  v-model="currentWorker.idCardNumber" 
-                  label="身份证号" 
-                  placeholder="请输入身份证号码"
-                  required
-                  class="form-cell"
-                />
-              </div>
-            </div>
+            <van-field 
+              v-model="currentWorker.name" 
+              label="姓名" 
+              placeholder="请输入姓名"
+              required
+            />
+            <van-field 
+              v-model="currentWorker.idCardNumber" 
+              label="身份证号" 
+              placeholder="请输入18位身份证号码"
+              required
+              maxlength="18"
+              @input="handleIdCardChange"
+              :error-message="idCardError"
+            />
+            <van-field 
+              v-model="currentWorker.gender" 
+              label="性别" 
+              placeholder="输入身份证后自动填充"
+              readonly
+              required
+            />
+            <van-field 
+              v-model="currentWorker.birthDate" 
+              label="出生日期" 
+              placeholder="输入身份证后自动填充"
+              readonly
+              required
+            />
             <van-field 
               v-model="currentWorker.address" 
               label="住址" 
@@ -390,24 +515,18 @@ onMounted(() => {
           </van-cell-group>
 
           <van-cell-group inset title="证件信息">
-            <div class="two-column-form">
-              <div class="form-row">
-                <van-field 
-                  v-model="currentWorker.issuingAuthority" 
-                  label="签发机关" 
-                  placeholder="请输入签发机关"
-                  required
-                  class="form-cell"
-                />
-                <van-field 
-                  v-model="currentWorker.validPeriod" 
-                  label="有效期限" 
-                  placeholder="请输入有效期限"
-                  required
-                  class="form-cell"
-                />
-              </div>
-            </div>
+            <van-field 
+              v-model="currentWorker.issuingAuthority" 
+              label="签发机关" 
+              placeholder="请输入签发机关"
+              required
+            />
+            <van-field 
+              v-model="currentWorker.validPeriod" 
+              label="有效期限" 
+              placeholder="请输入有效期限"
+              required
+            />
           </van-cell-group>
         </div>
         <div class="popup-footer">
@@ -555,37 +674,5 @@ onMounted(() => {
   gap: 4px;
   color: #969799;
   font-size: 10px;
-}
-
-.two-column-form {
-  padding: 0;
-}
-
-.form-row {
-  display: flex;
-  border-bottom: 1px solid #ebedf0;
-}
-
-.form-row:last-child {
-  border-bottom: none;
-}
-
-.form-cell {
-  flex: 1;
-  min-width: 0;
-}
-
-.form-cell :deep(.van-cell) {
-  padding: 10px 12px;
-}
-
-.form-cell :deep(.van-field__label) {
-  font-size: 12px;
-  color: #969799;
-}
-
-.form-cell :deep(.van-field__control) {
-  font-size: 14px;
-  color: #323233;
 }
 </style>

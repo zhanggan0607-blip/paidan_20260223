@@ -5,7 +5,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
-from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log
+from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log, weekly_report, work_order_operation_log, operation_type, ocr
 from app.database import Base, engine
 from app.exceptions import BusinessException
 from app.middleware.rate_limit import RateLimitMiddleware
@@ -107,6 +107,10 @@ app.include_router(repair_tools.router, prefix=settings.api_prefix)
 app.include_router(upload.router, prefix=settings.api_prefix)
 app.include_router(work_order.router, prefix=settings.api_prefix)
 app.include_router(maintenance_log.router, prefix=settings.api_prefix)
+app.include_router(weekly_report.router, prefix=settings.api_prefix)
+app.include_router(work_order_operation_log.router, prefix=settings.api_prefix)
+app.include_router(operation_type.router, prefix=settings.api_prefix)
+app.include_router(ocr.router, prefix=settings.api_prefix)
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -219,6 +223,52 @@ def migrate_add_signature_field():
                     results[table_name] = "Added signature column"
                 else:
                     results[table_name] = "Column signature already exists"
+            
+            return {"success": True, "message": "Migration completed", "details": results}
+    except Exception as e:
+        return {"success": False, "message": str(e), "details": results}
+
+
+@app.post("/migrate/fix-maintenance-plan-columns")
+def migrate_fix_maintenance_plan_columns():
+    """
+    修复maintenance_plan表缺失的字段
+    """
+    from sqlalchemy import text
+    results = {}
+    
+    columns_to_add = [
+        ('maintenance_personnel', 'VARCHAR(100)', '运维人员'),
+        ('responsible_department', 'VARCHAR(100)', '负责部门'),
+        ('contact_info', 'VARCHAR(50)', '联系方式'),
+        ('maintenance_requirements', 'TEXT', '维保要求'),
+        ('maintenance_standard', 'TEXT', '维保标准'),
+        ('plan_status', 'VARCHAR(20)', '计划状态'),
+        ('status', 'VARCHAR(20) DEFAULT \'未进行\'', '执行状态'),
+        ('completion_rate', 'INTEGER DEFAULT 0', '完成率'),
+        ('filled_count', 'INTEGER DEFAULT 0', '已填写检查项数量'),
+        ('total_count', 'INTEGER DEFAULT 5', '检查项总数量'),
+        ('inspection_items', 'TEXT', '巡查项数据'),
+    ]
+    
+    try:
+        with engine.connect() as conn:
+            for col_name, col_type, col_comment in columns_to_add:
+                result = conn.execute(text(f"""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = 'maintenance_plan' AND column_name = '{col_name}'
+                """))
+                
+                if result.fetchone() is None:
+                    conn.execute(text(f"""
+                        ALTER TABLE maintenance_plan 
+                        ADD COLUMN {col_name} {col_type} NULL
+                    """))
+                    conn.commit()
+                    results[col_name] = f"Added column {col_name}"
+                else:
+                    results[col_name] = f"Column {col_name} already exists"
             
             return {"success": True, "message": "Migration completed", "details": results}
     except Exception as e:

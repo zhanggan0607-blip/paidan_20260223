@@ -59,7 +59,7 @@ const userOptions = computed(() => {
   }))
 })
 
-const onSelectUser = (action: { text: string }, index: number) => {
+const onSelectUser = (_action: { text: string }, index: number) => {
   const user = userList.value[index]
   if (user && currentUser.value?.id !== user.id) {
     selectUser(user)

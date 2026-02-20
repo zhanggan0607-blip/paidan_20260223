@@ -3,9 +3,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from typing import Optional
 from datetime import datetime
+import random
+import string
 
 from app.database import get_db
 from app.models.repair_tools import RepairToolsStock, RepairToolsIssue
+from app.models.repair_tools_inbound import RepairToolsInbound
 from app.models.project_info import ProjectInfo
 from app.models.personnel import Personnel
 from app.models.work_plan import WorkPlan
@@ -13,6 +16,7 @@ from app.schemas.repair_tools import (
     RepairToolsStockCreate,
     RepairToolsStockUpdate,
     RepairToolsRestock,
+    RepairToolsInboundCreate,
     RepairToolsIssueCreate,
     RepairToolsReturn,
     RepairToolsStockResponse,
@@ -22,6 +26,13 @@ from app.schemas.common import ApiResponse
 from app.auth import get_current_user, get_current_user_from_headers
 
 router = APIRouter(prefix="/repair-tools", tags=["维修工具管理"])
+
+
+def generate_inbound_no() -> str:
+    """生成入库单号"""
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    random_str = ''.join(random.choices(string.digits, k=4))
+    return f"RT{timestamp}{random_str}"
 
 
 @router.get("/personnel-projects", summary="获取人员与项目的关联关系")
@@ -106,7 +117,7 @@ async def get_personnel_projects(
 async def search_tools(
     keyword: Optional[str] = Query(None, description="搜索关键词"),
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
+    size: int = Query(10, ge=1, le=2000, description="每页数量"),
     db: Session = Depends(get_db)
 ):
     query = db.query(RepairToolsStock).filter(RepairToolsStock.stock > 0)
@@ -171,21 +182,41 @@ async def create_stock(
     data: RepairToolsStockCreate,
     db: Session = Depends(get_db)
 ):
-    stock = RepairToolsStock(
-        tool_name=data.tool_name,
-        category=data.category,
-        specification=data.specification,
-        unit=data.unit,
-        stock=data.stock,
-        min_stock=data.min_stock,
-        location=data.location,
-        remark=data.remark
-    )
-    db.add(stock)
-    db.commit()
-    db.refresh(stock)
-    
-    return ApiResponse(code=200, data=stock.to_dict(), message="新增成功")
+    try:
+        inbound_no = generate_inbound_no()
+        
+        inbound = RepairToolsInbound(
+            inbound_no=inbound_no,
+            tool_name=data.tool_name,
+            category=data.category,
+            specification=data.specification,
+            quantity=data.stock,
+            unit=data.unit,
+            location=data.location,
+            user_name='系统',
+            remark=data.remark
+        )
+        db.add(inbound)
+        
+        stock = RepairToolsStock(
+            tool_name=data.tool_name,
+            category=data.category,
+            specification=data.specification,
+            unit=data.unit,
+            stock=data.stock,
+            min_stock=data.min_stock,
+            location=data.location,
+            remark=data.remark
+        )
+        db.add(stock)
+        
+        db.commit()
+        db.refresh(stock)
+        
+        return ApiResponse(code=200, data=stock.to_dict(), message="新增成功")
+    except Exception as e:
+        db.rollback()
+        return ApiResponse(code=500, message=f"新增失败: {str(e)}", data=None)
 
 
 @router.get("/stock/{stock_id}", summary="获取维修工具详情")
@@ -230,11 +261,31 @@ async def restock_tool(
     if not stock:
         raise HTTPException(status_code=404, detail="工具不存在")
     
-    stock.stock += data.quantity
-    db.commit()
-    db.refresh(stock)
-    
-    return ApiResponse(code=200, data=stock.to_dict(), message="入库成功")
+    try:
+        inbound_no = generate_inbound_no()
+        
+        inbound = RepairToolsInbound(
+            inbound_no=inbound_no,
+            tool_name=stock.tool_name,
+            tool_id=stock.tool_id,
+            category=stock.category,
+            specification=stock.specification,
+            quantity=data.quantity,
+            unit=stock.unit,
+            location=stock.location,
+            user_name='系统',
+            remark=data.remark
+        )
+        db.add(inbound)
+        
+        stock.stock += data.quantity
+        db.commit()
+        db.refresh(stock)
+        
+        return ApiResponse(code=200, data=stock.to_dict(), message="入库成功")
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"入库失败: {str(e)}")
 
 
 @router.delete("/stock/{stock_id}", summary="删除维修工具")
@@ -252,11 +303,35 @@ async def delete_stock(
     return ApiResponse(code=200, message="删除成功")
 
 
+@router.get("/inbound", summary="获取维修工具入库记录列表")
+async def get_inbound_list(
+    page: int = Query(0, ge=0, description="页码"),
+    size: int = Query(10, ge=1, le=2000, description="每页数量"),
+    tool_name: Optional[str] = Query(None, description="工具名称"),
+    user_name: Optional[str] = Query(None, description="入库人"),
+    db: Session = Depends(get_db)
+):
+    query = db.query(RepairToolsInbound)
+    
+    if tool_name:
+        query = query.filter(RepairToolsInbound.tool_name.ilike(f"%{tool_name}%"))
+    if user_name:
+        query = query.filter(RepairToolsInbound.user_name.ilike(f"%{user_name}%"))
+    
+    total = query.count()
+    items = query.order_by(RepairToolsInbound.created_at.desc()).offset(page * size).limit(size).all()
+    
+    return ApiResponse(code=200, data={
+        'items': [item.to_dict() for item in items],
+        'total': total
+    })
+
+
 @router.get("/issue", summary="获取维修工具领用记录列表")
 async def get_issue_list(
     request: Request,
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
+    size: int = Query(10, ge=1, le=2000, description="每页数量"),
     tool_name: Optional[str] = Query(None, description="工具名称"),
     user_name: Optional[str] = Query(None, description="运维人员"),
     status: Optional[str] = Query(None, description="状态"),

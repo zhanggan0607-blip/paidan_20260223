@@ -221,7 +221,7 @@
                 <label class="image-label">巡检组相关图片</label>
                 <div class="image-list">
                   <div v-for="(img, index) in viewInspectionImages" :key="'insp-' + index" class="image-item">
-                    <img :src="img" alt="巡检图片" @click="previewImage(img)" />
+                    <img :src="img" alt="巡检图片" loading="lazy" @click="previewImage(img)" />
                   </div>
                   <div v-if="viewInspectionImages.length === 0" class="no-image">暂无图片</div>
                 </div>
@@ -233,7 +233,7 @@
             <h4 class="section-title">用户电子签名</h4>
             <div class="signature-area">
               <div v-if="viewSignature" class="signature-image">
-                <img :src="viewSignature" alt="电子签名" />
+                <img :src="viewSignature" alt="电子签名" loading="lazy" />
               </div>
               <div v-else class="no-signature">暂无签名</div>
             </div>
@@ -265,7 +265,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, reactive, watch, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { workOrderService, type WorkOrder } from '@/services/workOrder'
+import { periodicInspectionService, type PeriodicInspection } from '@/services/periodicInspection'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { maintenancePlanService } from '@/services/maintenancePlan'
 import Toast from '@/components/Toast.vue'
@@ -478,19 +478,19 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await workOrderService.getList({
+        const response = await periodicInspectionService.getList({
           page: currentPage.value,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
-          order_id: searchForm.value.order_id || undefined
+          inspection_id: searchForm.value.order_id || undefined
         })
         
         if (response.code === 200) {
-          planData.value = response.data.content.map((item: WorkOrder) => ({
+          planData.value = response.data.content.map((item: PeriodicInspection) => ({
             id: item.id,
-            plan_id: item.order_id,
-            plan_type: item.order_type || '定期巡检单',
-            order_type_code: item.order_type_code || 'inspection',
+            plan_id: item.inspection_id,
+            plan_type: '定期巡检单',
+            order_type_code: 'inspection',
             project_id: item.project_id,
             project_name: item.project_name,
             plan_start_date: item.plan_start_date,

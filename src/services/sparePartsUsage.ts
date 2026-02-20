@@ -1,27 +1,11 @@
 import apiClient from '../utils/api'
+import type { SparePartsUsage as SparePartsUsageType, ApiResponse } from '../types/api'
 
-export interface SparePartsUsage {
-  id: number
-  project_id: string
-  projectName: string
-  productName: string
-  brand: string
-  model: string
-  quantity: number
-  userName: string
-  issueTime: string
-  unit: string
-}
+export type SparePartsUsage = SparePartsUsageType
 
 export interface SparePartsUsageListResponse {
   items: SparePartsUsage[]
   total: number
-}
-
-export interface ApiResponse<T = any> {
-  code: number
-  message: string
-  data: T
 }
 
 export const sparePartsUsageService = {

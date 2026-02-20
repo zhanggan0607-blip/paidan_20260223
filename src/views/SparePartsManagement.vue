@@ -3,28 +3,25 @@
     <div class="content">
       <div class="search-section">
         <div class="search-form">
-          <div class="search-item">
-            <label class="search-label">运维人员员：</label>
-            <select class="search-select" v-model="searchForm.personnel">
-              <option value="">全部</option>
-              <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
-            </select>
-          </div>
-          <div class="search-item">
-            <label class="search-label">产品名称：</label>
-            <SearchInput
-              v-model="searchForm.productName"
-              field-key="SparePartsManagement_productName"
-              placeholder="请输入"
-              @input="handleSearch"
-            />
-          </div>
-          <div class="search-item">
-            <label class="search-label">项目名称：</label>
-            <select class="search-select" v-model="searchForm.projectName">
-              <option value="">全部</option>
-              <option v-for="project in projectList" :key="project" :value="project">{{ project }}</option>
-            </select>
+          <div class="search-row">
+            <div class="search-item">
+              <label class="search-label">产品名称：</label>
+              <SearchInput
+                v-model="searchForm.productName"
+                field-key="SparePartsManagement_productName"
+                placeholder="请输入产品名称"
+                @input="handleSearch"
+              />
+            </div>
+            <div class="search-item">
+              <label class="search-label">项目名称：</label>
+              <SearchInput
+                v-model="searchForm.projectName"
+                field-key="SparePartsManagement_projectName"
+                placeholder="请输入项目名称"
+                @input="handleSearch"
+              />
+            </div>
           </div>
         </div>
         <div class="action-buttons">
@@ -57,13 +54,13 @@
             <tr v-else v-for="(item, index) in partsData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td>{{ item.project_id || '-' }}</td>
-              <td>{{ item.projectName || '-' }}</td>
-              <td>{{ item.productName }}</td>
+              <td>{{ item.project_name || '-' }}</td>
+              <td>{{ item.product_name }}</td>
               <td>{{ item.brand || '-' }}</td>
               <td>{{ item.model || '-' }}</td>
               <td>{{ item.quantity }}</td>
-              <td>{{ item.userName }}</td>
-              <td>{{ formatDate(item.issueTime) }}</td>
+              <td>{{ item.user_name }}</td>
+              <td>{{ formatDate(item.issue_time) }}</td>
               <td>{{ item.unit }}</td>
             </tr>
           </tbody>
@@ -173,9 +170,9 @@ export default defineComponent({
           
           const personnelSet = new Set<string>()
           const projectSet = new Set<string>()
-          partsData.value.forEach(item => {
-            if (item.userName) personnelSet.add(item.userName)
-            if (item.projectName) projectSet.add(item.projectName)
+          partsData.value.forEach((item: SparePartsUsage) => {
+            if (item.user_name) personnelSet.add(item.user_name)
+            if (item.project_name) projectSet.add(item.project_name)
           })
           personnelList.value = Array.from(personnelSet)
           projectList.value = Array.from(projectSet)
@@ -249,9 +246,17 @@ export default defineComponent({
 
 .search-form {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.search-row {
+  display: flex;
   gap: 16px;
   align-items: center;
-  flex: 1;
+  flex-wrap: wrap;
 }
 
 .search-item {

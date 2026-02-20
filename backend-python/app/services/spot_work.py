@@ -7,6 +7,7 @@ from app.repositories.spot_work import SpotWorkRepository
 from app.utils.dictionary_helper import get_default_spot_work_status
 from app.services.sync_service import SyncService, PLAN_TYPE_SPOTWORK
 from pydantic import BaseModel
+import json
 
 
 class SpotWorkCreate(BaseModel):
@@ -16,7 +17,12 @@ class SpotWorkCreate(BaseModel):
     plan_start_date: Union[str, datetime]
     plan_end_date: Union[str, datetime]
     client_name: str
+    client_contact: Optional[str] = None
+    client_contact_info: Optional[str] = None
     maintenance_personnel: Optional[str] = None
+    work_content: Optional[str] = None
+    photos: Optional[List[str]] = None
+    signature: Optional[str] = None
     status: Optional[str] = None
     remarks: Optional[str] = None
 
@@ -28,7 +34,12 @@ class SpotWorkUpdate(BaseModel):
     plan_start_date: Union[str, datetime]
     plan_end_date: Union[str, datetime]
     client_name: str
+    client_contact: Optional[str] = None
+    client_contact_info: Optional[str] = None
     maintenance_personnel: Optional[str] = None
+    work_content: Optional[str] = None
+    photos: Optional[List[str]] = None
+    signature: Optional[str] = None
     status: str
     remarks: Optional[str] = None
 
@@ -93,6 +104,8 @@ class SpotWorkService:
         
         default_status = get_default_spot_work_status(self.repository.db)
         
+        photos_json = json.dumps(dto.photos, ensure_ascii=False) if dto.photos else None
+        
         work = SpotWork(
             work_id=dto.work_id,
             project_id=dto.project_id,
@@ -100,7 +113,12 @@ class SpotWorkService:
             plan_start_date=self._parse_date(dto.plan_start_date),
             plan_end_date=self._parse_date(dto.plan_end_date),
             client_name=dto.client_name,
+            client_contact=dto.client_contact,
+            client_contact_info=dto.client_contact_info,
             maintenance_personnel=dto.maintenance_personnel,
+            work_content=dto.work_content,
+            photos=photos_json,
+            signature=dto.signature,
             status=dto.status or default_status,
             remarks=dto.remarks
         )
@@ -118,13 +136,20 @@ class SpotWorkService:
                 detail="用工单编号已存在"
             )
         
+        photos_json = json.dumps(dto.photos, ensure_ascii=False) if dto.photos else None
+        
         existing_work.work_id = dto.work_id
         existing_work.project_id = dto.project_id
         existing_work.project_name = dto.project_name
         existing_work.plan_start_date = self._parse_date(dto.plan_start_date)
         existing_work.plan_end_date = self._parse_date(dto.plan_end_date)
         existing_work.client_name = dto.client_name
+        existing_work.client_contact = dto.client_contact
+        existing_work.client_contact_info = dto.client_contact_info
         existing_work.maintenance_personnel = dto.maintenance_personnel
+        existing_work.work_content = dto.work_content
+        existing_work.photos = photos_json
+        existing_work.signature = dto.signature
         existing_work.status = dto.status
         existing_work.remarks = dto.remarks
         
@@ -152,10 +177,22 @@ class SpotWorkService:
             existing_work.plan_end_date = self._parse_date(dto.plan_end_date)
         if dto.client_name is not None:
             existing_work.client_name = dto.client_name
+        if dto.client_contact is not None:
+            existing_work.client_contact = dto.client_contact
+        if dto.client_contact_info is not None:
+            existing_work.client_contact_info = dto.client_contact_info
         if dto.maintenance_personnel is not None:
             existing_work.maintenance_personnel = dto.maintenance_personnel
+        if dto.work_content is not None:
+            existing_work.work_content = dto.work_content
+        if dto.photos is not None:
+            existing_work.photos = json.dumps(dto.photos, ensure_ascii=False)
+        if dto.signature is not None:
+            existing_work.signature = dto.signature
         if dto.status is not None:
             existing_work.status = dto.status
+            if dto.status in ['已确认', '已完成'] and not existing_work.actual_completion_date:
+                existing_work.actual_completion_date = datetime.now()
         if dto.remarks is not None:
             existing_work.remarks = dto.remarks
         

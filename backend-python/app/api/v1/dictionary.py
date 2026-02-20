@@ -40,7 +40,7 @@ def get_all_dictionaries_unpaginated(
 @router.get("", response_model=ApiResponse)
 def get_dictionaries_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=2000, description="Page size"),
     dict_type: Optional[str] = Query(None, description="Dictionary type filter"),
     db: Session = Depends(get_db)
 ):

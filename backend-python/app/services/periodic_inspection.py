@@ -39,11 +39,12 @@ class PeriodicInspectionService:
         size: int = 10, 
         project_name: Optional[str] = None,
         client_name: Optional[str] = None,
+        inspection_id: Optional[str] = None,
         status: Optional[str] = None,
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[PeriodicInspection], int]:
         return self.repository.find_all(
-            page, size, project_name, client_name, status, maintenance_personnel
+            page, size, project_name, client_name, inspection_id, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> PeriodicInspection:
@@ -138,6 +139,8 @@ class PeriodicInspectionService:
             existing_inspection.remarks = dto.remarks
         if dto.status is not None:
             existing_inspection.status = dto.status
+            if dto.status in ['已确认', '已完成'] and not existing_inspection.actual_completion_date:
+                existing_inspection.actual_completion_date = datetime.now()
         
         result = self.repository.update(existing_inspection)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)

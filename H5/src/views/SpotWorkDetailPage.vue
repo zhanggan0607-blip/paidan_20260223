@@ -7,57 +7,68 @@ import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { authService, type User } from '../services/auth'
+import OperationLogTimeline from '../components/OperationLogTimeline.vue'
+import { processPhoto } from '../utils/watermark'
 
 const router = useRouter()
 const route = useRoute()
 
+interface WorkerInfo {
+  id: number
+  name: string
+  gender: string
+  birth_date: string
+  address: string
+  id_card_number: string
+  issuing_authority: string
+  valid_period: string
+  id_card_front: string
+  id_card_back: string
+}
+
 interface SpotWorkDetail {
   id: number
   work_id: string
-  plan_type: string
+  plan_id?: string
+  plan_type?: string
   project_id: string
   project_name: string
   plan_start_date: string
   plan_end_date: string
-  client_name: string
-  client_contact: string
-  client_contact_info: string
-  address: string
-  maintenance_personnel: string
+  client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  address?: string
+  client_contact_position?: string
+  maintenance_personnel?: string
   status: string
-  remarks: string
-  work_content: string
-  work_result: string
-  worker_name: string
-  worker_id_card: string
-  worker_id_card_front: string
-  worker_id_card_back: string
-  photos: string[]
-  signature: string
+  remarks?: string
+  work_content?: string
+  photos?: string | string[]
+  signature?: string
+  actual_completion_date?: string
   created_at: string
   updated_at: string
+  worker_count?: number
+  work_days?: number
+  workers?: WorkerInfo[]
 }
 
 const loading = ref(false)
 const detail = ref<SpotWorkDetail | null>(null)
 const currentUser = ref<User | null>(null)
+const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
-const showDatePicker = ref(false)
-const currentDate = ref(['2024', '01', '01'])
 const formData = ref({
-  execution_date: '',
   work_content: '',
-  work_result: '',
-  worker_name: '',
-  worker_id_card: '',
   remarks: '',
   signature: ''
 })
 
 const currentPhotos = ref<string[]>([])
 const showPhotoPopup = ref(false)
-const workerIdCardFront = ref('')
-const workerIdCardBack = ref('')
+const showWorkerPopup = ref(false)
+const currentWorker = ref<WorkerInfo | null>(null)
 
 const isEditable = computed(() => {
   return detail.value?.status === WORK_STATUS.NOT_STARTED || 
@@ -65,10 +76,7 @@ const isEditable = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return formData.value.work_content && 
-         formData.value.work_result &&
-         formData.value.worker_name &&
-         formData.value.worker_id_card
+  return formData.value.work_content
 })
 
 const returnTab = computed(() => {
@@ -85,16 +93,10 @@ const handleBackToList = () => {
   router.push(`/spot-work?tab=${returnTab.value}`)
 }
 
-const minDate = computed(() => {
-  if (detail.value?.plan_start_date) {
-    return new Date(detail.value.plan_start_date)
-  }
-  return new Date(2020, 0, 1)
-})
-
-const maxDate = computed(() => {
-  return new Date()
-})
+const showWorkerDetail = (worker: WorkerInfo) => {
+  currentWorker.value = worker
+  showWorkerPopup.value = true
+}
 
 /**
  * 复制工单编号到剪贴板
@@ -139,14 +141,19 @@ const fetchDetail = async () => {
       detail.value = response.data
       if (response.data) {
         formData.value.work_content = response.data.work_content || ''
-        formData.value.work_result = response.data.work_result || ''
-        formData.value.worker_name = response.data.worker_name || ''
-        formData.value.worker_id_card = response.data.worker_id_card || ''
         formData.value.remarks = response.data.remarks || ''
         formData.value.signature = response.data.signature || ''
-        currentPhotos.value = response.data.photos || []
-        workerIdCardFront.value = response.data.worker_id_card_front || ''
-        workerIdCardBack.value = response.data.worker_id_card_back || ''
+        if (response.data.photos) {
+          try {
+            currentPhotos.value = typeof response.data.photos === 'string' 
+              ? JSON.parse(response.data.photos) 
+              : response.data.photos
+          } catch {
+            currentPhotos.value = []
+          }
+        } else {
+          currentPhotos.value = []
+        }
       }
     }
   } catch (error) {
@@ -181,11 +188,14 @@ const handlePhotoCapture = () => {
     const file = target.files?.[0]
     if (!file) return
     
-    showLoadingToast({ message: '上传中...', forbidClick: true })
+    showLoadingToast({ message: '处理中...', forbidClick: true })
     
     try {
+      const userName = currentUser.value?.name || '未知用户'
+      const processedFile = await processPhoto(file, userName)
+      
       const formDataObj = new FormData()
-      formDataObj.append('file', file)
+      formDataObj.append('file', processedFile)
       
       const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -222,46 +232,6 @@ const handlePhotoSave = () => {
   showSuccessToast('保存成功')
 }
 
-const handleIdCardUpload = (type: 'front' | 'back') => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.capture = 'environment'
-  
-  input.onchange = async (e: Event) => {
-    const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) return
-    
-    showLoadingToast({ message: '上传中...', forbidClick: true })
-    
-    try {
-      const formDataObj = new FormData()
-      formDataObj.append('file', file)
-      
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      
-      if (response.code === 200 && response.data) {
-        if (type === 'front') {
-          workerIdCardFront.value = response.data.url
-        } else {
-          workerIdCardBack.value = response.data.url
-        }
-        showSuccessToast('上传成功')
-      }
-    } catch (error) {
-      console.error('Failed to upload photo:', error)
-      showFailToast('上传失败')
-    } finally {
-      closeToast()
-    }
-  }
-  
-  input.click()
-}
-
 const handleSignature = () => {
   router.push({
     path: '/signature',
@@ -272,14 +242,9 @@ const handleSignature = () => {
   })
 }
 
-const handleDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
-  formData.value.execution_date = selectedValues.join('-')
-  showDatePicker.value = false
-}
-
 const handleSubmit = async () => {
   if (!canSubmit.value) {
-    showFailToast('请填写用工内容、工作结果、工人姓名和身份证号')
+    showFailToast('请填写工作内容')
     return
   }
 
@@ -292,16 +257,26 @@ const handleSubmit = async () => {
     showLoadingToast({ message: '提交中...', forbidClick: true })
     
     const submitData = {
-      ...formData.value,
-      photos: currentPhotos.value,
-      worker_id_card_front: workerIdCardFront.value,
-      worker_id_card_back: workerIdCardBack.value,
-      status: WORK_STATUS.PENDING_CONFIRM
+      work_id: detail.value?.work_id,
+      project_id: detail.value?.project_id,
+      project_name: detail.value?.project_name,
+      plan_start_date: detail.value?.plan_start_date,
+      plan_end_date: detail.value?.plan_end_date,
+      client_name: detail.value?.client_name,
+      client_contact: detail.value?.client_contact,
+      client_contact_info: detail.value?.client_contact_info,
+      maintenance_personnel: detail.value?.maintenance_personnel,
+      work_content: formData.value.work_content,
+      photos: JSON.stringify(currentPhotos.value),
+      signature: formData.value.signature,
+      status: WORK_STATUS.PENDING_CONFIRM,
+      remarks: formData.value.remarks
     }
     
     const response = await api.put<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
+      await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('spot_work_signature')
       showSuccessToast('提交成功')
       router.push(`/spot-work?tab=${returnTab.value}`)
@@ -321,15 +296,26 @@ const handleSave = async () => {
   
   try {
     const saveData = {
-      ...formData.value,
-      photos: currentPhotos.value,
-      worker_id_card_front: workerIdCardFront.value,
-      worker_id_card_back: workerIdCardBack.value
+      work_id: detail.value?.work_id,
+      project_id: detail.value?.project_id,
+      project_name: detail.value?.project_name,
+      plan_start_date: detail.value?.plan_start_date,
+      plan_end_date: detail.value?.plan_end_date,
+      client_name: detail.value?.client_name,
+      client_contact: detail.value?.client_contact,
+      client_contact_info: detail.value?.client_contact_info,
+      maintenance_personnel: detail.value?.maintenance_personnel,
+      work_content: formData.value.work_content,
+      photos: JSON.stringify(currentPhotos.value),
+      signature: formData.value.signature,
+      status: detail.value?.status,
+      remarks: formData.value.remarks
     }
     
     const response = await api.put<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, saveData)
     
     if (response.code === 200) {
+      await addOperationLog('save', '员工保存工单')
       showSuccessToast('保存成功')
     }
   } catch (error) {
@@ -361,6 +347,7 @@ const handleApprovePass = async () => {
     const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
+      await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
       router.push('/spot-work?tab=3')
     }
@@ -397,6 +384,7 @@ const handleApproveReject = async () => {
     const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
+      await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
       router.push('/spot-work?tab=1')
     }
@@ -415,6 +403,33 @@ onMounted(() => {
   fetchDetail()
   loadSignature()
 })
+
+/**
+ * 记录操作日志
+ * @param operationTypeCode 操作类型编码
+ * @param operationRemark 操作备注
+ */
+const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
+  if (!detail.value?.id || !currentUser.value) return
+  
+  try {
+    await api.post('/work-order-operation-log', {
+      work_order_type: 'spot_work',
+      work_order_id: detail.value.id,
+      work_order_no: detail.value.work_id,
+      operator_name: currentUser.value.name,
+      operator_id: currentUser.value.id,
+      operation_type_code: operationTypeCode,
+      operation_remark: operationRemark
+    })
+    
+    if (operationLogRef.value) {
+      operationLogRef.value.refresh()
+    }
+  } catch (error) {
+    console.error('Failed to add operation log:', error)
+  }
+}
 </script>
 
 <template>
@@ -438,6 +453,7 @@ onMounted(() => {
     <div class="content" v-if="detail">
       <van-cell-group inset title="基本资料">
         <van-cell title="项目名称" :value="detail.project_name" />
+        <van-cell title="项目编号" :value="detail.project_id" />
         <van-cell title="工单编号">
           <template #value>
             <div class="order-id-cell">
@@ -446,76 +462,53 @@ onMounted(() => {
             </div>
           </template>
         </van-cell>
-        <van-cell title="维保开始日期" :value="formatDate(detail.plan_start_date)" />
-        <van-cell title="维保截止日期" :value="formatDate(detail.plan_end_date)" />
+        <van-cell title="用工周期" :value="`${formatDate(detail.plan_start_date)} 至 ${formatDate(detail.plan_end_date)}`" />
+        <van-cell v-if="detail.work_days" title="用工天数" :value="detail.work_days + ' 天'" />
         <van-cell title="客户单位" :value="detail.client_name || '-'" />
         <van-cell title="客户联系人" :value="detail.client_contact || '-'" />
-        <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" />
+        <van-cell title="客户联系电话" :value="detail.client_contact_info || '-'" />
       </van-cell-group>
 
-      <van-cell-group inset title="用工内容">
+      <van-cell-group inset title="工作内容">
         <van-field
           v-model="formData.work_content"
           rows="3"
           autosize
-          label="用工内容"
+          label="工作内容"
           type="textarea"
-          placeholder="请输入用工内容"
+          placeholder="请输入工作内容"
           show-word-limit
-          maxlength="500"
-          :readonly="!isEditable"
-        />
-        
-        <van-field
-          v-model="formData.work_result"
-          rows="3"
-          autosize
-          label="工作结果"
-          type="textarea"
-          placeholder="请输入工作结果"
-          show-word-limit
-          maxlength="500"
+          maxlength="800"
           :readonly="!isEditable"
         />
       </van-cell-group>
 
       <van-cell-group inset title="工人信息">
-        <van-field
-          v-model="formData.worker_name"
-          label="工人姓名"
-          placeholder="请输入工人姓名"
-          :readonly="!isEditable"
-        />
-        
-        <van-field
-          v-model="formData.worker_id_card"
-          label="身份证号"
-          placeholder="请输入身份证号"
-          :readonly="!isEditable"
-        />
-
-        <div class="id-card-section">
-          <div class="id-card-item">
-            <div class="id-card-label">身份证正面</div>
-            <div class="id-card-upload" @click="isEditable && handleIdCardUpload('front')">
-              <img v-if="workerIdCardFront" :src="workerIdCardFront" alt="身份证正面" />
-              <div v-else class="upload-placeholder">
-                <van-icon name="photograph" size="24" />
-                <span>拍照上传</span>
-              </div>
+        <van-cell v-if="detail.workers && detail.workers.length > 0">
+          <template #title>
+            <div class="workers-summary">
+              <span>共 {{ detail.worker_count }} 人，{{ detail.work_days }} 工天</span>
             </div>
-          </div>
-          <div class="id-card-item">
-            <div class="id-card-label">身份证反面</div>
-            <div class="id-card-upload" @click="isEditable && handleIdCardUpload('back')">
-              <img v-if="workerIdCardBack" :src="workerIdCardBack" alt="身份证反面" />
-              <div v-else class="upload-placeholder">
-                <van-icon name="photograph" size="24" />
-                <span>拍照上传</span>
-              </div>
+          </template>
+        </van-cell>
+        <van-cell 
+          v-for="(worker, index) in detail.workers" 
+          :key="worker.id || index"
+          :title="worker.name"
+          :label="worker.id_card_number"
+          is-link
+          @click="showWorkerDetail(worker)"
+        >
+          <template #value>
+            <div class="worker-photos">
+              <van-icon v-if="worker.id_card_front" name="idcard" class="photo-icon done" />
+              <van-icon v-else name="idcard" class="photo-icon pending" />
+              <van-icon v-if="worker.id_card_back" name="idcard" class="photo-icon done" />
+              <van-icon v-else name="idcard" class="photo-icon pending" />
             </div>
-          </div>
-        </div>
+          </template>
+        </van-cell>
+        <van-empty v-if="!detail.workers || detail.workers.length === 0" description="暂无工人信息" image-size="60" />
       </van-cell-group>
 
       <van-cell-group inset title="图片上传">
@@ -531,39 +524,24 @@ onMounted(() => {
         </van-cell>
       </van-cell-group>
 
-      <van-cell-group inset title="其他信息">
-        <van-cell 
-          title="执行日期" 
-          :value="formData.execution_date || '请选择'" 
-          is-link 
-          @click="showDatePicker = true"
-          :disabled="!isEditable"
-        />
-        
-        <van-field
-          v-model="formData.remarks"
-          rows="2"
-          autosize
-          label="备注说明"
-          type="textarea"
-          placeholder="请输入备注说明"
-          show-word-limit
-          maxlength="200"
-          :readonly="!isEditable"
-        />
-      </van-cell-group>
-
       <van-cell-group inset title="班组签字">
         <van-cell is-link @click="handleSignature" :disabled="!isEditable">
           <template #title>
             <span>班组签字</span>
           </template>
           <template #value>
-            <img v-if="formData.signature" :src="formData.signature" class="signature-preview" />
+            <img v-if="formData.signature" :src="formData.signature" class="signature-preview" loading="lazy" />
             <span v-else class="status-pending">待签字</span>
           </template>
         </van-cell>
       </van-cell-group>
+
+      <OperationLogTimeline 
+        v-if="detail?.id" 
+        work-order-type="spot_work" 
+        :work-order-id="detail.id"
+        ref="operationLogRef"
+      />
 
       <div class="action-buttons" v-if="isEditable">
         <van-button type="default" size="large" @click="handleSave">保存</van-button>
@@ -577,17 +555,6 @@ onMounted(() => {
     </div>
     
     <van-empty v-else-if="!loading" description="暂无数据" />
-    
-    <van-popup v-model:show="showDatePicker" position="bottom" round>
-      <van-date-picker
-        v-model="currentDate"
-        title="选择执行日期"
-        :min-date="minDate"
-        :max-date="maxDate"
-        @confirm="handleDateConfirm"
-        @cancel="showDatePicker = false"
-      />
-    </van-popup>
 
     <van-popup 
       v-model:show="showPhotoPopup" 
@@ -608,7 +575,7 @@ onMounted(() => {
                 :key="index" 
                 class="photo-item"
               >
-                <img :src="photo" alt="现场照片" />
+                <img :src="photo" alt="现场照片" loading="lazy" />
                 <van-icon name="delete" class="delete-icon" @click.stop="handleRemovePhoto(index)" />
               </div>
               <div class="photo-add" @click="handlePhotoCapture" v-if="currentPhotos.length < 9">
@@ -621,6 +588,47 @@ onMounted(() => {
         </div>
         <div class="popup-footer">
           <van-button type="primary" block @click="handlePhotoSave">保存</van-button>
+        </div>
+      </div>
+    </van-popup>
+
+    <van-popup 
+      v-model:show="showWorkerPopup" 
+      position="bottom" 
+      round 
+      :style="{ height: '70%' }"
+    >
+      <div class="popup-content" v-if="currentWorker">
+        <div class="popup-header">
+          <span class="popup-title">工人详情</span>
+          <van-icon name="cross" @click="showWorkerPopup = false" />
+        </div>
+        <div class="popup-body">
+          <van-cell-group inset>
+            <van-cell title="姓名" :value="currentWorker.name" />
+            <van-cell title="性别" :value="currentWorker.gender" />
+            <van-cell title="出生日期" :value="currentWorker.birth_date" />
+            <van-cell title="身份证号" :value="currentWorker.id_card_number" />
+            <van-cell title="住址" :value="currentWorker.address" />
+            <van-cell title="签发机关" :value="currentWorker.issuing_authority" />
+            <van-cell title="有效期限" :value="currentWorker.valid_period" />
+          </van-cell-group>
+          <div class="id-card-section">
+            <div class="id-card-item">
+              <div class="id-card-label">身份证正面</div>
+              <div class="id-card-preview-large">
+                <img v-if="currentWorker.id_card_front" :src="currentWorker.id_card_front" alt="身份证正面" loading="lazy" />
+                <div v-else class="no-photo">暂无照片</div>
+              </div>
+            </div>
+            <div class="id-card-item">
+              <div class="id-card-label">身份证反面</div>
+              <div class="id-card-preview-large">
+                <img v-if="currentWorker.id_card_back" :src="currentWorker.id_card_back" alt="身份证反面" loading="lazy" />
+                <div v-else class="no-photo">暂无照片</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </van-popup>
@@ -859,6 +867,51 @@ onMounted(() => {
   transform: scale(0.8);
   transform-origin: right center;
   margin-left: -4px;
+}
+
+.workers-summary {
+  font-size: 14px;
+  color: #1989fa;
+  font-weight: 500;
+}
+
+.worker-photos {
+  display: flex;
+  gap: 8px;
+}
+
+.photo-icon {
+  font-size: 18px;
+}
+
+.photo-icon.done {
+  color: #07c160;
+}
+
+.photo-icon.pending {
+  color: #c8c9cc;
+}
+
+.id-card-preview-large {
+  width: 100%;
+  aspect-ratio: 1.5;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f7f8fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.id-card-preview-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.no-photo {
+  color: #969799;
+  font-size: 12px;
 }
 
 

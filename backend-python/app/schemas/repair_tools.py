@@ -34,6 +34,19 @@ class RepairToolsRestock(BaseModel):
     remark: Optional[str] = Field(None, description="备注")
 
 
+class RepairToolsInboundCreate(BaseModel):
+    tool_name: str = Field(..., description="工具名称")
+    tool_id: Optional[str] = Field(None, description="工具编号")
+    category: Optional[str] = Field(None, description="工具分类")
+    specification: Optional[str] = Field(None, description="规格型号")
+    quantity: int = Field(..., gt=0, description="入库数量")
+    unit: str = Field(default="个", description="单位")
+    supplier: Optional[str] = Field(None, description="供应商")
+    location: Optional[str] = Field(None, description="存放位置")
+    user_name: str = Field(..., description="入库人")
+    remark: Optional[str] = Field(None, description="备注")
+
+
 class RepairToolsIssueBase(BaseModel):
     tool_id: Optional[str] = Field(None, description="工具编号")
     tool_name: Optional[str] = Field(None, description="工具名称")

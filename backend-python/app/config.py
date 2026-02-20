@@ -16,6 +16,10 @@ class Settings(BaseSettings):
         "postgresql://postgres:changeme@localhost:5432/tq"
     )
     
+    aliyun_access_key_id: str = os.getenv("ALIYUN_ACCESS_KEY_ID", "")
+    aliyun_access_key_secret: str = os.getenv("ALIYUN_ACCESS_KEY_SECRET", "")
+    aliyun_ocr_region_id: str = os.getenv("ALIYUN_OCR_REGION_ID", "cn-shanghai")
+    
     api_prefix: str = "/api/v1"
     docs_url: str = "/docs"
     redoc_url: str = "/redoc"

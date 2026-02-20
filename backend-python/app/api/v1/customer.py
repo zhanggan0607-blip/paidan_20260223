@@ -13,7 +13,7 @@ router = APIRouter(prefix="/customer", tags=["customer"])
 @router.get("", response_model=ApiResponse[CustomerListResponse])
 def get_customers(
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=100, description="每页数量"),
+    size: int = Query(10, ge=1, le=2000, description="每页数量"),
     name: Optional[str] = Query(None, description="客户名称"),
     contact_person: Optional[str] = Query(None, description="联系人"),
     db: Session = Depends(get_db),

@@ -76,7 +76,7 @@ def get_all_work_plans(
 def get_work_plans_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=2000, description="Page size"),
     plan_type: Optional[str] = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),

@@ -28,6 +28,10 @@ import {
   ImagePreview,
   Loading,
   NoticeBar,
+  SwipeCell,
+  Dialog,
+  Toast,
+  Stepper,
 } from 'vant'
 import 'vant/lib/index.css'
 
@@ -57,6 +61,10 @@ app.use(Popover)
 app.use(ImagePreview)
 app.use(Loading)
 app.use(NoticeBar)
+app.use(SwipeCell)
+app.use(Dialog)
+app.use(Toast)
+app.use(Stepper)
 
 app.use(router)
 app.mount('#app')

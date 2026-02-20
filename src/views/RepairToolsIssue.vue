@@ -3,37 +3,41 @@
     <div class="main-layout">
       <div class="content-area">
         <div class="content-wrapper">
-          <div class="filter-section">
-            <div class="filter-item">
-              <label class="filter-label">运维人员员</label>
-              <select v-model="filters.user" class="filter-select">
-                <option value="">全部</option>
-                <option v-for="user in userList" :key="user.id" :value="user.name">
-                  {{ user.name }}
-                </option>
-              </select>
+          <div class="search-section">
+            <div class="search-form">
+              <div class="search-row">
+                <div class="search-item">
+                  <label class="search-label">运维人员：</label>
+                  <SearchInput
+                    v-model="filters.user"
+                    field-key="RepairToolsIssue_user"
+                    placeholder="请输入运维人员"
+                    @input="handleSearch"
+                  />
+                </div>
+                <div class="search-item">
+                  <label class="search-label">工具名称：</label>
+                  <SearchInput
+                    v-model="filters.toolName"
+                    field-key="RepairToolsIssue_toolName"
+                    placeholder="请输入工具名称"
+                    @input="handleSearch"
+                  />
+                </div>
+                <div class="search-item">
+                  <label class="search-label">项目名称：</label>
+                  <SearchInput
+                    v-model="filters.project"
+                    field-key="RepairToolsIssue_project"
+                    placeholder="请输入项目名称"
+                    @input="handleSearch"
+                  />
+                </div>
+              </div>
             </div>
-
-            <div class="filter-item">
-              <label class="filter-label">工具名称</label>
-              <SearchInput
-                v-model="filters.toolName"
-                field-key="RepairToolsIssue_toolName"
-                placeholder="请输入工具名称"
-                @input="handleSearch"
-              />
+            <div class="action-buttons">
+              <button @click="handleAdd" class="btn btn-add">新增领用</button>
             </div>
-
-            <div class="filter-item">
-              <label class="filter-label">项目名称</label>
-              <select v-model="filters.project" class="filter-select">
-                <option value="">全部</option>
-                <option v-for="project in projectList" :key="project.project_id" :value="project.project_name">
-                  {{ project.project_name }}
-                </option>
-              </select>
-            </div>
-            <button @click="handleAdd" class="add-button">新增领用</button>
           </div>
 
           <div class="table-section">
@@ -169,13 +173,14 @@
             <input v-model.number="formData.quantity" type="number" :min="1" class="form-input" placeholder="请输入领用数量" />
           </div>
           <div class="form-item">
-            <label class="form-label">运维人员<span class="required">*</span></label>
-            <select v-model="formData.user_id" class="form-select" @change="handleUserChange">
-              <option value="">请选择运维人员</option>
-              <option v-for="user in filteredUserList" :key="user.id" :value="user.id">
-                {{ user.name }}
-              </option>
-            </select>
+            <label class="form-label">运维人员</label>
+            <input 
+              :value="currentUser?.name || ''" 
+              type="text" 
+              class="form-input" 
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">所属项目</label>
@@ -208,6 +213,7 @@ import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
+import { authService } from '@/services/auth'
 
 interface RepairToolsIssueItem {
   id: number
@@ -259,6 +265,7 @@ export default defineComponent({
     const currentPage = ref(1)
     const pageSize = ref(10)
     const showAddModal = ref(false)
+    const currentUser = ref(authService.getCurrentUser())
 
     const filters = ref({
       user: '',
@@ -269,9 +276,9 @@ export default defineComponent({
     const formData = ref({
       tool_id: '',
       quantity: 1,
-      user_id: '',
       project_id: '',
-      remark: ''
+      remark: '',
+      user_id: ''
     })
 
     const toolList = ref<Tool[]>([])
@@ -474,9 +481,9 @@ export default defineComponent({
       formData.value = {
         tool_id: '',
         quantity: 1,
-        user_id: '',
         project_id: '',
-        remark: ''
+        remark: '',
+        user_id: ''
       }
       toolSearchKeyword.value = ''
       selectedTool.value = null
@@ -490,14 +497,20 @@ export default defineComponent({
     }
 
     const handleSubmit = async () => {
-      if (!formData.value.tool_id || !formData.value.quantity || !formData.value.user_id) {
+      if (!formData.value.tool_id || !formData.value.quantity) {
         alert('请填写必填项')
         return
       }
 
       submitting.value = true
       try {
-        const response = await apiClient.post('/repair-tools/issue', formData.value) as unknown as ApiResponse<any>
+        const project = projectList.value.find(p => p.project_id === formData.value.project_id)
+        
+        const response = await apiClient.post('/repair-tools/issue', {
+          ...formData.value,
+          user_name: currentUser.value?.name,
+          project_name: project?.project_name || null
+        }) as unknown as ApiResponse<any>
         if (response && response.code === 200) {
           alert('领用成功')
           closeAddModal()
@@ -579,14 +592,13 @@ export default defineComponent({
       showToolDropdown,
       selectedTool,
       filteredToolList,
-      filteredUserList,
       filteredProjectList,
+      currentUser,
       handleSearch,
       handleAdd,
       closeAddModal,
       handleToolSearch,
       selectTool,
-      handleUserChange,
       handleProjectChange,
       handleSubmit,
       handlePageChange,
@@ -623,15 +635,42 @@ export default defineComponent({
   overflow-y: auto;
 }
 
-.filter-section {
+.search-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  flex: 1;
+}
+
+.search-row {
   display: flex;
   gap: 16px;
-  align-items: flex-end;
-  padding: 16px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  flex-wrap: wrap;
+  align-items: center;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-label {
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .filter-item {

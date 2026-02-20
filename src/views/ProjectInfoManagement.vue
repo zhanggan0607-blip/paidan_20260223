@@ -5,23 +5,25 @@
 
     <div class="search-section">
       <div class="search-form">
-        <div class="search-item">
-          <label class="search-label">项目名称：</label>
-          <SearchInput
-            v-model="searchForm.projectName"
-            field-key="ProjectInfoManagement_projectName"
-            placeholder="请输入"
-            @input="handleSearch"
-          />
-        </div>
-        <div class="search-item">
-          <label class="search-label">客户名称：</label>
-          <SearchInput
-            v-model="searchForm.clientName"
-            field-key="ProjectInfoManagement_clientName"
-            placeholder="请输入"
-            @input="handleSearch"
-          />
+        <div class="search-row">
+          <div class="search-item">
+            <label class="search-label">项目名称：</label>
+            <SearchInput
+              v-model="searchForm.projectName"
+              field-key="ProjectInfoManagement_projectName"
+              placeholder="请输入项目名称"
+              @input="handleSearch"
+            />
+          </div>
+          <div class="search-item">
+            <label class="search-label">客户名称：</label>
+            <SearchInput
+              v-model="searchForm.clientName"
+              field-key="ProjectInfoManagement_clientName"
+              placeholder="请输入客户名称"
+              @input="handleSearch"
+            />
+          </div>
         </div>
       </div>
       <div class="search-actions">
@@ -1064,8 +1066,16 @@ export default defineComponent({
 
 .search-form {
   display: flex;
-  gap: 24px;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.search-row {
+  display: flex;
+  gap: 16px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .search-item {

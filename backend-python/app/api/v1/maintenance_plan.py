@@ -128,7 +128,7 @@ def get_maintenance_plan_by_date_range(
 def get_maintenance_plan_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=2000, description="Page size"),
     plan_name: Optional[str] = Query(None, description="Plan name (fuzzy search)"),
     project_id: Optional[str] = Query(None, description="Project ID"),
     equipment_name: Optional[str] = Query(None, description="Equipment name (fuzzy search)"),

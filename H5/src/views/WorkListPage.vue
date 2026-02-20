@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showLoadingToast, closeToast } from 'vant'
+import { showLoadingToast, closeToast, showToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { WORK_STATUS, formatDate } from '../config/constants'
+import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { authService, type User } from '../services/auth'
 
 interface AlertItem {
   id: string
@@ -24,6 +25,7 @@ interface AlertItem {
 
 interface WorkPlanItem {
   id: number
+  uniqueKey: string
   projectName: string
   planStartDate?: string
   planEndDate: string
@@ -32,6 +34,10 @@ interface WorkPlanItem {
   workOrderNo?: string
   overdueDays?: number
   daysRemaining?: number
+  clientName?: string
+  totalCount?: number
+  filledCount?: number
+  updatedAt?: string
 }
 
 const route = useRoute()
@@ -41,6 +47,7 @@ const loading = ref(false)
 const workList = ref<WorkPlanItem[]>([])
 const overdueList = ref<AlertItem[]>([])
 const expiringList = ref<AlertItem[]>([])
+const currentUser = ref<User | null>(null)
 
 const type = computed(() => route.query.type as string || 'expiring')
 
@@ -66,6 +73,7 @@ const displayList = computed(() => {
   if (tabKey === 'overdue') {
     return overdueList.value.map(item => ({
       id: parseInt(item.id),
+      uniqueKey: `overdue-${item.id}`,
       projectName: item.projectName,
       planStartDate: item.planStartDate,
       planEndDate: item.planEndDate,
@@ -73,12 +81,16 @@ const displayList = computed(() => {
       planType: item.workOrderType,
       workOrderNo: item.workOrderNo,
       overdueDays: item.overdueDays,
-      daysRemaining: item.daysRemaining
+      daysRemaining: item.daysRemaining,
+      clientName: item.customerName,
+      totalCount: undefined,
+      filledCount: undefined
     }))
   }
   if (tabKey === 'expiring') {
     return expiringList.value.map(item => ({
       id: parseInt(item.id),
+      uniqueKey: `expiring-${item.id}`,
       projectName: item.projectName,
       planStartDate: item.planStartDate,
       planEndDate: item.planEndDate,
@@ -86,7 +98,10 @@ const displayList = computed(() => {
       planType: item.workOrderType,
       workOrderNo: item.workOrderNo,
       overdueDays: item.overdueDays,
-      daysRemaining: item.daysRemaining
+      daysRemaining: item.daysRemaining,
+      clientName: item.customerName,
+      totalCount: undefined,
+      filledCount: undefined
     }))
   }
   return workList.value
@@ -199,12 +214,17 @@ const fetchWorkList = async () => {
       
       workList.value = items.map((item: any) => ({
         id: item.id,
+        uniqueKey: `${item.plan_type || item.planType || currentTab.value?.planType}-${item.id}`,
         projectName: item.project_name || item.projectName,
         planStartDate: item.plan_start_date || item.planStartDate,
         planEndDate: item.plan_end_date || item.planEndDate,
         status: item.status,
         planType: item.plan_type || item.planType || currentTab.value?.planType,
-        workOrderNo: item.inspection_id || item.repair_id || item.work_id
+        workOrderNo: item.inspection_id || item.repair_id || item.work_id,
+        clientName: item.client_name || item.clientName,
+        totalCount: item.total_count,
+        filledCount: item.filled_count,
+        updatedAt: item.updated_at
       }))
     }
   } catch (error) {
@@ -251,19 +271,69 @@ const handleUserChanged = () => {
   fetchWorkList()
 }
 
-const getStatusLabel = (item: WorkPlanItem) => {
-  const tabKey = currentTab.value?.key
-  if (tabKey === 'expiring') {
-    return `${formatDate(item.planStartDate)} | ${item.status}`
+const getStatusType = (status: string) => {
+  switch (status) {
+    case '已完成':
+    case '已确认':
+      return 'success'
+    case '未进行':
+    case '已退回':
+      return 'danger'
+    case '待确认':
+      return 'warning'
+    default:
+      return 'default'
   }
-  let label = `${formatDate(item.planEndDate)} | ${item.status}`
-  if (tabKey === 'completed') {
-    label += ` | ${item.planType}`
+}
+
+const getDisplayStatus = (status: string) => {
+  if (status === '已确认' || status === '已完成') return '已完成'
+  if (status === '待确认') return '待确认'
+  if (status === '已退回') return '已退回'
+  if (status === '未进行') return '待处理'
+  return status
+}
+
+/**
+ * 根据工单编号长度计算字体大小
+ * @param workId 工单编号
+ * @returns 字体大小(px)
+ */
+const getWorkIdFontSize = (workId: string) => {
+  if (!workId) return 14
+  const len = workId.length
+  if (len <= 18) return 14
+  if (len <= 22) return 12
+  if (len <= 26) return 11
+  if (len <= 30) return 10
+  if (len <= 35) return 9
+  if (len <= 40) return 8
+  return 7
+}
+
+/**
+ * 复制工单编号到剪贴板
+ * @param orderId 工单编号
+ */
+const copyOrderId = async (orderId: string) => {
+  try {
+    await navigator.clipboard.writeText(orderId)
+    showToast('工单编号已复制')
+  } catch {
+    showToast('复制失败')
   }
-  return label
+}
+
+const handleBack = () => {
+  router.push('/')
 }
 
 onMounted(() => {
+  currentUser.value = authService.getCurrentUser()
+  fetchWorkList()
+})
+
+watch(type, () => {
   fetchWorkList()
 })
 </script>
@@ -276,7 +346,7 @@ onMounted(() => {
       placeholder 
     >
       <template #left>
-        <div class="nav-left" @click="router.push('/')">
+        <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
@@ -288,38 +358,66 @@ onMounted(() => {
     
     <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
       <van-list :loading="loading" :finished="true">
-        <van-cell-group inset>
-          <van-cell 
+        <div class="work-list">
+          <div 
             v-for="item in displayList" 
-            :key="item.id"
-            :title="item.projectName"
-            :label="getStatusLabel(item)"
-            is-link
+            :key="item.uniqueKey"
+            class="work-card"
             @click="handleItemClick(item)"
           >
-            <template #value>
-              <div class="cell-value">
-                <van-tag 
-                  v-if="currentTab.key === 'overdue' && item.overdueDays" 
-                  type="danger" 
-                  class="alert-tag"
-                >
-                  超{{ item.overdueDays }}天
-                </van-tag>
-                <van-tag 
-                  v-if="currentTab.key === 'expiring' && item.daysRemaining !== undefined" 
-                  type="warning" 
-                  class="alert-tag"
-                >
-                  {{ item.daysRemaining }}天后开始
-                </van-tag>
-                <van-tag :type="item.status === WORK_STATUS.COMPLETED ? 'success' : 'primary'">
-                  {{ item.status }}
-                </van-tag>
+            <div class="card-header">
+              <van-tag :type="getStatusType(item.status)" size="medium" :class="{ 'returned-tag': item.status === '已退回' }">
+                {{ getDisplayStatus(item.status) }}
+              </van-tag>
+              <div class="work-id-wrapper">
+                <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.workOrderNo || '') + 'px' }">{{ item.workOrderNo }}</span>
+                <van-button size="mini" type="primary" plain class="copy-btn" @click.stop="copyOrderId(item.workOrderNo || '')">复制单号</van-button>
               </div>
-            </template>
-          </van-cell>
-        </van-cell-group>
+            </div>
+            <div class="card-body">
+              <div class="info-row">
+                <span class="label">项目名称</span>
+                <span class="value">{{ item.projectName }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">客户单位</span>
+                <span class="value">{{ item.clientName || '-' }}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">运维时间</span>
+                <span class="value">{{ formatDate(item.planStartDate) }} -- {{ formatDate(item.planEndDate) }}</span>
+              </div>
+              <div class="info-row" v-if="currentTab.key === 'periodic'">
+                <span class="label">填写内容</span>
+                <span class="value highlight">共{{ item.totalCount || 5 }}项（已填写 {{ item.filledCount || 0 }} 项）</span>
+              </div>
+              <div class="info-row" v-if="currentTab.key === 'completed'">
+                <span class="label">工单类型</span>
+                <span class="value">{{ item.planType }}</span>
+              </div>
+              <div class="info-row" v-if="currentTab.key === 'overdue' && item.overdueDays">
+                <span class="label">超期天数</span>
+                <span class="value error">超{{ item.overdueDays }}天</span>
+              </div>
+              <div class="info-row" v-if="currentTab.key === 'expiring' && item.daysRemaining !== undefined">
+                <span class="label">剩余天数</span>
+                <span class="value warning">{{ item.daysRemaining }}天后开始</span>
+              </div>
+              <div class="info-row" v-if="currentTab.key === 'overdue' || currentTab.key === 'expiring'">
+                <span class="label">工单类型</span>
+                <span class="value">{{ item.planType }}</span>
+              </div>
+            </div>
+            <div class="card-footer">
+              <van-button 
+                type="primary" 
+                size="small"
+              >
+                查看
+              </van-button>
+            </div>
+          </div>
+        </div>
         <van-empty v-if="!loading && displayList.length === 0" description="暂无数据" />
       </van-list>
     </van-pull-refresh>
@@ -332,17 +430,120 @@ onMounted(() => {
   background-color: #f5f7fa;
 }
 
-:deep(.van-cell-group--inset) {
-  margin: 12px;
+.work-list {
+  padding: 12px;
 }
 
-.cell-value {
+.work-card {
+  background: #fff;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f7f8fa;
+  border-bottom: 1px solid #ebedf0;
+  flex-wrap: nowrap;
+}
+
+.work-id-wrapper {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
 }
 
-.alert-tag {
-  font-weight: bold;
+.work-id {
+  font-weight: 600;
+  color: #323233;
+  white-space: nowrap;
+  text-align: right;
+  flex: 1;
+  min-width: 0;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  transform: scale(0.8);
+  transform-origin: right center;
+  margin-left: -4px;
+}
+
+.card-body {
+  padding: 12px 16px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.info-row .label {
+  color: #969799;
+  flex-shrink: 0;
+  width: 70px;
+}
+
+.info-row .value {
+  color: #323233;
+  text-align: right;
+  flex: 1;
+  margin-left: 12px;
+  word-break: break-all;
+}
+
+.info-row .value.highlight {
+  color: #1989fa;
+  font-weight: 500;
+}
+
+.info-row .value.error {
+  color: #ee0a24;
+  font-weight: 500;
+}
+
+.info-row .value.warning {
+  color: #ff976a;
+  font-weight: 500;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid #ebedf0;
+}
+
+.card-footer .van-button {
+  min-width: 60px;
+}
+
+.returned-tag {
+  background-color: #ffcdd2 !important;
+  color: #c62828 !important;
+  border-color: #ef9a9a !important;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 </style>

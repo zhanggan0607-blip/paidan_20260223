@@ -4,9 +4,10 @@ import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
+import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { authService, type User } from '../services/auth'
+import { processPhoto } from '../utils/watermark'
 
 interface ProjectInfo {
   id: number
@@ -25,16 +26,11 @@ interface LogImage {
 const router = useRouter()
 
 const currentUser = ref<User | null>(null)
-const pageTitle = computed(() => {
-  if (authService.isDepartmentManager(currentUser.value)) {
-    return '部门周报'
-  }
-  return '维保日志填报'
-})
+const pageTitle = '维保日志填报'
 const formData = ref({
   projectId: '',
   projectName: '',
-  logType: 'spot',
+  logType: 'maintenance',
   logDate: formatDate(new Date()),
   workContent: '',
   remark: ''
@@ -84,11 +80,13 @@ const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOpt
     }
   } else if (selectedOptions && selectedOptions.length > 0) {
     const selected = selectedOptions[0]
-    const project = projectList.value.find(p => p.id.toString() === selected.value)
-    if (project) {
-      formData.value.projectId = project.project_id
-      formData.value.projectName = project.project_name
-      selectedProjectName.value = project.project_name
+    if (selected) {
+      const project = projectList.value.find(p => p.id.toString() === selected.value)
+      if (project) {
+        formData.value.projectId = project.project_id
+        formData.value.projectName = project.project_name
+        selectedProjectName.value = project.project_name
+      }
     }
   }
   showProjectPicker.value = false
@@ -99,7 +97,10 @@ const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOpt
  */
 const handleDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
   if (selectedValues && selectedValues.length === 3) {
-    formData.value.logDate = `${selectedValues[0]}-${selectedValues[1].padStart(2, '0')}-${selectedValues[2].padStart(2, '0')}`
+    const year = selectedValues[0]
+    const month = selectedValues[1]?.padStart(2, '0') || '01'
+    const day = selectedValues[2]?.padStart(2, '0') || '01'
+    formData.value.logDate = `${year}-${month}-${day}`
   }
   showDatePicker.value = false
 }
@@ -117,12 +118,27 @@ const handleTakePhoto = async () => {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
     if (file) {
-      const url = URL.createObjectURL(file)
-      images.value.push({
-        file: file,
-        url: url,
-        description: ''
-      })
+      showLoadingToast({ message: '处理中...', forbidClick: true })
+      try {
+        const userName = currentUser.value?.name || '未知用户'
+        const processedFile = await processPhoto(file, userName)
+        const url = URL.createObjectURL(processedFile)
+        images.value.push({
+          file: processedFile,
+          url: url,
+          description: ''
+        })
+      } catch (error) {
+        console.error('Failed to process photo:', error)
+        const url = URL.createObjectURL(file)
+        images.value.push({
+          file: file,
+          url: url,
+          description: ''
+        })
+      } finally {
+        closeToast()
+      }
     }
   }
   
@@ -139,7 +155,7 @@ const handleDeleteImage = async (index: number) => {
       message: '请确认是否要删除该图片？'
     })
     const img = images.value[index]
-    if (img.url && img.url.startsWith('blob:')) {
+    if (img && img.url && img.url.startsWith('blob:')) {
       URL.revokeObjectURL(img.url)
     }
     images.value.splice(index, 1)
@@ -314,7 +330,7 @@ onMounted(() => {
             :key="index"
             class="image-item"
           >
-            <img :src="image.url" alt="现场照片" />
+            <img :src="image.url" alt="现场照片" loading="lazy" />
             <van-icon 
               name="delete" 
               class="delete-icon"

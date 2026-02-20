@@ -100,7 +100,7 @@ def get_inbound_records(
     product: Optional[str] = Query(None, description="产品名称"),
     user: Optional[str] = Query(None, description="入库人"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    pageSize: int = Query(10, ge=1, le=100, description="每页数量"),
+    pageSize: int = Query(10, ge=1, le=2000, description="每页数量"),
     db: Session = Depends(get_db)
 ):
     """查询入库记录"""

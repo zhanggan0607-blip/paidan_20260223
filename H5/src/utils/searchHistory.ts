@@ -73,7 +73,7 @@ export function filterHistoryByKeyword(history: string[], keyword: string): stri
 }
 
 export function useSearchHistory(config: SearchHistoryConfig) {
-  const { fieldKey, maxItems = MAX_HISTORY_ITEMS } = config
+  const { fieldKey } = config
 
   const save = (value: string) => {
     saveSearchHistory(fieldKey, value)

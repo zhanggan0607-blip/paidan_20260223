@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { showLoadingToast, closeToast } from 'vant'
+import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
@@ -21,10 +21,42 @@ interface SparePartsIssueItem {
   unit: string
 }
 
+interface StockItem {
+  id: number
+  productName: string
+  brand: string
+  model: string
+  quantity: number
+  unit: string
+}
+
+interface ProjectItem {
+  project_id: string
+  project_name: string
+}
+
 const router = useRouter()
 const currentUser = ref<User | null>(null)
 const loading = ref(false)
 const issueList = ref<SparePartsIssueItem[]>([])
+const stockList = ref<StockItem[]>([])
+const projectList = ref<ProjectItem[]>([])
+
+const showIssuePopup = ref(false)
+const selectedStock = ref<StockItem | null>(null)
+const issueForm = ref({
+  projectId: '',
+  projectName: '',
+  quantity: 1 as number
+})
+
+const filteredStockList = computed(() => {
+  return stockList.value.filter(item => item.quantity > 0)
+})
+
+const maxQuantity = computed(() => {
+  return selectedStock.value?.quantity || 1
+})
 
 /**
  * 获取领用记录
@@ -47,17 +79,124 @@ const fetchIssueList = async () => {
   }
 }
 
+/**
+ * 获取库存列表
+ */
+const fetchStockList = async () => {
+  try {
+    const response = await api.get<unknown, ApiResponse<{ items: StockItem[], total: number }>>('/spare-parts/stock', {
+      params: { page: 0, pageSize: 500 }
+    })
+    if (response.code === 200) {
+      stockList.value = response.data?.items || []
+    }
+  } catch (error) {
+    console.error('获取库存列表失败:', error)
+  }
+}
+
+/**
+ * 获取项目列表（根据用户权限自动过滤）
+ */
+const fetchProjectList = async () => {
+  try {
+    const response = await api.get<unknown, ApiResponse<ProjectItem[]>>('/project-info/all/list')
+    if (response.code === 200) {
+      projectList.value = response.data || []
+    }
+  } catch (error) {
+    console.error('获取项目列表失败:', error)
+  }
+}
+
+/**
+ * 选择库存产品
+ */
+const handleSelectStock = (item: StockItem) => {
+  selectedStock.value = item
+  issueForm.value.quantity = 1
+}
+
+/**
+ * 提交领用
+ */
+const handleSubmitIssue = async () => {
+  if (!selectedStock.value) {
+    showFailToast('请选择产品')
+    return
+  }
+  if (!issueForm.value.projectId) {
+    showFailToast('请选择项目')
+    return
+  }
+  if (issueForm.value.quantity <= 0) {
+    showFailToast('请选择领用数量')
+    return
+  }
+
+  try {
+    await showConfirmDialog({
+      title: '确认领用',
+      message: `确认领用 ${selectedStock.value.productName} ${issueForm.value.quantity}${selectedStock.value.unit}?`
+    })
+  } catch {
+    return
+  }
+
+  loading.value = true
+  showLoadingToast({ message: '提交中...', forbidClick: true })
+  
+  try {
+    const response = await api.post<unknown, ApiResponse<null>>('/spare-parts/usage', {
+      product_name: selectedStock.value.productName,
+      brand: selectedStock.value.brand || null,
+      model: selectedStock.value.model || null,
+      quantity: issueForm.value.quantity,
+      user_name: currentUser.value?.name,
+      issue_time: new Date().toISOString(),
+      unit: selectedStock.value.unit,
+      project_id: issueForm.value.projectId || null,
+      project_name: issueForm.value.projectName || null
+    })
+    
+    if (response.code === 200) {
+      showSuccessToast('领用成功')
+      showIssuePopup.value = false
+      selectedStock.value = null
+      issueForm.value = {
+        projectId: '',
+        projectName: '',
+        quantity: 1
+      }
+      fetchIssueList()
+      fetchStockList()
+    } else {
+      showFailToast(response.message || '领用失败')
+    }
+  } catch (error) {
+    console.error('Failed to submit:', error)
+    showFailToast('领用失败，请重试')
+  } finally {
+    loading.value = false
+    closeToast()
+  }
+}
+
 const handleBack = () => {
   router.push('/')
 }
 
 const handleUserChanged = () => {
+  currentUser.value = authService.getCurrentUser()
   fetchIssueList()
+  fetchProjectList()
 }
 
 onMounted(() => {
   currentUser.value = authService.getCurrentUser()
   fetchIssueList()
+  fetchStockList()
+  fetchProjectList()
 })
 </script>
 
@@ -79,6 +218,12 @@ onMounted(() => {
         <UserSelector @userChanged="handleUserChanged" />
       </template>
     </van-nav-bar>
+    
+    <div class="action-bar">
+      <van-button type="primary" size="small" @click="showIssuePopup = true">
+        新增领用
+      </van-button>
+    </div>
     
     <van-pull-refresh v-model="loading" @refresh="fetchIssueList">
       <van-list :loading="loading" :finished="true">
@@ -123,6 +268,102 @@ onMounted(() => {
         <van-empty v-if="!loading && issueList.length === 0" description="暂无领用记录" />
       </van-list>
     </van-pull-refresh>
+
+    <van-popup v-model:show="showIssuePopup" position="bottom" round :style="{ height: '85%' }">
+      <div class="popup-content">
+        <div class="popup-header">
+          <span class="popup-title">新增备品备件领用</span>
+          <van-icon name="cross" @click="showIssuePopup = false" />
+        </div>
+        
+        <div class="popup-body">
+          <div class="section-title">选择产品</div>
+          <div class="stock-list">
+            <div 
+              v-for="item in filteredStockList" 
+              :key="item.id"
+              class="stock-item"
+              :class="{ selected: selectedStock?.id === item.id }"
+              @click="handleSelectStock(item)"
+            >
+              <div class="stock-name">{{ item.productName }}</div>
+              <div class="stock-info">
+                <span v-if="item.brand">{{ item.brand }}</span>
+                <span v-if="item.model">{{ item.model }}</span>
+                <span class="stock-quantity">库存: {{ item.quantity }}{{ item.unit }}</span>
+              </div>
+            </div>
+            <van-empty v-if="filteredStockList.length === 0" description="暂无库存" />
+          </div>
+          
+          <div class="section-title">领用信息</div>
+          <van-cell-group inset>
+            <van-field 
+              :model-value="selectedStock?.productName || ''"
+              label="产品名称"
+              placeholder="请选择产品"
+              readonly
+              required
+            />
+            <van-field 
+              :model-value="selectedStock?.brand || ''"
+              label="品牌"
+              readonly
+            />
+            <van-field 
+              :model-value="selectedStock?.model || ''"
+              label="产品型号"
+              readonly
+            />
+            <van-field 
+              :model-value="selectedStock?.unit || ''"
+              label="单位"
+              readonly
+            />
+            <van-field 
+              :model-value="selectedStock?.quantity || 0"
+              label="库存数量"
+              readonly
+            />
+            <van-field label="领用数量" required>
+              <template #input>
+                <van-stepper 
+                  v-model="issueForm.quantity" 
+                  :min="1" 
+                  :max="maxQuantity"
+                  theme="round"
+                  button-size="22"
+                />
+              </template>
+            </van-field>
+            <van-field 
+              v-model="issueForm.projectName"
+              label="所属项目"
+              placeholder="请选择项目"
+              required
+            >
+              <template #input>
+                <select v-model="issueForm.projectId" class="project-select" @change="() => {
+                  const project = projectList.find(p => p.project_id === issueForm.projectId)
+                  issueForm.projectName = project ? project.project_name : ''
+                }">
+                  <option value="">请选择项目</option>
+                  <option v-for="project in projectList" :key="project.project_id" :value="project.project_id">
+                    {{ project.project_name }}
+                  </option>
+                </select>
+              </template>
+            </van-field>
+          </van-cell-group>
+        </div>
+        
+        <div class="popup-footer">
+          <van-button type="primary" block :loading="loading" @click="handleSubmitIssue">
+            确认领用
+          </van-button>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -130,6 +371,12 @@ onMounted(() => {
 .spare-parts-issue-page {
   min-height: 100vh;
   background-color: #f5f7fa;
+}
+
+.action-bar {
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 1px solid #ebedf0;
 }
 
 .issue-list {
@@ -196,7 +443,98 @@ onMounted(() => {
   color: #323233;
 }
 
+.popup-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #ebedf0;
+  flex-shrink: 0;
+}
+
+.popup-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.popup-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.section-title {
+  padding: 12px 16px 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #323233;
+  background: #f7f8fa;
+}
+
+.stock-list {
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 0 12px;
+  background: #fff;
+}
+
+.stock-item {
+  padding: 12px;
+  border-bottom: 1px solid #ebedf0;
+  cursor: pointer;
+}
+
+.stock-item.selected {
+  background: #e8f4ff;
+  border-left: 3px solid #1989fa;
+}
+
+.stock-item:last-child {
+  border-bottom: none;
+}
+
+.stock-name {
+  font-weight: 500;
+  color: #323233;
+  margin-bottom: 4px;
+}
+
+.stock-info {
+  font-size: 12px;
+  color: #969799;
+  display: flex;
+  gap: 8px;
+}
+
+.stock-quantity {
+  color: #1989fa;
+  font-weight: 500;
+}
+
+.popup-footer {
+  padding: 16px;
+  flex-shrink: 0;
+  border-top: 1px solid #ebedf0;
+}
+
+.project-select {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  font-size: 14px;
+  background: transparent;
+}
+
 :deep(.van-pull-refresh) {
-  min-height: calc(100vh - 46px);
+  min-height: calc(100vh - 92px);
+}
+
+:deep(.van-cell-group--inset) {
+  margin: 12px;
 }
 </style>

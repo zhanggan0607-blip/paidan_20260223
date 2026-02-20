@@ -19,7 +19,14 @@ import SparePartsStock from '@/views/SparePartsStock.vue'
 import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
 import CustomerManagement from '@/views/CustomerManagement.vue'
 import RepairToolsIssue from '@/views/RepairToolsIssue.vue'
+import RepairToolsReturn from '@/views/RepairToolsReturn.vue'
 import RepairToolsInbound from '@/views/RepairToolsInbound.vue'
+import MaintenanceLogFill from '@/views/MaintenanceLogFill.vue'
+import MaintenanceLogList from '@/views/MaintenanceLogList.vue'
+import MaintenanceLogAll from '@/views/MaintenanceLogAll.vue'
+import WeeklyReportFill from '@/views/WeeklyReportFill.vue'
+import WeeklyReportList from '@/views/WeeklyReportList.vue'
+import WeeklyReportAll from '@/views/WeeklyReportAll.vue'
 import { authService } from '@/services/auth'
 
 const routes: RouteRecordRaw[] = [
@@ -113,8 +120,36 @@ const routes: RouteRecordRaw[] = [
         component: RepairToolsIssue
       },
       {
+        path: 'repair-tools/return',
+        component: RepairToolsReturn
+      },
+      {
         path: 'repair-tools/inbound',
         component: RepairToolsInbound
+      },
+      {
+        path: 'maintenance-log/fill',
+        component: MaintenanceLogFill
+      },
+      {
+        path: 'maintenance-log/list',
+        component: MaintenanceLogList
+      },
+      {
+        path: 'maintenance-log/all',
+        component: MaintenanceLogAll
+      },
+      {
+        path: 'weekly-report/fill',
+        component: WeeklyReportFill
+      },
+      {
+        path: 'weekly-report/list',
+        component: WeeklyReportList
+      },
+      {
+        path: 'weekly-report/all',
+        component: WeeklyReportAll
       }
     ]
   }

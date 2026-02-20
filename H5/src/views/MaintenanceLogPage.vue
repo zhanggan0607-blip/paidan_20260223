@@ -31,27 +31,10 @@ const currentUser = ref<User | null>(null)
 
 const pageTitle = computed(() => {
   if (authService.isDepartmentManager(currentUser.value)) {
-    return '已填报周报'
+    return '已填报部门周报'
   }
   return '已填报日志'
 })
-
-/**
- * 获取状态类型
- */
-const getStatusType = (status: string) => {
-  switch (status) {
-    case '已完成':
-    case '已确认':
-      return 'success'
-    case '待确认':
-      return 'warning'
-    case '已退回':
-      return 'danger'
-    default:
-      return 'default'
-  }
-}
 
 /**
  * 根据日志编号长度计算字体大小
@@ -73,11 +56,11 @@ const getLogIdFontSize = (logId: string) => {
  */
 const getLogTypeName = (logType: string) => {
   const typeMap: Record<string, string> = {
-    'spot': '用工日志',
-    'inspection': '巡检日志',
+    'maintenance': '维修日志',
+    'spot': '维修日志',
     'repair': '维修日志'
   }
-  return typeMap[logType] || logType
+  return typeMap[logType] || '维修日志'
 }
 
 /**
@@ -88,11 +71,18 @@ const fetchLogList = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
+    const params: Record<string, any> = { 
+      page: 0,
+      size: 100
+    }
+    
+    // 部门经理能看到所有数据，普通员工只能看到自己的数据
+    if (currentUser.value && currentUser.value.name && !authService.isDepartmentManager(currentUser.value)) {
+      params.created_by = currentUser.value.name
+    }
+    
     const response = await api.get<unknown, ApiResponse<{ content: MaintenanceLogItem[] }>>('/maintenance-log', { 
-      params: { 
-        page: 0,
-        size: 100
-      } 
+      params
     })
     
     if (response.code === 200) {

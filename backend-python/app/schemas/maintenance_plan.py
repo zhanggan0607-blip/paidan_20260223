@@ -17,22 +17,24 @@ class MaintenancePlanBase(BaseModel):
     plan_end_date: datetime = Field(..., description="计划结束日期")
     execution_date: Optional[datetime] = Field(None, description="执行日期")
     next_maintenance_date: Optional[datetime] = Field(None, description="下次维保日期")
-    responsible_person: str = Field(..., max_length=50, description="负责人")
+    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     responsible_department: Optional[str] = Field(None, max_length=100, description="负责部门")
     contact_info: Optional[str] = Field(None, max_length=50, description="联系方式")
     maintenance_content: str = Field(..., description="维保内容")
     maintenance_requirements: Optional[str] = Field(None, description="维保要求")
     maintenance_standard: Optional[str] = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
-    execution_status: str = Field(..., max_length=20, description="执行状态")
+    status: str = Field("未进行", max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
+    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
+    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
     inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
 
     @field_validator('plan_type')
     @classmethod
     def validate_plan_type(cls, v):
-        valid_types = ['定期维保', '预防性维保', '故障维修', '巡检', '其他']
+        valid_types = ['定期维保', '预防性维保', '故障维修', '巡检', '其他', '定期巡检', '临时维修', '零星用工']
         if v not in valid_types:
             raise ValueError(f'工单类型必须是以下之一: {", ".join(valid_types)}')
         return v
@@ -45,10 +47,10 @@ class MaintenancePlanBase(BaseModel):
             raise ValueError(f'计划状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
 
-    @field_validator('execution_status')
+    @field_validator('status')
     @classmethod
-    def validate_execution_status(cls, v):
-        valid_statuses = ['未开始', '待确认', '已完成', '已取消', '异常']
+    def validate_status(cls, v):
+        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '未开始', '异常']
         if v not in valid_statuses:
             raise ValueError(f'执行状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -77,15 +79,17 @@ class MaintenancePlanCreate(BaseModel):
     plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
     execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
     next_maintenance_date: Optional[Union[str, datetime]] = Field(None, description="下次维保日期")
-    responsible_person: str = Field(..., max_length=50, description="负责人")
+    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     responsible_department: Optional[str] = Field(None, max_length=100, description="负责部门")
     contact_info: Optional[str] = Field(None, max_length=50, description="联系方式")
     maintenance_content: str = Field(..., description="维保内容")
     maintenance_requirements: Optional[str] = Field(None, description="维保要求")
     maintenance_standard: Optional[str] = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
-    execution_status: str = Field(..., max_length=20, description="执行状态")
+    status: str = Field("未进行", max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
+    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
+    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
     inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
 
@@ -103,15 +107,17 @@ class MaintenancePlanUpdate(BaseModel):
     plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
     execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
     next_maintenance_date: Optional[Union[str, datetime]] = Field(None, description="下次维保日期")
-    responsible_person: str = Field(..., max_length=50, description="负责人")
+    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
     responsible_department: Optional[str] = Field(None, max_length=100, description="负责部门")
     contact_info: Optional[str] = Field(None, max_length=50, description="联系方式")
     maintenance_content: str = Field(..., description="维保内容")
     maintenance_requirements: Optional[str] = Field(None, description="维保要求")
     maintenance_standard: Optional[str] = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
-    execution_status: str = Field(..., max_length=20, description="执行状态")
+    status: str = Field(..., max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
+    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
+    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
     inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
 
@@ -130,15 +136,17 @@ class MaintenancePlanResponse(BaseModel):
     plan_end_date: datetime
     execution_date: Optional[datetime]
     next_maintenance_date: Optional[datetime]
-    responsible_person: str
+    maintenance_personnel: Optional[str]
     responsible_department: Optional[str]
     contact_info: Optional[str]
     maintenance_content: str
     maintenance_requirements: Optional[str]
     maintenance_standard: Optional[str]
     plan_status: str
-    execution_status: str
+    status: str
     completion_rate: Optional[int]
+    filled_count: Optional[int]
+    total_count: Optional[int]
     remarks: Optional[str]
     inspection_items: Optional[str]
     created_at: datetime

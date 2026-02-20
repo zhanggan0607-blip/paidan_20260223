@@ -346,32 +346,14 @@ class ProjectInfoService:
         return self.repository.find_all_unpaginated(project_ids)
     
     def get_user_project_ids(self, user_name: str) -> List[str]:
-        """获取用户关联的项目ID列表（通过工单关联）"""
-        from app.models.periodic_inspection import PeriodicInspection
-        from app.models.temporary_repair import TemporaryRepair
-        from app.models.spot_work import SpotWork
-        from app.models.work_plan import WorkPlan
-        
-        project_ids = set()
-        
-        periodic = self.db.query(PeriodicInspection.project_id).filter(
-            PeriodicInspection.maintenance_personnel == user_name
+        """
+        获取用户关联的项目ID列表（通过项目运维人员字段关联）
+        返回 None 表示用户可以看到所有项目（管理员/部门经理）
+        返回空列表表示用户没有任何关联项目
+        返回非空列表表示用户只能看到这些项目
+        """
+        projects = self.db.query(ProjectInfo.project_id).filter(
+            ProjectInfo.project_manager == user_name
         ).all()
-        project_ids.update([p[0] for p in periodic if p[0]])
-        
-        repair = self.db.query(TemporaryRepair.project_id).filter(
-            TemporaryRepair.maintenance_personnel == user_name
-        ).all()
-        project_ids.update([p[0] for p in repair if p[0]])
-        
-        spot = self.db.query(SpotWork.project_id).filter(
-            SpotWork.maintenance_personnel == user_name
-        ).all()
-        project_ids.update([p[0] for p in spot if p[0]])
-        
-        work_plan = self.db.query(WorkPlan.project_id).filter(
-            WorkPlan.maintenance_personnel == user_name
-        ).all()
-        project_ids.update([p[0] for p in work_plan if p[0]])
-        
-        return list(project_ids)
+        project_ids = [p[0] for p in projects if p[0]]
+        return project_ids if project_ids else []

@@ -7,6 +7,8 @@ import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { authService, type User } from '../services/auth'
+import OperationLogTimeline from '../components/OperationLogTimeline.vue'
+import { processPhoto } from '../utils/watermark'
 
 const router = useRouter()
 const route = useRoute()
@@ -79,6 +81,7 @@ const detail = ref<WorkPlanDetail | null>(null)
 const inspectionSystems = ref<InspectionSystem[]>([])
 const inspectionItemsLoading = ref(false)
 const currentUser = ref<User | null>(null)
+const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
 const formData = ref({
   execution_result: '',
@@ -408,11 +411,14 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
     const file = target.files?.[0]
     if (!file) return
     
-    showLoadingToast({ message: '上传中...', forbidClick: true })
+    showLoadingToast({ message: '处理中...', forbidClick: true })
     
     try {
+      const userName = currentUser.value?.name || '未知用户'
+      const processedFile = await processPhoto(file, userName)
+      
       const formDataObj = new FormData()
-      formDataObj.append('file', file)
+      formDataObj.append('file', processedFile)
       
       const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -512,6 +518,7 @@ const handleSubmit = async () => {
     const response = await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
+      await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
       showSuccessToast('提交成功')
       router.push(`/periodic-inspection?tab=${returnTab.value}`)
@@ -549,6 +556,7 @@ const handleSave = async () => {
     const response = await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, saveData)
     
     if (response.code === 200) {
+      await addOperationLog('save', '员工保存工单')
       showSuccessToast('保存成功')
     }
   } catch (error) {
@@ -580,6 +588,7 @@ const handleApprovePass = async () => {
     const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
+      await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
       router.push('/periodic-inspection?tab=3')
     }
@@ -616,6 +625,7 @@ const handleApproveReject = async () => {
     const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
+      await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
       router.push('/periodic-inspection?tab=1')
     }
@@ -674,6 +684,33 @@ watch(() => formData.value.execution_result, () => {
 watch(() => formData.value.remarks, () => {
   autoSaveFieldContent()
 })
+
+/**
+ * 记录操作日志
+ * @param operationTypeCode 操作类型编码
+ * @param operationRemark 操作备注
+ */
+const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
+  if (!detail.value?.id || !currentUser.value) return
+  
+  try {
+    await api.post('/work-order-operation-log', {
+      work_order_type: 'periodic_inspection',
+      work_order_id: detail.value.id,
+      work_order_no: detail.value.inspection_id,
+      operator_name: currentUser.value.name,
+      operator_id: currentUser.value.id,
+      operation_type_code: operationTypeCode,
+      operation_remark: operationRemark
+    })
+    
+    if (operationLogRef.value) {
+      operationLogRef.value.refresh()
+    }
+  } catch (error) {
+    console.error('Failed to add operation log:', error)
+  }
+}
 
 const handleUserReady = (user: User) => {
   currentUser.value = user
@@ -778,7 +815,7 @@ onActivated(() => {
                   class="photo-item-inline"
                   @click="previewPhoto(system.photos, photoIdx)"
                 >
-                  <img :src="photo" alt="现场照片" />
+                  <img :src="photo" alt="现场照片" loading="lazy" />
                   <van-icon 
                     v-if="isEditable"
                     name="delete" 
@@ -835,11 +872,18 @@ onActivated(() => {
         </template>
         <van-cell is-link @click="handleSignature">
           <template #value>
-            <img v-if="formData.signature" :src="formData.signature" class="signature-preview" />
+            <img v-if="formData.signature" :src="formData.signature" class="signature-preview" loading="lazy" />
             <span v-else class="status-pending">待签字</span>
           </template>
         </van-cell>
       </van-cell-group>
+
+      <OperationLogTimeline 
+        v-if="detail?.id" 
+        work-order-type="periodic_inspection" 
+        :work-order-id="detail.id"
+        ref="operationLogRef"
+      />
 
       <div class="action-buttons" v-if="isEditable">
         <van-button type="default" size="large" @click="handleSave">保存</van-button>

@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { authService, type User as AuthUser } from '../services/auth'
 
 interface InboundRecord {
   id: number
@@ -29,7 +29,7 @@ interface User {
 }
 
 const router = useRouter()
-const currentUser = ref<User | null>(null)
+const currentUser = ref<AuthUser | null>(null)
 const loading = ref(false)
 const stockList = ref<InboundRecord[]>([])
 const userList = ref<User[]>([])
@@ -230,7 +230,7 @@ onMounted(() => {
     <van-popup v-model:show="showInboundPopup" position="bottom" round :style="{ height: '80%' }">
       <div class="popup-content">
         <div class="popup-header">
-          <span class="popup-title">新增备品备件入库</span>
+          <span class="popup-title">新增备品备件库存</span>
           <van-icon name="cross" @click="showInboundPopup = false" />
         </div>
         <van-cell-group inset>
