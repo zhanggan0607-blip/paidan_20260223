@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.weekly_report import WeeklyReportCreate, WeeklyReportUpdate, WeeklyReportApprove, WeeklyReportSign
-from app.services.weekly_report import WeeklyReportService, WeeklyReportCreateDTO, WeeklyReportUpdateDTO
+from app.services.weekly_report import WeeklyReportService
 from app.models.weekly_report import WeeklyReport
 from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.auth import get_current_user, get_current_user_from_headers
@@ -154,22 +154,7 @@ def create_weekly_report(
         created_by = user_info.get('sub') or user_info.get('name')
 
     service = WeeklyReportService(db)
-    create_dto = WeeklyReportCreateDTO(
-        report_id=dto.report_id,
-        project_id=dto.project_id,
-        project_name=dto.project_name,
-        week_start_date=dto.week_start_date,
-        week_end_date=dto.week_end_date,
-        report_date=dto.report_date,
-        work_summary=dto.work_summary,
-        work_content=dto.work_content,
-        next_week_plan=dto.next_week_plan,
-        issues=dto.issues,
-        suggestions=dto.suggestions,
-        images=dto.images,
-        manager_signature=dto.manager_signature
-    )
-    report = service.create(create_dto, created_by)
+    report = service.create(dto, created_by)
 
     if created_by:
         record_operation_log(
@@ -200,22 +185,7 @@ def update_weekly_report(
     更新维保周报
     """
     service = WeeklyReportService(db)
-    update_dto = WeeklyReportUpdateDTO(
-        project_id=dto.project_id,
-        project_name=dto.project_name,
-        week_start_date=dto.week_start_date,
-        week_end_date=dto.week_end_date,
-        report_date=dto.report_date,
-        work_summary=dto.work_summary,
-        work_content=dto.work_content,
-        next_week_plan=dto.next_week_plan,
-        issues=dto.issues,
-        suggestions=dto.suggestions,
-        images=dto.images,
-        manager_signature=dto.manager_signature,
-        status=dto.status
-    )
-    report = service.update(id, update_dto)
+    report = service.update(id, dto)
 
     return ApiResponse(
         code=200,

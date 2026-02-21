@@ -56,7 +56,7 @@ class WeeklyReportService:
             )
         return report
 
-    def create(self, dto: WeeklyReportCreateDTO, created_by: Optional[str] = None) -> WeeklyReport:
+    def create(self, dto: WeeklyReportCreate, created_by: Optional[str] = None) -> WeeklyReport:
         if dto.report_id:
             report_id = dto.report_id
         else:
@@ -84,7 +84,7 @@ class WeeklyReportService:
 
         return self.repository.create(report)
 
-    def update(self, id: int, dto: WeeklyReportUpdateDTO) -> WeeklyReport:
+    def update(self, id: int, dto: WeeklyReportUpdate) -> WeeklyReport:
         existing_report = self.get_by_id(id)
 
         if dto.project_id is not None:
