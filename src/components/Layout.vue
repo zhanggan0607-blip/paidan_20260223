@@ -453,6 +453,45 @@ export default defineComponent({
     const selectUser = (user: User) => {
       userStore.setUser(user)
       showUserMenu.value = false
+      
+      const currentPath = route.path
+      const menuId = getRouteMenuId(currentPath)
+      if (menuId && !canShowMenu(menuId)) {
+        navigateToFirstAllowedRoute()
+      }
+    }
+
+    const getRouteMenuId = (path: string): string | null => {
+      for (const menu of menuItems) {
+        if (menu.path === path) {
+          return menu.id
+        }
+        if (menu.children) {
+          const child = menu.children.find(c => c.path === path)
+          if (child) {
+            return child.id
+          }
+        }
+      }
+      return null
+    }
+
+    const navigateToFirstAllowedRoute = () => {
+      for (const menu of menuItems) {
+        if (menu.path && canShowMenu(menu.id)) {
+          router.push(menu.path)
+          return
+        }
+        if (menu.children) {
+          for (const child of menu.children) {
+            if (child.path && canShowMenu(child.id)) {
+              router.push(child.path)
+              return
+            }
+          }
+        }
+      }
+      router.push('/login')
     }
 
     onMounted(async () => {

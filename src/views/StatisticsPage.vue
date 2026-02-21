@@ -269,7 +269,7 @@
                 </thead>
                 <tbody>
                   <tr v-for="(item, index) in detailData" :key="index">
-                    <td>{{ index + 1 }}</td>
+                    <td>{{ (detailCurrentPage - 1) * detailPageSize + index + 1 }}</td>
                     <td>{{ item.orderType }}</td>
                     <td>{{ item.orderNumber }}</td>
                     <td>{{ item.projectName }}</td>
@@ -286,6 +286,15 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+        <div class="modal-footer" v-if="detailTotal > 0">
+          <div class="pagination">
+            <button class="page-btn" @click="handleDetailPageChange(1)" :disabled="detailCurrentPage === 1">首页</button>
+            <button class="page-btn" @click="handleDetailPageChange(detailCurrentPage - 1)" :disabled="detailCurrentPage === 1">上一页</button>
+            <span class="page-info">第 {{ detailCurrentPage }} / {{ detailTotalPages }} 页</span>
+            <button class="page-btn" @click="handleDetailPageChange(detailCurrentPage + 1)" :disabled="detailCurrentPage >= detailTotalPages">下一页</button>
+            <button class="page-btn" @click="handleDetailPageChange(detailTotalPages)" :disabled="detailCurrentPage >= detailTotalPages">末页</button>
           </div>
         </div>
       </div>
@@ -353,12 +362,18 @@ export default defineComponent({
     const detailLoading = ref<boolean>(false)
     const detailData = ref<WorkOrderDetail[]>([])
     const detailTotal = ref<number>(0)
+    const detailCurrentPage = ref<number>(1)
+    const detailPageSize = ref<number>(10)
     const currentDataType = ref<string>('')
     const currentEmployeeName = ref<string>('')
     const currentProjectName = ref<string>('')
     const currentOrderType = ref<string>('')
     
     const setFullscreenMode = inject<(value: boolean) => void>('setFullscreenMode')
+
+    const detailTotalPages = computed(() => {
+      return Math.ceil(detailTotal.value / detailPageSize.value) || 1
+    })
 
     const maxProjectValue = computed(() => {
       if (topRepairs.value.length === 0) return 1
@@ -581,6 +596,7 @@ export default defineComponent({
       currentProjectName.value = ''
       currentOrderType.value = ''
       detailModalTitle.value = title
+      detailCurrentPage.value = 1
       showDetailModal.value = true
       await fetchDetailData()
     }
@@ -591,6 +607,7 @@ export default defineComponent({
       currentProjectName.value = ''
       currentOrderType.value = orderType || ''
       detailModalTitle.value = `${employeeName} - 工单详情`
+      detailCurrentPage.value = 1
       showDetailModal.value = true
       await fetchDetailData()
     }
@@ -601,6 +618,7 @@ export default defineComponent({
       currentEmployeeName.value = ''
       currentOrderType.value = orderType || ''
       detailModalTitle.value = `${projectName} - 工单详情`
+      detailCurrentPage.value = 1
       showDetailModal.value = true
       await fetchDetailData()
     }
@@ -609,6 +627,7 @@ export default defineComponent({
       showDetailModal.value = false
       detailData.value = []
       detailTotal.value = 0
+      detailCurrentPage.value = 1
     }
 
     const fetchDetailData = async () => {
@@ -617,8 +636,8 @@ export default defineComponent({
         const params: any = {
           year: selectedYear.value,
           data_type: currentDataType.value,
-          page: 1,
-          page_size: 10000
+          page: detailCurrentPage.value,
+          page_size: detailPageSize.value
         }
         if (currentEmployeeName.value) {
           params.employee_name = currentEmployeeName.value
@@ -629,15 +648,9 @@ export default defineComponent({
         if (currentOrderType.value) {
           params.order_type = currentOrderType.value
         }
-        console.log('fetchDetailData params:', params)
         const response = await statisticsService.getStatisticsDetail(params)
-        console.log('fetchDetailData response:', response)
-        console.log('response.data:', response?.data)
-        console.log('response.total:', response?.total)
         detailData.value = response?.data || []
         detailTotal.value = response?.total || 0
-        console.log('detailData:', detailData.value)
-        console.log('detailTotal:', detailTotal.value)
       } catch (error) {
         console.error('获取详细数据失败:', error)
         detailData.value = []
@@ -645,6 +658,11 @@ export default defineComponent({
       } finally {
         detailLoading.value = false
       }
+    }
+
+    const handleDetailPageChange = async (page: number) => {
+      detailCurrentPage.value = page
+      await fetchDetailData()
     }
 
     const getStatusClass = (status: string) => {
@@ -699,10 +717,14 @@ export default defineComponent({
       detailLoading,
       detailData,
       detailTotal,
+      detailCurrentPage,
+      detailPageSize,
+      detailTotalPages,
       openDetailModal,
       openEmployeeDetail,
       openProjectDetail,
       closeDetailModal,
+      handleDetailPageChange,
       getStatusClass,
       getDisplayStatus
     }
@@ -1780,7 +1802,7 @@ export default defineComponent({
   border-radius: 12px;
   width: 95%;
   max-width: 1400px;
-  max-height: 85vh;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
@@ -1818,8 +1840,17 @@ export default defineComponent({
 
 .modal-body {
   padding: 24px;
-  overflow-y: auto;
   flex: 1;
+  overflow-y: auto;
+  min-height: 300px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+  flex-shrink: 0;
+  border-radius: 0 0 12px 12px;
 }
 
 .detail-loading {
@@ -1842,6 +1873,7 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 16px;
+  height: 100%;
 }
 
 .detail-stats {
@@ -1857,6 +1889,9 @@ export default defineComponent({
 
 .detail-table-wrapper {
   overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  max-height: calc(90vh - 250px);
 }
 
 .detail-table {

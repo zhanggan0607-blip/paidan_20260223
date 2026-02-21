@@ -692,6 +692,7 @@ def get_statistics_detail(
     year_end = datetime(year, 12, 31).date()
     near_due_days = 7
     valid_statuses = OverdueAlertConfig.VALID_STATUSES
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     results = []
     total = 0
