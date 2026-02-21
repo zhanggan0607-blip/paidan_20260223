@@ -219,7 +219,7 @@ import type { ApiResponse, PaginatedResponse, SparePartsStockQueryParams } from 
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { USER_ROLES } from '@/config/constants'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 
 interface InboundRecord {
   id: number
@@ -412,8 +412,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      const currentUser = authService.getCurrentUser()
-      isMaterialManager.value = authService.isMaterialManagerOnly(currentUser)
+      isMaterialManager.value = userStore.isMaterialManagerOnly()
       loadUsers()
       loadRecords()
       window.addEventListener('user-changed', handleUserChanged)

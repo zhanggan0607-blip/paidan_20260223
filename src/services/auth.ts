@@ -26,7 +26,7 @@ export interface ApiResponse<T = any> {
   data: T
 }
 
-const USER_STORAGE_KEY = 'user_info'
+const USER_STORAGE_KEY = 'user'
 const TOKEN_STORAGE_KEY = 'token'
 
 export const authService = {

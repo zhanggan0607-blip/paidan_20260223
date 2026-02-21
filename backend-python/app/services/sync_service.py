@@ -16,6 +16,7 @@ from app.repositories.maintenance_plan import MaintenancePlanRepository
 from app.repositories.periodic_inspection import PeriodicInspectionRepository
 from app.repositories.temporary_repair import TemporaryRepairRepository
 from app.repositories.spot_work import SpotWorkRepository
+from app.utils.date_utils import parse_datetime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -42,19 +43,7 @@ class SyncService:
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         """解析日期值"""
-        if date_value is None:
-            return None
-        if isinstance(date_value, datetime):
-            return date_value
-        if isinstance(date_value, str):
-            try:
-                return datetime.fromisoformat(date_value)
-            except ValueError:
-                try:
-                    return datetime.strptime(date_value, '%Y-%m-%d')
-                except ValueError:
-                    raise ValueError(f'日期格式无效: {date_value}')
-        return None
+        return parse_datetime(date_value)
     
     def _get_plan_id_by_type(self, order_type: str, order) -> str:
         """根据工单类型获取工单编号"""

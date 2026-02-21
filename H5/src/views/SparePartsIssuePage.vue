@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 
 interface SparePartsIssueItem {
   id: number
@@ -36,7 +36,6 @@ interface ProjectItem {
 }
 
 const router = useRouter()
-const currentUser = ref<User | null>(null)
 const loading = ref(false)
 const issueList = ref<SparePartsIssueItem[]>([])
 const stockList = ref<StockItem[]>([])
@@ -152,7 +151,7 @@ const handleSubmitIssue = async () => {
       brand: selectedStock.value.brand || null,
       model: selectedStock.value.model || null,
       quantity: issueForm.value.quantity,
-      user_name: currentUser.value?.name,
+      user_name: userStore.getUser()?.name,
       issue_time: new Date().toISOString(),
       unit: selectedStock.value.unit,
       project_id: issueForm.value.projectId || null,
@@ -187,15 +186,12 @@ const handleBack = () => {
 }
 
 const handleUserChanged = () => {
-  currentUser.value = authService.getCurrentUser()
   fetchIssueList()
   fetchProjectList()
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchIssueList()
-  fetchStockList()
   fetchProjectList()
 })
 </script>

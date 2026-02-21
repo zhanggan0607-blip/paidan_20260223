@@ -6,7 +6,6 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
 
 interface RepairToolsStockItem {
   id: number
@@ -22,7 +21,6 @@ interface RepairToolsStockItem {
 }
 
 const router = useRouter()
-const currentUser = ref<User | null>(null)
 const loading = ref(false)
 const stockList = ref<RepairToolsStockItem[]>([])
 
@@ -211,7 +209,6 @@ const handleUserChanged = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchStockList()
 })
 </script>

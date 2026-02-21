@@ -411,6 +411,8 @@ import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 import { formatDate as formatDateUtil, formatDateForInput as formatDateForInputUtil } from '../config/constants'
 
+// TODO: 后面考虑把表单验证抽成独立的工具函数
+// FIXME: 客户选择逻辑有点绕，需要重构
 export default defineComponent({
   name: 'ProjectInfoManagement',
   components: {
@@ -565,6 +567,7 @@ export default defineComponent({
     }
 
     const formatDateForAPI = (dateStr: string) => {
+      // TODO: 时区处理可能有问题，后端返回的是UTC时间
       if (!dateStr) return ''
       const date = new Date(dateStr)
       const year = date.getFullYear()
@@ -841,6 +844,7 @@ export default defineComponent({
     }
 
     const handleDelete = async (item: ProjectInfo) => {
+      // FIXME: 级联删除的提示信息应该更清晰
       showConfirm('确定要删除该项目吗？', async () => {
         loading.value = true
         try {

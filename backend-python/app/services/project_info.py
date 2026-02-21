@@ -10,6 +10,9 @@ from app.schemas.project_info import ProjectInfoCreate, ProjectInfoUpdate
 logger = logging.getLogger(__name__)
 
 
+# TODO: 项目信息服务 - 考虑加入项目进度跟踪功能
+# FIXME: _sync_customer_data 方法逻辑复杂，需要重构
+# TODO: 项目编号生成规则应该可配置
 class ProjectInfoService:
     def __init__(self, db: Session):
         self.repository = ProjectInfoRepository(db)

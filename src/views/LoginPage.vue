@@ -48,7 +48,26 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { authService } from '../services/auth'
+import { userStore } from '../stores/userStore'
+import apiClient from '../utils/api'
+
+interface LoginResponse {
+  access_token: string
+  token_type: string
+  user: {
+    id: number
+    name: string
+    role: string
+    department: string
+    phone: string
+  }
+}
+
+interface ApiResponse<T = any> {
+  code: number
+  message: string
+  data: T
+}
 
 export default defineComponent({
   name: 'LoginPage',
@@ -73,9 +92,14 @@ export default defineComponent({
       errorMessage.value = ''
 
       try {
-        const response = await authService.login(username.value.trim(), password.value)
+        const response = await apiClient.post('/auth/login-json', {
+          username: username.value.trim(),
+          password: password.value
+        }) as unknown as ApiResponse<LoginResponse>
         
-        if (response.code === 200) {
+        if (response.code === 200 && response.data) {
+          userStore.setToken(response.data.access_token)
+          userStore.setUser(response.data.user)
           router.push('/')
         } else {
           errorMessage.value = response.message || '登录失败，请检查用户名和密码'

@@ -6,42 +6,9 @@ from app.models.spot_work import SpotWork
 from app.repositories.spot_work import SpotWorkRepository
 from app.utils.dictionary_helper import get_default_spot_work_status
 from app.services.sync_service import SyncService, PLAN_TYPE_SPOTWORK
-from pydantic import BaseModel
+from app.schemas.spot_work import SpotWorkCreate, SpotWorkUpdate
+from app.utils.date_utils import parse_datetime
 import json
-
-
-class SpotWorkCreate(BaseModel):
-    work_id: str
-    project_id: str
-    project_name: str
-    plan_start_date: Union[str, datetime]
-    plan_end_date: Union[str, datetime]
-    client_name: str
-    client_contact: Optional[str] = None
-    client_contact_info: Optional[str] = None
-    maintenance_personnel: Optional[str] = None
-    work_content: Optional[str] = None
-    photos: Optional[List[str]] = None
-    signature: Optional[str] = None
-    status: Optional[str] = None
-    remarks: Optional[str] = None
-
-
-class SpotWorkUpdate(BaseModel):
-    work_id: str
-    project_id: str
-    project_name: str
-    plan_start_date: Union[str, datetime]
-    plan_end_date: Union[str, datetime]
-    client_name: str
-    client_contact: Optional[str] = None
-    client_contact_info: Optional[str] = None
-    maintenance_personnel: Optional[str] = None
-    work_content: Optional[str] = None
-    photos: Optional[List[str]] = None
-    signature: Optional[str] = None
-    status: str
-    remarks: Optional[str] = None
 
 
 class SpotWorkService:
@@ -50,19 +17,7 @@ class SpotWorkService:
         self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
-        if date_value is None:
-            return None
-        if isinstance(date_value, datetime):
-            return date_value
-        if isinstance(date_value, str):
-            try:
-                return datetime.fromisoformat(date_value)
-            except ValueError:
-                try:
-                    return datetime.strptime(date_value, '%Y-%m-%d')
-                except ValueError:
-                    raise ValueError(f'日期格式无效: {date_value}')
-        return None
+        return parse_datetime(date_value)
     
     def get_all(
         self, 

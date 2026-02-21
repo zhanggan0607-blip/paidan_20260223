@@ -213,7 +213,7 @@ import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 
 interface RepairToolsIssueItem {
   id: number
@@ -265,7 +265,6 @@ export default defineComponent({
     const currentPage = ref(1)
     const pageSize = ref(10)
     const showAddModal = ref(false)
-    const currentUser = ref(authService.getCurrentUser())
 
     const filters = ref({
       user: '',
@@ -508,7 +507,7 @@ export default defineComponent({
         
         const response = await apiClient.post('/repair-tools/issue', {
           ...formData.value,
-          user_name: currentUser.value?.name,
+          user_name: userStore.getUser()?.name,
           project_name: project?.project_name || null
         }) as unknown as ApiResponse<any>
         if (response && response.code === 200) {
@@ -593,7 +592,7 @@ export default defineComponent({
       selectedTool,
       filteredToolList,
       filteredProjectList,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       handleSearch,
       handleAdd,
       closeAddModal,

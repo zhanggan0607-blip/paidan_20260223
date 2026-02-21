@@ -297,6 +297,9 @@
 import { defineComponent, ref, onMounted, onUnmounted, computed, inject } from 'vue'
 import { statisticsService, StatisticsOverview, CompletionRate, TopProject, EmployeeStats, WorkOrderDetail } from '@/services/statistics'
 
+// TODO: 统计页面 - 考虑加入数据导出功能(Excel/PDF)
+// FIXME: 图表组件应该抽成独立的可复用组件
+// TODO: 全屏模式下ESC键退出功能
 export default defineComponent({
   name: 'StatisticsPage',
   setup() {

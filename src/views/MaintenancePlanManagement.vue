@@ -642,6 +642,8 @@ import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 import { formatDate as formatDateUtil, formatDateForInput } from '../config/constants'
 
+// TODO: 这个文件太长了，需要拆分组件
+// FIXME: 维保周期生成的逻辑需要优化，每天的情况数据量太大
 interface InspectionTreeNode {
   id: string
   label: string
@@ -1124,6 +1126,8 @@ export default defineComponent({
     }
 
     const generateDailyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      // FIXME: 每天维保的情况下，如果项目周期长，会生成大量数据
+      // 后续考虑改成按需生成或者限制最大数量
       const periods: PeriodInfo[] = []
       let currentDate = new Date(projStart)
       
@@ -1332,6 +1336,7 @@ export default defineComponent({
     }
 
     const importItems = () => {
+      // TODO: 导入事项功能还没实现，需要对接后端接口
       showToast('导入事项功能开发中', 'info')
     }
 

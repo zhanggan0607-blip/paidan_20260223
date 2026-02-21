@@ -58,9 +58,39 @@
           <div class="form-value work-content">{{ workData.work_content || '-' }}</div>
         </div>
         
-        <div class="workers-section" v-if="workers.length > 0">
+        <div class="status-section">
+          <label class="form-label">状态</label>
+          <div class="form-value">
+            <span class="status-tag" :class="getStatusClass(workData.status)">{{ workData.status || '-' }}</span>
+          </div>
+        </div>
+        
+        <div class="form-item-full">
+          <label class="form-label">现场图片</label>
+          <div class="photo-grid" v-if="workData.photos && workData.photos.length > 0">
+            <div 
+              v-for="(photo, index) in workData.photos" 
+              :key="index" 
+              class="photo-item"
+              @click="previewPhoto(photo)"
+            >
+              <img :src="photo" alt="现场图片" loading="lazy" />
+            </div>
+          </div>
+          <div class="form-value" v-else>暂无现场图片</div>
+        </div>
+        
+        <div class="form-item-full">
+          <label class="form-label">班组签字</label>
+          <div class="signature-container" v-if="workData.signature">
+            <img :src="workData.signature" alt="班组签字" class="signature-image" />
+          </div>
+          <div class="form-value" v-else>暂无班组签字</div>
+        </div>
+        
+        <div class="workers-section">
           <h4 class="section-title">施工人员详情</h4>
-          <table class="workers-table">
+          <table class="workers-table" v-if="workers.length > 0">
             <thead>
               <tr>
                 <th>序号</th>
@@ -80,11 +110,12 @@
               </tr>
             </tbody>
           </table>
+          <div class="form-value" v-else>暂无施工人员信息</div>
         </div>
 
-        <div class="operation-log-section" v-if="operationLogs.length > 0">
+        <div class="operation-log-section">
           <div class="section-title">内部确认区</div>
-          <div class="timeline">
+          <div class="timeline" v-if="operationLogs.length > 0">
             <div 
               v-for="(log, index) in operationLogs" 
               :key="log.id" 
@@ -99,10 +130,7 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="operation-log-section" v-else-if="!loadingLogs">
-          <div class="section-title">内部确认区</div>
-          <div class="no-logs">暂无操作记录</div>
+          <div class="no-logs" v-else>暂无操作记录</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -115,7 +143,8 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { spotWorkService, type SpotWorkWorker } from '@/services/spotWork'
+import { spotWorkService } from '@/services/spotWork'
+import type { SpotWorkWorker } from '@/types/api'
 import apiClient from '@/utils/api'
 import type { ApiResponse } from '@/types/api'
 
@@ -137,6 +166,8 @@ interface WorkData {
   work_content?: string
   worker_count?: number
   work_days?: number
+  photos?: string[]
+  signature?: string
 }
 
 interface OperationLogItem {
@@ -173,7 +204,9 @@ export default defineComponent({
       status: '',
       remarks: '',
       worker_count: 0,
-      work_days: 0
+      work_days: 0,
+      photos: [],
+      signature: ''
     })
     const workers = ref<SpotWorkWorker[]>([])
     const operationLogs = ref<OperationLogItem[]>([])
@@ -197,6 +230,28 @@ export default defineComponent({
       const hours = String(date.getHours()).padStart(2, '0')
       const minutes = String(date.getMinutes()).padStart(2, '0')
       return `${year}-${month}-${day} ${hours}:${minutes}`
+    }
+
+    /**
+     * 获取状态样式类
+     */
+    const getStatusClass = (status: string) => {
+      const statusMap: Record<string, string> = {
+        '未进行': 'status-pending',
+        '待确认': 'status-waiting',
+        '已确认': 'status-confirmed',
+        '已完成': 'status-completed',
+        '已退回': 'status-returned',
+        '已取消': 'status-cancelled'
+      }
+      return statusMap[status] || ''
+    }
+
+    /**
+     * 预览图片
+     */
+    const previewPhoto = (photo: string) => {
+      window.open(photo, '_blank')
     }
 
     /**
@@ -246,7 +301,9 @@ export default defineComponent({
               remarks: item.remarks || '',
               work_content: item.work_content || '',
               worker_count: item.worker_count || 0,
-              work_days: item.work_days || 0
+              work_days: item.work_days || 0,
+              photos: item.photos || [],
+              signature: item.signature || ''
             }
             workers.value = item.workers || []
             fetchOperationLogs(item.id)
@@ -268,6 +325,8 @@ export default defineComponent({
       loadingLogs,
       formatDate,
       formatOperationTime,
+      getStatusClass,
+      previewPhoto,
       goBack
     }
   }
@@ -381,6 +440,20 @@ export default defineComponent({
 
 .work-content-section .form-label {
   margin-bottom: 8px;
+}
+
+.form-item-full {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.form-item-full .form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #424242;
+  margin-bottom: 8px;
+  display: block;
 }
 
 .form-value.work-content {
@@ -531,5 +604,102 @@ export default defineComponent({
   color: #999;
   font-size: 14px;
   padding: 20px 0;
+}
+
+.status-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-waiting {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-confirmed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-completed {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status-returned {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-cancelled {
+  background: #f5f5f5;
+  color: #757575;
+}
+
+.photos-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.photo-item {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+  transition: transform 0.2s;
+}
+
+.photo-item:hover {
+  transform: scale(1.05);
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.signature-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.signature-container {
+  margin-top: 8px;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.signature-image {
+  max-width: 300px;
+  max-height: 150px;
+  object-fit: contain;
 }
 </style>

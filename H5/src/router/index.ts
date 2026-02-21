@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { authService } from '../services/auth'
+import { userStore } from '../stores/userStore'
 
 const routes = [
   {
@@ -169,10 +169,9 @@ router.beforeEach((to, _from, next) => {
   document.title = (to.meta.title as string) || 'SSTCP维保系统'
   
   if (to.meta.permission) {
-    const user = authService.getCurrentUser()
     const permissionMethod = to.meta.permission as string
-    if (typeof (authService as any)[permissionMethod] === 'function') {
-      if (!(authService as any)[permissionMethod](user)) {
+    if (typeof (userStore as any)[permissionMethod] === 'function') {
+      if (!(userStore as any)[permissionMethod]()) {
         next({ name: 'Home' })
         return
       }

@@ -6,9 +6,12 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 import { processPhoto } from '../utils/watermark'
 
+// TODO: 维保日志填报页面 - 考虑加入草稿自动保存功能
+// FIXME: 图片上传失败时没有重试机制
+// TODO: 表单数据应该支持本地缓存，防止页面刷新丢失
 interface ProjectInfo {
   id: number
   project_id: string
@@ -25,7 +28,6 @@ interface LogImage {
 
 const router = useRouter()
 
-const currentUser = ref<User | null>(null)
 const pageTitle = '维保日志填报'
 const formData = ref({
   projectId: '',
@@ -120,7 +122,7 @@ const handleTakePhoto = async () => {
     if (file) {
       showLoadingToast({ message: '处理中...', forbidClick: true })
       try {
-        const userName = currentUser.value?.name || '未知用户'
+        const userName = userStore.getUser()?.name || '未知用户'
         const processedFile = await processPhoto(file, userName)
         const url = URL.createObjectURL(processedFile)
         images.value.push({
@@ -251,7 +253,6 @@ const projectColumns = computed(() => {
 })
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchProjectList()
 })
 </script>

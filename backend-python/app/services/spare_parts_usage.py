@@ -4,31 +4,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.spare_parts_usage import SparePartsUsage
 from app.repositories.spare_parts_usage import SparePartsUsageRepository
-from pydantic import BaseModel
-
-
-class SparePartsUsageCreate(BaseModel):
-    product_name: str
-    brand: Optional[str] = None
-    model: Optional[str] = None
-    quantity: int
-    user_name: str
-    issue_time: Union[str, datetime]
-    unit: str = "件"
-    project_id: Optional[str] = None
-    project_name: Optional[str] = None
-
-
-class SparePartsUsageUpdate(BaseModel):
-    product_name: Optional[str] = None
-    brand: Optional[str] = None
-    model: Optional[str] = None
-    quantity: Optional[int] = None
-    user_name: Optional[str] = None
-    issue_time: Optional[Union[str, datetime]] = None
-    unit: Optional[str] = None
-    project_id: Optional[str] = None
-    project_name: Optional[str] = None
+from app.schemas.spare_parts import SparePartsUsageCreate, SparePartsUsageUpdate
+from app.utils.date_utils import parse_datetime
 
 
 class SparePartsUsageService:
@@ -36,19 +13,7 @@ class SparePartsUsageService:
         self.repository = SparePartsUsageRepository(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
-        if date_value is None:
-            return None
-        if isinstance(date_value, datetime):
-            return date_value
-        if isinstance(date_value, str):
-            try:
-                return datetime.fromisoformat(date_value)
-            except ValueError:
-                try:
-                    return datetime.strptime(date_value, '%Y-%m-%d %H:%M:%S')
-                except ValueError:
-                    raise ValueError(f'日期格式无效: {date_value}')
-        return None
+        return parse_datetime(date_value)
     
     def get_all(
         self, 

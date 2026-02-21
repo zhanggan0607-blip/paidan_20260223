@@ -5,10 +5,13 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConf
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 import { processPhoto } from '../utils/watermark'
 import { validateIdCard } from '../utils/idCardValidator'
 
+// TODO: 工人录入页面 - 身份证OCR识别功能待完善
+// FIXME: 身份证验证逻辑应该更严格，包括有效期校验
+// TODO: 考虑加入人脸识别功能验证身份
 interface WorkerInfo {
   id?: number
   name?: string
@@ -24,8 +27,6 @@ interface WorkerInfo {
 
 const router = useRouter()
 const route = useRoute()
-
-const currentUser = ref<User | null>(null)
 
 const projectId = ref('')
 const projectName = ref('')
@@ -171,7 +172,7 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
       
       showLoadingToast({ message: '处理图片...', forbidClick: true })
       
-      const userName = currentUser.value?.name || '未知用户'
+      const userName = userStore.getUser()?.name || '未知用户'
       const processedFile = await processPhoto(file, userName)
       
       showLoadingToast({ message: '上传图片...', forbidClick: true })
@@ -356,7 +357,6 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   projectId.value = route.query.projectId as string || ''
   projectName.value = route.query.projectName as string || ''
   workDateStart.value = route.query.workDateStart as string || ''

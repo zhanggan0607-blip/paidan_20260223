@@ -6,10 +6,13 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { processPhoto } from '../utils/watermark'
 
+// TODO: 零星用工详情页面 - 考虑加入工人考勤统计功能
+// FIXME: 图片压缩质量参数应该可配置
+// TODO: 审批流程应该支持多级审批
 const router = useRouter()
 const route = useRoute()
 
@@ -56,7 +59,6 @@ interface SpotWorkDetail {
 
 const loading = ref(false)
 const detail = ref<SpotWorkDetail | null>(null)
-const currentUser = ref<User | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
 const formData = ref({
@@ -83,7 +85,7 @@ const returnTab = computed(() => {
   return route.query.tab as string || '0'
 })
 
-const canApprove = computed(() => authService.canApproveSpotWork(currentUser.value))
+const canApprove = computed(() => userStore.canApproveSpotWork())
 
 const isApproveMode = computed(() => {
   return route.query.mode === 'approve' && canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
@@ -126,6 +128,23 @@ const getWorkIdFontSize = (workId: string) => {
   if (len <= 35) return 9
   if (len <= 40) return 8
   return 7
+}
+
+/**
+ * 获取状态样式类
+ * @param status 状态
+ * @returns 样式类名
+ */
+const getStatusClass = (status: string) => {
+  const statusMap: Record<string, string> = {
+    '未进行': 'status-pending',
+    '待确认': 'status-waiting',
+    '已确认': 'status-confirmed',
+    '已完成': 'status-completed',
+    '已退回': 'status-returned',
+    '已取消': 'status-cancelled'
+  }
+  return statusMap[status] || ''
 }
 
 const fetchDetail = async () => {
@@ -191,7 +210,7 @@ const handlePhotoCapture = () => {
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     try {
-      const userName = currentUser.value?.name || '未知用户'
+      const userName = userStore.getUser()?.name || '未知用户'
       const processedFile = await processPhoto(file, userName)
       
       const formDataObj = new FormData()
@@ -399,7 +418,6 @@ const handleApproveReject = async () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchDetail()
   loadSignature()
 })
@@ -410,15 +428,18 @@ onMounted(() => {
  * @param operationRemark 操作备注
  */
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
-  if (!detail.value?.id || !currentUser.value) return
+  if (!detail.value?.id) return
+  
+  const user = userStore.getUser()
+  if (!user) return
   
   try {
     await api.post('/work-order-operation-log', {
       work_order_type: 'spot_work',
       work_order_id: detail.value.id,
       work_order_no: detail.value.work_id,
-      operator_name: currentUser.value.name,
-      operator_id: currentUser.value.id,
+      operator_name: user.name,
+      operator_id: user.id,
       operation_type_code: operationTypeCode,
       operation_remark: operationRemark
     })
@@ -467,6 +488,11 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         <van-cell title="客户单位" :value="detail.client_name || '-'" />
         <van-cell title="客户联系人" :value="detail.client_contact || '-'" />
         <van-cell title="客户联系电话" :value="detail.client_contact_info || '-'" />
+        <van-cell title="状态">
+          <template #value>
+            <span class="status-tag" :class="getStatusClass(detail.status)">{{ detail.status }}</span>
+          </template>
+        </van-cell>
       </van-cell-group>
 
       <van-cell-group inset title="工作内容">
@@ -912,6 +938,44 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 .no-photo {
   color: #969799;
   font-size: 12px;
+}
+
+.status-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.status-waiting {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-confirmed {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-completed {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.status-returned {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-cancelled {
+  background: #f5f5f5;
+  color: #757575;
 }
 
 

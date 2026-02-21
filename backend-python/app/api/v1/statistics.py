@@ -50,6 +50,7 @@ def get_statistics_overview(
     year_end = datetime(year, 12, 31).date()
     near_due_days = 7
     valid_statuses = OverdueAlertConfig.VALID_STATUSES
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     near_due_count = 0
     overdue_count = 0
@@ -76,16 +77,17 @@ def get_statistics_overview(
             if plan_start >= year_start and plan_start <= year_end:
                 regular_inspection_count += 1
             
-            days_from_today = (plan_start - today).days
-            if 0 <= days_from_today <= near_due_days:
-                near_due_count += 1
+            if inspection.status in valid_statuses:
+                days_from_today = (plan_start - today).days
+                if 0 <= days_from_today <= near_due_days:
+                    near_due_count += 1
         
         if plan_end:
             check_date = today if year == current_year else year_end
             if plan_end < check_date and inspection.status in valid_statuses:
                 overdue_count += 1
         
-        if inspection.status == '已完成' and actual_completion:
+        if inspection.status in completed_statuses and actual_completion:
             if actual_completion >= year_start and actual_completion <= year_end:
                 year_completed_count += 1
     
@@ -107,16 +109,17 @@ def get_statistics_overview(
             if plan_start >= year_start and plan_start <= year_end:
                 temporary_repair_count += 1
             
-            days_from_today = (plan_start - today).days
-            if 0 <= days_from_today <= near_due_days:
-                near_due_count += 1
+            if repair.status in valid_statuses:
+                days_from_today = (plan_start - today).days
+                if 0 <= days_from_today <= near_due_days:
+                    near_due_count += 1
         
         if plan_end:
             check_date = today if year == current_year else year_end
             if plan_end < check_date and repair.status in valid_statuses:
                 overdue_count += 1
         
-        if repair.status == '已完成' and actual_completion:
+        if repair.status in completed_statuses and actual_completion:
             if actual_completion >= year_start and actual_completion <= year_end:
                 year_completed_count += 1
     
@@ -138,16 +141,17 @@ def get_statistics_overview(
             if plan_start >= year_start and plan_start <= year_end:
                 spot_work_count += 1
             
-            days_from_today = (plan_start - today).days
-            if 0 <= days_from_today <= near_due_days:
-                near_due_count += 1
+            if work.status in valid_statuses:
+                days_from_today = (plan_start - today).days
+                if 0 <= days_from_today <= near_due_days:
+                    near_due_count += 1
         
         if plan_end:
             check_date = today if year == current_year else year_end
             if plan_end < check_date and work.status in valid_statuses:
                 overdue_count += 1
         
-        if work.status == '已完成' and actual_completion:
+        if work.status in completed_statuses and actual_completion:
             if actual_completion >= year_start and actual_completion <= year_end:
                 year_completed_count += 1
     
@@ -188,11 +192,12 @@ def get_completion_rate(
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     on_time_count = 0
     total_count = 0
     
-    inspection_query = db.query(PeriodicInspection).filter(PeriodicInspection.status == '已完成')
+    inspection_query = db.query(PeriodicInspection).filter(PeriodicInspection.status.in_(completed_statuses))
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
@@ -212,7 +217,7 @@ def get_completion_rate(
                 if actual_completion <= plan_end:
                     on_time_count += 1
     
-    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成')
+    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status.in_(completed_statuses))
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
@@ -232,7 +237,7 @@ def get_completion_rate(
                 if actual_completion <= plan_end:
                     on_time_count += 1
     
-    work_query = db.query(SpotWork).filter(SpotWork.status == '已完成')
+    work_query = db.query(SpotWork).filter(SpotWork.status.in_(completed_statuses))
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
@@ -287,10 +292,11 @@ def get_top_projects(
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     project_stats = {}
     
-    inspection_query = db.query(PeriodicInspection).filter(PeriodicInspection.status == '已完成')
+    inspection_query = db.query(PeriodicInspection).filter(PeriodicInspection.status.in_(completed_statuses))
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
@@ -303,7 +309,7 @@ def get_top_projects(
                     project_stats[inspection.project_id] = 0
                 project_stats[inspection.project_id] += 1
     
-    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成')
+    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status.in_(completed_statuses))
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
@@ -316,7 +322,7 @@ def get_top_projects(
                     project_stats[repair.project_id] = 0
                 project_stats[repair.project_id] += 1
     
-    work_query = db.query(SpotWork).filter(SpotWork.status == '已完成')
+    work_query = db.query(SpotWork).filter(SpotWork.status.in_(completed_statuses))
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
@@ -368,10 +374,11 @@ def get_top_repairs(
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     project_stats = {}
     
-    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成')
+    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status.in_(completed_statuses))
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
@@ -503,10 +510,11 @@ def get_repair_stats(
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     repair_stats = {}
     
-    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status == '已完成')
+    repair_query = db.query(TemporaryRepair).filter(TemporaryRepair.status.in_(completed_statuses))
     repair_query = _apply_user_filter(repair_query, TemporaryRepair, user_name, is_manager)
     
     for repair in repair_query.all():
@@ -558,10 +566,11 @@ def get_spotwork_stats(
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     spotwork_stats = {}
     
-    work_query = db.query(SpotWork).filter(SpotWork.status == '已完成')
+    work_query = db.query(SpotWork).filter(SpotWork.status.in_(completed_statuses))
     work_query = _apply_user_filter(work_query, SpotWork, user_name, is_manager)
     
     for work in work_query.all():
@@ -613,10 +622,11 @@ def get_inspection_stats(
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
+    completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
     
     inspection_stats = {}
     
-    inspection_query = db.query(PeriodicInspection).filter(PeriodicInspection.status == '已完成')
+    inspection_query = db.query(PeriodicInspection).filter(PeriodicInspection.status.in_(completed_statuses))
     inspection_query = _apply_user_filter(inspection_query, PeriodicInspection, user_name, is_manager)
     
     for inspection in inspection_query.all():
@@ -736,7 +746,7 @@ def get_statistics_detail(
                 plan_start = item.plan_start_date
                 if isinstance(plan_start, datetime):
                     plan_start = plan_start.date()
-                if plan_start:
+                if plan_start and item.status in valid_statuses:
                     days_from_today = (plan_start - today).days
                     return 0 <= days_from_today <= near_due_days
                 return False
@@ -776,7 +786,7 @@ def get_statistics_detail(
             actual_completion = item.actual_completion_date
             if isinstance(actual_completion, datetime):
                 actual_completion = actual_completion.date()
-            if item.status == '已完成' and actual_completion:
+            if item.status in completed_statuses and actual_completion:
                 return year_start <= actual_completion <= year_end
             return False
         
@@ -840,7 +850,7 @@ def get_statistics_detail(
                 plan_end = plan_end.date()
             if isinstance(actual_completion, datetime):
                 actual_completion = actual_completion.date()
-            if item.status == '已完成' and plan_start and actual_completion:
+            if item.status in completed_statuses and plan_start and actual_completion:
                 if year_start <= plan_start <= year_end:
                     return actual_completion <= plan_end
             return False
@@ -866,7 +876,7 @@ def get_statistics_detail(
                 plan_end = plan_end.date()
             if isinstance(actual_completion, datetime):
                 actual_completion = actual_completion.date()
-            if item.status == '已完成' and plan_start and actual_completion:
+            if item.status in completed_statuses and plan_start and actual_completion:
                 if year_start <= plan_start <= year_end:
                     return actual_completion > plan_end
             return False
@@ -889,7 +899,7 @@ def get_statistics_detail(
             if plan_start and year_start <= plan_start <= year_end:
                 if item.maintenance_personnel == employee_name:
                     if require_completed:
-                        return item.status == '已完成'
+                        return item.status in completed_statuses
                     return True
             return False
         
@@ -931,7 +941,7 @@ def get_statistics_detail(
                 if plan_start and year_start <= plan_start <= year_end:
                     if item.project_id == project_id:
                         if require_completed:
-                            return item.status == '已完成'
+                            return item.status in completed_statuses
                         return True
                 return False
             

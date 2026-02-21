@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 
 interface MaintenanceLogItem {
   id: number
@@ -27,10 +27,9 @@ const router = useRouter()
 
 const loading = ref(false)
 const logList = ref<MaintenanceLogItem[]>([])
-const currentUser = ref<User | null>(null)
 
 const pageTitle = computed(() => {
-  if (authService.isDepartmentManager(currentUser.value)) {
+  if (userStore.isDepartmentManager()) {
     return '已填报部门周报'
   }
   return '已填报日志'
@@ -77,8 +76,9 @@ const fetchLogList = async () => {
     }
     
     // 部门经理能看到所有数据，普通员工只能看到自己的数据
-    if (currentUser.value && currentUser.value.name && !authService.isDepartmentManager(currentUser.value)) {
-      params.created_by = currentUser.value.name
+    const user = userStore.getUser()
+    if (user && user.name && !userStore.isDepartmentManager()) {
+      params.created_by = user.name
     }
     
     const response = await api.get<unknown, ApiResponse<{ content: MaintenanceLogItem[] }>>('/maintenance-log', { 
@@ -112,7 +112,6 @@ const handleUserChanged = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchLogList()
 })
 </script>

@@ -1,5 +1,7 @@
 import apiClient from '../utils/api'
 
+// TODO: 类型定义应该抽到单独的types文件里
+// FIXME: ProjectInfoCreate和ProjectInfoUpdate有很多重复字段
 export interface ProjectInfo {
   id: number
   project_id: string
@@ -75,6 +77,7 @@ export const projectInfoService = {
     project_name?: string
     client_name?: string
   }): Promise<PaginatedResponse> {
+    // TODO: 可以加入缓存机制，避免重复请求
     return await apiClient.get('/project-info', { params })
   },
 

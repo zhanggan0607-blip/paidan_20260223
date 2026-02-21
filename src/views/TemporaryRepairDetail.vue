@@ -54,12 +54,40 @@
         </div>
         <div class="form-item-full">
           <label class="form-label">报修内容</label>
-          <div class="form-value form-value-large">{{ repairData.remarks || '-' }}</div>
+          <textarea 
+            class="form-textarea" 
+            v-model="repairData.remarks" 
+            placeholder="请输入报修内容"
+            maxlength="500"
+          ></textarea>
         </div>
 
-        <div class="operation-log-section" v-if="operationLogs.length > 0">
+        <div class="form-item-full">
+          <label class="form-label">现场图片</label>
+          <div class="photo-grid" v-if="repairData.photos && repairData.photos.length > 0">
+            <div 
+              v-for="(photo, index) in repairData.photos" 
+              :key="index" 
+              class="photo-item"
+              @click="previewPhoto(photo)"
+            >
+              <img :src="photo" alt="现场图片" loading="lazy" />
+            </div>
+          </div>
+          <div class="form-value" v-else>暂无现场图片</div>
+        </div>
+
+        <div class="form-item-full">
+          <label class="form-label">用户签字</label>
+          <div class="signature-container" v-if="repairData.signature">
+            <img :src="repairData.signature" alt="用户签字" class="signature-image" />
+          </div>
+          <div class="form-value" v-else>暂无用户签字</div>
+        </div>
+
+        <div class="operation-log-section">
           <div class="section-title">内部确认区</div>
-          <div class="timeline">
+          <div class="timeline" v-if="operationLogs.length > 0">
             <div 
               v-for="(log, index) in operationLogs" 
               :key="log.id" 
@@ -74,14 +102,12 @@
               </div>
             </div>
           </div>
-        </div>
-        <div class="operation-log-section" v-else-if="!loadingLogs">
-          <div class="section-title">内部确认区</div>
-          <div class="no-logs">暂无操作记录</div>
+          <div class="no-logs" v-else>暂无操作记录</div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-cancel" @click="goBack">关闭</button>
+        <button class="btn btn-save" @click="handleSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
       </div>
     </div>
   </div>
@@ -109,6 +135,8 @@ interface RepairData {
   maintenance_personnel: string
   status: string
   remarks?: string
+  photos?: string[]
+  signature?: string
 }
 
 interface OperationLogItem {
@@ -143,11 +171,14 @@ export default defineComponent({
       address: '',
       maintenance_personnel: '',
       status: '',
-      remarks: ''
+      remarks: '',
+      photos: [],
+      signature: ''
     })
 
     const operationLogs = ref<OperationLogItem[]>([])
     const loadingLogs = ref(false)
+    const saving = ref(false)
 
     const formatDate = (dateStr: string) => {
       if (!dateStr) return '-'
@@ -192,6 +223,37 @@ export default defineComponent({
       router.back()
     }
 
+    /**
+     * 预览图片
+     */
+    const previewPhoto = (photo: string) => {
+      window.open(photo, '_blank')
+    }
+
+    /**
+     * 保存报修内容
+     */
+    const handleSave = async () => {
+      if (!repairData.value.id) return
+      
+      saving.value = true
+      try {
+        const response = await temporaryRepairService.update(repairData.value.id, {
+          remarks: repairData.value.remarks || ''
+        })
+        if (response.code === 200) {
+          alert('保存成功')
+        } else {
+          alert(response.message || '保存失败')
+        }
+      } catch (error) {
+        console.error('保存失败:', error)
+        alert('保存失败')
+      } finally {
+        saving.value = false
+      }
+    }
+
     const loadData = async () => {
       const id = route.query.id as string
       if (id) {
@@ -213,7 +275,9 @@ export default defineComponent({
               address: item.address || '',
               maintenance_personnel: item.maintenance_personnel || '',
               status: item.status,
-              remarks: item.remarks || ''
+              remarks: item.remarks || '',
+              photos: item.photos || [],
+              signature: item.signature || ''
             }
             fetchOperationLogs(item.id)
           }
@@ -231,9 +295,12 @@ export default defineComponent({
       repairData,
       operationLogs,
       loadingLogs,
+      saving,
       formatDate,
       formatOperationTime,
-      goBack
+      goBack,
+      previewPhoto,
+      handleSave
     }
   }
 })
@@ -384,6 +451,44 @@ export default defineComponent({
   background: #f5f5f5;
 }
 
+.btn-save {
+  background: #1976d2;
+  color: #fff;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #1565c0;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 108px;
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #333;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.form-textarea::placeholder {
+  color: #999;
+}
+
 .operation-log-section {
   margin-top: 20px;
   padding-top: 20px;
@@ -467,5 +572,48 @@ export default defineComponent({
   color: #999;
   font-size: 14px;
   padding: 20px 0;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid #e0e0e0;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.photo-item:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.signature-container {
+  margin-top: 8px;
+  padding: 16px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.signature-image {
+  max-width: 300px;
+  max-height: 150px;
+  object-fit: contain;
 }
 </style>

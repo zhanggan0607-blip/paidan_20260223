@@ -109,6 +109,8 @@ import { defineComponent, ref, computed, onMounted, watch } from 'vue'
 import { sparePartsUsageService, SparePartsUsage } from '../services/sparePartsUsage'
 import SearchInput from '../components/SearchInput.vue'
 
+// TODO: 这个页面功能比较简单，后续可以加入导出功能
+// FIXME: 分页逻辑和别的页面不一致，需要统一
 export default defineComponent({
   name: 'SparePartsManagement',
   components: {
@@ -143,6 +145,7 @@ export default defineComponent({
     })
 
     const formatDate = (dateStr: string) => {
+      // TODO: 日期格式化应该统一用工具函数
       if (!dateStr) return '-'
       try {
         const date = new Date(dateStr)

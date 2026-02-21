@@ -6,11 +6,9 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
 
 const router = useRouter()
 
-const currentUser = ref<User | null>(null)
 const formData = ref({
   reportId: '',
   reportDate: formatDate(new Date()),
@@ -102,7 +100,6 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   generateReportId()
 })
 </script>

@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore, type User } from '../stores/userStore'
 import { processPhoto } from '../utils/watermark'
 
 interface ProjectInfo {
@@ -25,9 +25,8 @@ const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<any[]>([])
 const userReady = ref(false)
-const currentUser = ref<User | null>(null)
 
-const canApprove = computed(() => authService.canApproveSpotWork(currentUser.value))
+const canApprove = computed(() => userStore.canApproveSpotWork())
 
 const applyFormData = ref({
   projectId: '',
@@ -341,15 +340,13 @@ const handleApprove = (item: any) => {
   router.push(`/spot-work/${item.id}?tab=${activeTab.value}&mode=approve`)
 }
 
-const handleUserReady = (user: User) => {
-  currentUser.value = user
+const handleUserReady = (_user: User) => {
   userReady.value = true
   fetchProjectList()
   fetchWorkList()
 }
 
-const handleUserChanged = (user: User) => {
-  currentUser.value = user
+const handleUserChanged = (_user: User) => {
   fetchProjectList()
   fetchWorkList()
 }
@@ -414,7 +411,7 @@ const handlePhotoCapture = () => {
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     try {
-      const userName = currentUser.value?.name || '未知用户'
+      const userName = userStore.getUser()?.name || '未知用户'
       const processedFile = await processPhoto(file, userName)
       
       const formDataObj = new FormData()
@@ -485,7 +482,6 @@ const loadSignature = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchProjectList()
   loadSignature()
   const tabParam = route.query.tab

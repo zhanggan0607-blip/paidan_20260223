@@ -11,6 +11,7 @@ from app.repositories.periodic_inspection import PeriodicInspectionRepository
 from app.schemas.periodic_inspection import PeriodicInspectionCreate, PeriodicInspectionUpdate, PeriodicInspectionPartialUpdate
 from app.utils.dictionary_helper import get_default_periodic_inspection_status
 from app.services.sync_service import SyncService, PLAN_TYPE_INSPECTION
+from app.utils.date_utils import parse_datetime
 
 
 class PeriodicInspectionService:
@@ -19,19 +20,7 @@ class PeriodicInspectionService:
         self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
-        if date_value is None:
-            return None
-        if isinstance(date_value, datetime):
-            return date_value
-        if isinstance(date_value, str):
-            try:
-                return datetime.fromisoformat(date_value)
-            except ValueError:
-                try:
-                    return datetime.strptime(date_value, '%Y-%m-%d')
-                except ValueError:
-                    raise ValueError(f'日期格式无效: {date_value}')
-        return None
+        return parse_datetime(date_value)
     
     def get_all(
         self, 

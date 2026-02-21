@@ -224,13 +224,16 @@
 import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { personnelService, type Personnel, type PersonnelCreate, type PersonnelUpdate } from '../services/personnel'
-import { authService } from '../services/auth'
+import { userStore } from '../stores/userStore'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 import { USER_ROLES, GENDER_LIST, formatDate } from '../config/constants'
 
+// TODO: 人员管理页面 - 后续考虑加入批量导入功能
+// FIXME: 权限控制逻辑分散在多个地方，需要统一管理
+// TODO: 手机号验证正则表达式应该抽到公共配置
 export default defineComponent({
   name: 'PersonnelManagement',
   components: {
@@ -306,12 +309,22 @@ export default defineComponent({
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
+    /**
+     * 显示Toast提示消息
+     * @param message 提示消息内容
+     * @param type 提示类型：success/error/warning/info
+     */
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
       toast.message = message
       toast.type = type
       toast.visible = true
     }
 
+    /**
+     * 根据角色获取对应的CSS类名
+     * @param role 角色名称
+     * @returns CSS类名字符串
+     */
     const getRoleClass = (role: string) => {
       switch (role) {
         case '管理员':
@@ -327,6 +340,12 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 判断当前用户是否有权限编辑指定人员
+     * 管理员可编辑所有人员，部门经理只能编辑本部门人员
+     * @param item 人员信息
+     * @returns 是否有编辑权限
+     */
     const canEdit = (item: Personnel) => {
       if (currentUserRole.value === '管理员') {
         return true
@@ -337,6 +356,12 @@ export default defineComponent({
       return false
     }
 
+    /**
+     * 判断当前用户是否有权限删除指定人员
+     * 只有管理员可以删除人员
+     * @param item 人员信息
+     * @returns 是否有删除权限
+     */
     const canDelete = (item: Personnel) => {
       if (currentUserRole.value === '管理员') {
         return true
@@ -344,10 +369,20 @@ export default defineComponent({
       return false
     }
 
+    /**
+     * 判断当前用户是否可以编辑角色字段
+     * 只有管理员可以修改人员角色
+     * @returns 是否有编辑角色的权限
+     */
     const canEditRole = () => {
       return currentUserRole.value === '管理员'
     }
 
+    /**
+     * 加载人员列表数据
+     * 根据当前页码、每页大小和搜索条件从后端获取数据
+     * 支持请求取消，避免重复请求
+     */
     const loadData = async () => {
       if (abortController) {
         abortController.abort()
@@ -382,11 +417,20 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 处理搜索按钮点击事件
+     * 重置页码并重新加载数据
+     */
     const handleSearch = () => {
       currentPage.value = 0
       loadData()
     }
 
+    /**
+     * 校验表单数据
+     * 检查必填字段和手机号格式
+     * @returns 表单是否有效
+     */
     const checkFormValid = (): boolean => {
       if (!formData.name?.trim()) {
         showToast('请填写姓名', 'warning')
@@ -410,6 +454,10 @@ export default defineComponent({
       return true
     }
 
+    /**
+     * 打开新增人员弹窗
+     * 重置表单并加载输入记忆
+     */
     const openModal = () => {
       resetForm()
       isEditMode.value = false
@@ -417,6 +465,10 @@ export default defineComponent({
       isModalOpen.value = true
     }
 
+    /**
+     * 关闭人员编辑弹窗
+     * 新增模式下保存输入记忆
+     */
     const closeModal = () => {
       if (!isEditMode.value) {
         inputMemory.saveMemory(formData)
@@ -424,6 +476,9 @@ export default defineComponent({
       isModalOpen.value = false
     }
 
+    /**
+     * 重置表单数据为默认值
+     */
     const resetForm = () => {
       formData.name = ''
       formData.gender = ''
@@ -434,6 +489,10 @@ export default defineComponent({
       formData.remarks = ''
     }
 
+    /**
+     * 保存人员信息
+     * 根据编辑模式调用创建或更新接口
+     */
     const handleSave = async () => {
       if (!checkFormValid()) {
         return
@@ -490,6 +549,10 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 查看人员详情
+     * @param item 人员信息
+     */
     const handleView = (item: Personnel) => {
       viewData.id = item.id
       viewData.name = item.name
@@ -502,6 +565,11 @@ export default defineComponent({
       isViewModalOpen.value = true
     }
 
+    /**
+     * 编辑人员信息
+     * 将人员数据填充到表单并打开编辑弹窗
+     * @param item 人员信息
+     */
     const handleEdit = (item: Personnel) => {
       editingId.value = item.id
       formData.name = item.name
@@ -515,10 +583,18 @@ export default defineComponent({
       isModalOpen.value = true
     }
 
+    /**
+     * 关闭查看详情弹窗
+     */
     const closeViewModal = () => {
       isViewModalOpen.value = false
     }
 
+    /**
+     * 删除人员
+     * 弹出确认框，确认后调用删除接口
+     * @param item 人员信息
+     */
     const handleDelete = async (item: Personnel) => {
       try {
         await ElMessageBox.confirm('确定要删除该人员吗？', '提示', {
@@ -546,6 +622,9 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 跳转到指定页码
+     */
     const handleJump = () => {
       const page = parseInt(jumpPage.value.toString())
       if (page >= 1 && page <= totalPages.value) {
@@ -553,6 +632,10 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 处理每页大小变更
+     * 重置页码并重新加载数据
+     */
     const handlePageSizeChange = () => {
       currentPage.value = 0
       loadData()
@@ -568,7 +651,7 @@ export default defineComponent({
     })
 
     onMounted(() => {
-      const user = authService.getCurrentUser()
+      const user = userStore.getUser()
       if (user) {
         currentUserRole.value = user.role
         currentUserDepartment.value = user.department || ''
@@ -584,8 +667,12 @@ export default defineComponent({
       window.removeEventListener('user-changed', handleUserChanged)
     })
 
+    /**
+     * 处理用户变更事件
+     * 当用户信息发生变化时更新当前用户角色和部门
+     */
     const handleUserChanged = () => {
-      const user = authService.getCurrentUser()
+      const user = userStore.getUser()
       if (user) {
         currentUserRole.value = user.role
         currentUserDepartment.value = user.department || ''

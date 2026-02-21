@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 
 interface WeeklyReportItem {
   id: number
@@ -31,7 +31,6 @@ const router = useRouter()
 
 const loading = ref(false)
 const reportList = ref<WeeklyReportItem[]>([])
-const currentUser = ref<User | null>(null)
 
 /**
  * 获取状态名称
@@ -72,8 +71,9 @@ const fetchReportList = async () => {
       size: 100
     }
     
-    if (currentUser.value && currentUser.value.name) {
-      params.created_by = currentUser.value.name
+    const user = userStore.getUser()
+    if (user && user.name) {
+      params.created_by = user.name
     }
     
     const response = await api.get<unknown, ApiResponse<{ content: WeeklyReportItem[] }>>('/weekly-report', { 
@@ -110,12 +110,10 @@ const handleBack = () => {
 }
 
 const handleUserChanged = () => {
-  currentUser.value = authService.getCurrentUser()
   fetchReportList()
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchReportList()
 })
 </script>

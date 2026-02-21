@@ -203,7 +203,7 @@ import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 
 /**
  * 备品备件领用记录接口
@@ -273,7 +273,6 @@ export default defineComponent({
     const pageSize = ref(10)
     const jumpPage = ref(1)
     const showAddModal = ref(false)
-    const currentUser = ref(authService.getCurrentUser())
 
     const filters = ref({
       user: '',
@@ -531,7 +530,7 @@ export default defineComponent({
           model: selectedProduct.value?.model,
           quantity: formData.value.quantity,
           unit: selectedProduct.value?.unit,
-          user_name: currentUser.value?.name,
+          user_name: userStore.getUser()?.name,
           project_id: formData.value.project_id || null,
           project_name: project?.project_name || null,
           remark: formData.value.remark
@@ -646,7 +645,7 @@ export default defineComponent({
       selectedProduct,
       filteredStockList,
       filteredProjectList,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       handleSearch,
       handleAdd,
       closeAddModal,

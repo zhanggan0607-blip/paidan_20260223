@@ -6,7 +6,6 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
 
 interface RepairToolsIssueItem {
   id: number
@@ -23,7 +22,6 @@ interface RepairToolsIssueItem {
 }
 
 const router = useRouter()
-const currentUser = ref<User | null>(null)
 const loading = ref(false)
 const issueList = ref<RepairToolsIssueItem[]>([])
 
@@ -135,12 +133,10 @@ const handleBack = () => {
 }
 
 const handleUserChanged = () => {
-  currentUser.value = authService.getCurrentUser()
   fetchIssueList()
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchIssueList()
 })
 </script>

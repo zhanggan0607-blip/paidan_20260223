@@ -2,6 +2,7 @@ from app.models.periodic_inspection import PeriodicInspection
 from app.models.periodic_inspection_record import PeriodicInspectionRecord
 from app.models.temporary_repair import TemporaryRepair
 from app.models.spot_work import SpotWork
+from app.models.spot_work_worker import SpotWorkWorker
 from app.models.project_info import ProjectInfo
 from app.models.maintenance_plan import MaintenancePlan
 from app.models.personnel import Personnel
@@ -23,6 +24,7 @@ __all__ = [
     'PeriodicInspectionRecord',
     'TemporaryRepair',
     'SpotWork',
+    'SpotWorkWorker',
     'ProjectInfo',
     'MaintenancePlan',
     'Personnel',

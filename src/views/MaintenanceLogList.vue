@@ -214,7 +214,7 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 import { formatDate, formatDateTime } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
 
@@ -264,7 +264,6 @@ export default defineComponent({
     const currentPage = ref(1)
     const pageSize = ref(10)
     const jumpPage = ref(1)
-    const currentUser = ref(authService.getCurrentUser())
     const showDetailModal = ref(false)
     const detailData = ref<MaintenanceLogItem | null>(null)
     const showImagePreview = ref(false)
@@ -278,11 +277,11 @@ export default defineComponent({
     })
 
     const isAdmin = computed(() => {
-      return authService.isAdmin(currentUser.value)
+      return userStore.isAdmin()
     })
 
     const isDepartmentManager = computed(() => {
-      return authService.isDepartmentManager(currentUser.value)
+      return userStore.isDepartmentManager()
     })
 
     const totalPages = computed(() => {
@@ -352,8 +351,9 @@ export default defineComponent({
         if (filters.value.logDate) params.log_date = filters.value.logDate
 
         // 管理员和部门经理能看到所有数据，普通员工只能看到自己的数据
-        if (currentUser.value && currentUser.value.name && !isAdmin.value && !isDepartmentManager.value) {
-          params.created_by = currentUser.value.name
+        const user = userStore.getUser()
+        if (user && user.name && !isAdmin.value && !isDepartmentManager.value) {
+          params.created_by = user.name
         }
 
         const response = await apiClient.get('/maintenance-log', { params }) as unknown as ApiResponse<PaginatedResponse<MaintenanceLogItem>>
@@ -472,7 +472,6 @@ export default defineComponent({
     }
 
     const handleUserChanged = () => {
-      currentUser.value = authService.getCurrentUser()
       loadData()
     }
 
@@ -495,7 +494,7 @@ export default defineComponent({
       jumpPage,
       displayedPages,
       filters,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       isAdmin,
       isDepartmentManager,
       showDetailModal,

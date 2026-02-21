@@ -5,39 +5,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from app.models.weekly_report import WeeklyReport
 from app.repositories.weekly_report import WeeklyReportRepository
-from pydantic import BaseModel
-
-
-class WeeklyReportCreateDTO(BaseModel):
-    report_id: Optional[str] = None
-    project_id: Optional[str] = None
-    project_name: Optional[str] = None
-    week_start_date: Optional[str] = None
-    week_end_date: Optional[str] = None
-    report_date: str
-    work_summary: Optional[str] = None
-    work_content: Optional[str] = None
-    next_week_plan: Optional[str] = None
-    issues: Optional[str] = None
-    suggestions: Optional[str] = None
-    images: Optional[List[str]] = None
-    manager_signature: Optional[str] = None
-
-
-class WeeklyReportUpdateDTO(BaseModel):
-    project_id: Optional[str] = None
-    project_name: Optional[str] = None
-    week_start_date: Optional[str] = None
-    week_end_date: Optional[str] = None
-    report_date: Optional[str] = None
-    work_summary: Optional[str] = None
-    work_content: Optional[str] = None
-    next_week_plan: Optional[str] = None
-    issues: Optional[str] = None
-    suggestions: Optional[str] = None
-    images: Optional[List[str]] = None
-    manager_signature: Optional[str] = None
-    status: Optional[str] = None
+from app.schemas.weekly_report import WeeklyReportCreate, WeeklyReportUpdate
+from app.utils.date_utils import parse_datetime
 
 
 class WeeklyReportService:
@@ -45,19 +14,7 @@ class WeeklyReportService:
         self.repository = WeeklyReportRepository(db)
 
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
-        if date_value is None:
-            return None
-        if isinstance(date_value, datetime):
-            return date_value
-        if isinstance(date_value, str):
-            try:
-                return datetime.fromisoformat(date_value)
-            except ValueError:
-                try:
-                    return datetime.strptime(date_value, '%Y-%m-%d')
-                except ValueError:
-                    raise ValueError(f'日期格式无效: {date_value}')
-        return None
+        return parse_datetime(date_value)
 
     def _generate_report_id(self, project_id: str) -> str:
         today = datetime.now().strftime("%Y%m%d")

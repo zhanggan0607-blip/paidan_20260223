@@ -7,12 +7,34 @@ from fastapi import HTTPException, status
 
 logger = logging.getLogger(__name__)
 
+
+# TODO: 客户服务 - 考虑加入客户等级/信用度管理
+# FIXME: get_user_client_names 方法查询效率低，应该优化SQL
+# TODO: 客户信息变更时应该通知相关人员
 class CustomerService:
+    """
+    客户管理服务类
+    提供客户的增删改查等业务逻辑处理
+    """
+    
     def __init__(self, db: Session):
+        """
+        初始化客户服务
+        @param db: 数据库会话对象
+        """
         self.db = db
         self.repository = CustomerRepository(db)
 
     def get_list(self, page: int = 0, size: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None, client_names: Optional[List[str]] = None) -> CustomerListResponse:
+        """
+        分页获取客户列表
+        @param page: 页码，从0开始
+        @param size: 每页大小
+        @param name: 客户名称模糊查询条件
+        @param contact_person: 联系人模糊查询条件
+        @param client_names: 客户名称列表，用于精确筛选
+        @return: 分页响应对象
+        """
         skip = page * size
         items, total = self.repository.get_all(skip=skip, limit=size, name=name, contact_person=contact_person, client_names=client_names)
         
@@ -25,7 +47,11 @@ class CustomerService:
         )
     
     def get_user_client_names(self, user_name: str) -> List[str]:
-        """获取用户关联的客户名称列表（通过项目和工单关联）"""
+        """
+        获取用户关联的客户名称列表（通过项目和工单关联）
+        @param user_name: 用户名
+        @return: 客户名称列表
+        """
         from app.models.project_info import ProjectInfo
         from app.models.periodic_inspection import PeriodicInspection
         from app.models.temporary_repair import TemporaryRepair
@@ -64,22 +90,45 @@ class CustomerService:
         return [c[0] for c in clients if c[0]]
 
     def get_by_id(self, customer_id: int) -> Optional[CustomerResponse]:
+        """
+        根据ID获取客户信息
+        @param customer_id: 客户ID
+        @return: 客户响应对象，不存在则返回None
+        """
         customer = self.repository.get_by_id(customer_id)
         if customer:
             return CustomerResponse.model_validate(customer)
         return None
 
     def create(self, customer: CustomerCreate) -> CustomerResponse:
+        """
+        创建新客户
+        @param customer: 客户创建数据传输对象
+        @return: 创建成功的客户响应对象
+        """
         db_customer = self.repository.create(customer)
         return CustomerResponse.model_validate(db_customer)
 
     def update(self, customer_id: int, customer: CustomerUpdate) -> Optional[CustomerResponse]:
+        """
+        更新客户信息
+        @param customer_id: 客户ID
+        @param customer: 客户更新数据传输对象
+        @return: 更新后的客户响应对象，不存在则返回None
+        """
         db_customer = self.repository.update(customer_id, customer)
         if db_customer:
             return CustomerResponse.model_validate(db_customer)
         return None
 
     def delete(self, customer_id: int) -> dict:
+        """
+        删除客户
+        删除前会检查是否有关联的项目，有则拒绝删除
+        @param customer_id: 客户ID
+        @return: 删除结果信息
+        @raises HTTPException: 客户不存在或有关联项目时抛出异常
+        """
         from app.models.work_plan import WorkPlan
         from app.models.periodic_inspection import PeriodicInspection
         from app.models.temporary_repair import TemporaryRepair

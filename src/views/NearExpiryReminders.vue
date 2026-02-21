@@ -180,6 +180,7 @@
 import { defineComponent, ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import apiClient from '../utils/api'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
+import { userStore } from '../stores/userStore'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
@@ -206,7 +207,6 @@ export default defineComponent({
   },
   setup() {
     const loading = ref(false)
-    const currentUser = ref<any>(null)
     const isViewModalOpen = ref(false)
     const searchForm = reactive({
       projectName: '',
@@ -297,7 +297,7 @@ export default defineComponent({
     const filteredData = computed(() => {
       let result = allData.value
 
-      const user = currentUser.value
+      const user = userStore.getUser()
       if (user && user.role === USER_ROLES.EMPLOYEE) {
         result = result.filter(item => item.executor === user.name)
       }
@@ -470,11 +470,9 @@ export default defineComponent({
       })
     }
 
-    const handleUserChanged = ((event: Event) => {
-      const customEvent = event as CustomEvent
-      currentUser.value = customEvent.detail
+    const handleUserChanged = () => {
       loadData()
-    }) as EventListener
+    }
 
     onMounted(() => {
       loadData()
@@ -487,7 +485,7 @@ export default defineComponent({
 
     return {
       loading,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       searchForm,
       currentPage,
       pageSize,
@@ -654,8 +652,8 @@ export default defineComponent({
   white-space: nowrap;
 }
 
-.th-days-warning {
-  color: #F57C00 !important;
+.data-table .th-days-warning {
+  color: #F57C00;
 }
 
 .data-table td {
@@ -674,10 +672,10 @@ export default defineComponent({
   background: #fafafa;
 }
 
-.empty-cell {
+.data-table .empty-cell {
   text-align: center;
   color: #999;
-  padding: 40px !important;
+  padding: 40px;
 }
 
 .days-critical {
@@ -685,8 +683,8 @@ export default defineComponent({
   font-weight: 600;
 }
 
-.days-warning {
-  color: #F57C00 !important;
+.data-table .days-warning {
+  color: #F57C00;
   font-weight: 600;
 }
 

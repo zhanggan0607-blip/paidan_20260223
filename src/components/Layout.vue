@@ -1,4 +1,6 @@
 <template>
+  <!-- TODO: Layout组件 - 考虑加入主题切换功能 -->
+  <!-- FIXME: 全屏模式下ESC键退出功能在某些浏览器不生效 -->
   <div class="layout" :class="{ 'fullscreen-mode': isFullscreenMode }">
     <aside class="sidebar" v-show="!isFullscreenMode">
         <div class="sidebar-header">
@@ -86,7 +88,7 @@
 import { defineComponent, ref, computed, provide, readonly, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { MenuItem } from '@/types'
-import { authService, type User } from '@/services/auth'
+import { userStore, type User } from '@/stores/userStore'
 import { personnelService } from '@/services/personnel'
 import { USER_ROLES } from '@/config/constants'
 
@@ -98,7 +100,6 @@ export default defineComponent({
     const expandedMenus = ref<string[]>(['statistics'])
     const activeMenu = ref<string>('project-info')
     const isFullscreenMode = ref(false)
-    const currentUser = ref<User | null>(null)
 
     const setFullscreenMode = (value: boolean) => {
       isFullscreenMode.value = value
@@ -108,16 +109,17 @@ export default defineComponent({
     provide('setFullscreenMode', setFullscreenMode)
 
     const userInitials = computed(() => {
-      if (!currentUser.value?.name) return 'U'
-      return currentUser.value.name.substring(0, 2).toUpperCase()
+      const user = userStore.getUser()
+      if (!user?.name) return 'U'
+      return user.name.substring(0, 2).toUpperCase()
     })
 
     const userDisplayName = computed(() => {
-      return currentUser.value?.name || '未登录'
+      return userStore.getUser()?.name || '未登录'
     })
 
     const userRoleDisplay = computed(() => {
-      return currentUser.value?.role || ''
+      return userStore.getUser()?.role || ''
     })
 
     const getRoleClass = (role: string) => {
@@ -136,55 +138,53 @@ export default defineComponent({
     }
 
     const handleLogout = () => {
-      authService.logout()
-      currentUser.value = null
+      userStore.clearUser()
       router.push('/login')
     }
 
     const canShowMenu = (menuId: string): boolean => {
-      const user = currentUser.value
-      if (!user) return false
+      if (!userStore.getUser()) return false
       
       switch (menuId) {
         case 'statistics':
-          return authService.canViewStatistics(user)
+          return userStore.canViewStatistics()
         case 'project-info':
         case 'maintenance-plan':
-          return authService.canViewProjectManagement(user)
+          return userStore.canViewProjectManagement()
         case 'overdue-alert':
         case 'near-expiry-alert':
-          return authService.canViewAlerts(user)
+          return userStore.canViewAlerts()
         case 'personnel':
-          return authService.canViewPersonnel(user)
+          return userStore.canViewPersonnel()
         case 'customer':
         case 'inspection-item':
-          return authService.canViewSystemManagement(user)
+          return userStore.canViewSystemManagement()
         case 'work-plan':
         case 'temporary-repair':
         case 'spot-work':
-          return authService.canViewWorkOrder(user)
+          return userStore.canViewWorkOrder()
         case 'spare-parts-stock':
-          return authService.canViewSparePartsStock(user)
+          return userStore.canViewSparePartsStock()
         case 'spare-parts-issue':
-          return authService.canViewSparePartsIssue(user)
+          return userStore.canViewSparePartsIssue()
         case 'repair-tools-inbound':
-          return authService.canViewRepairToolsInbound(user)
+          return userStore.canViewRepairToolsInbound()
         case 'repair-tools-issue':
-          return authService.canViewRepairToolsIssue(user)
+          return userStore.canViewRepairToolsIssue()
         case 'repair-tools-return':
-          return authService.canViewRepairToolsIssue(user)
+          return userStore.canViewRepairToolsIssue()
         case 'maintenance-log-fill':
-          return authService.canFillMaintenanceLog(user)
+          return userStore.canFillMaintenanceLog()
         case 'maintenance-log-list':
-          return authService.canViewMaintenanceLog(user)
+          return userStore.canViewMaintenanceLog()
         case 'maintenance-log-all':
-          return authService.canViewAllMaintenanceLog(user)
+          return userStore.canViewAllMaintenanceLog()
         case 'weekly-report-fill':
-          return authService.canFillWeeklyReport(user)
+          return userStore.canFillWeeklyReport()
         case 'weekly-report-list':
-          return authService.isDepartmentManager(user)
+          return userStore.isDepartmentManager()
         case 'weekly-report-all':
-          return authService.canViewWeeklyReport(user)
+          return userStore.canViewWeeklyReport()
         default:
           return false
       }
@@ -451,21 +451,16 @@ export default defineComponent({
     }
 
     const selectUser = (user: User) => {
-      currentUser.value = user
-      authService.updateStoredUser(user)
+      userStore.setUser(user)
       showUserMenu.value = false
-      window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
     }
 
     onMounted(async () => {
       await loadUserList()
       
-      const storedUser = authService.getCurrentUser()
-      if (storedUser) {
-        currentUser.value = storedUser
-      } else if (userList.value.length > 0) {
-        currentUser.value = userList.value[0]
-        authService.updateStoredUser(userList.value[0])
+      const storedUser = userStore.getUser()
+      if (!storedUser && userList.value.length > 0) {
+        userStore.setUser(userList.value[0])
       }
     })
 
@@ -477,7 +472,7 @@ export default defineComponent({
       toggleMenu,
       handleMenuClick,
       isFullscreenMode,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       userInitials,
       userDisplayName,
       showUserMenu,

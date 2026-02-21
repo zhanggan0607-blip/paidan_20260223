@@ -88,7 +88,7 @@ defineExpose({
 </script>
 
 <template>
-  <van-cell-group inset title="内部确认区" v-if="logs.length > 0 || loading">
+  <van-cell-group inset title="内部确认区">
     <div class="operation-log-container">
       <div v-if="loading" class="loading-container">
         <van-loading size="20px">加载中...</van-loading>

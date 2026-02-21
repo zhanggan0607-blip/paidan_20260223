@@ -3,31 +3,31 @@ import { ref, onMounted, computed } from 'vue'
 import { showSuccessToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { authService, type User } from '../services/auth'
+import { userStore, type User } from '../stores/userStore'
 
 const emit = defineEmits<{
   (e: 'userChanged', user: User): void
   (e: 'ready', user: User): void
 }>()
 
-const currentUser = ref<User | null>(null)
 const userList = ref<User[]>([])
 const showPopover = ref(false)
 const isReady = ref(false)
+
+const currentUser = computed(() => userStore.readonlyCurrentUser.value)
 
 const loadUserList = async () => {
   try {
     const response = await api.get<unknown, ApiResponse<{content: User[]}>>('/personnel')
     if (response.code === 200 && response.data) {
       userList.value = response.data.content || []
-      const savedUser = authService.getCurrentUser()
+      const savedUser = userStore.getUser()
       if (savedUser) {
-        currentUser.value = savedUser
+        // 用户已存在，无需操作
       } else if (userList.value.length > 0) {
         const firstUser = userList.value[0]
         if (firstUser) {
-          currentUser.value = firstUser
-          authService.updateStoredUser(firstUser)
+          userStore.setUser(firstUser)
         }
       }
       isReady.value = true
@@ -45,8 +45,7 @@ const loadUserList = async () => {
 }
 
 const selectUser = (user: User) => {
-  currentUser.value = user
-  authService.updateStoredUser(user)
+  userStore.setUser(user)
   showPopover.value = false
   showSuccessToast(`已切换到用户: ${user.name}`)
   emit('userChanged', user)

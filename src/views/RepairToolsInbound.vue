@@ -218,7 +218,7 @@ import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import SearchInput from '@/components/SearchInput.vue'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 
 interface RepairToolsStockItem {
   id: number
@@ -440,8 +440,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      const currentUser = authService.getCurrentUser()
-      isMaterialManager.value = authService.isMaterialManagerOnly(currentUser)
+      isMaterialManager.value = userStore.isMaterialManagerOnly()
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
     })

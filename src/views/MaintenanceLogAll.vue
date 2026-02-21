@@ -259,7 +259,7 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 import { formatDate, formatDateTime } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
 
@@ -304,7 +304,6 @@ export default defineComponent({
     const total = ref(0)
     const currentPage = ref(1)
     const pageSize = ref(10)
-    const currentUser = ref(authService.getCurrentUser())
     const showDetailModal = ref(false)
     const detailData = ref<MaintenanceLogItem | null>(null)
     const showImagePreview = ref(false)
@@ -322,7 +321,7 @@ export default defineComponent({
     })
 
     const isAdmin = computed(() => {
-      return authService.isAdmin(currentUser.value)
+      return userStore.isAdmin()
     })
 
     const totalPages = computed(() => {
@@ -530,7 +529,6 @@ export default defineComponent({
     }
 
     const handleUserChanged = () => {
-      currentUser.value = authService.getCurrentUser()
       loadData()
     }
 
@@ -552,7 +550,7 @@ export default defineComponent({
       pageSize,
       totalPages,
       filters,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       isAdmin,
       showDetailModal,
       detailData,

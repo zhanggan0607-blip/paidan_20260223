@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User as AuthUser } from '../services/auth'
+import type { User } from '../stores/userStore'
 
 interface InboundRecord {
   id: number
@@ -22,17 +22,16 @@ interface InboundRecord {
   remarks: string
 }
 
-interface User {
+interface SimpleUser {
   id: number
   name: string
   role: string
 }
 
 const router = useRouter()
-const currentUser = ref<AuthUser | null>(null)
 const loading = ref(false)
 const stockList = ref<InboundRecord[]>([])
-const userList = ref<User[]>([])
+const userList = ref<SimpleUser[]>([])
 
 const showInboundPopup = ref(false)
 const inboundForm = ref({
@@ -148,7 +147,6 @@ const handleUserChanged = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchUserList()
   fetchStockList()
 })

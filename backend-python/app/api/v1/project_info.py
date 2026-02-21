@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/project-info", tags=["项目信息管理"])
 
 
+# TODO: 项目信息API - 考虑加入项目复制接口
+# FIXME: 日志记录应该统一处理
 @router.get("", response_model=PaginatedResponse)
 def get_project_info_list(
     request: Request,

@@ -89,7 +89,7 @@ import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import apiClient from '@/utils/api'
 import type { ApiResponse } from '@/types/api'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 import { formatDate } from '@/config/constants'
 
 interface ProjectInfo {
@@ -103,12 +103,11 @@ export default defineComponent({
   name: 'MaintenanceLogFill',
   setup() {
     const router = useRouter()
-    const currentUser = ref(authService.getCurrentUser())
     const submitting = ref(false)
     const projectList = ref<ProjectInfo[]>([])
 
     const isDepartmentManager = computed(() => {
-      return authService.isDepartmentManager(currentUser.value)
+      return userStore.isDepartmentManager()
     })
 
     const pageTitle = computed(() => {
@@ -199,7 +198,7 @@ export default defineComponent({
     }
 
     const handleUserChanged = () => {
-      currentUser.value = authService.getCurrentUser()
+      // 用户状态由 userStore 管理
     }
 
     onMounted(() => {
@@ -212,7 +211,7 @@ export default defineComponent({
     })
 
     return {
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       isDepartmentManager,
       pageTitle,
       formData,

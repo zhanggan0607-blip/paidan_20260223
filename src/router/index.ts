@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
+import { userStore } from '@/stores/userStore'
 import Layout from '@/components/Layout.vue'
 import LoginPage from '@/views/LoginPage.vue'
 import ProjectInfoManagement from '@/views/ProjectInfoManagement.vue'
@@ -27,7 +28,6 @@ import MaintenanceLogAll from '@/views/MaintenanceLogAll.vue'
 import WeeklyReportFill from '@/views/WeeklyReportFill.vue'
 import WeeklyReportList from '@/views/WeeklyReportList.vue'
 import WeeklyReportAll from '@/views/WeeklyReportAll.vue'
-import { authService } from '@/services/auth'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -161,7 +161,16 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  next()
+  const token = userStore.getToken()
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
+  
+  if (requiresAuth && !token) {
+    next({ name: 'Login' })
+  } else if (to.name === 'Login' && token) {
+    next({ path: '/' })
+  } else {
+    next()
+  }
 })
 
 export default router

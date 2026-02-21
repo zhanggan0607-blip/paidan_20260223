@@ -5,6 +5,9 @@ import { showSuccessToast, showFailToast, showConfirmDialog, showLoadingToast, c
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 
+// TODO: 签名页面 - 考虑加入签名笔触粗细调节功能
+// FIXME: 横屏锁定在某些设备上可能不生效
+// TODO: 签名保存后应该支持重新编辑
 const router = useRouter()
 const route = useRoute()
 

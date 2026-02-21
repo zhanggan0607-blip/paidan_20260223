@@ -272,6 +272,9 @@ import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { PLAN_TYPES, WORK_STATUS, formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/config/constants'
 
+// TODO: 工单管理页面 - 考虑加入批量操作功能
+// FIXME: 导出功能目前只支持单个工单，需要支持批量导出
+// TODO: 工单状态流转逻辑需要更清晰的状态机
 interface PlanItem {
   id: number
   plan_id: string

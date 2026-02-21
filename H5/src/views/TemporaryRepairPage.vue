@@ -6,8 +6,10 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore, type User } from '../stores/userStore'
 
+// TODO: 临时维修页面 - 和定期巡检页面代码高度相似，考虑合并
+// FIXME: 工单编号复制功能在某些浏览器可能不兼容
 const router = useRouter()
 const route = useRoute()
 
@@ -15,9 +17,8 @@ const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<any[]>([])
 const userReady = ref(false)
-const currentUser = ref<User | null>(null)
 
-const canApprove = computed(() => authService.canApproveTemporaryRepair(currentUser.value))
+const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
 const baseTabs = [
   { key: '待处理', title: '待处理', statuses: ['未进行', '已退回'], color: '#ee0a24' },
@@ -136,19 +137,16 @@ const handleApprove = (item: any) => {
   router.push(`/temporary-repair/${item.id}?tab=${activeTab.value}&mode=approve`)
 }
 
-const handleUserReady = (user: User) => {
-  currentUser.value = user
+const handleUserReady = (_user: User) => {
   userReady.value = true
   fetchWorkList()
 }
 
-const handleUserChanged = (user: User) => {
-  currentUser.value = user
+const handleUserChanged = (_user: User) => {
   fetchWorkList()
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   const tabParam = route.query.tab
   if (tabParam !== undefined && tabParam !== null) {
     const tabIndex = parseInt(tabParam as string, 10)
@@ -355,10 +353,10 @@ onMounted(() => {
   min-height: calc(100vh - 46px - 44px);
 }
 
-.returned-tag {
-  background-color: #ffcdd2 !important;
-  color: #c62828 !important;
-  border-color: #ef9a9a !important;
+.van-tag--primary.returned-tag {
+  background-color: var(--status-overdue-bg);
+  color: var(--status-overdue-text);
+  border-color: var(--status-overdue-border);
 }
 
 :deep(.van-tabs__line) {

@@ -238,7 +238,7 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import { authService } from '@/services/auth'
+import { userStore } from '@/stores/userStore'
 import { formatDate, formatDateTime } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
 
@@ -274,7 +274,6 @@ export default defineComponent({
     const total = ref(0)
     const currentPage = ref(1)
     const pageSize = ref(10)
-    const currentUser = ref(authService.getCurrentUser())
     const showDetailModal = ref(false)
     const detailData = ref<WeeklyReportItem | null>(null)
     const showImagePreview = ref(false)
@@ -341,8 +340,9 @@ export default defineComponent({
         if (filters.value.reportDate) params.report_date = filters.value.reportDate
         if (filters.value.workSummary) params.work_summary = filters.value.workSummary
         
-        if (currentUser.value && currentUser.value.name) {
-          params.created_by = currentUser.value.name
+        const user = userStore.getUser()
+        if (user && user.name) {
+          params.created_by = user.name
         }
 
         const response = await apiClient.get('/weekly-report', { params }) as unknown as ApiResponse<PaginatedResponse<WeeklyReportItem>>
@@ -416,7 +416,6 @@ export default defineComponent({
     }
 
     const handleUserChanged = () => {
-      currentUser.value = authService.getCurrentUser()
       loadData()
     }
 
@@ -437,7 +436,7 @@ export default defineComponent({
       pageSize,
       totalPages,
       filters,
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       showDetailModal,
       detailData,
       showImagePreview,

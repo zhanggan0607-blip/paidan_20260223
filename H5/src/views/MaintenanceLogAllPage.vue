@@ -6,7 +6,6 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
 
 interface MaintenanceLogItem {
   id: number
@@ -27,7 +26,6 @@ const router = useRouter()
 
 const loading = ref(false)
 const logList = ref<MaintenanceLogItem[]>([])
-const currentUser = ref<User | null>(null)
 
 const pageTitle = computed(() => {
   return '查看维保日志'
@@ -104,7 +102,6 @@ const handleUserChanged = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchLogList()
 })
 </script>

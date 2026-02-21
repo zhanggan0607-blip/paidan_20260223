@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { type User } from '../stores/userStore'
 
 interface AlertItem {
   id: string
@@ -47,7 +47,6 @@ const loading = ref(false)
 const workList = ref<WorkPlanItem[]>([])
 const overdueList = ref<AlertItem[]>([])
 const expiringList = ref<AlertItem[]>([])
-const currentUser = ref<User | null>(null)
 
 const type = computed(() => route.query.type as string || 'expiring')
 
@@ -267,7 +266,7 @@ const handleItemClick = (item: any) => {
   }
 }
 
-const handleUserChanged = () => {
+const handleUserChanged = (_user: User) => {
   fetchWorkList()
 }
 
@@ -329,7 +328,6 @@ const handleBack = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchWorkList()
 })
 
@@ -535,10 +533,10 @@ watch(type, () => {
   min-width: 60px;
 }
 
-.returned-tag {
-  background-color: #ffcdd2 !important;
-  color: #c62828 !important;
-  border-color: #ef9a9a !important;
+.van-tag--primary.returned-tag {
+  background-color: var(--status-overdue-bg);
+  color: var(--status-overdue-text);
+  border-color: var(--status-overdue-border);
 }
 
 .nav-left {

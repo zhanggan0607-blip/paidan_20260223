@@ -206,6 +206,8 @@ import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
 
+// TODO: 客户管理页面 - 考虑加入客户分类/标签功能
+// FIXME: 表单验证逻辑可以抽成公共方法
 export default defineComponent({
   name: 'CustomerManagement',
   components: {
@@ -275,12 +277,22 @@ export default defineComponent({
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
+    /**
+     * 显示Toast提示消息
+     * @param message 提示消息内容
+     * @param type 提示类型：success/error/warning/info
+     */
     const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
       toast.message = message
       toast.type = type
       toast.visible = true
     }
 
+    /**
+     * 加载客户列表数据
+     * 根据当前页码、每页大小和搜索条件从后端获取数据
+     * 支持请求取消，避免重复请求
+     */
     const loadData = async () => {
       if (abortController) {
         abortController.abort()
@@ -313,11 +325,20 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 处理搜索按钮点击事件
+     * 重置页码并重新加载数据
+     */
     const handleSearch = () => {
       currentPage.value = 0
       loadData()
     }
 
+    /**
+     * 校验表单数据
+     * 检查必填字段和手机号格式
+     * @returns 表单是否有效
+     */
     const checkFormValid = (): boolean => {
       if (!formData.name?.trim()) {
         showToast('请填写客户单位', 'warning')
@@ -339,6 +360,10 @@ export default defineComponent({
       return true
     }
 
+    /**
+     * 打开新增客户弹窗
+     * 重置表单并加载输入记忆
+     */
     const openModal = () => {
       resetForm()
       isEditMode.value = false
@@ -346,6 +371,10 @@ export default defineComponent({
       isModalOpen.value = true
     }
 
+    /**
+     * 关闭客户编辑弹窗
+     * 新增模式下保存输入记忆
+     */
     const closeModal = () => {
       if (!isEditMode.value) {
         inputMemory.saveMemory(formData)
@@ -353,6 +382,9 @@ export default defineComponent({
       isModalOpen.value = false
     }
 
+    /**
+     * 重置表单数据为默认值
+     */
     const resetForm = () => {
       formData.name = ''
       formData.address = ''
@@ -362,6 +394,10 @@ export default defineComponent({
       formData.remarks = ''
     }
 
+    /**
+     * 保存客户信息
+     * 根据编辑模式调用创建或更新接口
+     */
     const handleSave = async () => {
       if (!checkFormValid()) {
         return
@@ -416,6 +452,10 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 查看客户详情
+     * @param item 客户信息
+     */
     const handleView = (item: Customer) => {
       viewData.id = item.id
       viewData.name = item.name
@@ -427,6 +467,11 @@ export default defineComponent({
       isViewModalOpen.value = true
     }
 
+    /**
+     * 编辑客户信息
+     * 将客户数据填充到表单并打开编辑弹窗
+     * @param item 客户信息
+     */
     const handleEdit = (item: Customer) => {
       editingId.value = item.id
       formData.name = item.name
@@ -439,10 +484,19 @@ export default defineComponent({
       isModalOpen.value = true
     }
 
+    /**
+     * 关闭查看详情弹窗
+     */
     const closeViewModal = () => {
       isViewModalOpen.value = false
     }
 
+    /**
+     * 删除客户
+     * 弹出确认框，确认后调用删除接口
+     * 支持级联删除关联数据
+     * @param item 客户信息
+     */
     const handleDelete = async (item: Customer) => {
       try {
         await ElMessageBox.confirm('确定要删除该客户吗？', '提示', {
@@ -500,6 +554,9 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 跳转到指定页码
+     */
     const handleJump = () => {
       const page = parseInt(jumpPage.value.toString())
       if (page >= 1 && page <= totalPages.value) {
@@ -507,6 +564,10 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 处理每页大小变更
+     * 重置页码并重新加载数据
+     */
     const handlePageSizeChange = () => {
       currentPage.value = 0
       loadData()
@@ -533,6 +594,10 @@ export default defineComponent({
       window.removeEventListener('user-changed', handleUserChanged)
     })
 
+    /**
+     * 处理用户变更事件
+     * 重新加载客户数据
+     */
     const handleUserChanged = () => {
       loadData()
     }

@@ -170,13 +170,44 @@
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">备注</label>
+            <label class="form-label">发现问题</label>
+            <div class="form-value form-value-textarea">{{ viewData.execution_result || '-' }}</div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">处理结果</label>
             <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
           </div>
+          <div class="form-item-full">
+            <label class="form-label">用户签字</label>
+            <div class="form-value signature-container" v-if="viewData.signature">
+              <img :src="viewData.signature" alt="用户签字" class="signature-image" />
+            </div>
+            <div class="form-value" v-else>暂无用户签字</div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">现场照片</label>
+            <div class="photos-container" v-if="inspectionRecords.length > 0">
+              <div 
+                v-for="record in inspectionRecords" 
+                :key="record.id"
+                class="record-photos"
+              >
+                <div 
+                  v-for="(photo, photoIndex) in record.photos" 
+                  :key="photoIndex"
+                  class="photo-item"
+                  @click="previewPhoto(record.photos, photoIndex)"
+                >
+                  <img :src="photo" alt="现场照片" loading="lazy" />
+                </div>
+              </div>
+            </div>
+            <div class="form-value" v-else>暂无现场照片</div>
+          </div>
 
-          <div class="operation-log-section" v-if="operationLogs.length > 0">
+          <div class="operation-log-section">
             <div class="section-title">内部确认区</div>
-            <div class="timeline">
+            <div class="timeline" v-if="operationLogs.length > 0">
               <div 
                 v-for="(log, index) in operationLogs" 
                 :key="log.id" 
@@ -191,10 +222,7 @@
                 </div>
               </div>
             </div>
-          </div>
-          <div class="operation-log-section" v-else-if="!loadingLogs">
-            <div class="section-title">内部确认区</div>
-            <div class="no-logs">暂无操作记录</div>
+            <div class="no-logs" v-else>暂无操作记录</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -245,9 +273,22 @@ interface InspectionItem {
   address: string
   maintenance_personnel: string
   status: string
+  execution_result: string
   remarks: string
+  signature: string
   created_at: string
   updated_at: string
+}
+
+interface InspectionRecord {
+  id: number
+  item_id: string
+  item_name: string
+  inspection_item: string
+  inspection_content: string
+  inspection_result: string
+  photos: string[]
+  inspected: boolean
 }
 
 export default defineComponent({
@@ -294,11 +335,16 @@ export default defineComponent({
       address: '',
       maintenance_personnel: '',
       status: '',
+      execution_result: '',
       remarks: '',
+      signature: '',
       created_at: '',
       updated_at: '',
       remainingTime: ''
     })
+
+    const inspectionRecords = ref<InspectionRecord[]>([])
+    const loadingRecords = ref(false)
 
     const operationLogs = ref<OperationLogItem[]>([])
     const loadingLogs = ref(false)
@@ -362,6 +408,25 @@ export default defineComponent({
       }
     }
 
+    /**
+     * 获取巡检记录
+     */
+    const fetchInspectionRecords = async (inspectionId: string) => {
+      if (!inspectionId) return
+      loadingRecords.value = true
+      try {
+        const response = await apiClient.get(`/periodic-inspection-record/inspection/${inspectionId}`) as unknown as ApiResponse<InspectionRecord[]>
+        if (response.code === 200) {
+          inspectionRecords.value = response.data || []
+        }
+      } catch (error) {
+        console.error('获取巡检记录失败:', error)
+        inspectionRecords.value = []
+      } finally {
+        loadingRecords.value = false
+      }
+    }
+
     const calculateRemainingTime = (endDate: string): string => {
       if (!endDate) return '-'
       
@@ -401,22 +466,55 @@ export default defineComponent({
       switch (status) {
         case WORK_STATUS.NOT_STARTED:
         case '待执行':
+        case '未进行':
           return 'status-pending'
         case WORK_STATUS.PENDING_CONFIRM:
         case '待确认':
           return 'status-confirmed'
         case WORK_STATUS.CONFIRMED:
+        case '已确认':
           return 'status-confirmed'
         case WORK_STATUS.IN_PROGRESS:
-        case '待确认':
+        case '执行中':
           return 'status-in-progress'
         case WORK_STATUS.COMPLETED:
         case '已完成':
           return 'status-completed'
         case WORK_STATUS.CANCELLED:
+        case '已取消':
           return 'status-cancelled'
+        case WORK_STATUS.RETURNED:
+        case '已退回':
+          return 'status-returned'
         default:
           return ''
+      }
+    }
+
+    /**
+     * 预览照片
+     */
+    const previewPhoto = (photos: string[], startIndex: number) => {
+      if (!photos || photos.length === 0) return
+      const previewWindow = window.open('', '_blank')
+      if (previewWindow) {
+        previewWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>照片预览</title>
+            <style>
+              body { margin: 0; padding: 20px; background: #f5f5f5; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+              img { max-width: 300px; max-height: 300px; object-fit: cover; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer; }
+              img:hover { transform: scale(1.02); }
+            </style>
+          </head>
+          <body>
+            ${photos.map((p, i) => `<img src="${p}" alt="照片${i + 1}" onclick="window.open('${p}', '_blank')" />`).join('')}
+          </body>
+          </html>
+        `)
+        previewWindow.document.close()
       }
     }
 
@@ -450,7 +548,9 @@ export default defineComponent({
             address: item.address || '',
             maintenance_personnel: item.maintenance_personnel || '',
             status: item.status || '未进行',
+            execution_result: item.execution_result || '',
             remarks: item.remarks || '',
+            signature: item.signature || '',
             created_at: item.created_at,
             updated_at: item.updated_at
           }))
@@ -489,7 +589,9 @@ export default defineComponent({
       viewData.address = item.address || ''
       viewData.maintenance_personnel = item.maintenance_personnel || ''
       viewData.status = item.status
+      viewData.execution_result = item.execution_result || ''
       viewData.remarks = item.remarks || ''
+      viewData.signature = item.signature || ''
       viewData.created_at = item.created_at
       viewData.updated_at = item.updated_at
       viewData.remainingTime = '-'
@@ -507,12 +609,14 @@ export default defineComponent({
       }
 
       fetchOperationLogs(item.id)
+      fetchInspectionRecords(item.inspection_id)
       isViewModalOpen.value = true
     }
 
     const closeViewModal = () => {
       isViewModalOpen.value = false
       operationLogs.value = []
+      inspectionRecords.value = []
     }
 
     const handleExport = (item: InspectionItem) => {
@@ -616,6 +720,8 @@ export default defineComponent({
       toast,
       operationLogs,
       loadingLogs,
+      inspectionRecords,
+      loadingRecords,
       openModal: () => {},
       closeModal: () => {},
       handleView,
@@ -629,6 +735,7 @@ export default defineComponent({
       formatOperationTime,
       getStatusClass,
       getRemainingTimeClass,
+      previewPhoto,
       WORK_STATUS
     }
   }
@@ -840,6 +947,11 @@ export default defineComponent({
 .status-cancelled {
   background: #FFEBEE;
   color: #D32F2F;
+}
+
+.status-returned {
+  background: #FFF8E1;
+  color: #F57C00;
 }
 
 .remaining-normal {
@@ -1174,5 +1286,48 @@ export default defineComponent({
   color: #999;
   font-size: 14px;
   padding: 20px 0;
+}
+
+.signature-container {
+  padding: 12px;
+  background: #fff;
+}
+
+.signature-image {
+  max-width: 200px;
+  max-height: 100px;
+  object-fit: contain;
+}
+
+.photos-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.record-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.photo-item {
+  width: 100px;
+  height: 100px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.photo-item:hover {
+  transform: scale(1.05);
+}
+
+.photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

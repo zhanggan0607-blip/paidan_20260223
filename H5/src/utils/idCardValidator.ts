@@ -3,6 +3,10 @@
  * 包含格式验证、校验码验证、出生日期验证、性别验证
  */
 
+// TODO: 身份证验证 - 考虑加入有效期验证
+// FIXME: 目前只支持18位身份证，15位的需要兼容
+// TODO: 考虑加入港澳台身份证验证
+
 export interface IdCardValidationResult {
   valid: boolean
   message: string
@@ -35,7 +39,7 @@ export function validateIdCard(idCard: string): IdCardValidationResult {
 
   let sum = 0
   for (let i = 0; i < 17; i++) {
-    sum += parseInt(idCardUpper[i], 10) * WEIGHTS[i]
+    sum += parseInt(idCardUpper[i]!, 10) * WEIGHTS[i]!
   }
   const checkCode = CHECK_CODES[sum % 11]
   

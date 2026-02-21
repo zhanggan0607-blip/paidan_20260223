@@ -275,10 +275,10 @@ import { ElMessageBox } from 'element-plus'
 import { spotWorkService, type SpotWork } from '@/services/spotWork'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
-import { authService } from '@/services/auth'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
+import { userStore } from '@/stores/userStore'
 
 interface WorkItem {
   id: number
@@ -312,26 +312,7 @@ export default defineComponent({
     const isEditModalOpen = ref(false)
     const editingId = ref<number | null>(null)
     
-    const isAdmin = ref(false)
-    
-    const checkAdminRole = () => {
-      const userStr = localStorage.getItem('user_info')
-      console.log('user_info from localStorage:', userStr)
-      if (userStr) {
-        try {
-          const user = JSON.parse(userStr)
-          console.log('Parsed user:', user)
-          console.log('User role:', user.role)
-          isAdmin.value = user.role === '管理员'
-          console.log('isAdmin value:', isAdmin.value)
-        } catch (e) {
-          console.error('Parse error:', e)
-          isAdmin.value = false
-        }
-      }
-    }
-    
-    checkAdminRole()
+    const isAdmin = ref(userStore.isAdmin())
 
     const toast = reactive({
       visible: false,
@@ -722,6 +703,7 @@ export default defineComponent({
     })
 
     const handleUserChanged = () => {
+      isAdmin.value = userStore.isAdmin()
       loadData()
     }
 

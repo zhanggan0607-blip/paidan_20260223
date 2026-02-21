@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { processPhoto } from '../utils/watermark'
 
@@ -38,15 +38,9 @@ interface RepairDetail {
 
 const loading = ref(false)
 const detail = ref<RepairDetail | null>(null)
-const currentUser = ref<User | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
-const showDatePicker = ref(false)
-const currentDate = ref(['2024', '01', '01'])
 const formData = ref({
-  execution_date: '',
-  fault_description: '',
-  solution: '',
   remarks: '',
   signature: ''
 })
@@ -60,15 +54,14 @@ const isEditable = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return formData.value.fault_description && 
-         formData.value.solution
+  return currentPhotos.value.length > 0
 })
 
 const returnTab = computed(() => {
   return route.query.tab as string || '0'
 })
 
-const canApprove = computed(() => authService.canApproveTemporaryRepair(currentUser.value))
+const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
 const isApproveMode = computed(() => {
   return route.query.mode === 'approve' && canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
@@ -77,17 +70,6 @@ const isApproveMode = computed(() => {
 const handleBackToList = () => {
   router.push(`/temporary-repair?tab=${returnTab.value}`)
 }
-
-const minDate = computed(() => {
-  if (detail.value?.plan_start_date) {
-    return new Date(detail.value.plan_start_date)
-  }
-  return new Date(2020, 0, 1)
-})
-
-const maxDate = computed(() => {
-  return new Date()
-})
 
 /**
  * 复制工单编号到剪贴板
@@ -131,8 +113,6 @@ const fetchDetail = async () => {
     if (response.code === 200) {
       detail.value = response.data
       if (response.data) {
-        formData.value.fault_description = response.data.fault_description || ''
-        formData.value.solution = response.data.solution || ''
         formData.value.remarks = response.data.remarks || ''
         formData.value.signature = response.data.signature || ''
         currentPhotos.value = response.data.photos || []
@@ -173,7 +153,7 @@ const handlePhotoCapture = () => {
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     try {
-      const userName = currentUser.value?.name || '未知用户'
+      const userName = userStore.getUser()?.name || '未知用户'
       const processedFile = await processPhoto(file, userName)
       
       const formDataObj = new FormData()
@@ -224,14 +204,9 @@ const handleSignature = () => {
   })
 }
 
-const handleDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
-  formData.value.execution_date = selectedValues.join('-')
-  showDatePicker.value = false
-}
-
 const handleSubmit = async () => {
   if (!canSubmit.value) {
-    showFailToast('请填写故障描述和解决方案')
+    showFailToast('请上传现场图片')
     return
   }
 
@@ -244,8 +219,9 @@ const handleSubmit = async () => {
     showLoadingToast({ message: '提交中...', forbidClick: true })
     
     const submitData = {
-      ...formData.value,
       photos: currentPhotos.value,
+      signature: formData.value.signature,
+      remarks: formData.value.remarks,
       status: WORK_STATUS.PENDING_CONFIRM
     }
     
@@ -272,8 +248,9 @@ const handleSave = async () => {
   
   try {
     const saveData = {
-      ...formData.value,
-      photos: currentPhotos.value
+      photos: currentPhotos.value,
+      signature: formData.value.signature,
+      remarks: formData.value.remarks
     }
     
     const response = await api.put<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, saveData)
@@ -363,7 +340,6 @@ const handleApproveReject = async () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchDetail()
   loadSignature()
 })
@@ -374,15 +350,18 @@ onMounted(() => {
  * @param operationRemark 操作备注
  */
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
-  if (!detail.value?.id || !currentUser.value) return
+  if (!detail.value?.id) return
+  
+  const user = userStore.getUser()
+  if (!user) return
   
   try {
     await api.post('/work-order-operation-log', {
       work_order_type: 'temporary_repair',
       work_order_id: detail.value.id,
       work_order_no: detail.value.repair_id,
-      operator_name: currentUser.value.name,
-      operator_id: currentUser.value.id,
+      operator_name: user.name,
+      operator_id: user.id,
       operation_type_code: operationTypeCode,
       operation_remark: operationRemark
     })
@@ -432,26 +411,14 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         <van-cell title="客户联系方式" :value="detail.client_contact_info || '-'" />
       </van-cell-group>
 
-      <van-cell-group inset title="维修内容">
+      <van-cell-group inset title="报修内容">
         <van-field
-          v-model="formData.fault_description"
+          v-model="formData.remarks"
           rows="3"
           autosize
-          label="故障描述"
+          label="报修内容"
           type="textarea"
-          placeholder="请输入故障描述"
-          show-word-limit
-          maxlength="500"
-          :readonly="!isEditable"
-        />
-        
-        <van-field
-          v-model="formData.solution"
-          rows="3"
-          autosize
-          label="解决方案"
-          type="textarea"
-          placeholder="请输入解决方案"
+          placeholder="请输入报修内容"
           show-word-limit
           maxlength="500"
           :readonly="!isEditable"
@@ -469,28 +436,6 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
             </span>
           </template>
         </van-cell>
-      </van-cell-group>
-
-      <van-cell-group inset title="其他信息">
-        <van-cell 
-          title="执行日期" 
-          :value="formData.execution_date || '请选择'" 
-          is-link 
-          @click="showDatePicker = true"
-          :disabled="!isEditable"
-        />
-        
-        <van-field
-          v-model="formData.remarks"
-          rows="2"
-          autosize
-          label="备注说明"
-          type="textarea"
-          placeholder="请输入备注说明"
-          show-word-limit
-          maxlength="200"
-          :readonly="!isEditable"
-        />
       </van-cell-group>
 
       <van-cell-group inset title="用户确认">
@@ -525,17 +470,6 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
     
     <van-empty v-else-if="!loading" description="暂无数据" />
     
-    <van-popup v-model:show="showDatePicker" position="bottom" round>
-      <van-date-picker
-        v-model="currentDate"
-        title="选择执行日期"
-        :min-date="minDate"
-        :max-date="maxDate"
-        @confirm="handleDateConfirm"
-        @cancel="showDatePicker = false"
-      />
-    </van-popup>
-
     <van-popup 
       v-model:show="showPhotoPopup" 
       position="bottom" 

@@ -1,6 +1,37 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
 import { API_CONFIG } from '../config/constants'
-import { authService } from '../services/auth'
+import { userStore } from '../stores/userStore'
+
+let isRefreshing = false
+let refreshSubscribers: ((token: string) => void)[] = []
+
+function subscribeTokenRefresh(callback: (token: string) => void) {
+  refreshSubscribers.push(callback)
+}
+
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach(callback => callback(token))
+  refreshSubscribers = []
+}
+
+async function refreshToken(): Promise<string | null> {
+  try {
+    const response = await axios.post(`${API_CONFIG.BASE_URL}/auth/refresh`, {}, {
+      headers: {
+        'Authorization': `Bearer ${userStore.getToken()}`
+      }
+    })
+    
+    if (response.data?.code === 200 && response.data?.data?.access_token) {
+      const newToken = response.data.data.access_token
+      userStore.setToken(newToken)
+      return newToken
+    }
+    return null
+  } catch {
+    return null
+  }
+}
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
@@ -12,13 +43,13 @@ const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token')
+    const token = userStore.getToken()
     if (token) {
       config.headers = config.headers || {}
       config.headers['Authorization'] = `Bearer ${token}`
     }
     
-    const currentUser = authService.getCurrentUser()
+    const currentUser = userStore.getUser()
     if (currentUser) {
       config.headers = config.headers || {}
       config.headers['X-User-Name'] = encodeURIComponent(currentUser.name)
@@ -36,19 +67,50 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response.data
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config
+    
     if (error.response) {
       const { status, data } = error.response
       
       const errorMessage = data?.detail || data?.message || error.message
       
+      if (status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          return new Promise((resolve) => {
+            subscribeTokenRefresh((token: string) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`
+              resolve(apiClient(originalRequest))
+            })
+          })
+        }
+        
+        originalRequest._retry = true
+        isRefreshing = true
+        
+        const newToken = await refreshToken()
+        isRefreshing = false
+        
+        if (newToken) {
+          onTokenRefreshed(newToken)
+          originalRequest.headers.Authorization = `Bearer ${newToken}`
+          return apiClient(originalRequest)
+        }
+        
+        userStore.clearUser()
+        window.location.href = '/login'
+        
+        return Promise.reject({
+          status: 401,
+          message: '登录已过期，请重新登录',
+          errors: [],
+          data: null
+        })
+      }
+      
       switch (status) {
         case 400:
           console.error('请求错误', errorMessage)
-          break
-        case 401:
-          console.error('未授权，请重新登录')
-          localStorage.removeItem('token')
           break
         case 403:
           console.error('没有权限访问此资源')
@@ -63,7 +125,9 @@ apiClient.interceptors.response.use(
           console.error('服务器内部错误', errorMessage)
           break
         default:
-          console.error('请求失败', errorMessage)
+          if (status !== 401) {
+            console.error('请求失败', errorMessage)
+          }
       }
       
       return Promise.reject({

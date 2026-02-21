@@ -6,7 +6,6 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
 
 interface WeeklyReportItem {
   id: number
@@ -31,33 +30,6 @@ const router = useRouter()
 
 const loading = ref(false)
 const reportList = ref<WeeklyReportItem[]>([])
-const currentUser = ref<User | null>(null)
-
-/**
- * 获取状态名称
- */
-const getStatusName = (status: string) => {
-  const statusMap: Record<string, string> = {
-    'draft': '草稿',
-    'submitted': '已提交',
-    'approved': '已审核',
-    'rejected': '已退回'
-  }
-  return statusMap[status] || status
-}
-
-/**
- * 获取状态颜色
- */
-const getStatusColor = (status: string) => {
-  const colorMap: Record<string, string> = {
-    'draft': '#969799',
-    'submitted': '#1989fa',
-    'approved': '#07c160',
-    'rejected': '#ee0a24'
-  }
-  return colorMap[status] || '#969799'
-}
 
 /**
  * 获取周报列表
@@ -103,7 +75,6 @@ const handleUserChanged = () => {
 }
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
   fetchReportList()
 })
 </script>

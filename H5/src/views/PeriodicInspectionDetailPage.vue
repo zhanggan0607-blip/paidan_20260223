@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { authService, type User } from '../services/auth'
+import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { processPhoto } from '../utils/watermark'
 
@@ -80,7 +80,6 @@ const loading = ref(false)
 const detail = ref<WorkPlanDetail | null>(null)
 const inspectionSystems = ref<InspectionSystem[]>([])
 const inspectionItemsLoading = ref(false)
-const currentUser = ref<User | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
 const formData = ref({
@@ -97,7 +96,7 @@ const isApproveMode = computed(() => {
 })
 
 const canApprove = computed(() => {
-  return authService.canApprovePeriodicInspection(currentUser.value)
+  return userStore.canApprovePeriodicInspection()
 })
 
 const isEditable = computed(() => {
@@ -414,7 +413,7 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     try {
-      const userName = currentUser.value?.name || '未知用户'
+      const userName = userStore.getUser()?.name || '未知用户'
       const processedFile = await processPhoto(file, userName)
       
       const formDataObj = new FormData()
@@ -691,15 +690,18 @@ watch(() => formData.value.remarks, () => {
  * @param operationRemark 操作备注
  */
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
-  if (!detail.value?.id || !currentUser.value) return
+  if (!detail.value?.id) return
+  
+  const user = userStore.getUser()
+  if (!user) return
   
   try {
     await api.post('/work-order-operation-log', {
       work_order_type: 'periodic_inspection',
       work_order_id: detail.value.id,
       work_order_no: detail.value.inspection_id,
-      operator_name: currentUser.value.name,
-      operator_id: currentUser.value.id,
+      operator_name: user.name,
+      operator_id: user.id,
       operation_type_code: operationTypeCode,
       operation_remark: operationRemark
     })
@@ -712,12 +714,11 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   }
 }
 
-const handleUserReady = (user: User) => {
-  currentUser.value = user
+const handleUserReady = (_user: User) => {
+  // 用户状态由 userStore 管理
 }
 
 onMounted(async () => {
-  currentUser.value = authService.getCurrentUser()
   await fetchDetail()
   fetchInspectionItems()
   loadSignature()
@@ -791,7 +792,6 @@ onActivated(() => {
                 <van-icon name="arrow" />
               </div>
             </div>
-            <div v-if="system.equipment_name" class="inspection-subtitle">设备: {{ system.equipment_name }}</div>
             <div class="inspection-detail" v-if="system.inspection_content || system.check_content || system.brief_description">
               <div class="detail-row" v-if="system.inspection_content">
                 <span class="detail-label">巡查内容:</span>

@@ -171,11 +171,14 @@ import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
 import { spotWorkService, type SpotWork } from '../services/spotWork'
-import { authService, type User } from '../services/auth'
+import { userStore, type User } from '../stores/userStore'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import SearchInput from '../components/SearchInput.vue'
 import { USER_ROLES } from '../config/constants'
 
+// TODO: 超期提醒页面 - 考虑加入邮件/短信通知功能
+// FIXME: 数据过滤逻辑在前端实现，数据量大时会有性能问题
+// TODO: 超期天数计算应该考虑工作日
 interface ViewData {
   id: number
   work_order_no: string
@@ -197,7 +200,6 @@ export default defineComponent({
     SearchInput
   },
   setup() {
-    const currentUser = ref<User | null>(authService.getCurrentUser())
     const searchForm = reactive({
       projectName: '',
       customerName: ''
@@ -311,7 +313,7 @@ export default defineComponent({
 
     const filteredAllData = computed(() => {
       let result = allData.value
-      const user = currentUser.value
+      const user = userStore.getUser()
       if (user && user.role === USER_ROLES.EMPLOYEE) {
         result = result.filter(item => item.executor === user.name)
       }
@@ -372,11 +374,9 @@ export default defineComponent({
       }
     }
 
-    const handleUserChanged = ((event: Event) => {
-      const customEvent = event as CustomEvent
-      currentUser.value = customEvent.detail
+    const handleUserChanged = () => {
       loadData()
-    }) as EventListener
+    }
 
     onMounted(() => {
       loadData()
@@ -388,7 +388,7 @@ export default defineComponent({
     })
 
     return {
-      currentUser,
+      currentUser: userStore.readonlyCurrentUser,
       searchForm,
       filteredData,
       filteredAllData,
@@ -551,8 +551,8 @@ export default defineComponent({
   border-bottom: 1px solid #d0d0d0;
 }
 
-.th-overdue-days {
-  color: #F5222D !important;
+.data-table .th-overdue-days {
+  color: #F5222D;
 }
 
 .data-table td {

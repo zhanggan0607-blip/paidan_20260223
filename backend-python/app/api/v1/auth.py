@@ -171,3 +171,45 @@ async def get_current_user_info(
             "phone": user.phone
         }
     )
+
+
+@router.post("/refresh", response_model=ApiResponse)
+async def refresh_token(
+    current_user: dict = Depends(get_current_user_required),
+    db: Session = Depends(get_db)
+):
+    """
+    刷新Token
+    使用当前有效的Token获取新的Token
+    """
+    user_id = current_user.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户信息无效"
+        )
+    
+    user = db.query(Personnel).filter(Personnel.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="用户不存在"
+        )
+    
+    access_token = create_access_token(
+        data={
+            "sub": user.name,
+            "name": user.name,
+            "role": user.role,
+            "user_id": user.id
+        }
+    )
+    
+    return ApiResponse(
+        code=200,
+        message="Token刷新成功",
+        data={
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+    )

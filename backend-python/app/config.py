@@ -44,12 +44,21 @@ class Settings(BaseSettings):
 
 class OverdueAlertConfig:
     VALID_STATUSES: List[str] = ['未确认', '未下发', '未进行', '待确认', '已退回', '待执行', '已确认', '执行中', '待审批']
+    COMPLETED_STATUSES: List[str] = ['已完成', '已确认', '已审批']
     WORK_ORDER_TYPES: List[str] = ['定期巡检', '临时维修', '零星用工', '维保计划']
     OVERDUE_THRESHOLD_DAYS: int = 0
     
     @classmethod
     def get_valid_statuses(cls) -> List[str]:
         return cls.VALID_STATUSES
+    
+    @classmethod
+    def get_completed_statuses(cls) -> List[str]:
+        return cls.COMPLETED_STATUSES
+    
+    @classmethod
+    def is_completed(cls, status: str) -> bool:
+        return status in cls.COMPLETED_STATUSES
     
     @classmethod
     def get_work_order_types(cls) -> List[str]:

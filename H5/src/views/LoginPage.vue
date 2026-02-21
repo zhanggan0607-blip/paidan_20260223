@@ -1,20 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { authService, type User } from '../services/auth'
+import { userStore, type User } from '../stores/userStore'
 
 const router = useRouter()
 
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
-const currentUser = ref<User | null>(null)
+const currentUser = computed(() => userStore.readonlyCurrentUser.value)
 
 onMounted(() => {
-  currentUser.value = authService.getCurrentUser()
+  // 用户状态已由 userStore 自动加载
 })
 
 const handleLogin = async () => {
@@ -37,9 +37,8 @@ const handleLogin = async () => {
     })
 
     if (response.code === 200 && response.data) {
-      localStorage.setItem('token', response.data.access_token)
-      authService.updateStoredUser(response.data.user)
-      currentUser.value = response.data.user
+      userStore.setToken(response.data.access_token)
+      userStore.setUser(response.data.user)
       showSuccessToast('登录成功')
       router.push('/')
     }
@@ -53,8 +52,7 @@ const handleLogin = async () => {
 }
 
 const handleLogout = () => {
-  authService.logout()
-  currentUser.value = null
+  userStore.clearUser()
   showSuccessToast('已退出登录')
 }
 </script>
