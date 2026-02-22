@@ -18,6 +18,7 @@ interface MaintenanceLogItem {
   work_content: string
   images: string
   remark: string
+  status: string
   created_by: string
   created_at: string
   updated_at: string
@@ -28,9 +29,13 @@ const router = useRouter()
 const loading = ref(false)
 const logList = ref<MaintenanceLogItem[]>([])
 
+const canViewAll = computed(() => {
+  return userStore.isAdmin() || userStore.isDepartmentManager()
+})
+
 const pageTitle = computed(() => {
-  if (userStore.isDepartmentManager()) {
-    return '已填报部门周报'
+  if (canViewAll.value) {
+    return '维保日志查询'
   }
   return '已填报日志'
 })
@@ -75,10 +80,12 @@ const fetchLogList = async () => {
       size: 100
     }
     
-    // 部门经理能看到所有数据，普通员工只能看到自己的数据
-    const user = userStore.getUser()
-    if (user && user.name && !userStore.isDepartmentManager()) {
-      params.created_by = user.name
+    // 管理员和部门经理能看到所有数据，普通员工只能看到自己的数据
+    if (!canViewAll.value) {
+      const user = userStore.getUser()
+      if (user && user.name) {
+        params.created_by = user.name
+      }
     }
     
     const response = await api.get<unknown, ApiResponse<{ content: MaintenanceLogItem[] }>>('/maintenance-log', { 
@@ -163,6 +170,10 @@ onMounted(() => {
               <div class="info-row">
                 <span class="label">日志日期</span>
                 <span class="value">{{ formatDate(item.log_date) }}</span>
+              </div>
+              <div class="info-row" v-if="canViewAll">
+                <span class="label">提交人</span>
+                <span class="value">{{ item.created_by || '-' }}</span>
               </div>
               <div class="info-row" v-if="item.work_content">
                 <span class="label">工作内容</span>

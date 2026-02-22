@@ -17,6 +17,15 @@
               <label class="search-label">日志日期：</label>
               <input v-model="filters.logDate" type="date" class="search-input" @change="handleSearch" />
             </div>
+            <div class="search-item" v-if="canViewAll">
+              <label class="search-label">提交人：</label>
+              <SearchInput
+                v-model="filters.createdBy"
+                field-key="MaintenanceLogList_created_by"
+                placeholder="请输入提交人"
+                @input="handleSearch"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -32,16 +41,17 @@
               <th>日志类型</th>
               <th>日志日期</th>
               <th>工作内容</th>
+              <th v-if="canViewAll">提交人</th>
               <th>提交时间</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="9" style="text-align: center; padding: 20px;">加载中...</td>
+              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px;">加载中...</td>
             </tr>
             <tr v-else-if="dataList.length === 0">
-              <td colspan="9" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px;">暂无数据</td>
             </tr>
             <tr v-else v-for="(item, index) in dataList" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
@@ -59,9 +69,16 @@
                   {{ truncateContent(item.work_content) }}
                 </span>
               </td>
+              <td v-if="canViewAll">{{ item.created_by || '-' }}</td>
               <td>{{ formatDateTime(item.created_at) }}</td>
               <td class="action-cell">
                 <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+                <a 
+                  href="#" 
+                  v-if="canViewAll && (!item.status || item.status === 'submitted')" 
+                  class="action-link action-reject" 
+                  @click.prevent="handleReject(item)"
+                >退回</a>
               </td>
             </tr>
           </tbody>
@@ -207,6 +224,32 @@
     <div v-if="showImagePreview" class="image-preview-overlay" @click="closeImagePreview">
       <img :src="previewImageUrl" alt="预览图片" class="preview-image" loading="lazy" />
     </div>
+
+    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+      <div class="modal-content modal-content-small">
+        <div class="modal-header">
+          <h3>退回确认</h3>
+          <button class="close-btn" @click="closeRejectModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">退回原因 <span class="required">*</span></label>
+            <textarea 
+              v-model="rejectReason" 
+              class="form-textarea" 
+              placeholder="请输入退回原因"
+              rows="4"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="closeRejectModal">取消</button>
+          <button class="confirm-btn reject" @click="confirmReject" :disabled="submitting">
+            {{ submitting ? '处理中...' : '确认退回' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -231,6 +274,8 @@ interface MaintenanceLogItem {
   work_content: string
   images: string
   remark: string
+  status: string
+  reject_reason: string
   created_by: string
   created_at: string
   updated_at: string
@@ -270,10 +315,15 @@ export default defineComponent({
     const previewImageUrl = ref('')
     const operationLogs = ref<OperationLogItem[]>([])
     const loadingLogs = ref(false)
+    const showRejectModal = ref(false)
+    const rejectReason = ref('')
+    const pendingRejectItem = ref<MaintenanceLogItem | null>(null)
+    const submitting = ref(false)
 
     const filters = ref({
       project: '',
-      logDate: ''
+      logDate: '',
+      createdBy: ''
     })
 
     const isAdmin = computed(() => {
@@ -282,6 +332,10 @@ export default defineComponent({
 
     const isDepartmentManager = computed(() => {
       return userStore.isDepartmentManager()
+    })
+
+    const canViewAll = computed(() => {
+      return isAdmin.value || isDepartmentManager.value
     })
 
     const totalPages = computed(() => {
@@ -350,10 +404,15 @@ export default defineComponent({
         if (filters.value.project) params.project_name = filters.value.project
         if (filters.value.logDate) params.log_date = filters.value.logDate
 
-        // 管理员和部门经理能看到所有数据，普通员工只能看到自己的数据
-        const user = userStore.getUser()
-        if (user && user.name && !isAdmin.value && !isDepartmentManager.value) {
-          params.created_by = user.name
+        // 管理员和部门经理能看到所有数据，支持按提交人筛选
+        if (canViewAll.value) {
+          if (filters.value.createdBy) params.created_by = filters.value.createdBy
+        } else {
+          // 普通员工只能看到自己的数据
+          const user = userStore.getUser()
+          if (user && user.name) {
+            params.created_by = user.name
+          }
         }
 
         const response = await apiClient.get('/maintenance-log', { params }) as unknown as ApiResponse<PaginatedResponse<MaintenanceLogItem>>
@@ -445,6 +504,55 @@ export default defineComponent({
     }
 
     /**
+     * 打开退回弹窗
+     */
+    const handleReject = (item: MaintenanceLogItem) => {
+      pendingRejectItem.value = item
+      showRejectModal.value = true
+    }
+
+    /**
+     * 确认退回
+     */
+    const confirmReject = async () => {
+      if (!rejectReason.value.trim()) {
+        alert('请输入退回原因')
+        return
+      }
+
+      if (!pendingRejectItem.value) return
+
+      submitting.value = true
+      try {
+        const response = await apiClient.post(`/maintenance-log/${pendingRejectItem.value.id}/reject`, {
+          reject_reason: rejectReason.value
+        }) as unknown as ApiResponse<null>
+        
+        if (response.code === 200) {
+          alert('已退回')
+          closeRejectModal()
+          loadData()
+        } else {
+          alert(response.message || '退回失败')
+        }
+      } catch (error) {
+        console.error('Failed to reject:', error)
+        alert('退回失败，请重试')
+      } finally {
+        submitting.value = false
+      }
+    }
+
+    /**
+     * 关闭退回弹窗
+     */
+    const closeRejectModal = () => {
+      showRejectModal.value = false
+      pendingRejectItem.value = null
+      rejectReason.value = ''
+    }
+
+    /**
      * 分页变更
      */
     const handlePageChange = (page: number) => {
@@ -486,6 +594,7 @@ export default defineComponent({
 
     return {
       loading,
+      submitting,
       dataList,
       total,
       currentPage,
@@ -497,12 +606,16 @@ export default defineComponent({
       currentUser: userStore.readonlyCurrentUser,
       isAdmin,
       isDepartmentManager,
+      canViewAll,
       showDetailModal,
       detailData,
       showImagePreview,
       previewImageUrl,
       operationLogs,
       loadingLogs,
+      showRejectModal,
+      rejectReason,
+      pendingRejectItem,
       getLogTypeName,
       truncateContent,
       parseImages,
@@ -514,6 +627,9 @@ export default defineComponent({
       closeDetailModal,
       previewImage,
       closeImagePreview,
+      handleReject,
+      confirmReject,
+      closeRejectModal,
       handlePageChange,
       handlePageSizeChange,
       handleJump
@@ -1014,5 +1130,77 @@ export default defineComponent({
   color: #999;
   font-size: 14px;
   padding: 20px 0;
+}
+
+.modal-content-small {
+  width: 400px;
+  max-width: 90%;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.required {
+  color: #d32f2f;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
+}
+
+.confirm-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #1976d2;
+  color: #fff;
+}
+
+.confirm-btn:hover {
+  background: #1565c0;
+}
+
+.confirm-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.confirm-btn.reject {
+  background: #d32f2f;
+}
+
+.confirm-btn.reject:hover {
+  background: #c62828;
+}
+
+.action-reject {
+  color: #d32f2f;
+}
+
+.action-reject:hover {
+  color: #c62828;
 }
 </style>

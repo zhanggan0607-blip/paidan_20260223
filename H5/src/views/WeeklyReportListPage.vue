@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { showLoadingToast, closeToast } from 'vant'
+import { showLoadingToast, closeToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
@@ -31,6 +31,10 @@ const router = useRouter()
 
 const loading = ref(false)
 const reportList = ref<WeeklyReportItem[]>([])
+
+const canViewAll = computed(() => {
+  return userStore.isAdmin() || userStore.isDepartmentManager()
+})
 
 /**
  * 获取状态名称
@@ -71,9 +75,11 @@ const fetchReportList = async () => {
       size: 100
     }
     
-    const user = userStore.getUser()
-    if (user && user.name) {
-      params.created_by = user.name
+    if (!canViewAll.value) {
+      const user = userStore.getUser()
+      if (user && user.name) {
+        params.created_by = user.name
+      }
     }
     
     const response = await api.get<unknown, ApiResponse<{ content: WeeklyReportItem[] }>>('/weekly-report', { 
@@ -105,6 +111,50 @@ const handleEdit = (item: WeeklyReportItem) => {
   router.push(`/weekly-report-edit/${item.id}`)
 }
 
+/**
+ * 判断是否可以编辑
+ */
+const canEdit = (item: WeeklyReportItem) => {
+  const user = userStore.getUser()
+  if (!user) return false
+  const isOwner = item.created_by === user.name
+  const isEditableStatus = item.status === 'draft' || item.status === 'rejected'
+  return isOwner && isEditableStatus
+}
+
+/**
+ * 判断是否可以退回
+ */
+const canReject = (item: WeeklyReportItem) => {
+  if (!canViewAll.value) return false
+  return item.status === 'submitted'
+}
+
+/**
+ * 退回周报
+ */
+const handleReject = async (item: WeeklyReportItem) => {
+  try {
+    await showConfirmDialog({
+      title: '退回确认',
+      message: '确定要退回该周报吗？',
+    })
+    
+    const response = await api.post<unknown, ApiResponse<null>>(`/weekly-report/${item.id}/approve`, {
+      approved: false,
+      reject_reason: '需要修改'
+    })
+    
+    if (response.code === 200) {
+      fetchReportList()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to reject:', error)
+    }
+  }
+}
+
 const handleBack = () => {
   router.push('/')
 }
@@ -121,7 +171,7 @@ onMounted(() => {
 <template>
   <div class="weekly-report-list-page">
     <van-nav-bar 
-      title="已报部门周报" 
+      title="部门周报查询" 
       fixed 
       placeholder 
       @click-left="handleBack" 
@@ -186,12 +236,20 @@ onMounted(() => {
                 查看详情
               </van-button>
               <van-button 
-                v-if="item.status === 'draft' || item.status === 'rejected'"
+                v-if="canEdit(item)" 
                 type="default" 
                 size="small"
                 @click="handleEdit(item)"
               >
                 编辑
+              </van-button>
+              <van-button 
+                v-if="canReject(item)" 
+                type="danger" 
+                size="small"
+                @click="handleReject(item)"
+              >
+                退回
               </van-button>
             </div>
           </div>

@@ -90,19 +90,13 @@ const routes = [
     path: '/maintenance-log-list',
     name: 'MaintenanceLogList',
     component: () => import('../views/MaintenanceLogPage.vue'),
-    meta: { title: '已填报日志', permission: 'canViewMaintenanceLog' }
+    meta: { title: '维保日志查询', permission: 'canViewMaintenanceLog' }
   },
   {
     path: '/maintenance-log-detail/:id',
     name: 'MaintenanceLogDetail',
     component: () => import('../views/MaintenanceLogDetailPage.vue'),
     meta: { title: '维保日志详情', permission: 'canViewMaintenanceLogDetail' }
-  },
-  {
-    path: '/maintenance-log-all',
-    name: 'MaintenanceLogAll',
-    component: () => import('../views/MaintenanceLogAllPage.vue'),
-    meta: { title: '查看维保日志', permission: 'canViewAllMaintenanceLog' }
   },
   {
     path: '/weekly-report',
@@ -114,13 +108,7 @@ const routes = [
     path: '/weekly-report-list',
     name: 'WeeklyReportList',
     component: () => import('../views/WeeklyReportListPage.vue'),
-    meta: { title: '已报部门周报', permission: 'canViewDepartmentWeeklyReport' }
-  },
-  {
-    path: '/weekly-report-all',
-    name: 'WeeklyReportAll',
-    component: () => import('../views/WeeklyReportAllPage.vue'),
-    meta: { title: '查看部门周报', permission: 'canViewAllWeeklyReport' }
+    meta: { title: '部门周报查询', permission: 'canViewDepartmentWeeklyReport' }
   },
   {
     path: '/weekly-report-detail/:id',

@@ -88,7 +88,7 @@ export const userStore = {
   
   canViewStatistics: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
   },
   
   canViewProjectManagement: (): boolean => {
@@ -98,7 +98,7 @@ export const userStore = {
   
   canViewAlerts: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
   },
   
   canViewPersonnel: (): boolean => {
@@ -107,7 +107,8 @@ export const userStore = {
   },
   
   canViewSystemManagement: (): boolean => {
-    return currentUser.value?.role === USER_ROLES.ADMIN
+    const role = currentUser.value?.role
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
   },
   
   canViewWorkOrder: (): boolean => {
@@ -122,7 +123,7 @@ export const userStore = {
   
   canViewSparePartsIssue: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER || role === USER_ROLES.EMPLOYEE
   },
   
   canViewRepairToolsInbound: (): boolean => {
@@ -132,12 +133,12 @@ export const userStore = {
   
   canViewRepairToolsIssue: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER || role === USER_ROLES.EMPLOYEE
   },
   
   canFillMaintenanceLog: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
   },
   
   canViewMaintenanceLog: (): boolean => {
@@ -152,12 +153,17 @@ export const userStore = {
   
   canFillWeeklyReport: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return role === USER_ROLES.DEPARTMENT_MANAGER
   },
   
   canViewWeeklyReport: (): boolean => {
     const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+  },
+  
+  canApproveWeeklyReport: (): boolean => {
+    const role = currentUser.value?.role
+    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
   },
   
   canApprovePeriodicInspection: (): boolean => {

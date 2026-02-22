@@ -8,7 +8,7 @@
               <label class="search-label">周报单号：</label>
               <SearchInput
                 v-model="filters.reportId"
-                field-key="WeeklyReportList_report_id"
+                field-key="WeeklyReport_report_id"
                 placeholder="请输入周报单号"
                 @input="handleSearch"
               />
@@ -21,8 +21,17 @@
               <label class="search-label">周报内容：</label>
               <SearchInput
                 v-model="filters.workSummary"
-                field-key="WeeklyReportList_work_summary"
+                field-key="WeeklyReport_work_summary"
                 placeholder="请输入周报内容"
+                @input="handleSearch"
+              />
+            </div>
+            <div class="search-item" v-if="canViewAll">
+              <label class="search-label">提交人：</label>
+              <SearchInput
+                v-model="filters.createdBy"
+                field-key="WeeklyReport_created_by"
+                placeholder="请输入提交人"
                 @input="handleSearch"
               />
             </div>
@@ -43,19 +52,20 @@
                   <th>填报日期</th>
                   <th>本周工作总结</th>
                   <th>状态</th>
+                  <th>提交人</th>
                   <th>提交时间</th>
                   <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="11" class="loading-cell">
+                  <td colspan="12" class="loading-cell">
                     <div class="loading-spinner"></div>
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="dataList.length === 0">
-                  <td colspan="11" class="empty-cell">暂无数据</td>
+                  <td colspan="12" class="empty-cell">暂无数据</td>
                 </tr>
                 <tr v-else v-for="(item, index) in dataList" :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
@@ -75,9 +85,22 @@
                       {{ getStatusName(item.status) }}
                     </span>
                   </td>
+                  <td>{{ item.created_by || '-' }}</td>
                   <td>{{ formatDateTime(item.created_at) }}</td>
                   <td class="action-cell">
                     <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+                    <a 
+                      v-if="canEdit(item)" 
+                      href="#" 
+                      class="action-link action-edit" 
+                      @click.prevent="handleEdit(item)"
+                    >编辑</a>
+                    <a 
+                      v-if="canReject(item)" 
+                      href="#" 
+                      class="action-link action-reject" 
+                      @click.prevent="handleReject(item)"
+                    >退回</a>
                   </td>
                 </tr>
               </tbody>
@@ -176,8 +199,18 @@
                 <div class="detail-value">{{ formatDate(detailData.report_date) }}</div>
               </div>
               <div class="detail-item">
+                <label class="detail-label">提交人</label>
+                <div class="detail-value">{{ detailData.created_by || '-' }}</div>
+              </div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-item">
                 <label class="detail-label">提交时间</label>
                 <div class="detail-value">{{ formatDateTime(detailData.created_at) }}</div>
+              </div>
+              <div class="detail-item" v-if="detailData.approved_by">
+                <label class="detail-label">审核人</label>
+                <div class="detail-value">{{ detailData.approved_by }}</div>
               </div>
             </div>
             <div class="detail-row full-width">
@@ -204,7 +237,13 @@
                 <div class="detail-value content-full">{{ detailData.suggestions || '-' }}</div>
               </div>
             </div>
-            <div class="detail-row full-width" v-if="detailData.images && detailData.images.length > 0">
+            <div class="detail-row full-width" v-if="detailData.reject_reason">
+              <div class="detail-item">
+                <label class="detail-label">退回原因</label>
+                <div class="detail-value content-full reject-reason">{{ detailData.reject_reason }}</div>
+              </div>
+            </div>
+            <div class="detail-row full-width" v-if="parseImages(detailData.images).length > 0">
               <div class="detail-item">
                 <label class="detail-label">现场照片</label>
                 <div class="detail-images">
@@ -221,6 +260,25 @@
               </div>
             </div>
           </div>
+
+          <div class="operation-log-section" v-if="operationLogs.length > 0">
+            <div class="section-title">操作日志</div>
+            <div class="timeline">
+              <div 
+                v-for="(log, index) in operationLogs" 
+                :key="log.id" 
+                class="timeline-item"
+                :class="{ 'last': index === operationLogs.length - 1 }"
+              >
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
+                  <span class="timeline-operator">{{ log.operator_name }}</span>
+                  <span class="timeline-action">{{ log.operation_type_name }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeDetailModal">关闭</button>
@@ -231,11 +289,38 @@
     <div v-if="showImagePreview" class="image-preview-overlay" @click="closeImagePreview">
       <img :src="previewImageUrl" alt="预览图片" class="preview-image" loading="lazy" />
     </div>
+
+    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>退回部门周报</h3>
+          <button class="close-btn" @click="closeRejectModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-item">
+            <label class="form-label">退回原因</label>
+            <textarea 
+              v-model="rejectReason" 
+              class="form-textarea" 
+              placeholder="请输入退回原因"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="closeRejectModal">取消</button>
+          <button class="confirm-btn" @click="confirmReject" :disabled="submitting">
+            {{ submitting ? '处理中...' : '确认退回' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { userStore } from '@/stores/userStore'
@@ -258,9 +343,25 @@ interface WeeklyReportItem {
   images: string
   manager_signature: string
   status: string
+  approved_by: string
+  approved_at: string
+  reject_reason: string
   created_by: string
   created_at: string
   updated_at: string
+}
+
+interface OperationLogItem {
+  id: number
+  work_order_type: string
+  work_order_id: number
+  work_order_no: string
+  operator_name: string
+  operator_id: number | null
+  operation_type_code: string
+  operation_type_name: string
+  operation_remark: string | null
+  created_at: string
 }
 
 export default defineComponent({
@@ -269,7 +370,9 @@ export default defineComponent({
     SearchInput
   },
   setup() {
+    const router = useRouter()
     const loading = ref(false)
+    const submitting = ref(false)
     const dataList = ref<WeeklyReportItem[]>([])
     const total = ref(0)
     const currentPage = ref(1)
@@ -278,11 +381,20 @@ export default defineComponent({
     const detailData = ref<WeeklyReportItem | null>(null)
     const showImagePreview = ref(false)
     const previewImageUrl = ref('')
+    const showRejectModal = ref(false)
+    const rejectReason = ref('')
+    const pendingRejectItem = ref<WeeklyReportItem | null>(null)
+    const operationLogs = ref<OperationLogItem[]>([])
+
+    const canViewAll = computed(() => {
+      return userStore.isAdmin() || userStore.isDepartmentManager()
+    })
 
     const filters = ref({
       reportId: '',
       reportDate: '',
-      workSummary: ''
+      workSummary: '',
+      createdBy: ''
     })
 
     const totalPages = computed(() => {
@@ -327,6 +439,39 @@ export default defineComponent({
     }
 
     /**
+     * 格式化操作时间
+     */
+    const formatOperationTime = (dateStr: string) => {
+      if (!dateStr) return '-'
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      const hours = String(date.getHours()).padStart(2, '0')
+      const minutes = String(date.getMinutes()).padStart(2, '0')
+      return `${year}-${month}-${day} ${hours}:${minutes}`
+    }
+
+    /**
+     * 判断是否可以编辑
+     */
+    const canEdit = (item: WeeklyReportItem) => {
+      const user = userStore.getUser()
+      if (!user) return false
+      const isOwner = item.created_by === user.name
+      const isEditableStatus = item.status === 'draft' || item.status === 'rejected'
+      return isOwner && isEditableStatus
+    }
+
+    /**
+     * 判断是否可以退回
+     */
+    const canReject = (item: WeeklyReportItem) => {
+      if (!canViewAll.value) return false
+      return item.status === 'submitted'
+    }
+
+    /**
      * 加载数据
      */
     const loadData = async () => {
@@ -340,9 +485,13 @@ export default defineComponent({
         if (filters.value.reportDate) params.report_date = filters.value.reportDate
         if (filters.value.workSummary) params.work_summary = filters.value.workSummary
         
-        const user = userStore.getUser()
-        if (user && user.name) {
-          params.created_by = user.name
+        if (!canViewAll.value) {
+          const user = userStore.getUser()
+          if (user && user.name) {
+            params.created_by = user.name
+          }
+        } else if (filters.value.createdBy) {
+          params.created_by = filters.value.createdBy
         }
 
         const response = await apiClient.get('/weekly-report', { params }) as unknown as ApiResponse<PaginatedResponse<WeeklyReportItem>>
@@ -367,11 +516,28 @@ export default defineComponent({
     }
 
     /**
+     * 获取操作日志
+     */
+    const fetchOperationLogs = async (reportId: number) => {
+      try {
+        const response = await apiClient.get(`/weekly-report/${reportId}/operation-logs`) as unknown as ApiResponse<OperationLogItem[]>
+        if (response.code === 200) {
+          operationLogs.value = response.data || []
+        }
+      } catch (error) {
+        console.error('获取操作日志失败:', error)
+        operationLogs.value = []
+      }
+    }
+
+    /**
      * 查看详情
      */
-    const handleView = (item: WeeklyReportItem) => {
+    const handleView = async (item: WeeklyReportItem) => {
       detailData.value = item
       showDetailModal.value = true
+      operationLogs.value = []
+      await fetchOperationLogs(item.id)
     }
 
     /**
@@ -380,6 +546,65 @@ export default defineComponent({
     const closeDetailModal = () => {
       showDetailModal.value = false
       detailData.value = null
+      operationLogs.value = []
+    }
+
+    /**
+     * 编辑
+     */
+    const handleEdit = (item: WeeklyReportItem) => {
+      router.push(`/weekly-report/edit/${item.id}`)
+    }
+
+    /**
+     * 退回
+     */
+    const handleReject = (item: WeeklyReportItem) => {
+      pendingRejectItem.value = item
+      rejectReason.value = ''
+      showRejectModal.value = true
+    }
+
+    /**
+     * 确认退回
+     */
+    const confirmReject = async () => {
+      if (!rejectReason.value.trim()) {
+        alert('请输入退回原因')
+        return
+      }
+
+      if (!pendingRejectItem.value) return
+
+      submitting.value = true
+      try {
+        const response = await apiClient.post(`/weekly-report/${pendingRejectItem.value.id}/approve`, {
+          approved: false,
+          reject_reason: rejectReason.value
+        }) as unknown as ApiResponse<null>
+        
+        if (response.code === 200) {
+          alert('已退回')
+          closeRejectModal()
+          loadData()
+        } else {
+          alert(response.message || '退回失败')
+        }
+      } catch (error) {
+        console.error('Failed to reject:', error)
+        alert('退回失败，请重试')
+      } finally {
+        submitting.value = false
+      }
+    }
+
+    /**
+     * 关闭退回弹窗
+     */
+    const closeRejectModal = () => {
+      showRejectModal.value = false
+      pendingRejectItem.value = null
+      rejectReason.value = ''
     }
 
     /**
@@ -430,25 +655,37 @@ export default defineComponent({
 
     return {
       loading,
+      submitting,
       dataList,
       total,
       currentPage,
       pageSize,
       totalPages,
       filters,
+      canViewAll,
       currentUser: userStore.readonlyCurrentUser,
       showDetailModal,
       detailData,
       showImagePreview,
       previewImageUrl,
+      showRejectModal,
+      rejectReason,
+      operationLogs,
       getStatusName,
       truncateContent,
       parseImages,
+      formatOperationTime,
+      canEdit,
+      canReject,
       formatDate,
       formatDateTime,
       handleSearch,
       handleView,
+      handleEdit,
+      handleReject,
       closeDetailModal,
+      confirmReject,
+      closeRejectModal,
       previewImage,
       closeImagePreview,
       handlePageChange,
@@ -593,26 +830,6 @@ export default defineComponent({
   color: #d32f2f;
 }
 
-.status-pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-waiting {
-  background: #fff7e0;
-  color: #f57c00;
-}
-
-.status-completed {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.status-returned {
-  background: #fce4ec;
-  color: #c2185b;
-}
-
 .content-cell {
   max-width: 200px;
 }
@@ -620,6 +837,7 @@ export default defineComponent({
 .content-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -667,6 +885,22 @@ export default defineComponent({
 
 .action-view:hover {
   color: #1565c0;
+}
+
+.action-edit {
+  color: #388e3c;
+}
+
+.action-edit:hover {
+  color: #2e7d32;
+}
+
+.action-reject {
+  color: #d32f2f;
+}
+
+.action-reject:hover {
+  color: #c62828;
 }
 
 .pagination-section {
@@ -837,6 +1071,13 @@ export default defineComponent({
   line-height: 1.6;
 }
 
+.reject-reason {
+  color: #d32f2f;
+  background: #ffebee;
+  padding: 8px 12px;
+  border-radius: 4px;
+}
+
 .detail-images {
   display: flex;
   flex-wrap: wrap;
@@ -864,18 +1105,64 @@ export default defineComponent({
   border-top: 1px solid #e0e0e0;
 }
 
-.cancel-btn {
+.cancel-btn,
+.confirm-btn {
   padding: 10px 24px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
+}
+
+.cancel-btn {
   background: #f5f5f5;
   color: #666;
 }
 
 .cancel-btn:hover {
   background: #e0e0e0;
+}
+
+.confirm-btn {
+  background: #d32f2f;
+  color: #fff;
+}
+
+.confirm-btn:hover:not(:disabled) {
+  background: #b71c1c;
+}
+
+.confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-item {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  min-height: 80px;
+  resize: vertical;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #1976d2;
 }
 
 .image-preview-overlay {
@@ -896,5 +1183,83 @@ export default defineComponent({
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
+}
+
+.operation-log-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-left: 12px;
+  border-left: 3px solid #1976d2;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e0e0e0;
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timeline-item.last {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #1976d2;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #1976d2;
+}
+
+.timeline-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.timeline-time {
+  font-size: 14px;
+  color: #666;
+  font-family: monospace;
+}
+
+.timeline-operator {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.timeline-action {
+  font-size: 13px;
+  color: #1976d2;
+  background: #e3f2fd;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 </style>

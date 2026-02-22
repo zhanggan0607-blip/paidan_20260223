@@ -199,10 +199,14 @@ export const userStore = {
   },
 
   canViewDepartmentWeeklyReport(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return this.isAdmin() || this.isDepartmentManager() || this.isEmployee()
   },
 
   canViewAllWeeklyReport(): boolean {
+    return this.isAdmin() || this.isDepartmentManager()
+  },
+
+  canApproveWeeklyReport(): boolean {
     return this.isAdmin() || this.isDepartmentManager()
   },
 

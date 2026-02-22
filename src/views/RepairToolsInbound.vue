@@ -580,32 +580,28 @@ export default defineComponent({
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
-.search-button,
-.add-button {
-  padding: 8px 24px;
+.action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.btn {
+  padding: 8px 16px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  height: 38px;
+  transition: all 0.2s;
 }
 
-.search-button {
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+.btn-add {
+  background: #4caf50;
   color: #fff;
 }
 
-.add-button {
-  background: linear-gradient(135deg, #388e3c 0%, #66bb6a 100%);
-  color: #fff;
-}
-
-.search-button:hover,
-.add-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+.btn-add:hover {
+  background: #45a049;
 }
 
 .table-section {

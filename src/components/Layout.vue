@@ -176,14 +176,10 @@ export default defineComponent({
         case 'maintenance-log-fill':
           return userStore.canFillMaintenanceLog()
         case 'maintenance-log-list':
-          return userStore.canViewMaintenanceLog()
-        case 'maintenance-log-all':
-          return userStore.canViewAllMaintenanceLog()
+          return userStore.canViewMaintenanceLog() || userStore.canViewAllMaintenanceLog()
         case 'weekly-report-fill':
           return userStore.canFillWeeklyReport()
         case 'weekly-report-list':
-          return userStore.isDepartmentManager()
-        case 'weekly-report-all':
           return userStore.canViewWeeklyReport()
         default:
           return false
@@ -237,11 +233,9 @@ export default defineComponent({
         label: '维保日志',
         children: [
           { id: 'maintenance-log-fill', label: '新报维保日志', path: '/maintenance-log/fill' },
-          { id: 'maintenance-log-list', label: '已报维保日志', path: '/maintenance-log/list' },
-          { id: 'maintenance-log-all', label: '查看维保日志', path: '/maintenance-log/all' },
+          { id: 'maintenance-log-list', label: '维保日志查询', path: '/maintenance-log/list' },
           { id: 'weekly-report-fill', label: '新报部门周报', path: '/weekly-report/fill' },
-          { id: 'weekly-report-list', label: '已报部门周报', path: '/weekly-report/list' },
-          { id: 'weekly-report-all', label: '查看部门周报', path: '/weekly-report/all' }
+          { id: 'weekly-report-list', label: '部门周报查询', path: '/weekly-report/list' }
         ]
       },
       {
@@ -367,15 +361,8 @@ export default defineComponent({
       if (path === '/maintenance-log/list') {
         return {
           level1: '维保日志',
-          level2: '已报维保日志',
-          full: '维保日志 / 已报维保日志'
-        }
-      }
-      if (path === '/maintenance-log/all') {
-        return {
-          level1: '维保日志',
-          level2: '查看维保日志',
-          full: '维保日志 / 查看维保日志'
+          level2: '维保日志查询',
+          full: '维保日志 / 维保日志查询'
         }
       }
       if (path === '/weekly-report/fill') {
@@ -388,15 +375,8 @@ export default defineComponent({
       if (path === '/weekly-report/list') {
         return {
           level1: '维保日志',
-          level2: '已报部门周报',
-          full: '维保日志 / 已报部门周报'
-        }
-      }
-      if (path === '/weekly-report/all') {
-        return {
-          level1: '维保日志',
-          level2: '查看部门周报',
-          full: '维保日志 / 查看部门周报'
+          level2: '部门周报查询',
+          full: '维保日志 / 部门周报查询'
         }
       }
       return {

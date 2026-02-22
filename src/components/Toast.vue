@@ -35,7 +35,7 @@ export default defineComponent({
   },
   setup(props) {
     const show = ref(false)
-    let timer: number | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
 
     const handleClick = () => {
       show.value = false
