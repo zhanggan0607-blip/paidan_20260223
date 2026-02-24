@@ -8,7 +8,7 @@ import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import { processPhoto } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '../utils/watermark'
 
 const router = useRouter()
 const route = useRoute()
@@ -131,12 +131,12 @@ const filledCount = computed(() => {
   return inspectionSystems.value.filter(sys => sys.inspected).length || 0
 })
 
-const returnTab = computed(() => {
-  return route.query.tab as string || '0'
-})
-
 const handleBackToList = () => {
-  router.push(`/periodic-inspection?tab=${returnTab.value}`)
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/periodic-inspection')
+  }
 }
 
 /**
@@ -414,7 +414,13 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
     
     try {
       const userName = userStore.getUser()?.name || '未知用户'
-      const processedFile = await processPhoto(file, userName)
+      const location = await getCurrentLocation()
+      const processedFile = await processPhoto(file, {
+        userName,
+        includeLocation: true,
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      })
       
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
@@ -520,7 +526,11 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
       showSuccessToast('提交成功')
-      router.push(`/periodic-inspection?tab=${returnTab.value}`)
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/periodic-inspection')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -589,7 +599,11 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      router.push('/periodic-inspection?tab=3')
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/periodic-inspection')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -626,7 +640,11 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      router.push('/periodic-inspection?tab=1')
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/periodic-inspection')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {

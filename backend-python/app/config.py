@@ -21,11 +21,11 @@ class Settings(BaseSettings):
     aliyun_ocr_region_id: str = os.getenv("ALIYUN_OCR_REGION_ID", "cn-shanghai")
     
     api_prefix: str = "/api/v1"
-    docs_url: str = "/docs"
-    redoc_url: str = "/redoc"
-    openapi_url: str = "/openapi.json"
+    docs_url: str = "/api/docs"
+    redoc_url: str = "/api/redoc"
+    openapi_url: str = "/api/openapi.json"
     
-    cors_origins: str = "http://localhost:3000,http://localhost:4173,http://localhost:5173,http://localhost:5180,http://localhost:6173,http://localhost:7173,http://localhost:8173,http://localhost:9173"
+    cors_origins: str = "*"
     
     page_size: int = 10
     max_page_size: int = 100
@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     @field_validator('cors_origins', mode='after')
     @classmethod
     def parse_cors_origins(cls, v):
+        if v == "*":
+            return ["*"]
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(',')]
         return v

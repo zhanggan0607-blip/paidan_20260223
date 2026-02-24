@@ -1,0 +1,11 @@
+#!/bin/bash
+echo "=== 检查后端配置 ==="
+cat /var/www/sstcp/backend-python/.env | grep -v "^#" | grep -v "^$"
+echo ""
+echo "=== 检查数据库连接 ==="
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT COUNT(*) as personnel_count FROM personnel;"
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT COUNT(*) as project_count FROM project_info;"
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT COUNT(*) as plan_count FROM work_plan;"
+echo ""
+echo "=== 检查后端日志 ==="
+tail -30 /var/log/sstcp/backend-error.log 2>/dev/null || echo "无错误日志"

@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showToast } from 'vant'
+import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
+import { getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '../utils/status'
+import { getWorkIdFontSize } from '../utils/format'
+import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 
-// TODO: 这里的排序逻辑和SpotWorkPage重复了，可以抽成公共函数
-// FIXME: 分页目前是一次性加载100条，数据量大时需要优化
 const router = useRouter()
 const route = useRoute()
 
@@ -20,76 +21,15 @@ const userReady = ref(false)
 
 const canApprove = computed(() => userStore.canApprovePeriodicInspection())
 
-const baseTabs = [
-  { key: '待处理', title: '待处理', statuses: ['未进行', '已退回'], color: '#ee0a24' },
-  { key: '待确认', title: '待确认', statuses: ['待确认'], color: '#ff976a' },
-  { key: '已完成', title: '已完成', statuses: ['已确认', '已完成'], color: '#07c160' }
-]
-
-const approvalTab = { key: '审批', title: '审批', statuses: ['待确认'], color: '#1989fa' }
-
 const tabs = computed(() => {
   if (canApprove.value) {
-    return [approvalTab, ...baseTabs]
+    return [APPROVAL_TAB, ...BASE_WORK_TABS]
   }
-  return baseTabs
+  return BASE_WORK_TABS
 })
 
 const currentTab = computed(() => tabs.value[activeTab.value])
 const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
-
-const getStatusType = (status: string) => {
-  switch (status) {
-    case '已完成':
-    case '已确认':
-      return 'success'
-    case '未进行':
-    case '已退回':
-      return 'danger'
-    case '待确认':
-      return 'warning'
-    default:
-      return 'default'
-  }
-}
-
-const getDisplayStatus = (status: string) => {
-  if (status === '已确认' || status === '已完成') return '已完成'
-  if (status === '待确认') return '待确认'
-  if (status === '已退回') return '已退回'
-  if (status === '未进行') return '待处理'
-  return status
-}
-
-/**
- * 根据工单编号长度计算字体大小
- * @param workId 工单编号
- * @returns 字体大小(px)
- */
-const getWorkIdFontSize = (workId: string) => {
-  if (!workId) return 14
-  const len = workId.length
-  if (len <= 18) return 14
-  if (len <= 22) return 12
-  if (len <= 26) return 11
-  if (len <= 30) return 10
-  if (len <= 35) return 9
-  if (len <= 40) return 8
-  return 7
-}
-
-/**
- * 复制工单编号到剪贴板
- * @param orderId 工单编号
- */
-const copyOrderId = async (orderId: string) => {
-  try {
-    await navigator.clipboard.writeText(orderId)
-    showToast('工单编号已复制')
-  } catch {
-    showToast('复制失败')
-  }
-}
 
 /**
  * 获取工单列表

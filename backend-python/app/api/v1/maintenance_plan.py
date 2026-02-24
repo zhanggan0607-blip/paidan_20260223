@@ -37,7 +37,7 @@ def get_all_maintenance_plan(
     items = service.get_all_unpaginated()
     
     if not is_manager and user_name:
-        items = [item for item in items if item.responsible_person == user_name]
+        items = [item for item in items if item.maintenance_personnel == user_name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -61,7 +61,7 @@ def get_maintenance_plan_by_project(
     items = service.get_by_project_id(project_id)
     
     if not is_manager and user_name:
-        items = [item for item in items if item.responsible_person == user_name]
+        items = [item for item in items if item.maintenance_personnel == user_name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -85,7 +85,7 @@ def get_upcoming_maintenance(
     items = service.get_upcoming_maintenance(days)
     
     if not is_manager and user_name:
-        items = [item for item in items if item.responsible_person == user_name]
+        items = [item for item in items if item.maintenance_personnel == user_name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -119,7 +119,7 @@ def get_maintenance_plan_by_date_range(
     items = service.get_by_date_range(start, end)
     
     if not is_manager and user_name:
-        items = [item for item in items if item.responsible_person == user_name]
+        items = [item for item in items if item.maintenance_personnel == user_name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 

@@ -1,20 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast } from 'vant'
+import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { WORK_STATUS, formatDate } from '../config/constants'
+import { getWorkIdFontSize } from '../utils/format'
+import { copyOrderId } from '../utils/clipboard'
+import { useNavigation } from '../composables'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import { processPhoto } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '../utils/watermark'
 
-// TODO: 零星用工详情页面 - 考虑加入工人考勤统计功能
-// FIXME: 图片压缩质量参数应该可配置
-// TODO: 审批流程应该支持多级审批
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 interface WorkerInfo {
   id: number
@@ -73,16 +74,15 @@ const showWorkerPopup = ref(false)
 const currentWorker = ref<WorkerInfo | null>(null)
 
 const isEditable = computed(() => {
-  return detail.value?.status === WORK_STATUS.NOT_STARTED || 
-         detail.value?.status === WORK_STATUS.RETURNED
+  const status = detail.value?.status
+  return status === WORK_STATUS.NOT_STARTED || 
+         status === WORK_STATUS.RETURNED ||
+         status === '未进行' ||
+         status === '待提交'
 })
 
 const canSubmit = computed(() => {
   return formData.value.work_content
-})
-
-const returnTab = computed(() => {
-  return route.query.tab as string || '0'
 })
 
 const canApprove = computed(() => userStore.canApproveSpotWork())
@@ -92,42 +92,12 @@ const isApproveMode = computed(() => {
 })
 
 const handleBackToList = () => {
-  router.push(`/spot-work?tab=${returnTab.value}`)
+  goBack('/spot-work')
 }
 
 const showWorkerDetail = (worker: WorkerInfo) => {
   currentWorker.value = worker
   showWorkerPopup.value = true
-}
-
-/**
- * 复制工单编号到剪贴板
- * @param orderId 工单编号
- */
-const copyOrderId = async (orderId: string) => {
-  try {
-    await navigator.clipboard.writeText(orderId)
-    showToast('工单编号已复制')
-  } catch {
-    showToast('复制失败')
-  }
-}
-
-/**
- * 根据工单编号长度计算字体大小
- * @param workId 工单编号
- * @returns 字体大小(px)
- */
-const getWorkIdFontSize = (workId: string) => {
-  if (!workId) return 14
-  const len = workId.length
-  if (len <= 18) return 14
-  if (len <= 22) return 12
-  if (len <= 26) return 11
-  if (len <= 30) return 10
-  if (len <= 35) return 9
-  if (len <= 40) return 8
-  return 7
 }
 
 /**
@@ -211,7 +181,13 @@ const handlePhotoCapture = () => {
     
     try {
       const userName = userStore.getUser()?.name || '未知用户'
-      const processedFile = await processPhoto(file, userName)
+      const location = await getCurrentLocation()
+      const processedFile = await processPhoto(file, {
+        userName,
+        includeLocation: true,
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      })
       
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
@@ -298,7 +274,11 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('spot_work_signature')
       showSuccessToast('提交成功')
-      router.push(`/spot-work?tab=${returnTab.value}`)
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/spot-work')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -368,7 +348,11 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      router.push('/spot-work?tab=3')
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/spot-work')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -405,7 +389,11 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      router.push('/spot-work?tab=1')
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/spot-work')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {

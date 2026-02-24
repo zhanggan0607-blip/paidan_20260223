@@ -1,0 +1,13 @@
+#!/bin/bash
+echo "=== 数据验证 ==="
+echo "人员表数据:"
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT id, name, role FROM personnel LIMIT 10;"
+echo ""
+echo "项目信息:"
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT id, name, code FROM project_info LIMIT 5;"
+echo ""
+echo "维保计划:"
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT id, name, status FROM work_plan LIMIT 5;"
+echo ""
+echo "临时维修:"
+sudo -u postgres psql -d sstcp_maintenance -c "SELECT id, description, status FROM temporary_repair LIMIT 5;"

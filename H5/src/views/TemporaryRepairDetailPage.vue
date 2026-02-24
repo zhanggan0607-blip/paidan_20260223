@@ -8,7 +8,7 @@ import { WORK_STATUS, formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import { processPhoto } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '../utils/watermark'
 
 const router = useRouter()
 const route = useRoute()
@@ -49,27 +49,30 @@ const currentPhotos = ref<string[]>([])
 const showPhotoPopup = ref(false)
 
 const isEditable = computed(() => {
-  return detail.value?.status === WORK_STATUS.NOT_STARTED || 
-         detail.value?.status === WORK_STATUS.RETURNED
+  const status = detail.value?.status
+  return status === WORK_STATUS.NOT_STARTED || 
+         status === WORK_STATUS.RETURNED ||
+         status === '未进行' ||
+         status === '待提交'
 })
 
 const canSubmit = computed(() => {
   return currentPhotos.value.length > 0
 })
 
-const returnTab = computed(() => {
-  return route.query.tab as string || '0'
-})
+const handleBackToList = () => {
+  if (window.history.length > 1) {
+    router.back()
+  } else {
+    router.push('/temporary-repair')
+  }
+}
 
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
 const isApproveMode = computed(() => {
   return route.query.mode === 'approve' && canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
 })
-
-const handleBackToList = () => {
-  router.push(`/temporary-repair?tab=${returnTab.value}`)
-}
 
 /**
  * 复制工单编号到剪贴板
@@ -154,7 +157,13 @@ const handlePhotoCapture = () => {
     
     try {
       const userName = userStore.getUser()?.name || '未知用户'
-      const processedFile = await processPhoto(file, userName)
+      const location = await getCurrentLocation()
+      const processedFile = await processPhoto(file, {
+        userName,
+        includeLocation: true,
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      })
       
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
@@ -231,7 +240,11 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('temporary_repair_signature')
       showSuccessToast('提交成功')
-      router.push(`/temporary-repair?tab=${returnTab.value}`)
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/temporary-repair')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -290,7 +303,11 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      router.push('/temporary-repair?tab=3')
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/temporary-repair')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -327,7 +344,11 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      router.push('/temporary-repair?tab=1')
+      if (window.history.length > 1) {
+        router.back()
+      } else {
+        router.push('/temporary-repair')
+      }
     }
   } catch (error) {
     if (error !== 'cancel') {

@@ -1,5 +1,8 @@
 export const API_CONFIG = {
   get BASE_URL() {
+    if (import.meta.env.PROD) {
+      return '/api/v1'
+    }
     return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
   },
   TIMEOUT: 60000
@@ -81,34 +84,4 @@ export const GENDER_LIST = [
 
 export const DATE_FORMAT = 'YYYY-MM-DD'
 
-export const formatDate = (dateStr: string | Date | null | undefined): string => {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return '-'
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-export const formatDateTime = (dateStr: string | Date | null | undefined): string => {
-  if (!dateStr) return '-'
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return '-'
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hours = String(date.getHours()).padStart(2, '0')
-  const minutes = String(date.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hours}:${minutes}`
-}
-
-export const formatDateForInput = (dateStr: string | Date | null | undefined): string => {
-  if (!dateStr) return ''
-  const date = new Date(dateStr)
-  if (isNaN(date.getTime())) return ''
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
+export { formatDate, formatDateTime, formatDateForInput } from '../utils/format'

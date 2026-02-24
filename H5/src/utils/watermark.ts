@@ -1,11 +1,15 @@
 /**
  * 图片水印工具
- * 为拍照上传的图片添加用户名和时间水印
+ * 为拍照上传的图片添加用户名、时间和经纬度水印
  */
 
-// TODO: 水印工具 - 考虑加入经纬度信息(需要获取GPS权限)
-// FIXME: 水印位置目前固定在右下角，应该支持配置
-// TODO: 考虑加入防篡改水印(如数字签名)
+export interface WatermarkOptions {
+  userName: string
+  includeLocation?: boolean
+  latitude?: number | null
+  longitude?: number | null
+  maxSizeKB?: number
+}
 
 /**
  * 获取当前格式化时间
@@ -23,12 +27,27 @@ const formatDateTime = (): string => {
 }
 
 /**
+ * 格式化经纬度
+ * @param lat 纬度
+ * @param lng 经度
+ * @returns 格式化后的经纬度字符串
+ */
+const formatLocation = (lat: number, lng: number): string => {
+  const latDir = lat >= 0 ? 'N' : 'S'
+  const lngDir = lng >= 0 ? 'E' : 'W'
+  return `${Math.abs(lat).toFixed(6)}°${latDir} ${Math.abs(lng).toFixed(6)}°${lngDir}`
+}
+
+/**
  * 为图片添加水印
  * @param file 原始图片文件
- * @param userName 用户名
+ * @param options 水印选项
  * @returns 添加水印后的Blob对象
  */
-export const addWatermark = (file: File, userName: string): Promise<Blob> => {
+export const addWatermark = (
+  file: File, 
+  options: WatermarkOptions
+): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -49,7 +68,11 @@ export const addWatermark = (file: File, userName: string): Promise<Blob> => {
       
       ctx.drawImage(img, 0, 0)
       
-      const watermarkText = `${userName} ${formatDateTime()}`
+      const lines: string[] = [`${options.userName} ${formatDateTime()}`]
+      
+      if (options.includeLocation && options.latitude && options.longitude) {
+        lines.push(formatLocation(options.latitude, options.longitude))
+      }
       
       const fontSize = Math.max(16, Math.floor(img.width / 30))
       ctx.font = `bold ${fontSize}px Arial`
@@ -57,20 +80,30 @@ export const addWatermark = (file: File, userName: string): Promise<Blob> => {
       ctx.textBaseline = 'bottom'
       
       const padding = fontSize
-      const textMetrics = ctx.measureText(watermarkText)
-      const textWidth = textMetrics.width
-      const textHeight = fontSize
+      const lineHeight = fontSize * 1.3
+      const totalHeight = lines.length * lineHeight
+      
+      let maxTextWidth = 0
+      lines.forEach(line => {
+        const metrics = ctx.measureText(line)
+        if (metrics.width > maxTextWidth) {
+          maxTextWidth = metrics.width
+        }
+      })
       
       const bgX = padding
-      const bgY = canvas.height - padding - textHeight - 8
-      const bgWidth = textWidth + 16
-      const bgHeight = textHeight + 8
+      const bgY = canvas.height - padding - totalHeight - 8
+      const bgWidth = maxTextWidth + 16
+      const bgHeight = totalHeight + 8
       
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'
       ctx.fillRect(bgX, bgY, bgWidth, bgHeight)
       
       ctx.fillStyle = '#FFFFFF'
-      ctx.fillText(watermarkText, padding + 8, canvas.height - padding - 4)
+      lines.forEach((line, index) => {
+        const y = canvas.height - padding - 4 - (lines.length - 1 - index) * lineHeight
+        ctx.fillText(line, padding + 8, y)
+      })
       
       canvas.toBlob((blob) => {
         if (blob) {
@@ -170,18 +203,100 @@ export const compressImage = (file: File, maxSizeKB: number = 500): Promise<Blob
 }
 
 /**
+ * 生成正方形缩略图
+ * @param file 原始图片文件
+ * @param size 缩略图尺寸，默认200px
+ * @returns 缩略图Blob对象
+ */
+export const generateThumbnail = (file: File, size: number = 200): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      
+      if (!ctx) {
+        reject(new Error('无法创建Canvas上下文'))
+        return
+      }
+      
+      const minDimension = Math.min(img.width, img.height)
+      const sx = (img.width - minDimension) / 2
+      const sy = (img.height - minDimension) / 2
+      
+      canvas.width = size
+      canvas.height = size
+      
+      ctx.drawImage(img, sx, sy, minDimension, minDimension, 0, 0, size, size)
+      
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob)
+        } else {
+          reject(new Error('缩略图生成失败'))
+        }
+      }, 'image/jpeg', 0.8)
+    }
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('图片加载失败'))
+    }
+    
+    img.src = url
+  })
+}
+
+/**
  * 处理拍照图片：添加水印并压缩
  * @param file 原始图片文件
- * @param userName 用户名
- * @param maxSizeKB 最大大小(KB)，默认500KB
+ * @param options 水印选项
  * @returns 处理后的File对象
  */
 export const processPhoto = async (
   file: File, 
-  userName: string, 
-  maxSizeKB: number = 500
+  options: WatermarkOptions | string
 ): Promise<File> => {
-  const watermarkedBlob = await addWatermark(file, userName)
+  const watermarkOptions: WatermarkOptions = typeof options === 'string' 
+    ? { userName: options } 
+    : options
+  
+  const watermarkedBlob = await addWatermark(file, watermarkOptions)
+  const maxSizeKB = watermarkOptions.maxSizeKB || 500
   const compressedBlob = await compressImage(blobToFile(watermarkedBlob, file.name), maxSizeKB)
   return blobToFile(compressedBlob, file.name)
+}
+
+/**
+ * 获取当前位置
+ * @returns 位置信息或null
+ */
+export const getCurrentLocation = (): Promise<{ latitude: number; longitude: number } | null> => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null)
+      return
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        })
+      },
+      () => {
+        resolve(null)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    )
+  })
 }

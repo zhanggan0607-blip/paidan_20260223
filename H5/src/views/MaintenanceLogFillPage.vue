@@ -7,7 +7,7 @@ import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
-import { processPhoto } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '../utils/watermark'
 
 // TODO: 维保日志填报页面 - 考虑加入草稿自动保存功能
 // FIXME: 图片上传失败时没有重试机制
@@ -123,7 +123,13 @@ const handleTakePhoto = async () => {
       showLoadingToast({ message: '处理中...', forbidClick: true })
       try {
         const userName = userStore.getUser()?.name || '未知用户'
-        const processedFile = await processPhoto(file, userName)
+        const location = await getCurrentLocation()
+        const processedFile = await processPhoto(file, {
+          userName,
+          includeLocation: true,
+          latitude: location?.latitude,
+          longitude: location?.longitude
+        })
         const url = URL.createObjectURL(processedFile)
         images.value.push({
           file: processedFile,

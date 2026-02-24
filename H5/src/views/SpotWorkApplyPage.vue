@@ -7,7 +7,7 @@ import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
-import { processPhoto } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '../utils/watermark'
 
 interface ProjectInfo {
   id: number
@@ -412,7 +412,13 @@ const handlePhotoCapture = () => {
     
     try {
       const userName = userStore.getUser()?.name || '未知用户'
-      const processedFile = await processPhoto(file, userName)
+      const location = await getCurrentLocation()
+      const processedFile = await processPhoto(file, {
+        userName,
+        includeLocation: true,
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      })
       
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)

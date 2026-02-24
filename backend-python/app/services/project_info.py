@@ -267,7 +267,7 @@ class ProjectInfoService:
         try:
             updated_count = self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id == project_id
-            ).update({"responsible_person": new_responsible_person}, synchronize_session=False)
+            ).update({"maintenance_personnel": new_responsible_person}, synchronize_session=False)
             
             if updated_count > 0:
                 self.db.commit()

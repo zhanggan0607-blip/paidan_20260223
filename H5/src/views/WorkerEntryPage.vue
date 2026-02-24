@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
-import { processPhoto } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '../utils/watermark'
 import { validateIdCard } from '../utils/idCardValidator'
 
 // TODO: 工人录入页面 - 身份证OCR识别功能待完善
@@ -173,7 +173,13 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
       showLoadingToast({ message: '处理图片...', forbidClick: true })
       
       const userName = userStore.getUser()?.name || '未知用户'
-      const processedFile = await processPhoto(file, userName)
+      const location = await getCurrentLocation()
+      const processedFile = await processPhoto(file, {
+        userName,
+        includeLocation: true,
+        latitude: location?.latitude,
+        longitude: location?.longitude
+      })
       
       showLoadingToast({ message: '上传图片...', forbidClick: true })
       

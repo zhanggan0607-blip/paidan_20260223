@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { showLoadingToast, closeToast, showToast } from 'vant'
+import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
+import { getStatusType, getDisplayStatus } from '../utils/status'
+import { getWorkIdFontSize } from '../utils/format'
+import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { type User } from '../stores/userStore'
 
@@ -164,7 +167,6 @@ const fetchWorkList = async () => {
     switch (tabKey) {
       case 'completed':
         endpoint = '/periodic-inspection'
-        params.status = '已完成'
         break
       case 'periodic':
         endpoint = '/periodic-inspection'
@@ -190,23 +192,29 @@ const fetchWorkList = async () => {
       let items = response.data?.items || response.data?.content || []
       
       if (tabKey === 'completed') {
+        const completedStatuses = ['已完成', '已确认', '已审批']
+        items = items.filter((item: any) => completedStatuses.includes(item.status))
+        items = items.map((item: any) => ({ ...item, planType: '定期巡检' }))
+        
         const [repairRes, spotRes] = await Promise.all([
-          api.get<unknown, ApiResponse<{ items: any[] }>>('/temporary-repair', { params: { page: 0, size: 1000, status: '已完成' } }),
-          api.get<unknown, ApiResponse<{ items: any[] }>>('/spot-work', { params: { page: 0, size: 1000, status: '已完成' } })
+          api.get<unknown, ApiResponse<{ items: any[] }>>('/temporary-repair', { params: { page: 0, size: 1000 } }),
+          api.get<unknown, ApiResponse<{ items: any[] }>>('/spot-work', { params: { page: 0, size: 1000 } })
         ])
         
         if (repairRes.code === 200 && repairRes.data?.items) {
-          items = items.concat(repairRes.data.items.map((item: any) => ({ ...item, planType: '临时维修' })))
+          const completedRepairs = repairRes.data.items.filter((item: any) => completedStatuses.includes(item.status))
+          items = items.concat(completedRepairs.map((item: any) => ({ ...item, planType: '临时维修' })))
         }
         if (spotRes.code === 200 && spotRes.data?.items) {
-          items = items.concat(spotRes.data.items.map((item: any) => ({ ...item, planType: '零星用工' })))
+          const completedSpotWorks = spotRes.data.items.filter((item: any) => completedStatuses.includes(item.status))
+          items = items.concat(completedSpotWorks.map((item: any) => ({ ...item, planType: '零星用工' })))
         }
         
         const currentYear = new Date().getFullYear()
         items = items.filter((item: any) => {
-          const endDate = item.plan_end_date || item.planEndDate
-          if (!endDate) return false
-          const year = new Date(endDate).getFullYear()
+          const completionDate = item.actual_completion_date || item.plan_end_date
+          if (!completionDate) return false
+          const year = new Date(completionDate).getFullYear()
           return year === currentYear
         })
       }
@@ -261,66 +269,17 @@ const handleItemClick = (item: any) => {
     } else if (planType === '零星用工') {
       router.push(`/spot-work/${item.id}`)
     } else {
-      router.push(`/work-detail/${item.id}`)
+      if (tabKey === 'completed') {
+        router.push(`/periodic-inspection/${item.id}`)
+      } else {
+        router.push(`/periodic-inspection/${item.id}`)
+      }
     }
   }
 }
 
 const handleUserChanged = (_user: User) => {
   fetchWorkList()
-}
-
-const getStatusType = (status: string) => {
-  switch (status) {
-    case '已完成':
-    case '已确认':
-      return 'success'
-    case '未进行':
-    case '已退回':
-      return 'danger'
-    case '待确认':
-      return 'warning'
-    default:
-      return 'default'
-  }
-}
-
-const getDisplayStatus = (status: string) => {
-  if (status === '已确认' || status === '已完成') return '已完成'
-  if (status === '待确认') return '待确认'
-  if (status === '已退回') return '已退回'
-  if (status === '未进行') return '待处理'
-  return status
-}
-
-/**
- * 根据工单编号长度计算字体大小
- * @param workId 工单编号
- * @returns 字体大小(px)
- */
-const getWorkIdFontSize = (workId: string) => {
-  if (!workId) return 14
-  const len = workId.length
-  if (len <= 18) return 14
-  if (len <= 22) return 12
-  if (len <= 26) return 11
-  if (len <= 30) return 10
-  if (len <= 35) return 9
-  if (len <= 40) return 8
-  return 7
-}
-
-/**
- * 复制工单编号到剪贴板
- * @param orderId 工单编号
- */
-const copyOrderId = async (orderId: string) => {
-  try {
-    await navigator.clipboard.writeText(orderId)
-    showToast('工单编号已复制')
-  } catch {
-    showToast('复制失败')
-  }
 }
 
 const handleBack = () => {
