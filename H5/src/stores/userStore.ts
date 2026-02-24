@@ -30,6 +30,9 @@ const loadUserFromStorage = (): User | null => {
 
 const startHeartbeat = () => {
   stopHeartbeat()
+  if (currentUser.value) {
+    onlineUserService.recordLogin('h5', currentUser.value.id, currentUser.value.name).catch(() => {})
+  }
   onlineUserService.sendHeartbeat('h5').catch(() => {})
   heartbeatInterval = window.setInterval(() => {
     const token = localStorage.getItem(TOKEN_STORAGE_KEY)
@@ -66,16 +69,19 @@ export const userStore = {
   },
 
   setUser(user: User): void {
+    if (currentUser.value && currentUser.value.id !== user.id) {
+      onlineUserService.logout(currentUser.value.id, 'h5').catch(() => {})
+    }
     currentUser.value = user
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
+    onlineUserService.recordLogin('h5', user.id, user.name).catch(() => {})
     window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
   },
 
   clearUser(): void {
     stopHeartbeat()
-    const token = this.getToken()
-    if (token) {
-      onlineUserService.logout().catch(() => {})
+    if (currentUser.value) {
+      onlineUserService.logout(currentUser.value.id, 'h5').catch(() => {})
     }
     currentUser.value = null
     localStorage.removeItem(USER_STORAGE_KEY)

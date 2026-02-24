@@ -31,6 +31,17 @@ export interface OnlineStatistics {
   h5_users: OnlineUser[]
 }
 
+export interface LoginRequest {
+  device_type?: string
+  user_id?: number
+  user_name?: string
+}
+
+export interface LogoutRequest {
+  user_id?: number
+  device_type?: string
+}
+
 export const onlineUserService = {
   /**
    * 获取在线用户数量统计
@@ -66,16 +77,33 @@ export const onlineUserService = {
 
   /**
    * 记录登录
+   * @param deviceType 设备类型 pc/h5
+   * @param userId 用户ID（可选，用于PC端切换用户场景）
+   * @param userName 用户名称（可选）
    */
-  async recordLogin(deviceType: string = 'pc'): Promise<void> {
-    await api.post('/online/login', null, { params: { device_type: deviceType } })
+  async recordLogin(deviceType: string = 'pc', userId?: number, userName?: string): Promise<void> {
+    const params: any = { device_type: deviceType }
+    if (userId) {
+      params.user_id = userId
+      params.user_name = userName
+    }
+    await api.post('/online/login', params)
   },
 
   /**
    * 记录登出
+   * @param userId 用户ID（可选，用于PC端切换用户场景）
+   * @param deviceType 设备类型（可选，用于PC端切换用户场景）
    */
-  async logout(): Promise<void> {
-    await api.post('/online/logout')
+  async logout(userId?: number, deviceType?: string): Promise<void> {
+    const params: any = {}
+    if (userId) {
+      params.user_id = userId
+    }
+    if (deviceType) {
+      params.device_type = deviceType
+    }
+    await api.post('/online/logout', params)
   }
 }
 

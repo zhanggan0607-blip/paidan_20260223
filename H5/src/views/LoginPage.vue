@@ -14,7 +14,6 @@ const loading = ref(false)
 const currentUser = computed(() => userStore.readonlyCurrentUser.value)
 
 onMounted(() => {
-  // 用户状态已由 userStore 自动加载
 })
 
 const handleLogin = async () => {
@@ -44,6 +43,7 @@ const handleLogin = async () => {
     if (response.code === 200 && response.data) {
       userStore.setToken(response.data.access_token)
       userStore.setUser(response.data.user)
+      
       showSuccessToast('登录成功')
       router.push('/')
     }

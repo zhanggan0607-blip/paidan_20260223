@@ -105,6 +105,7 @@ export default defineComponent({
         if (response.code === 200 && response.data) {
           userStore.setToken(response.data.access_token)
           userStore.setUser(response.data.user)
+          
           router.push('/')
         } else {
           errorMessage.value = response.message || '登录失败，请检查用户名和密码'

@@ -74,7 +74,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
-import onlineUserService, { OnlineUser } from '@/services/onlineUser'
+import { OnlineUser } from '@/services/onlineUser'
 
 export default defineComponent({
   name: 'OnlineUsersPanel',
@@ -86,17 +86,47 @@ export default defineComponent({
     const pcCount = computed(() => pcUsers.value.length)
     const h5Count = computed(() => h5Users.value.length)
     
-    let refreshInterval: number | null = null
+    let eventSource: EventSource | null = null
+    let reconnectTimeout: number | null = null
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
     
-    const fetchOnlineUsers = async () => {
-      try {
-        const stats = await onlineUserService.getOnlineStatistics()
-        console.log('获取在线用户数据:', stats)
-        pcUsers.value = stats.pc_users || []
-        h5Users.value = stats.h5_users || []
-        console.log('PC用户:', pcUsers.value.length, 'H5用户:', h5Users.value.length)
-      } catch (error) {
-        console.error('获取在线用户失败:', error)
+    const connectSSE = () => {
+      if (eventSource) {
+        eventSource.close()
+      }
+      
+      const sseUrl = `${API_BASE_URL}/online/stream`
+      console.log('连接SSE:', sseUrl)
+      
+      eventSource = new EventSource(sseUrl)
+      
+      eventSource.onopen = () => {
+        console.log('SSE连接已建立')
+      }
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data)
+          console.log('SSE收到数据:', data)
+          pcUsers.value = data.pc_users || []
+          h5Users.value = data.h5_users || []
+        } catch (e) {
+          console.log('SSE心跳或解析错误')
+        }
+      }
+      
+      eventSource.onerror = (error) => {
+        console.error('SSE连接错误:', error)
+        eventSource?.close()
+        eventSource = null
+        
+        if (reconnectTimeout) {
+          clearTimeout(reconnectTimeout)
+        }
+        reconnectTimeout = window.setTimeout(() => {
+          console.log('尝试重新连接SSE...')
+          connectSSE()
+        }, 5000)
       }
     }
     
@@ -125,17 +155,19 @@ export default defineComponent({
     }
     
     onMounted(() => {
-      console.log('OnlineUsersPanel mounted')
-      fetchOnlineUsers()
-      refreshInterval = window.setInterval(fetchOnlineUsers, 10000)
-      window.addEventListener('user-changed', fetchOnlineUsers)
+      console.log('OnlineUsersPanel mounted, 开始SSE连接')
+      connectSSE()
     })
     
     onUnmounted(() => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval)
+      console.log('OnlineUsersPanel unmounted, 关闭SSE连接')
+      if (eventSource) {
+        eventSource.close()
+        eventSource = null
       }
-      window.removeEventListener('user-changed', fetchOnlineUsers)
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout)
+      }
     })
     
     return {

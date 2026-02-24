@@ -3,6 +3,12 @@ import { userStore } from '../stores/userStore'
 
 const routes = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/LoginPage.vue'),
+    meta: { title: '用户登录' }
+  },
+  {
     path: '/',
     name: 'Home',
     component: () => import('../views/HomePage.vue'),

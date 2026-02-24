@@ -37,6 +37,9 @@ const loadStoredUser = () => {
 
 const startHeartbeat = () => {
   stopHeartbeat()
+  if (currentUser.value) {
+    onlineUserService.recordLogin('pc', currentUser.value.id, currentUser.value.name).catch(() => {})
+  }
   onlineUserService.sendHeartbeat('pc').catch(() => {})
   heartbeatInterval = window.setInterval(() => {
     if (token.value) {
@@ -71,8 +74,12 @@ export const userStore = {
   },
   
   setUser: (user: User) => {
+    if (currentUser.value && currentUser.value.id !== user.id) {
+      onlineUserService.logout(currentUser.value.id, 'pc').catch(() => {})
+    }
     currentUser.value = user
     localStorage.setItem(USER_KEY, JSON.stringify(user))
+    onlineUserService.recordLogin('pc', user.id, user.name).catch(() => {})
     window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
   },
   
@@ -84,8 +91,8 @@ export const userStore = {
   
   clearUser: () => {
     stopHeartbeat()
-    if (token.value) {
-      onlineUserService.logout().catch(() => {})
+    if (currentUser.value) {
+      onlineUserService.logout(currentUser.value.id, 'pc').catch(() => {})
     }
     currentUser.value = null
     token.value = null

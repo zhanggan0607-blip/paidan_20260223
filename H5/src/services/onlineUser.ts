@@ -66,16 +66,33 @@ export const onlineUserService = {
 
   /**
    * 记录登录
+   * @param deviceType 设备类型 pc/h5
+   * @param userId 用户ID（可选，用于PC端切换用户场景）
+   * @param userName 用户名称（可选）
    */
-  async recordLogin(deviceType: string = 'h5'): Promise<void> {
-    await request.post('/online/login', null, { params: { device_type: deviceType } })
+  async recordLogin(deviceType: string = 'h5', userId?: number, userName?: string): Promise<void> {
+    const params: any = { device_type: deviceType }
+    if (userId) {
+      params.user_id = userId
+      params.user_name = userName
+    }
+    await request.post('/online/login', params)
   },
 
   /**
    * 记录登出
+   * @param userId 用户ID（可选，用于PC端切换用户场景）
+   * @param deviceType 设备类型（可选，用于PC端切换用户场景）
    */
-  async logout(): Promise<void> {
-    await request.post('/online/logout')
+  async logout(userId?: number, deviceType?: string): Promise<void> {
+    const params: any = {}
+    if (userId) {
+      params.user_id = userId
+    }
+    if (deviceType) {
+      params.device_type = deviceType
+    }
+    await request.post('/online/logout', params)
   }
 }
 
