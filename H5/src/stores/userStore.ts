@@ -1,5 +1,6 @@
 import { ref, readonly, watch } from 'vue'
 import { USER_ROLES } from '../config/constants'
+import { onlineUserService } from '../services/onlineUser'
 
 export interface User {
   id: number
@@ -13,6 +14,7 @@ const USER_STORAGE_KEY = 'user'
 const TOKEN_STORAGE_KEY = 'token'
 
 const currentUser = ref<User | null>(null)
+let heartbeatInterval: number | null = null
 
 const loadUserFromStorage = (): User | null => {
   const userStr = localStorage.getItem(USER_STORAGE_KEY)
@@ -26,6 +28,24 @@ const loadUserFromStorage = (): User | null => {
   return null
 }
 
+const startHeartbeat = () => {
+  stopHeartbeat()
+  onlineUserService.sendHeartbeat('h5').catch(() => {})
+  heartbeatInterval = window.setInterval(() => {
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+    if (token) {
+      onlineUserService.sendHeartbeat('h5').catch(() => {})
+    }
+  }, 1 * 60 * 1000)
+}
+
+const stopHeartbeat = () => {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval)
+    heartbeatInterval = null
+  }
+}
+
 currentUser.value = loadUserFromStorage()
 
 watch(currentUser, (newUser) => {
@@ -33,6 +53,10 @@ watch(currentUser, (newUser) => {
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
   }
 }, { deep: true })
+
+if (localStorage.getItem(TOKEN_STORAGE_KEY)) {
+  startHeartbeat()
+}
 
 export const userStore = {
   readonlyCurrentUser: readonly(currentUser),
@@ -48,6 +72,11 @@ export const userStore = {
   },
 
   clearUser(): void {
+    stopHeartbeat()
+    const token = this.getToken()
+    if (token) {
+      onlineUserService.logout().catch(() => {})
+    }
     currentUser.value = null
     localStorage.removeItem(USER_STORAGE_KEY)
     localStorage.removeItem(TOKEN_STORAGE_KEY)
@@ -60,6 +89,7 @@ export const userStore = {
 
   setToken(token: string): void {
     localStorage.setItem(TOKEN_STORAGE_KEY, token)
+    startHeartbeat()
   },
 
   isLoggedIn(): boolean {

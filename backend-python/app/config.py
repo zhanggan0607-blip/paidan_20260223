@@ -3,6 +3,9 @@ from pydantic import field_validator
 from functools import lru_cache
 from typing import List
 import os
+from pathlib import Path
+
+ENV_FILE_PATH = Path(__file__).parent.parent / ".env"
 
 
 class Settings(BaseSettings):
@@ -40,7 +43,7 @@ class Settings(BaseSettings):
         return v
     
     class Config:
-        env_file = ".env"
+        env_file = str(ENV_FILE_PATH)
         case_sensitive = False
 
 

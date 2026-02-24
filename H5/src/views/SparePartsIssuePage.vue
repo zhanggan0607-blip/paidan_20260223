@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
+import { useNavigation } from '../composables/useNavigation'
 
 interface SparePartsIssueItem {
   id: number
@@ -35,7 +35,7 @@ interface ProjectItem {
   project_name: string
 }
 
-const router = useRouter()
+const { goBack } = useNavigation()
 const loading = ref(false)
 const issueList = ref<SparePartsIssueItem[]>([])
 const stockList = ref<StockItem[]>([])
@@ -182,7 +182,7 @@ const handleSubmitIssue = async () => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 const handleUserChanged = () => {

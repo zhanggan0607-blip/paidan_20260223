@@ -1,5 +1,6 @@
 import { ref, readonly } from 'vue'
 import { USER_ROLES } from '../config/constants'
+import onlineUserService from '../services/onlineUser'
 
 export interface User {
   id: number
@@ -15,6 +16,7 @@ const USER_KEY = 'user'
 
 const currentUser = ref<User | null>(null)
 const token = ref<string | null>(null)
+let heartbeatInterval: number | null = null
 
 const loadStoredUser = () => {
   const storedToken = localStorage.getItem(TOKEN_KEY)
@@ -33,7 +35,28 @@ const loadStoredUser = () => {
   }
 }
 
+const startHeartbeat = () => {
+  stopHeartbeat()
+  onlineUserService.sendHeartbeat('pc').catch(() => {})
+  heartbeatInterval = window.setInterval(() => {
+    if (token.value) {
+      onlineUserService.sendHeartbeat('pc').catch(() => {})
+    }
+  }, 1 * 60 * 1000)
+}
+
+const stopHeartbeat = () => {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval)
+    heartbeatInterval = null
+  }
+}
+
 loadStoredUser()
+
+if (token.value) {
+  startHeartbeat()
+}
 
 export const userStore = {
   readonlyCurrentUser: readonly(currentUser),
@@ -56,9 +79,14 @@ export const userStore = {
   setToken: (newToken: string) => {
     token.value = newToken
     localStorage.setItem(TOKEN_KEY, newToken)
+    startHeartbeat()
   },
   
   clearUser: () => {
+    stopHeartbeat()
+    if (token.value) {
+      onlineUserService.logout().catch(() => {})
+    }
     currentUser.value = null
     token.value = null
     localStorage.removeItem(TOKEN_KEY)

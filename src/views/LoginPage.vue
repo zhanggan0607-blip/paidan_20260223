@@ -92,9 +92,14 @@ export default defineComponent({
       errorMessage.value = ''
 
       try {
+        if (userStore.getToken()) {
+          userStore.clearUser()
+        }
+        
         const response = await apiClient.post('/auth/login-json', {
           username: username.value.trim(),
-          password: password.value
+          password: password.value,
+          device_type: 'pc'
         }) as unknown as ApiResponse<LoginResponse>
         
         if (response.code === 200 && response.data) {

@@ -18,6 +18,7 @@ from app.models.repair_tools import RepairToolsStock, RepairToolsIssue
 from app.models.repair_tools_inbound import RepairToolsInbound
 from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.models.operation_type import OperationType
+from app.models.online_user import OnlineUser
 
 __all__ = [
     'PeriodicInspection',
@@ -40,5 +41,6 @@ __all__ = [
     'RepairToolsIssue',
     'RepairToolsInbound',
     'WorkOrderOperationLog',
-    'OperationType'
+    'OperationType',
+    'OnlineUser'
 ]

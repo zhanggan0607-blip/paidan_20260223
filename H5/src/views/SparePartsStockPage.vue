@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import type { User } from '../stores/userStore'
+import { useNavigation } from '../composables/useNavigation'
 
 interface InboundRecord {
   id: number
@@ -28,7 +28,8 @@ interface SimpleUser {
   role: string
 }
 
-const router = useRouter()
+const { goBack } = useNavigation()
+
 const loading = ref(false)
 const stockList = ref<InboundRecord[]>([])
 const userList = ref<SimpleUser[]>([])
@@ -139,7 +140,7 @@ const handleSubmitInbound = async () => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 const handleUserChanged = () => {

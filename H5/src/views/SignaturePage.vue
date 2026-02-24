@@ -145,7 +145,7 @@ const handleConfirm = async () => {
         localStorage.setItem('periodic_inspection_signature', signatureData.value)
         showSuccessToast('签名保存成功')
         unlockOrientation()
-        router.push(from || '/periodic-inspection')
+        router.replace(from || '/periodic-inspection')
       } else {
         showFailToast('签名保存失败')
       }
@@ -168,7 +168,7 @@ const handleConfirm = async () => {
     
     showSuccessToast('签名成功')
     unlockOrientation()
-    router.push(from)
+    router.replace(from)
   } else {
     unlockOrientation()
     router.back()
@@ -177,12 +177,7 @@ const handleConfirm = async () => {
 
 const handleBack = () => {
   unlockOrientation()
-  const from = route.query.from as string
-  if (from) {
-    router.push(from)
-  } else {
-    router.back()
-  }
+  router.back()
 }
 
 const isCanvasEmpty = () => {

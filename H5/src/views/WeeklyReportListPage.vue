@@ -7,6 +7,7 @@ import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
+import { useNavigation } from '../composables/useNavigation'
 
 interface WeeklyReportItem {
   id: number
@@ -28,6 +29,7 @@ interface WeeklyReportItem {
 }
 
 const router = useRouter()
+const { goBack } = useNavigation()
 
 const loading = ref(false)
 const reportList = ref<WeeklyReportItem[]>([])
@@ -106,7 +108,7 @@ const handleEdit = (item: WeeklyReportItem) => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 const handleUserChanged = () => {

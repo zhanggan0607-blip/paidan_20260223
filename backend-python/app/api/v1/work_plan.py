@@ -31,7 +31,7 @@ def get_statistics(
     service = WorkPlanService(db)
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
-    is_manager = True
+    is_manager = False
     if user_info:
         user_name = user_info.get('sub') or user_info.get('name')
         role = user_info.get('role', '')

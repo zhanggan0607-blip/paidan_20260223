@@ -10,9 +10,11 @@ import { getWorkIdFontSize } from '../utils/format'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
+import { useNavigation } from '../composables/useNavigation'
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 const activeTab = ref(0)
 const loading = ref(false)
@@ -67,7 +69,7 @@ const handleView = (item: any) => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 /**

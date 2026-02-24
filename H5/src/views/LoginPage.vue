@@ -31,9 +31,14 @@ const handleLogin = async () => {
   showLoadingToast({ message: '登录中...', forbidClick: true })
 
   try {
+    if (userStore.getToken()) {
+      userStore.clearUser()
+    }
+    
     const response = await api.post<unknown, ApiResponse<{ access_token: string; user: User }>>('/auth/login-json', {
       username: username.value.trim(),
-      password: password.value.trim()
+      password: password.value.trim(),
+      device_type: 'h5'
     })
 
     if (response.code === 200 && response.data) {

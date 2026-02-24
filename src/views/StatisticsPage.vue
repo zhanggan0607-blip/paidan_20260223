@@ -19,6 +19,8 @@
       </div>
     </div>
 
+    <OnlineUsersPanel />
+
     <div class="content" v-if="!loading">
       <div class="top-cards-section">
         <div class="mini-card mini-card-warning clickable" @click="openDetailModal('nearDue', '临期工单')">
@@ -305,12 +307,16 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed, inject } from 'vue'
 import { statisticsService, StatisticsOverview, CompletionRate, TopProject, EmployeeStats, WorkOrderDetail } from '@/services/statistics'
+import OnlineUsersPanel from '@/components/OnlineUsersPanel.vue'
 
 // TODO: 统计页面 - 考虑加入数据导出功能(Excel/PDF)
 // FIXME: 图表组件应该抽成独立的可复用组件
 // TODO: 全屏模式下ESC键退出功能
 export default defineComponent({
   name: 'StatisticsPage',
+  components: {
+    OnlineUsersPanel
+  },
   setup() {
     const selectedYear = ref<number>(new Date().getFullYear())
     const currentYear = new Date().getFullYear()

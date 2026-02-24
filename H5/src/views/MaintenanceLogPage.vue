@@ -7,6 +7,7 @@ import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
+import { useNavigation } from '../composables/useNavigation'
 
 interface MaintenanceLogItem {
   id: number
@@ -25,6 +26,7 @@ interface MaintenanceLogItem {
 }
 
 const router = useRouter()
+const { goBack } = useNavigation()
 
 const loading = ref(false)
 const logList = ref<MaintenanceLogItem[]>([])
@@ -111,7 +113,7 @@ const handleView = (item: MaintenanceLogItem) => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 const handleUserChanged = () => {

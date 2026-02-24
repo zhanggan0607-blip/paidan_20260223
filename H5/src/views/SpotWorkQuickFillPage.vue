@@ -6,6 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { useNavigation } from '../composables/useNavigation'
 
 interface ProjectInfo {
   id: number
@@ -15,6 +16,7 @@ interface ProjectInfo {
 }
 
 const router = useRouter()
+const { goBack } = useNavigation()
 
 const formData = ref({
   projectId: '',
@@ -120,7 +122,7 @@ const handleSubmit = async () => {
     })
     if (response.code === 200) {
       showSuccessToast('提交成功')
-      router.push('/')
+      goBack('/')
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -131,6 +133,10 @@ const handleSubmit = async () => {
     loading.value = false
     closeToast()
   }
+}
+
+const handleBack = () => {
+  goBack('/')
 }
 
 const projectColumns = computed(() => {
@@ -155,7 +161,7 @@ onMounted(() => {
       placeholder 
     >
       <template #left>
-        <div class="nav-left" @click="router.push('/')">
+        <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

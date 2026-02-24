@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { useNavigation } from '../composables/useNavigation'
 
-const router = useRouter()
+const { goBack } = useNavigation()
 
 const formData = ref({
   reportId: '',
@@ -86,7 +86,7 @@ const handleSubmit = async () => {
     
     if (response.code === 200) {
       showSuccessToast('提交成功')
-      router.push('/')
+      goBack('/')
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -97,6 +97,10 @@ const handleSubmit = async () => {
     loading.value = false
     closeToast()
   }
+}
+
+const handleBack = () => {
+  goBack('/')
 }
 
 onMounted(() => {
@@ -112,7 +116,7 @@ onMounted(() => {
       placeholder 
     >
       <template #left>
-        <div class="nav-left" @click="router.push('/')">
+        <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

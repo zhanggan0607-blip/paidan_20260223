@@ -802,6 +802,9 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   width: 80px;
   height: 40px;
   object-fit: contain;
+  background-color: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
 }
 
 .action-buttons {

@@ -10,6 +10,7 @@ import { getWorkIdFontSize } from '../utils/format'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { type User } from '../stores/userStore'
+import { useNavigation } from '../composables/useNavigation'
 
 interface AlertItem {
   id: string
@@ -45,6 +46,7 @@ interface WorkPlanItem {
 
 const route = useRoute()
 const router = useRouter()
+const { goBack } = useNavigation()
 
 const loading = ref(false)
 const workList = ref<WorkPlanItem[]>([])
@@ -197,22 +199,24 @@ const fetchWorkList = async () => {
         items = items.map((item: any) => ({ ...item, planType: '定期巡检' }))
         
         const [repairRes, spotRes] = await Promise.all([
-          api.get<unknown, ApiResponse<{ items: any[] }>>('/temporary-repair', { params: { page: 0, size: 1000 } }),
-          api.get<unknown, ApiResponse<{ items: any[] }>>('/spot-work', { params: { page: 0, size: 1000 } })
+          api.get<unknown, ApiResponse<{ items: any[], content: any[] }>>('/temporary-repair', { params: { page: 0, size: 1000 } }),
+          api.get<unknown, ApiResponse<{ items: any[], content: any[] }>>('/spot-work', { params: { page: 0, size: 1000 } })
         ])
         
-        if (repairRes.code === 200 && repairRes.data?.items) {
-          const completedRepairs = repairRes.data.items.filter((item: any) => completedStatuses.includes(item.status))
+        if (repairRes.code === 200) {
+          const repairItems = repairRes.data?.items || repairRes.data?.content || []
+          const completedRepairs = repairItems.filter((item: any) => completedStatuses.includes(item.status))
           items = items.concat(completedRepairs.map((item: any) => ({ ...item, planType: '临时维修' })))
         }
-        if (spotRes.code === 200 && spotRes.data?.items) {
-          const completedSpotWorks = spotRes.data.items.filter((item: any) => completedStatuses.includes(item.status))
+        if (spotRes.code === 200) {
+          const spotItems = spotRes.data?.items || spotRes.data?.content || []
+          const completedSpotWorks = spotItems.filter((item: any) => completedStatuses.includes(item.status))
           items = items.concat(completedSpotWorks.map((item: any) => ({ ...item, planType: '零星用工' })))
         }
         
         const currentYear = new Date().getFullYear()
         items = items.filter((item: any) => {
-          const completionDate = item.actual_completion_date || item.plan_end_date
+          const completionDate = item.actual_completion_date
           if (!completionDate) return false
           const year = new Date(completionDate).getFullYear()
           return year === currentYear
@@ -283,7 +287,7 @@ const handleUserChanged = (_user: User) => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 onMounted(() => {

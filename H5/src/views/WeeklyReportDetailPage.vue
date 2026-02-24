@@ -323,6 +323,9 @@ onMounted(() => {
 .signature-img {
   max-width: 150px;
   max-height: 60px;
+  background-color: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
 }
 
 :deep(.van-cell__label) {

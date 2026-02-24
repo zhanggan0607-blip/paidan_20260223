@@ -8,6 +8,7 @@ import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import { processPhoto, getCurrentLocation } from '../utils/watermark'
+import { useNavigation } from '../composables/useNavigation'
 
 interface ProjectInfo {
   id: number
@@ -20,6 +21,7 @@ interface ProjectInfo {
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 const activeTab = ref(0)
 const loading = ref(false)
@@ -330,7 +332,7 @@ const handleView = (item: any) => {
 }
 
 const handleBack = () => {
-  router.push('/')
+  goBack('/')
 }
 
 /**
@@ -907,6 +909,9 @@ onActivated(() => {
   width: 80px;
   height: 40px;
   object-fit: contain;
+  background-color: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
 }
 
 .popup-content {
