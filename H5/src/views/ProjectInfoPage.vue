@@ -207,7 +207,7 @@ const handleSubmit = async () => {
 
     if (response.code === 200) {
       showSuccessToast(isEdit.value ? '更新成功' : '创建成功')
-      goBack('/project-info')
+      goBack()
     }
   } catch (error: any) {
     console.error('Failed to save project:', error)
@@ -231,7 +231,7 @@ const handleDelete = async () => {
     const response = await api.delete<unknown, ApiResponse<null>>(`/project-info/${projectId.value}`)
     if (response.code === 200) {
       showSuccessToast('删除成功')
-      goBack('/project-info')
+      goBack()
     }
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -242,7 +242,7 @@ const handleDelete = async () => {
 }
 
 const handleBack = () => {
-  goBack('/project-info')
+  goBack()
 }
 
 onMounted(() => {

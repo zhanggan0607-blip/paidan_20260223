@@ -113,7 +113,7 @@ const handleView = (item: MaintenanceLogItem) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

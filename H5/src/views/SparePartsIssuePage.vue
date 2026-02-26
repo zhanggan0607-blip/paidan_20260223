@@ -182,7 +182,7 @@ const handleSubmitIssue = async () => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

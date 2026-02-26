@@ -210,7 +210,7 @@ const handleSubmit = async () => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserReady = (_user: User) => {

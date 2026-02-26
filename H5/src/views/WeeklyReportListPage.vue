@@ -108,7 +108,7 @@ const handleEdit = (item: WeeklyReportItem) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

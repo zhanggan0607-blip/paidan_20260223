@@ -145,7 +145,7 @@ const filledCount = computed(() => {
 })
 
 const handleBackToList = () => {
-  goBack('/periodic-inspection')
+  goBack()
 }
 
 /**
@@ -579,7 +579,7 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
       showSuccessToast('提交成功')
-      goBack('/periodic-inspection')
+      goBack()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -640,7 +640,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      goBack('/periodic-inspection')
+      goBack()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -677,7 +677,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      goBack('/periodic-inspection')
+      goBack()
     }
   } catch (error) {
     if (error !== 'cancel') {

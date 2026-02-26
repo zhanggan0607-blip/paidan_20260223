@@ -287,7 +287,7 @@ const handleUserChanged = (_user: User) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 onMounted(() => {

@@ -92,7 +92,7 @@ const isApproveMode = computed(() => {
 })
 
 const handleBackToList = () => {
-  goBack('/spot-work')
+  goBack()
 }
 
 const showWorkerDetail = (worker: WorkerInfo) => {
@@ -265,7 +265,7 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('spot_work_signature')
       showSuccessToast('提交成功')
-      goBack('/spot-work')
+      goBack()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -325,7 +325,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      goBack('/spot-work')
+      goBack()
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -362,7 +362,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      goBack('/spot-work')
+      goBack()
     }
   } catch (error) {
     if (error !== 'cancel') {

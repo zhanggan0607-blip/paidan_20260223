@@ -140,7 +140,7 @@ const handleSubmitInbound = async () => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

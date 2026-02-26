@@ -348,7 +348,7 @@ const handleSubmit = async () => {
       }
       const workDays = personCount * dayCount
       showSuccessToast(`提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`)
-      goBack('/spot-work')
+      goBack()
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -381,7 +381,7 @@ onMounted(() => {
       placeholder 
     >
       <template #left>
-        <div class="nav-left" @click="goBack('/spot-work')">
+        <div class="nav-left" @click="goBack()">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

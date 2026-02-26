@@ -132,7 +132,7 @@ const getPendingReturn = (item: SparePartsUsageItem | null) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

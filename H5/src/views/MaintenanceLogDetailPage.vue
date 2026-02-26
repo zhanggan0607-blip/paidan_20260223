@@ -143,7 +143,7 @@ const handlePreviewImage = (index: number) => {
 }
 
 const handleBack = () => {
-  goBack('/maintenance-log')
+  goBack()
 }
 
 onMounted(() => {

@@ -201,7 +201,7 @@ const getStockClass = (item: RepairToolsStockItem) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

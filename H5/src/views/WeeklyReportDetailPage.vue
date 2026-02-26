@@ -161,7 +161,7 @@ const handlePreviewImage = (index: number) => {
 }
 
 const handleBack = () => {
-  goBack('/weekly-report')
+  goBack()
 }
 
 onMounted(() => {

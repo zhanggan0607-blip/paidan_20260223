@@ -191,7 +191,7 @@ const getStatusClass = (status: string) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {

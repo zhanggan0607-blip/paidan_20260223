@@ -332,7 +332,7 @@ const handleView = (item: any) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 /**

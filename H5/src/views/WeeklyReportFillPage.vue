@@ -86,7 +86,7 @@ const handleSubmit = async () => {
     
     if (response.code === 200) {
       showSuccessToast('提交成功')
-      goBack('/')
+      goBack()
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -100,7 +100,7 @@ const handleSubmit = async () => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 onMounted(() => {

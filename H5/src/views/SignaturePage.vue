@@ -172,13 +172,13 @@ const handleConfirm = async () => {
     router.replace(from)
   } else {
     unlockOrientation()
-    goBack('/')
+    goBack()
   }
 }
 
 const handleBack = () => {
   unlockOrientation()
-  goBack('/')
+  goBack()
 }
 
 const isCanvasEmpty = () => {

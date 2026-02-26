@@ -129,7 +129,7 @@ const getPendingReturn = (item: RepairToolsIssueItem | null) => {
 }
 
 const handleBack = () => {
-  goBack('/')
+  goBack()
 }
 
 const handleUserChanged = () => {
