@@ -89,6 +89,7 @@ class TemporaryRepairService:
         existing_repair.solution = dto.solution
         existing_repair.photos = json.dumps(dto.photos) if dto.photos else None
         existing_repair.signature = dto.signature
+        existing_repair.customer_signature = dto.customer_signature
         existing_repair.execution_date = self._parse_date(dto.execution_date)
         
         result = self.repository.update(existing_repair)
@@ -131,6 +132,8 @@ class TemporaryRepairService:
             existing_repair.photos = json.dumps(dto.photos)
         if hasattr(dto, 'signature') and dto.signature is not None:
             existing_repair.signature = dto.signature
+        if hasattr(dto, 'customer_signature') and dto.customer_signature is not None:
+            existing_repair.customer_signature = dto.customer_signature
         if hasattr(dto, 'execution_date') and dto.execution_date is not None:
             existing_repair.execution_date = self._parse_date(dto.execution_date)
         
@@ -138,10 +141,17 @@ class TemporaryRepairService:
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
         return result
     
-    def delete(self, id: int) -> None:
+    def delete(self, id: int, user_id: int = None) -> None:
+        """
+        软删除临时维修单
+        
+        Args:
+            id: 维修单ID
+            user_id: 执行删除的用户ID
+        """
         repair = self.get_by_id(id)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, repair, is_delete=True)
-        self.repository.delete(repair)
+        self.repository.soft_delete(repair, user_id)
     
     def get_all_unpaginated(self) -> List[TemporaryRepair]:
         return self.repository.find_all_unpaginated()

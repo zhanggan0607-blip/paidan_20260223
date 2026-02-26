@@ -1,5 +1,5 @@
 from typing import List, Optional, Union
-from fastapi import APIRouter, Depends, Query, status, Request
+from fastapi import APIRouter, Depends, Query, status, Request, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -28,6 +28,12 @@ class SparePartsUsageCreate(BaseModel):
     unit: str = Field("件", max_length=20, description="单位")
     project_id: Optional[str] = Field(None, max_length=50, description="项目编号")
     project_name: Optional[str] = Field(None, max_length=200, description="项目名称")
+    remark: Optional[str] = Field(None, max_length=500, description="备注")
+
+
+class SparePartsReturn(BaseModel):
+    return_quantity: int = Field(..., gt=0, description="归还数量")
+    remark: Optional[str] = Field(None, max_length=500, description="备注")
 
 
 @router.post("/usage", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
@@ -73,12 +79,15 @@ def create_spare_parts_usage(
             brand=data.brand or '',
             model=data.model or '',
             quantity=data.quantity,
+            return_quantity=0,
             user_name=data.user_name,
             issue_time=issue_time,
             unit=data.unit,
             project_id=data.project_id,
             project_name=project_name,
-            stock_id=stock_id
+            stock_id=stock_id,
+            status="待归还",
+            remark=data.remark
         )
         
         db.add(usage)
@@ -110,13 +119,14 @@ def get_spare_parts_usage(
     user: Optional[str] = Query(None, description="运维人员员"),
     product: Optional[str] = Query(None, description="产品名称"),
     project: Optional[str] = Query(None, description="项目名称"),
+    status_filter: Optional[str] = Query(None, alias="status", description="状态"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
     pageSize: int = Query(10, ge=1, le=2000, description="每页数量"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):
     """查询备品备件领用记录"""
-    logger.info(f"查询备品备件领用记录: user={user}, product={product}, project={project}, page={page}, pageSize={pageSize}")
+    logger.info(f"查询备品备件领用记录: user={user}, product={product}, project={project}, status={status_filter}, page={page}, pageSize={pageSize}")
     
     user_info = current_user or get_current_user_from_headers(request)
     user_name = None
@@ -135,7 +145,8 @@ def get_spare_parts_usage(
         size=pageSize, 
         user=user, 
         product=product, 
-        project=project
+        project=project,
+        status_filter=status_filter
     )
     
     result_items = []
@@ -148,9 +159,13 @@ def get_spare_parts_usage(
             'brand': item.brand or '',
             'model': item.model or '',
             'quantity': item.quantity,
+            'return_quantity': item.return_quantity or 0,
             'userName': item.user_name,
             'issueTime': item.issue_time,
-            'unit': item.unit
+            'returnTime': item.return_time,
+            'unit': item.unit,
+            'status': item.status,
+            'stock_id': item.stock_id
         })
 
     logger.info(f"查询成功: 返回{len(result_items)}条记录，总计{total}条")
@@ -163,3 +178,62 @@ def get_spare_parts_usage(
             'total': total
         }
     )
+
+
+@router.get("/usage/{usage_id}", response_model=ApiResponse)
+def get_spare_parts_usage_detail(
+    usage_id: int,
+    db: Session = Depends(get_db)
+):
+    """获取领用记录详情"""
+    usage = db.query(SparePartsUsage).filter(SparePartsUsage.id == usage_id).first()
+    if not usage:
+        raise HTTPException(status_code=404, detail="领用记录不存在")
+    
+    return ApiResponse(code=200, data=usage.to_dict())
+
+
+@router.put("/usage/{usage_id}/return", response_model=ApiResponse)
+def return_spare_parts(
+    usage_id: int,
+    data: SparePartsReturn,
+    db: Session = Depends(get_db)
+):
+    """备品备件归还"""
+    logger.info(f"备品备件归还: usage_id={usage_id}, data={data}")
+    
+    usage = db.query(SparePartsUsage).filter(SparePartsUsage.id == usage_id).first()
+    if not usage:
+        raise HTTPException(status_code=404, detail="领用记录不存在")
+    
+    if usage.status == "已归还":
+        raise HTTPException(status_code=400, detail="该备品备件已归还")
+    
+    if data.return_quantity > usage.quantity - (usage.return_quantity or 0):
+        raise HTTPException(status_code=400, detail="归还数量超过领用数量")
+    
+    try:
+        usage.return_quantity = (usage.return_quantity or 0) + data.return_quantity
+        usage.return_time = datetime.now()
+        
+        if usage.return_quantity >= usage.quantity:
+            usage.status = "已归还"
+        
+        if data.remark:
+            usage.remark = data.remark
+        
+        if usage.stock_id:
+            stock = db.query(SparePartsStock).filter(SparePartsStock.id == usage.stock_id).first()
+            if stock:
+                stock.quantity += data.return_quantity
+        
+        db.commit()
+        db.refresh(usage)
+        
+        logger.info(f"备品备件归还成功: id={usage.id}, return_quantity={data.return_quantity}")
+        
+        return ApiResponse(code=200, data=usage.to_dict(), message="归还成功")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"备品备件归还失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"归还失败: {str(e)}")

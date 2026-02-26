@@ -16,7 +16,8 @@ class SparePartsUsageRepository:
         size: int = 10,
         user: Optional[str] = None,
         product: Optional[str] = None,
-        project: Optional[str] = None
+        project: Optional[str] = None,
+        status_filter: Optional[str] = None
     ) -> tuple[List[SparePartsUsage], int]:
         try:
             query = self.db.query(SparePartsUsage)
@@ -29,6 +30,9 @@ class SparePartsUsageRepository:
 
             if project:
                 query = query.filter(SparePartsUsage.project_name.like(f'%{project}%'))
+
+            if status_filter:
+                query = query.filter(SparePartsUsage.status == status_filter)
 
             total = query.count()
             items = query.order_by(SparePartsUsage.issue_time.desc()).offset(page * size).limit(size).all()

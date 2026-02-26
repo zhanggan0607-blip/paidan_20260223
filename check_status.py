@@ -1,0 +1,13 @@
+import psycopg2
+conn = psycopg2.connect(host='localhost', database='tq', user='postgres', password='123456', port=5432)
+cursor = conn.cursor()
+cursor.execute("SELECT DISTINCT status FROM periodic_inspection")
+print('periodic_inspection status:', cursor.fetchall())
+cursor.execute("SELECT DISTINCT status FROM temporary_repair")
+print('temporary_repair status:', cursor.fetchall())
+cursor.execute("SELECT DISTINCT status FROM spot_work")
+print('spot_work status:', cursor.fetchall())
+cursor.execute("SELECT status, COUNT(*) FROM periodic_inspection GROUP BY status")
+print('periodic_inspection status counts:', cursor.fetchall())
+cursor.close()
+conn.close()

@@ -3,7 +3,7 @@
  * 首页组件
  * 展示工单统计信息和快捷操作入口
  */
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
@@ -67,6 +67,15 @@ const handleUserChanged = (_user: User) => {
   fetchStatistics()
 }
 
+/**
+ * 处理用户加载完成事件
+ * 用户加载完成后获取统计数据
+ * @param _user 加载完成的用户信息
+ */
+const handleUserReady = (_user: User) => {
+  fetchStatistics()
+}
+
 const currentYear = new Date().getFullYear()
 
 /**
@@ -100,6 +109,7 @@ const quickActions = computed(() => {
     { key: 'weeklyHistory', label: '已报部门周报', icon: 'description', color: '#1989fa', route: '/weekly-report-list', show: userStore.isDepartmentManager() },
     { key: 'viewWeekly', label: '查看部门周报', icon: 'calendar-o', color: '#7232dd', route: '/weekly-report-all', show: userStore.isAdmin() },
     { key: 'sparePartsIssue', label: '备品备件领用', icon: 'shopping-cart-o', color: '#1989fa', route: '/spare-parts-issue', show: userStore.canViewSparePartsIssue() },
+    { key: 'sparePartsReturn', label: '备品备件归还', icon: 'back-top', color: '#07c160', route: '/spare-parts-return', show: userStore.canViewSparePartsIssue() },
     { key: 'sparePartsStock', label: '备品备件库存', icon: 'logistics', color: '#07c160', route: '/spare-parts-stock', show: userStore.canViewSparePartsStock() },
     { key: 'repairToolsIssue', label: '维修工具领用', icon: 'setting-o', color: '#ff976a', route: '/repair-tools-issue', show: userStore.canViewRepairToolsIssue() },
     { key: 'repairToolsReturn', label: '维修工具归还', icon: 'back-top', color: '#07c160', route: '/repair-tools-return', show: userStore.canViewRepairToolsIssue() },
@@ -123,17 +133,13 @@ const handleQuickAction = (action: { route: string }) => {
 const handleCardClick = (card: { route: string }) => {
   router.push(card.route)
 }
-
-onMounted(() => {
-  fetchStatistics()
-})
 </script>
 
 <template>
   <div class="home-page">
     <van-nav-bar title="SSTCP维保系统" fixed placeholder>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
       </template>
     </van-nav-bar>
     

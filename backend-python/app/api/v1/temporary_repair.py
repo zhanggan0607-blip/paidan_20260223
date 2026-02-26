@@ -1,4 +1,5 @@
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -8,7 +9,7 @@ from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.temporary_repair import TemporaryRepairCreate, TemporaryRepairUpdate, TemporaryRepairPartialUpdate
 from app.auth import get_current_user, get_current_user_from_headers
 
-
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/temporary-repair", tags=["Temporary Repair Management"])
 
 
@@ -54,7 +55,7 @@ def get_all_temporary_repairs(
 def get_temporary_repairs_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=2000, description="Page size"),
+    size: int = Query(10, ge=1, le=100, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     repair_id: Optional[str] = Query(None, description="Repair ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
@@ -71,6 +72,8 @@ def get_temporary_repairs_list(
         is_manager = role in ['管理员', '部门经理', '主管']
     
     maintenance_personnel = None if is_manager else user_name
+    
+    logger.info(f"[PC端临时维修] user_info={user_info}, user_name={user_name}, is_manager={is_manager}, maintenance_personnel={maintenance_personnel}")
     
     items, total = service.get_all(
         page=page, size=size, project_name=project_name, repair_id=repair_id, 
@@ -167,19 +170,23 @@ def delete_temporary_repair(
     repair = service.get_by_id(id)
     repair_id = repair.repair_id
     
+    user_id = current_user.get('id') if current_user else None
+    operator_name = current_user.get('name', '系统') if current_user else '系统'
+    
     log = WorkOrderOperationLog(
         work_order_type='temporary_repair',
         work_order_id=id,
         work_order_no=repair_id,
-        operator_name=current_user.get('name', '系统') if current_user else '系统',
-        operator_id=current_user.get('id') if current_user else None,
+        operator_name=operator_name,
+        operator_id=user_id,
+        operation_type='delete',
         operation_type_code='delete',
         operation_type_name='删除',
         operation_remark=f'删除临时维修单 {repair_id}'
     )
     db.add(log)
     
-    service.delete(id)
+    service.delete(id, user_id)
     return ApiResponse(
         code=200,
         message="Deleted successfully",

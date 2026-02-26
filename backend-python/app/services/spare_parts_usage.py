@@ -21,10 +21,11 @@ class SparePartsUsageService:
         size: int = 10, 
         user: Optional[str] = None,
         product: Optional[str] = None,
-        project: Optional[str] = None
+        project: Optional[str] = None,
+        status_filter: Optional[str] = None
     ) -> tuple[List[SparePartsUsage], int]:
         return self.repository.find_all(
-            page, size, user, product, project
+            page, size, user, product, project, status_filter
         )
     
     def get_by_id(self, id: int) -> SparePartsUsage:

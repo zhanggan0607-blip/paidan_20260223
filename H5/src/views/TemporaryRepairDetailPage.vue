@@ -9,9 +9,11 @@ import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { processPhoto, getCurrentLocation } from '../utils/watermark'
+import { useNavigation } from '../composables'
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 interface RepairDetail {
   id: number
@@ -61,11 +63,7 @@ const canSubmit = computed(() => {
 })
 
 const handleBackToList = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/temporary-repair')
-  }
+  goBack('/temporary-repair')
 }
 
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
@@ -234,17 +232,13 @@ const handleSubmit = async () => {
       status: WORK_STATUS.PENDING_CONFIRM
     }
     
-    const response = await api.put<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
+    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('temporary_repair_signature')
       showSuccessToast('提交成功')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/temporary-repair')
-      }
+      goBack('/temporary-repair')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -266,7 +260,7 @@ const handleSave = async () => {
       remarks: formData.value.remarks
     }
     
-    const response = await api.put<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, saveData)
+    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, saveData)
     
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
@@ -303,11 +297,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/temporary-repair')
-      }
+      goBack('/temporary-repair')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -344,11 +334,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/temporary-repair')
-      }
+      goBack('/temporary-repair')
     }
   } catch (error) {
     if (error !== 'cancel') {

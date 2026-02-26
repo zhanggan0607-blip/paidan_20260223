@@ -6,6 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { useNavigation } from '../composables'
 
 interface MaintenanceLogDetail {
   id: number
@@ -37,6 +38,7 @@ interface OperationLogItem {
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 const loading = ref(false)
 const logDetail = ref<MaintenanceLogDetail | null>(null)
@@ -141,7 +143,7 @@ const handlePreviewImage = (index: number) => {
 }
 
 const handleBack = () => {
-  router.back()
+  goBack('/maintenance-log')
 }
 
 onMounted(() => {

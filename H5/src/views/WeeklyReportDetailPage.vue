@@ -6,6 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate, formatDateTime } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
+import { useNavigation } from '../composables'
 
 interface WeeklyReportDetail {
   id: number
@@ -47,6 +48,7 @@ interface OperationLogItem {
 
 const route = useRoute()
 const router = useRouter()
+const { goBack } = useNavigation()
 
 const loading = ref(false)
 const reportDetail = ref<WeeklyReportDetail | null>(null)
@@ -159,7 +161,7 @@ const handlePreviewImage = (index: number) => {
 }
 
 const handleBack = () => {
-  router.back()
+  goBack('/weekly-report')
 }
 
 onMounted(() => {

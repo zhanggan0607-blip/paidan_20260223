@@ -1,7 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import { userStore } from '@/stores/userStore'
 import Layout from '@/components/Layout.vue'
-import LoginPage from '@/views/LoginPage.vue'
 import ProjectInfoManagement from '@/views/ProjectInfoManagement.vue'
 import MaintenancePlanManagement from '@/views/MaintenancePlanManagement.vue'
 import OverdueAlert from '@/views/OverdueAlert.vue'
@@ -17,6 +16,7 @@ import SpotWorkManagement from '@/views/SpotWorkManagement.vue'
 import SparePartsManagement from '@/views/SparePartsManagement.vue'
 import SparePartsIssue from '@/views/SparePartsIssue.vue'
 import SparePartsStock from '@/views/SparePartsStock.vue'
+import SparePartsReturn from '@/views/SparePartsReturn.vue'
 import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
 import CustomerManagement from '@/views/CustomerManagement.vue'
 import RepairToolsIssue from '@/views/RepairToolsIssue.vue'
@@ -29,15 +29,8 @@ import WeeklyReportList from '@/views/WeeklyReportList.vue'
 
 const routes: RouteRecordRaw[] = [
   {
-    path: '/login',
-    name: 'Login',
-    component: LoginPage,
-    meta: { requiresAuth: false }
-  },
-  {
     path: '/',
     component: Layout,
-    meta: { requiresAuth: true },
     children: [
       {
         path: '',
@@ -106,6 +99,10 @@ const routes: RouteRecordRaw[] = [
         component: SparePartsStock
       },
       {
+        path: 'spare-parts/return',
+        component: SparePartsReturn
+      },
+      {
         path: 'work-plan',
         component: WorkPlanManagement
       },
@@ -151,16 +148,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const token = userStore.getToken()
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth !== false)
-  
-  if (requiresAuth && !token) {
-    next({ name: 'Login' })
-  } else if (to.name === 'Login' && token) {
-    next({ path: '/' })
-  } else {
-    next()
-  }
+  next()
 })
 
 export default router

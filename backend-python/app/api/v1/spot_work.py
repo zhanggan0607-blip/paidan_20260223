@@ -1,4 +1,6 @@
 from typing import Optional, List
+import json
+import logging
 from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -9,7 +11,7 @@ from app.schemas.spot_work import SpotWorkCreate, SpotWorkUpdate, SpotWorkPartia
 from app.auth import get_current_user, get_current_user_from_headers
 from pydantic import BaseModel
 
-
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
 
 
@@ -36,6 +38,7 @@ class QuickFillRequest(BaseModel):
     client_contact_info: Optional[str] = None
     photos: Optional[str] = None
     signature: Optional[str] = None
+    worker_count: Optional[int] = 0
 
 
 class WorkersRequest(BaseModel):
@@ -88,7 +91,7 @@ def get_all_spot_works(
 def get_spot_works_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=2000, description="Page size"),
+    size: int = Query(10, ge=1, le=100, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     work_id: Optional[str] = Query(None, description="Work ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
@@ -96,7 +99,7 @@ def get_spot_works_list(
     current_user: Optional[dict] = Depends(get_current_user)
 ):
     from app.models.spot_work_worker import SpotWorkWorker
-    from sqlalchemy import func as sql_func
+    from sqlalchemy import func as sql_func, or_
     
     service = SpotWorkService(db)
     user_info = current_user or get_current_user_from_headers(request)
@@ -109,29 +112,78 @@ def get_spot_works_list(
     
     maintenance_personnel = None if is_manager else user_name
     
+    logger.info(f"[PC端零星用工] user_info={user_info}, user_name={user_name}, is_manager={is_manager}, maintenance_personnel={maintenance_personnel}")
+    
     items, total = service.get_all(
         page=page, size=size, project_name=project_name, work_id=work_id, 
         status=status, maintenance_personnel=maintenance_personnel
     )
     
+    if not items:
+        return ApiResponse(
+            code=200,
+            message="success",
+            data={
+                'content': [],
+                'totalElements': total,
+                'totalPages': (total + size - 1) // size if size > 0 else 0,
+                'size': size,
+                'number': page,
+                'first': page == 0,
+                'last': page >= (total + size - 1) // size if size > 0 else True
+            }
+        )
+    
+    project_ids = [item.project_id for item in items]
+    start_dates = [item.plan_start_date.date() for item in items if item.plan_start_date]
+    end_dates = [item.plan_end_date.date() for item in items if item.plan_end_date]
+    
+    workers_query = db.query(SpotWorkWorker).filter(
+        SpotWorkWorker.project_id.in_(project_ids)
+    )
+    
+    if start_dates or end_dates:
+        date_filters = []
+        for item in items:
+            if item.plan_start_date and item.plan_end_date:
+                date_filters.append(
+                    sql_func.and_(
+                        SpotWorkWorker.project_id == item.project_id,
+                        sql_func.date(SpotWorkWorker.start_date) == item.plan_start_date.date(),
+                        sql_func.date(SpotWorkWorker.end_date) == item.plan_end_date.date()
+                    )
+                )
+            elif item.plan_start_date:
+                date_filters.append(
+                    sql_func.and_(
+                        SpotWorkWorker.project_id == item.project_id,
+                        sql_func.date(SpotWorkWorker.start_date) == item.plan_start_date.date()
+                    )
+                )
+        if date_filters:
+            workers_query = db.query(SpotWorkWorker).filter(or_(*date_filters))
+    
+    all_workers = workers_query.all()
+    
+    worker_map = {}
+    for worker in all_workers:
+        key = (worker.project_id, 
+               worker.start_date.date() if worker.start_date else None,
+               worker.end_date.date() if worker.end_date else None)
+        if key not in worker_map:
+            worker_map[key] = []
+        worker_map[key].append(worker)
+    
     items_dict = []
     for item in items:
         item_dict = item.to_dict()
         
-        query = db.query(SpotWorkWorker).filter(
-            SpotWorkWorker.project_id == item.project_id
+        key = (
+            item.project_id,
+            item.plan_start_date.date() if item.plan_start_date else None,
+            item.plan_end_date.date() if item.plan_end_date else None
         )
-        
-        if item.plan_start_date:
-            query = query.filter(
-                sql_func.date(SpotWorkWorker.start_date) == item.plan_start_date.date()
-            )
-        if item.plan_end_date:
-            query = query.filter(
-                sql_func.date(SpotWorkWorker.end_date) == item.plan_end_date.date()
-            )
-        
-        workers = query.all()
+        workers = worker_map.get(key, [])
         worker_count = len(workers)
         
         days = 0
@@ -149,11 +201,11 @@ def get_spot_works_list(
         data={
             'content': items_dict,
             'totalElements': total,
-            'totalPages': (total + size - 1) // size,
+            'totalPages': (total + size - 1) // size if size > 0 else 0,
             'size': size,
             'number': page,
             'first': page == 0,
-            'last': page >= (total + size - 1) // size
+            'last': page >= (total + size - 1) // size if size > 0 else True
         }
     )
 
@@ -192,6 +244,13 @@ def quick_fill_spot_work(
     sequence = str(count + 1).zfill(2)
     work_id = f"{prefix}-{sequence}"
     
+    photos_list = None
+    if dto.photos:
+        try:
+            photos_list = json.loads(dto.photos) if isinstance(dto.photos, str) else dto.photos
+        except:
+            photos_list = None
+    
     create_dto = SpotWorkCreate(
         work_id=work_id,
         project_id=dto.project_id,
@@ -203,7 +262,7 @@ def quick_fill_spot_work(
         client_contact_info=dto.client_contact_info,
         maintenance_personnel=maintenance_personnel,
         work_content=dto.work_content,
-        photos=dto.photos,
+        photos=photos_list,
         signature=dto.signature,
         status='待确认',
         remarks=dto.remark
@@ -218,6 +277,7 @@ def quick_fill_spot_work(
             work_order_no=work.work_id,
             operator_name=operator_name,
             operator_id=operator_id,
+            operation_type='submit',
             operation_type_code='submit',
             operation_type_name='提交',
             operation_remark='员工提交工单'
@@ -443,6 +503,7 @@ def create_spot_work(
             work_order_no=work.work_id,
             operator_name=operator_name,
             operator_id=operator_id,
+            operation_type='create',
             operation_type_code='create',
             operation_type_name='创建',
             operation_remark='创建零星用工工单'
@@ -502,19 +563,23 @@ def delete_spot_work(
     work = service.get_by_id(id)
     work_id = work.work_id
     
+    user_id = current_user.get('id') if current_user else None
+    operator_name = current_user.get('name', '系统') if current_user else '系统'
+    
     log = WorkOrderOperationLog(
         work_order_type='spot_work',
         work_order_id=id,
         work_order_no=work_id,
-        operator_name=current_user.get('name', '系统') if current_user else '系统',
-        operator_id=current_user.get('id') if current_user else None,
+        operator_name=operator_name,
+        operator_id=user_id,
+        operation_type='delete',
         operation_type_code='delete',
         operation_type_name='删除',
         operation_remark=f'删除零星用工单 {work_id}'
     )
     db.add(log)
     
-    service.delete(id)
+    service.delete(id, user_id)
     return ApiResponse(
         code=200,
         message="Deleted successfully",

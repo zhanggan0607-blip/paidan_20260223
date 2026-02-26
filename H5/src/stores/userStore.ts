@@ -1,5 +1,11 @@
 import { ref, readonly, watch } from 'vue'
-import { USER_ROLES } from '../config/constants'
+import {
+  RoleCode,
+  hasPermission,
+  isManagerRole,
+  isAdminRole,
+  isMaterialManager
+} from '../config/permission'
 import { onlineUserService } from '../services/onlineUser'
 
 export interface User {
@@ -103,111 +109,111 @@ export const userStore = {
   },
 
   isAdmin(): boolean {
-    return currentUser.value?.role === USER_ROLES.ADMIN
+    return isAdminRole(currentUser.value?.role)
   },
 
   isDepartmentManager(): boolean {
-    return currentUser.value?.role === USER_ROLES.DEPARTMENT_MANAGER
+    return currentUser.value?.role === RoleCode.DEPARTMENT_MANAGER
   },
 
   isMaterialManager(): boolean {
-    return currentUser.value?.role === USER_ROLES.MATERIAL_MANAGER
+    return isMaterialManager(currentUser.value?.role)
   },
 
   isEmployee(): boolean {
-    return currentUser.value?.role === USER_ROLES.EMPLOYEE
+    return currentUser.value?.role === RoleCode.EMPLOYEE
   },
 
   canManagePersonnel(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'manage_personnel')
   },
 
   canManageProjects(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'manage_projects')
   },
 
   canManageSpareParts(): boolean {
-    return this.isAdmin() || this.isMaterialManager()
+    return hasPermission(currentUser.value?.role, 'manage_spare_parts')
   },
 
   canViewAllWorkOrders(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_all_work_orders')
   },
 
   canViewPersonnel(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_personnel')
   },
 
   canViewStatistics(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_statistics')
   },
 
   canViewProjectManagement(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_project_management')
   },
 
   canViewWorkOrder(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
   },
 
   canViewSparePartsInventory(): boolean {
-    return this.isAdmin() || this.isMaterialManager() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_inventory')
   },
 
   canViewSparePartsStock(): boolean {
-    return this.isAdmin() || this.isMaterialManager() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_stock')
   },
 
   canViewSparePartsIssue(): boolean {
-    return this.isAdmin() || this.isMaterialManager() || this.isEmployee() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_issue')
   },
 
   canViewRepairToolsStock(): boolean {
-    return this.isAdmin() || this.isMaterialManager() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_stock')
   },
 
   canViewRepairToolsInbound(): boolean {
-    return this.isAdmin() || this.isMaterialManager() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_inbound')
   },
 
   canViewRepairToolsIssue(): boolean {
-    return this.isAdmin() || this.isMaterialManager() || this.isEmployee() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_issue')
   },
 
   canViewAlerts(): boolean {
-    return this.isAdmin() || this.isEmployee() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_alerts')
   },
 
   canViewSystemManagement(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_system_management')
   },
 
   canViewPeriodicInspection(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
   },
 
   canApprovePeriodicInspection(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'approve_periodic_inspection')
   },
 
   canApproveTemporaryRepair(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'approve_temporary_repair')
   },
 
   canApproveSpotWork(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'approve_spot_work')
   },
 
   canViewTemporaryRepair(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
   },
 
   canViewSpotWork(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
   },
 
   canApplySpotWork(): boolean {
-    return !this.isMaterialManager()
+    return hasPermission(currentUser.value?.role, 'apply_spot_work')
   },
 
   canViewProjectInfo(): boolean {
@@ -215,42 +221,54 @@ export const userStore = {
   },
 
   canQuickFillSpotWork(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
   },
 
   canViewMaintenanceLog(): boolean {
-    return this.isEmployee()
+    return hasPermission(currentUser.value?.role, 'view_maintenance_log')
   },
 
   canViewMaintenanceLogDetail(): boolean {
-    return this.isAdmin() || this.isDepartmentManager() || this.isEmployee()
+    return hasPermission(currentUser.value?.role, 'view_maintenance_log_detail')
   },
 
   canFillMaintenanceLog(): boolean {
-    return this.isEmployee()
+    return hasPermission(currentUser.value?.role, 'fill_maintenance_log')
   },
 
   canViewAllMaintenanceLog(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_all_maintenance_log')
   },
 
   canViewDepartmentWeeklyReport(): boolean {
-    return this.isAdmin() || this.isDepartmentManager() || this.isEmployee()
+    return hasPermission(currentUser.value?.role, 'view_department_weekly_report')
   },
 
   canViewAllWeeklyReport(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'view_all_weekly_report')
   },
 
   canApproveWeeklyReport(): boolean {
-    return this.isAdmin() || this.isDepartmentManager()
+    return hasPermission(currentUser.value?.role, 'approve_weekly_report')
   },
 
   canViewWorkList(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
   },
 
   canViewSignature(): boolean {
-    return !this.isMaterialManager()
+    return !isMaterialManager(currentUser.value?.role)
+  },
+
+  canCreateTemporaryRepair(): boolean {
+    return hasPermission(currentUser.value?.role, 'create_temporary_repair')
+  },
+
+  isManager(): boolean {
+    return isManagerRole(currentUser.value?.role)
+  },
+
+  hasPermission(permissionId: string): boolean {
+    return hasPermission(currentUser.value?.role, permissionId)
   }
 }

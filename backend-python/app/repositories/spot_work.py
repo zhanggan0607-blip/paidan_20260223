@@ -25,7 +25,9 @@ class SpotWorkRepository:
         client_name: Optional[str] = None
     ) -> tuple[List[SpotWork], int]:
         try:
-            query = self.db.query(SpotWork).options(joinedload(SpotWork.project))
+            query = self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
+                SpotWork.is_deleted == False
+            )
 
             if project_name:
                 query = query.filter(SpotWork.project_name.like(f'%{project_name}%'))
@@ -52,21 +54,30 @@ class SpotWorkRepository:
 
     def find_by_id(self, id: int) -> Optional[SpotWork]:
         try:
-            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(SpotWork.id == id).first()
+            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
+                SpotWork.id == id,
+                SpotWork.is_deleted == False
+            ).first()
         except Exception as e:
             logger.error(f"查询零星用工失败 (id={id}): {str(e)}")
             raise
 
     def find_by_work_id(self, work_id: str) -> Optional[SpotWork]:
         try:
-            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(SpotWork.work_id == work_id).first()
+            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
+                SpotWork.work_id == work_id,
+                SpotWork.is_deleted == False
+            ).first()
         except Exception as e:
             logger.error(f"查询零星用工失败 (work_id={work_id}): {str(e)}")
             raise
 
     def exists_by_work_id(self, work_id: str) -> bool:
         try:
-            return self.db.query(SpotWork).filter(SpotWork.work_id == work_id).first() is not None
+            return self.db.query(SpotWork).filter(
+                SpotWork.work_id == work_id,
+                SpotWork.is_deleted == False
+            ).first() is not None
         except Exception as e:
             logger.error(f"检查零星用工是否存在失败 (work_id={work_id}): {str(e)}")
             raise
@@ -92,7 +103,26 @@ class SpotWorkRepository:
             logger.error(f"更新零星用工失败: {str(e)}")
             raise
 
+    def soft_delete(self, work: SpotWork, user_id: int = None) -> None:
+        """
+        软删除零星用工单
+        
+        Args:
+            work: 要删除的工单对象
+            user_id: 执行删除的用户ID
+        """
+        try:
+            work.soft_delete(user_id)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除零星用工失败: {str(e)}")
+            raise
+
     def delete(self, work: SpotWork) -> None:
+        """
+        物理删除（已弃用，请使用soft_delete）
+        """
         try:
             self.db.delete(work)
             self.db.commit()
@@ -103,7 +133,9 @@ class SpotWorkRepository:
 
     def find_all_unpaginated(self) -> List[SpotWork]:
         try:
-            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).all()
+            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
+                SpotWork.is_deleted == False
+            ).all()
         except Exception as e:
             logger.error(f"查询所有零星用工失败: {str(e)}")
             raise

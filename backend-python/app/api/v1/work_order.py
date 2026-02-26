@@ -1,6 +1,7 @@
 """
 工单管理API - 合并定期巡检、临时维修、零星用工三种工单数据
 """
+import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from app.models.spot_work import SpotWork
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.auth import get_current_user, get_current_user_from_headers
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/work-order", tags=["Work Order Management"])
 
 
@@ -37,6 +39,8 @@ def get_work_order_list(
         user_name = user_info.get('sub') or user_info.get('name')
         role = user_info.get('role', '')
         is_manager = role in ['管理员', '部门经理', '主管']
+    
+    logger.info(f"📋 [工单列表] user_info={user_info}, user_name={user_name}, is_manager={is_manager}")
     
     all_orders = []
     

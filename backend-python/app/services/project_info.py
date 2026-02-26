@@ -176,6 +176,11 @@ class ProjectInfoService:
                 existing_project.project_id,
                 dto.project_manager
             )
+            self._sync_work_orders_maintenance_personnel(
+                existing_project.project_id,
+                old_project_manager,
+                dto.project_manager
+            )
         
         return result
     
@@ -275,6 +280,54 @@ class ProjectInfoService:
         except Exception as e:
             self.db.rollback()
             logger.error(f"❌ [Service] 同步更新维保计划负责人失败: {str(e)}")
+    
+    def _sync_work_orders_maintenance_personnel(self, project_id: str, old_personnel: str, new_personnel: str):
+        """
+        同步更新工单的运维人员
+        当项目信息的运维人员变更时，自动更新所有关联工单的运维人员字段
+        
+        Args:
+            project_id: 项目编号
+            old_personnel: 原运维人员姓名
+            new_personnel: 新运维人员姓名
+        """
+        from app.models.periodic_inspection import PeriodicInspection
+        from app.models.temporary_repair import TemporaryRepair
+        from app.models.spot_work import SpotWork
+        
+        total_updated = 0
+        
+        try:
+            periodic_updated = self.db.query(PeriodicInspection).filter(
+                PeriodicInspection.project_id == project_id,
+                PeriodicInspection.maintenance_personnel == old_personnel
+            ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
+            total_updated += periodic_updated
+            logger.info(f"📝 [Service] 更新定期巡检工单运维人员: {periodic_updated} 条")
+            
+            repair_updated = self.db.query(TemporaryRepair).filter(
+                TemporaryRepair.project_id == project_id,
+                TemporaryRepair.maintenance_personnel == old_personnel
+            ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
+            total_updated += repair_updated
+            logger.info(f"📝 [Service] 更新临时维修工单运维人员: {repair_updated} 条")
+            
+            spot_work_updated = self.db.query(SpotWork).filter(
+                SpotWork.project_id == project_id,
+                SpotWork.maintenance_personnel == old_personnel
+            ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
+            total_updated += spot_work_updated
+            logger.info(f"📝 [Service] 更新零星用工工单运维人员: {spot_work_updated} 条")
+            
+            if total_updated > 0:
+                self.db.commit()
+                logger.info(f"✅ [Service] 同步更新工单运维人员完成: project_id={project_id}, {old_personnel} -> {new_personnel}, 共更新 {total_updated} 条记录")
+            else:
+                logger.info(f"ℹ️ [Service] 无需更新工单运维人员: project_id={project_id}, 未找到原运维人员 {old_personnel} 的工单")
+                
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"❌ [Service] 同步更新工单运维人员失败: {str(e)}")
     
     def delete(self, id: int, cascade: bool = False) -> dict:
         project_info = self.get_by_id(id)

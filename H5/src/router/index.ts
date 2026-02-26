@@ -3,12 +3,6 @@ import { userStore } from '../stores/userStore'
 
 const routes = [
   {
-    path: '/login',
-    name: 'Login',
-    component: () => import('../views/LoginPage.vue'),
-    meta: { title: '用户登录' }
-  },
-  {
     path: '/',
     name: 'Home',
     component: () => import('../views/HomePage.vue'),
@@ -43,6 +37,12 @@ const routes = [
     name: 'TemporaryRepair',
     component: () => import('../views/TemporaryRepairPage.vue'),
     meta: { title: '临时维修', permission: 'canViewTemporaryRepair' }
+  },
+  {
+    path: '/temporary-repair/create',
+    name: 'TemporaryRepairCreate',
+    component: () => import('../views/TemporaryRepairCreatePage.vue'),
+    meta: { title: '新增临时维修单', permission: 'canViewTemporaryRepair' }
   },
   {
     path: '/temporary-repair/:id',
@@ -133,6 +133,12 @@ const routes = [
     name: 'SparePartsStock',
     component: () => import('../views/SparePartsStockPage.vue'),
     meta: { title: '配品备件入库', permission: 'canViewSparePartsStock' }
+  },
+  {
+    path: '/spare-parts-return',
+    name: 'SparePartsReturn',
+    component: () => import('../views/SparePartsReturnPage.vue'),
+    meta: { title: '备品备件归还', permission: 'canViewSparePartsIssue' }
   },
   {
     path: '/repair-tools-issue',

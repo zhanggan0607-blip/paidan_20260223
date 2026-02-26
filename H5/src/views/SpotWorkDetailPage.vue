@@ -252,15 +252,6 @@ const handleSubmit = async () => {
     showLoadingToast({ message: '提交中...', forbidClick: true })
     
     const submitData = {
-      work_id: detail.value?.work_id,
-      project_id: detail.value?.project_id,
-      project_name: detail.value?.project_name,
-      plan_start_date: detail.value?.plan_start_date,
-      plan_end_date: detail.value?.plan_end_date,
-      client_name: detail.value?.client_name,
-      client_contact: detail.value?.client_contact,
-      client_contact_info: detail.value?.client_contact_info,
-      maintenance_personnel: detail.value?.maintenance_personnel,
       work_content: formData.value.work_content,
       photos: JSON.stringify(currentPhotos.value),
       signature: formData.value.signature,
@@ -268,17 +259,13 @@ const handleSubmit = async () => {
       remarks: formData.value.remarks
     }
     
-    const response = await api.put<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
+    const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('spot_work_signature')
       showSuccessToast('提交成功')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/spot-work')
-      }
+      goBack('/spot-work')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -295,23 +282,13 @@ const handleSave = async () => {
   
   try {
     const saveData = {
-      work_id: detail.value?.work_id,
-      project_id: detail.value?.project_id,
-      project_name: detail.value?.project_name,
-      plan_start_date: detail.value?.plan_start_date,
-      plan_end_date: detail.value?.plan_end_date,
-      client_name: detail.value?.client_name,
-      client_contact: detail.value?.client_contact,
-      client_contact_info: detail.value?.client_contact_info,
-      maintenance_personnel: detail.value?.maintenance_personnel,
       work_content: formData.value.work_content,
       photos: JSON.stringify(currentPhotos.value),
       signature: formData.value.signature,
-      status: detail.value?.status,
       remarks: formData.value.remarks
     }
     
-    const response = await api.put<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, saveData)
+    const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, saveData)
     
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
@@ -348,11 +325,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/spot-work')
-      }
+      goBack('/spot-work')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -389,11 +362,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/spot-work')
-      }
+      goBack('/spot-work')
     }
   } catch (error) {
     if (error !== 'cancel') {

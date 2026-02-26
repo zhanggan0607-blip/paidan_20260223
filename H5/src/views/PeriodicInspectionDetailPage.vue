@@ -9,9 +9,11 @@ import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { processPhoto, getCurrentLocation } from '../utils/watermark'
+import { useNavigation } from '../composables'
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 interface WorkPlanDetail {
   id: number
@@ -58,6 +60,17 @@ interface InspectionItemData {
   inspection_content: string
   check_requirements: string
   brief_description: string
+}
+
+interface InspectionItemTree {
+  id: number
+  item_name: string
+  item_type: string
+  level: number
+  parent_id: number | null
+  check_content: string | null
+  check_standard: string | null
+  children?: InspectionItemTree[]
 }
 
 interface InspectionSystem {
@@ -132,11 +145,7 @@ const filledCount = computed(() => {
 })
 
 const handleBackToList = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/periodic-inspection')
-  }
+  goBack('/periodic-inspection')
 }
 
 /**
@@ -211,9 +220,55 @@ const fetchDetail = async () => {
 }
 
 /**
+ * 从巡检事项表获取默认的巡检事项
+ * 当维保计划没有配置inspection_items时使用
+ */
+const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
+  try {
+    const response = await api.get<unknown, ApiResponse<InspectionItemTree[]>>('/inspection-item/tree')
+    if (response.code === 200 && response.data) {
+      const allItems: InspectionSystem[] = []
+      let itemIndex = 0
+      
+      const processTreeItems = (items: InspectionItemTree[]) => {
+        items.forEach(item => {
+          if (item.level === 3) {
+            allItems.push({
+              id: item.id,
+              name: item.item_name,
+              inspected: false,
+              photos_uploaded: false,
+              inspection_content: item.check_content || '',
+              inspection_result: '',
+              photos: [],
+              check_content: item.check_content || '',
+              check_standard: item.check_standard || '',
+              equipment_name: '',
+              equipment_location: '',
+              inspection_item: item.item_name,
+              brief_description: ''
+            })
+            itemIndex++
+          }
+          if (item.children && item.children.length > 0) {
+            processTreeItems(item.children)
+          }
+        })
+      }
+      
+      processTreeItems(response.data)
+      return allItems
+    }
+  } catch (error) {
+    console.error('Failed to fetch default inspection items:', error)
+  }
+  return []
+}
+
+/**
  * 从后端API获取项目关联的维保事项
  * 将维保计划的inspection_items JSON字段解析为巡检记录列表
- * 与PC端WorkPlanManagement.vue保持一致的数据解析逻辑
+ * 如果维保计划没有inspection_items，则从巡检事项表获取默认数据
  */
 const fetchInspectionItems = async () => {
   if (!detail.value?.project_id) {
@@ -269,7 +324,12 @@ const fetchInspectionItems = async () => {
         }
       })
       
-      inspectionSystems.value = allItems
+      if (allItems.length === 0) {
+        const defaultItems = await fetchDefaultInspectionItems()
+        inspectionSystems.value = defaultItems
+      } else {
+        inspectionSystems.value = allItems
+      }
       
       await loadSavedRecords()
     }
@@ -505,13 +565,6 @@ const handleSubmit = async () => {
     showLoadingToast({ message: '提交中...', forbidClick: true })
     
     const submitData = {
-      inspection_id: detail.value?.inspection_id,
-      project_id: detail.value?.project_id,
-      project_name: detail.value?.project_name,
-      plan_start_date: detail.value?.plan_start_date,
-      plan_end_date: detail.value?.plan_end_date,
-      client_name: detail.value?.client_name,
-      maintenance_personnel: detail.value?.maintenance_personnel,
       status: '待确认',
       execution_result: formData.value.execution_result,
       remarks: formData.value.remarks,
@@ -520,17 +573,13 @@ const handleSubmit = async () => {
       filled_count: filledCount.value
     }
     
-    const response = await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
+    const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
     
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
       showSuccessToast('提交成功')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/periodic-inspection')
-      }
+      goBack('/periodic-inspection')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -547,14 +596,6 @@ const handleSave = async () => {
   
   try {
     const saveData = {
-      inspection_id: detail.value?.inspection_id,
-      project_id: detail.value?.project_id,
-      project_name: detail.value?.project_name,
-      plan_start_date: detail.value?.plan_start_date,
-      plan_end_date: detail.value?.plan_end_date,
-      client_name: detail.value?.client_name,
-      maintenance_personnel: detail.value?.maintenance_personnel,
-      status: detail.value?.status || WORK_STATUS.IN_PROGRESS,
       execution_result: formData.value.execution_result,
       remarks: formData.value.remarks,
       signature: formData.value.signature,
@@ -562,7 +603,7 @@ const handleSave = async () => {
       filled_count: filledCount.value
     }
     
-    const response = await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, saveData)
+    const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, saveData)
     
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
@@ -599,11 +640,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/periodic-inspection')
-      }
+      goBack('/periodic-inspection')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -640,11 +677,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      if (window.history.length > 1) {
-        router.back()
-      } else {
-        router.push('/periodic-inspection')
-      }
+      goBack('/periodic-inspection')
     }
   } catch (error) {
     if (error !== 'cancel') {

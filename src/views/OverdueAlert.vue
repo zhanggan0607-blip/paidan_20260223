@@ -312,12 +312,7 @@ export default defineComponent({
     }
 
     const filteredAllData = computed(() => {
-      let result = allData.value
-      const user = userStore.getUser()
-      if (user && user.role === USER_ROLES.EMPLOYEE) {
-        result = result.filter(item => item.executor === user.name)
-      }
-      return result
+      return allData.value
     })
 
     const filteredData = computed(() => {

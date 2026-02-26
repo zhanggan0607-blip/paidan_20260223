@@ -6,9 +6,11 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import SearchInput from '../components/SearchInput.vue'
 import UserSelector from '../components/UserSelector.vue'
+import { useNavigation } from '../composables'
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 interface Customer {
   id: number
@@ -205,7 +207,7 @@ const handleSubmit = async () => {
 
     if (response.code === 200) {
       showSuccessToast(isEdit.value ? '更新成功' : '创建成功')
-      router.back()
+      goBack('/project-info')
     }
   } catch (error: any) {
     console.error('Failed to save project:', error)
@@ -229,7 +231,7 @@ const handleDelete = async () => {
     const response = await api.delete<unknown, ApiResponse<null>>(`/project-info/${projectId.value}`)
     if (response.code === 200) {
       showSuccessToast('删除成功')
-      router.back()
+      goBack('/project-info')
     }
   } catch (error: any) {
     if (error !== 'cancel') {
@@ -240,7 +242,7 @@ const handleDelete = async () => {
 }
 
 const handleBack = () => {
-  router.back()
+  goBack('/project-info')
 }
 
 onMounted(() => {

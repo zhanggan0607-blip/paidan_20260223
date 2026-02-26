@@ -1,0 +1,13 @@
+import psycopg2
+conn = psycopg2.connect(host='localhost', database='sstcp_maintenance', user='sstcp_user', password='Lily421020', port=5432)
+cursor = conn.cursor()
+cursor.execute("SELECT COUNT(*) FROM periodic_inspection")
+print('periodic_inspection count:', cursor.fetchone()[0])
+cursor.execute("SELECT COUNT(*) FROM temporary_repair")
+print('temporary_repair count:', cursor.fetchone()[0])
+cursor.execute("SELECT COUNT(*) FROM spot_work")
+print('spot_work count:', cursor.fetchone()[0])
+cursor.execute("SELECT status, actual_completion_date FROM periodic_inspection LIMIT 3")
+print('Sample data:', cursor.fetchall())
+cursor.close()
+conn.close()

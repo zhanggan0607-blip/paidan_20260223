@@ -80,6 +80,7 @@ def parse_datetime(datetime_value: Optional[Union[str, datetime]]) -> Optional[d
             '%Y-%m-%dT%H:%M:%S.%f',
             '%Y-%m-%dT%H:%M:%SZ',
             '%Y/%m/%d %H:%M:%S',
+            '%Y-%m-%d',
         ]
         
         for fmt in datetime_formats:

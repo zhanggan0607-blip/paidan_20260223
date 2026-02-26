@@ -1,0 +1,11 @@
+import psycopg2
+conn = psycopg2.connect(host='localhost', database='tq', user='postgres', password='123456', port=5432)
+cursor = conn.cursor()
+cursor.execute("SELECT status, actual_completion_date FROM periodic_inspection WHERE status IN ('已完成', '已确认', '已审批')")
+print('periodic_inspection completed:', cursor.fetchall())
+cursor.execute("SELECT status, actual_completion_date FROM temporary_repair WHERE status IN ('已完成', '已确认', '已审批')")
+print('temporary_repair completed:', cursor.fetchall())
+cursor.execute("SELECT status, actual_completion_date FROM spot_work WHERE status IN ('已完成', '已确认', '已审批')")
+print('spot_work completed:', cursor.fetchall())
+cursor.close()
+conn.close()

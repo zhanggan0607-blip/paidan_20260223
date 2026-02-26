@@ -109,10 +109,17 @@ class PeriodicInspectionService:
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)
         return result
     
-    def delete(self, id: int) -> None:
+    def delete(self, id: int, user_id: int = None) -> None:
+        """
+        软删除定期巡检单
+        
+        Args:
+            id: 巡检单ID
+            user_id: 执行删除的用户ID
+        """
         inspection = self.get_by_id(id)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, inspection, is_delete=True)
-        self.repository.delete(inspection)
+        self.repository.soft_delete(inspection, user_id)
     
     def partial_update(self, id: int, dto: PeriodicInspectionPartialUpdate) -> PeriodicInspection:
         existing_inspection = self.get_by_id(id)
@@ -172,6 +179,109 @@ class PeriodicInspectionService:
             'total_count': total_count,
             'filled_count': filled_count
         }
+    
+    def get_inspection_counts_batch(self, inspections: List[PeriodicInspection]) -> dict:
+        """
+        批量计算多个巡检单的已填写数量和总数量
+        避免N+1查询问题
+        
+        Args:
+            inspections: 巡检单列表
+            
+        Returns:
+            dict: {inspection_id: {'total_count': int, 'filled_count': int}}
+        """
+        if not inspections:
+            return {}
+        
+        db = self.repository.db
+        inspection_ids = [ins.inspection_id for ins in inspections]
+        
+        all_records = db.query(PeriodicInspectionRecord).filter(
+            PeriodicInspectionRecord.inspection_id.in_(inspection_ids)
+        ).all()
+        
+        records_by_inspection = {}
+        for record in all_records:
+            if record.inspection_id not in records_by_inspection:
+                records_by_inspection[record.inspection_id] = []
+            records_by_inspection[record.inspection_id].append(record)
+        
+        project_ids = list(set(ins.project_id for ins in inspections if ins.project_id))
+        plans = []
+        if project_ids:
+            plans = db.query(MaintenancePlan).filter(
+                MaintenancePlan.project_id.in_(project_ids)
+            ).all()
+        
+        plans_by_project = {}
+        for plan in plans:
+            if plan.project_id not in plans_by_project:
+                plans_by_project[plan.project_id] = []
+            plans_by_project[plan.project_id].append(plan)
+        
+        result = {}
+        for ins in inspections:
+            records = records_by_inspection.get(ins.inspection_id, [])
+            
+            if records:
+                unique_items = {}
+                for record in records:
+                    key = record.inspection_content or record.item_name
+                    if key not in unique_items:
+                        unique_items[key] = {'inspected': False}
+                    if record.inspected:
+                        unique_items[key]['inspected'] = True
+                
+                total_count = len(unique_items)
+                filled_count = sum(1 for item in unique_items.values() if item['inspected'])
+            else:
+                project_plans = plans_by_project.get(ins.project_id, [])
+                total_count = self._get_total_count_from_plans_cached(
+                    project_plans, ins.plan_start_date, ins.plan_end_date
+                )
+                filled_count = 0
+            
+            result[ins.inspection_id] = {
+                'total_count': total_count,
+                'filled_count': filled_count
+            }
+        
+        return result
+    
+    def _get_total_count_from_plans_cached(self, plans: list, plan_start_date: datetime, plan_end_date: datetime) -> int:
+        """
+        从缓存的维保计划列表中获取3级节点总数
+        """
+        if not plan_start_date or not plan_end_date:
+            return 0
+        
+        try:
+            order_start = plan_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            order_end = plan_end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            unique_items = set()
+            for plan in plans:
+                if not plan.plan_start_date or not plan.plan_end_date:
+                    continue
+                plan_start = plan.plan_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                plan_end = plan.plan_end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                
+                if order_start <= plan_end and order_end >= plan_start:
+                    if plan.inspection_items:
+                        try:
+                            items = json.loads(plan.inspection_items)
+                            for item in items:
+                                inspection_content = item.get('inspection_content', '')
+                                if inspection_content:
+                                    unique_items.add(inspection_content)
+                        except:
+                            pass
+            
+            return len(unique_items)
+        except Exception as e:
+            print(f"Error getting total count from plans: {e}")
+            return 0
     
     def _get_total_count_from_plans(self, db: Session, project_id: str, plan_start_date: datetime, plan_end_date: datetime) -> int:
         """

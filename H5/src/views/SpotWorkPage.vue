@@ -130,7 +130,7 @@ onMounted(() => {
                 class="work-card"
               >
                 <div class="card-header">
-                  <van-tag :type="getStatusType(item.status)" size="medium" :class="{ 'returned-tag': item.status === '已退回' }">
+                  <van-tag :type="getStatusType(item.status)" size="medium">
                     {{ getDisplayStatus(item.status) }}
                   </van-tag>
                   <div class="work-id-wrapper">
@@ -294,12 +294,6 @@ onMounted(() => {
 
 :deep(.van-pull-refresh) {
   min-height: calc(100vh - 46px - 44px);
-}
-
-.van-tag--primary.returned-tag {
-  background-color: var(--status-overdue-bg);
-  color: var(--status-overdue-text);
-  border-color: var(--status-overdue-border);
 }
 
 :deep(.van-tabs__line) {

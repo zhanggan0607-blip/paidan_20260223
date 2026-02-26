@@ -21,6 +21,7 @@ class TemporaryRepairBase(BaseModel):
     solution: Optional[str] = Field(None, description="解决方案")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="用户签字Base64")
+    customer_signature: Optional[str] = Field(None, description="客户签字Base64")
     execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
     @field_validator('status')
@@ -49,6 +50,7 @@ class TemporaryRepairCreate(BaseModel):
     solution: Optional[str] = Field(None, description="解决方案")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="用户签字Base64")
+    customer_signature: Optional[str] = Field(None, description="客户签字Base64")
     execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
 
@@ -69,6 +71,7 @@ class TemporaryRepairUpdate(BaseModel):
     solution: Optional[str] = Field(None, description="解决方案")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="用户签字Base64")
+    customer_signature: Optional[str] = Field(None, description="客户签字Base64")
     execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
 
@@ -89,6 +92,7 @@ class TemporaryRepairPartialUpdate(BaseModel):
     solution: Optional[str] = Field(None, description="解决方案")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="用户签字Base64")
+    customer_signature: Optional[str] = Field(None, description="客户签字Base64")
     execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
 
     @field_validator('status')

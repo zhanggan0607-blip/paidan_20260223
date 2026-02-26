@@ -2,6 +2,13 @@ from typing import List, Optional
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.personnel import Personnel
+from app.models.online_user import OnlineUser
+from app.models.project_info import ProjectInfo
+from app.models.maintenance_plan import MaintenancePlan
+from app.models.work_plan import WorkPlan
+from app.models.periodic_inspection import PeriodicInspection
+from app.models.temporary_repair import TemporaryRepair
+from app.models.spot_work import SpotWork
 from app.repositories.personnel import PersonnelRepository
 from app.schemas.personnel import PersonnelCreate, PersonnelUpdate
 
@@ -81,11 +88,14 @@ class PersonnelService:
     def update(self, id: int, dto: PersonnelUpdate) -> Personnel:
         """
         更新人员信息
+        同时同步更新在线用户表和所有关联表中的相关信息
         @param id: 人员ID
         @param dto: 人员更新数据传输对象
         @return: 更新后的人员对象
         """
         existing_personnel = self.get_by_id(id)
+        old_name = existing_personnel.name
+        new_name = dto.name
         
         existing_personnel.name = dto.name
         existing_personnel.gender = dto.gender
@@ -95,16 +105,118 @@ class PersonnelService:
         existing_personnel.address = dto.address
         existing_personnel.remarks = dto.remarks
         
-        return self.repository.update(existing_personnel)
+        result = self.repository.update(existing_personnel)
+        
+        self._sync_online_user_info(id, dto.name, dto.department, dto.role)
+        
+        if old_name != new_name:
+            self._sync_personnel_name_to_all_tables(old_name, new_name)
+        
+        return result
+    
+    def _sync_personnel_name_to_all_tables(self, old_name: str, new_name: str) -> None:
+        """
+        同步更新所有关联表中的人员姓名
+        @param old_name: 原姓名
+        @param new_name: 新姓名
+        """
+        db = self.repository.db
+        updated_count = 0
+        
+        project_infos = db.query(ProjectInfo).filter(
+            ProjectInfo.project_manager == old_name
+        ).all()
+        for project in project_infos:
+            project.project_manager = new_name
+            updated_count += 1
+        
+        maintenance_plans = db.query(MaintenancePlan).filter(
+            MaintenancePlan.maintenance_personnel == old_name
+        ).all()
+        for plan in maintenance_plans:
+            plan.maintenance_personnel = new_name
+            updated_count += 1
+        
+        work_plans = db.query(WorkPlan).filter(
+            WorkPlan.maintenance_personnel == old_name
+        ).all()
+        for plan in work_plans:
+            plan.maintenance_personnel = new_name
+            updated_count += 1
+        
+        periodic_inspections = db.query(PeriodicInspection).filter(
+            PeriodicInspection.maintenance_personnel == old_name
+        ).all()
+        for inspection in periodic_inspections:
+            inspection.maintenance_personnel = new_name
+            updated_count += 1
+        
+        temporary_repairs = db.query(TemporaryRepair).filter(
+            TemporaryRepair.maintenance_personnel == old_name
+        ).all()
+        for repair in temporary_repairs:
+            repair.maintenance_personnel = new_name
+            updated_count += 1
+        
+        spot_works = db.query(SpotWork).filter(
+            SpotWork.maintenance_personnel == old_name
+        ).all()
+        for work in spot_works:
+            work.maintenance_personnel = new_name
+            updated_count += 1
+        
+        if updated_count > 0:
+            db.commit()
+            print(f"[PersonnelService] 同步更新人员姓名: '{old_name}' -> '{new_name}', 共更新 {updated_count} 条记录")
+    
+    def _sync_online_user_info(self, user_id: int, name: str, department: str, role: str) -> None:
+        """
+        同步更新在线用户表中的用户信息
+        @param user_id: 用户ID
+        @param name: 用户姓名
+        @param department: 部门
+        @param role: 角色
+        """
+        online_users = self.repository.db.query(OnlineUser).filter(
+            OnlineUser.user_id == user_id,
+            OnlineUser.is_active == True
+        ).all()
+        
+        for online_user in online_users:
+            online_user.user_name = name
+            online_user.department = department
+            online_user.role = role
+        
+        if online_users:
+            self.repository.db.commit()
     
     def delete(self, id: int) -> None:
         """
         删除人员
+        同时将在线用户表中的该用户标记为离线
         @param id: 人员ID
         """
-        # TODO: 删除前应该检查该人员是否有未完成的工单
         personnel = self.get_by_id(id)
+        
+        self._set_online_user_offline(id)
+        
         self.repository.delete(personnel)
+    
+    def _set_online_user_offline(self, user_id: int) -> None:
+        """
+        将在线用户表中的用户标记为离线
+        @param user_id: 用户ID
+        """
+        online_users = self.repository.db.query(OnlineUser).filter(
+            OnlineUser.user_id == user_id,
+            OnlineUser.is_active == True
+        ).all()
+        
+        for online_user in online_users:
+            online_user.is_active = False
+        
+        if online_users:
+            self.repository.db.commit()
     
     def get_all_unpaginated(self) -> List[Personnel]:
         """

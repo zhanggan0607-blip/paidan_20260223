@@ -1,0 +1,11 @@
+import psycopg2
+conn = psycopg2.connect(host='localhost', database='sstcp_maintenance', user='sstcp_user', password='Lily421020', port=5432)
+cursor = conn.cursor()
+cursor.execute("SELECT status, actual_completion_date, maintenance_personnel FROM periodic_inspection WHERE status='已完成'")
+print('periodic_inspection completed:', cursor.fetchall())
+cursor.execute("SELECT status, actual_completion_date, maintenance_personnel FROM temporary_repair WHERE status='已完成'")
+print('temporary_repair completed:', cursor.fetchall())
+cursor.execute("SELECT status, actual_completion_date, maintenance_personnel FROM spot_work WHERE status='已完成'")
+print('spot_work completed:', cursor.fetchall())
+cursor.close()
+conn.close()

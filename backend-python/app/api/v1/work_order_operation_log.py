@@ -46,6 +46,7 @@ def create_operation_log(
         work_order_no=dto.work_order_no,
         operator_name=dto.operator_name,
         operator_id=dto.operator_id,
+        operation_type=dto.operation_type_code,
         operation_type_code=dto.operation_type_code,
         operation_type_name=operation_type.type_name,
         operation_remark=dto.operation_remark

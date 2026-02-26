@@ -1,4 +1,5 @@
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -14,6 +15,7 @@ from app.schemas.periodic_inspection import (
 )
 from app.auth import get_current_user, get_current_user_from_headers
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/periodic-inspection", tags=["Periodic Inspection Management"])
 
 
@@ -47,15 +49,15 @@ def get_all_periodic_inspection(
     if not is_manager and user_name:
         items = [item for item in items if item.maintenance_personnel == user_name]
     
+    if not items:
+        return ApiResponse.success([])
+    
+    counts_map = service.get_inspection_counts_batch(items)
+    
     result = []
     for item in items:
         item_dict = item.to_dict()
-        counts = service.get_inspection_counts(
-            item.inspection_id,
-            item.project_id,
-            item.plan_start_date,
-            item.plan_end_date
-        )
+        counts = counts_map.get(item.inspection_id, {'total_count': 0, 'filled_count': 0})
         item_dict['total_count'] = counts['total_count']
         item_dict['filled_count'] = counts['filled_count']
         result.append(item_dict)
@@ -67,7 +69,7 @@ def get_all_periodic_inspection(
 def get_periodic_inspection_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=2000, description="Page size"),
+    size: int = Query(10, ge=1, le=100, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     inspection_id: Optional[str] = Query(None, description="Inspection ID (fuzzy search)"),
@@ -87,19 +89,21 @@ def get_periodic_inspection_list(
     
     maintenance_personnel = None if is_manager else user_name
     
+    logger.info(f"[PC端定期巡检] user_info={user_info}, user_name={user_name}, is_manager={is_manager}, maintenance_personnel={maintenance_personnel}")
+    
     items, total = service.get_all(
         page, size, project_name, client_name, inspection_id, status, maintenance_personnel
     )
     
+    if not items:
+        return PaginatedResponse.success([], total, page, size)
+    
+    counts_map = service.get_inspection_counts_batch(items)
+    
     result = []
     for item in items:
         item_dict = item.to_dict()
-        counts = service.get_inspection_counts(
-            item.inspection_id,
-            item.project_id,
-            item.plan_start_date,
-            item.plan_end_date
-        )
+        counts = counts_map.get(item.inspection_id, {'total_count': 0, 'filled_count': 0})
         item_dict['total_count'] = counts['total_count']
         item_dict['filled_count'] = counts['filled_count']
         result.append(item_dict)
@@ -164,17 +168,21 @@ def delete_periodic_inspection(
     inspection = service.get_by_id(id)
     inspection_id = inspection.inspection_id
     
+    user_id = current_user.get('id') if current_user else None
+    operator_name = current_user.get('name', '系统') if current_user else '系统'
+    
     log = WorkOrderOperationLog(
         work_order_type='periodic_inspection',
         work_order_id=id,
         work_order_no=inspection_id,
-        operator_name=current_user.get('name', '系统') if current_user else '系统',
-        operator_id=current_user.get('id') if current_user else None,
+        operator_name=operator_name,
+        operator_id=user_id,
+        operation_type='delete',
         operation_type_code='delete',
         operation_type_name='删除',
         operation_remark=f'删除定期巡检单 {inspection_id}'
     )
     db.add(log)
     
-    service.delete(id)
+    service.delete(id, user_id)
     return ApiResponse.success(None, "Deleted successfully")

@@ -1,10 +1,11 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text
+from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.models.mixins import SoftDeleteMixin
 
 
-class TemporaryRepair(Base):
+class TemporaryRepair(Base, SoftDeleteMixin):
     __tablename__ = "temporary_repair"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
@@ -22,6 +23,7 @@ class TemporaryRepair(Base):
     solution = Column(Text, comment="解决方案")
     photos = Column(Text, comment="现场图片JSON数组")
     signature = Column(Text, comment="用户签字Base64")
+    customer_signature = Column(Text, comment="客户签字Base64")
     execution_date = Column(DateTime, comment="执行日期")
     actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
@@ -83,6 +85,7 @@ class TemporaryRepair(Base):
             'solution': self.solution or '',
             'photos': photos,
             'signature': self.signature or '',
+            'customer_signature': self.customer_signature or '',
             'execution_date': self.execution_date.isoformat() if self.execution_date else None,
             'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,

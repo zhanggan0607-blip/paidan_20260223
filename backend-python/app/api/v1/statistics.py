@@ -23,6 +23,22 @@ def _apply_user_filter(query, model, user_name: Optional[str], is_manager: bool)
     return query
 
 
+def _get_user_info(request: Request, current_user: Optional[dict]):
+    """
+    获取用户信息并判断是否为管理员
+    返回: (user_name, is_manager)
+    """
+    user_info = current_user or get_current_user_from_headers(request)
+    if not user_info:
+        return None, False
+    
+    user_name = user_info.get('sub') or user_info.get('name')
+    role = user_info.get('role', '')
+    is_manager = role in ['管理员', '部门经理', '主管']
+    
+    return user_name, is_manager
+
+
 @router.get("/overview", response_model=ApiResponse)
 def get_statistics_overview(
     request: Request,
@@ -36,13 +52,7 @@ def get_statistics_overview(
     本年完成使用 actual_completion_date 判断
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     today = datetime.now().date()
     current_year = today.year
@@ -182,13 +192,7 @@ def get_completion_rate(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -282,13 +286,7 @@ def get_top_projects(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -364,13 +362,7 @@ def get_top_repairs(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -419,13 +411,7 @@ def get_employee_stats(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -500,13 +486,7 @@ def get_repair_stats(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -556,13 +536,7 @@ def get_spotwork_stats(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -612,13 +586,7 @@ def get_inspection_stats(
     使用 plan_start_date 过滤年份
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     year_start = datetime(year, 1, 1).date()
     year_end = datetime(year, 12, 31).date()
@@ -678,13 +646,7 @@ def get_statistics_detail(
     本年完成使用 actual_completion_date 判断
     """
     
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = True
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
+    user_name, is_manager = _get_user_info(request, current_user)
     
     today = datetime.now().date()
     current_year = today.year

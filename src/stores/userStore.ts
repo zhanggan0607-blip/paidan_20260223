@@ -1,5 +1,11 @@
 import { ref, readonly } from 'vue'
-import { USER_ROLES } from '../config/constants'
+import {
+  RoleCode,
+  hasPermission,
+  isManagerRole,
+  isAdminRole,
+  canShowMenu
+} from '../config/permission'
 import onlineUserService from '../services/onlineUser'
 
 export interface User {
@@ -102,117 +108,118 @@ export const userStore = {
   },
   
   isAdmin: (): boolean => {
-    return currentUser.value?.role === USER_ROLES.ADMIN
+    return isAdminRole(currentUser.value?.role)
   },
   
   isDepartmentManager: (): boolean => {
-    return currentUser.value?.role === USER_ROLES.DEPARTMENT_MANAGER
+    return currentUser.value?.role === RoleCode.DEPARTMENT_MANAGER
   },
   
   isMaterialManager: (): boolean => {
-    return currentUser.value?.role === USER_ROLES.MATERIAL_MANAGER
+    return currentUser.value?.role === RoleCode.MATERIAL_MANAGER
   },
   
   isMaterialManagerOnly: (): boolean => {
-    return currentUser.value?.role === USER_ROLES.MATERIAL_MANAGER
+    return currentUser.value?.role === RoleCode.MATERIAL_MANAGER
   },
   
   isEmployee: (): boolean => {
-    return currentUser.value?.role === USER_ROLES.EMPLOYEE
+    return currentUser.value?.role === RoleCode.EMPLOYEE
   },
   
   canViewStatistics: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'view_statistics')
   },
   
   canViewProjectManagement: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_project_management')
   },
   
   canViewAlerts: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'view_alerts')
   },
   
   canViewPersonnel: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_personnel')
   },
   
   canViewSystemManagement: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_system_management')
   },
   
   canViewWorkOrder: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'view_work_order')
   },
   
   canViewSparePartsStock: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_stock')
   },
   
   canViewSparePartsIssue: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_issue')
   },
   
   canViewRepairToolsInbound: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_stock')
   },
   
   canViewRepairToolsIssue: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.MATERIAL_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_issue')
   },
   
   canFillMaintenanceLog: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'fill_maintenance_log')
   },
   
   canViewMaintenanceLog: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER || role === USER_ROLES.EMPLOYEE
+    return hasPermission(currentUser.value?.role, 'view_maintenance_log')
   },
   
   canViewAllMaintenanceLog: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_all_maintenance_log')
   },
   
   canFillWeeklyReport: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'fill_weekly_report')
   },
   
   canViewWeeklyReport: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_weekly_report')
   },
   
   canApproveWeeklyReport: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'view_weekly_report')
   },
   
   canApprovePeriodicInspection: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'approve_periodic_inspection')
   },
   
   canApproveTemporaryRepair: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'approve_temporary_repair')
   },
   
   canApproveSpotWork: (): boolean => {
-    const role = currentUser.value?.role
-    return role === USER_ROLES.ADMIN || role === USER_ROLES.DEPARTMENT_MANAGER
+    return hasPermission(currentUser.value?.role, 'approve_spot_work')
+  },
+  
+  canDeletePersonnel: (): boolean => {
+    return hasPermission(currentUser.value?.role, 'delete_personnel')
+  },
+  
+  canEditPersonnelRole: (): boolean => {
+    return hasPermission(currentUser.value?.role, 'edit_personnel_role')
+  },
+  
+  canShowMenu: (menuId: string): boolean => {
+    return canShowMenu(menuId, currentUser.value?.role)
+  },
+  
+  isManager: (): boolean => {
+    return isManagerRole(currentUser.value?.role)
+  },
+  
+  hasPermission: (permissionId: string): boolean => {
+    return hasPermission(currentUser.value?.role, permissionId)
   }
 }

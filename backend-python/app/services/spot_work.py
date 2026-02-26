@@ -155,10 +155,17 @@ class SpotWorkService:
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
         return result
     
-    def delete(self, id: int) -> None:
+    def delete(self, id: int, user_id: int = None) -> None:
+        """
+        软删除零星用工单
+        
+        Args:
+            id: 工单ID
+            user_id: 执行删除的用户ID
+        """
         work = self.get_by_id(id)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, work, is_delete=True)
-        self.repository.delete(work)
+        self.repository.soft_delete(work, user_id)
     
     def get_all_unpaginated(self) -> List[SpotWork]:
         return self.repository.find_all_unpaginated()

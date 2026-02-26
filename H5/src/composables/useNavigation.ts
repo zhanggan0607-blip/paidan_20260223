@@ -16,7 +16,7 @@ export const useNavigation = () => {
    * @param defaultPath 默认跳转路径
    */
   const goBack = (defaultPath: string = '/') => {
-    if (window.history.length > 1) {
+    if (window.history.state && window.history.state.back) {
       router.back()
     } else {
       router.push(defaultPath)

@@ -44,6 +44,7 @@ class WorkOrderOperationLogService:
             work_order_no=work_order_no,
             operator_name=operator_name,
             operator_id=operator_id,
+            operation_type=operation_type_code,
             operation_type_code=operation_type_code,
             operation_type_name=operation_type_name,
             operation_remark=operation_remark

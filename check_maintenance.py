@@ -1,0 +1,11 @@
+import psycopg2
+conn = psycopg2.connect(host='localhost', database='sstcp_maintenance', user='sstcp_user', password='Lily421020', port=5432)
+cursor = conn.cursor()
+cursor.execute("SELECT DISTINCT maintenance_personnel FROM periodic_inspection WHERE maintenance_personnel IS NOT NULL")
+print('periodic_inspection maintenance_personnel:', cursor.fetchall())
+cursor.execute("SELECT DISTINCT maintenance_personnel FROM temporary_repair WHERE maintenance_personnel IS NOT NULL")
+print('temporary_repair maintenance_personnel:', cursor.fetchall())
+cursor.execute("SELECT DISTINCT maintenance_personnel FROM spot_work WHERE maintenance_personnel IS NOT NULL")
+print('spot_work maintenance_personnel:', cursor.fetchall())
+cursor.close()
+conn.close()

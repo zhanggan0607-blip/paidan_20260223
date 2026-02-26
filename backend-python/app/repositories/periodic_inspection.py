@@ -18,21 +18,30 @@ class PeriodicInspectionRepository:
         try:
             return self.db.query(PeriodicInspection).options(
                 joinedload(PeriodicInspection.project)
-            ).filter(PeriodicInspection.id == id).first()
+            ).filter(
+                PeriodicInspection.id == id,
+                PeriodicInspection.is_deleted == False
+            ).first()
         except Exception as e:
             logger.error(f"查询定期巡检失败 (id={id}): {str(e)}")
             raise
 
     def find_by_inspection_id(self, inspection_id: str) -> Optional[PeriodicInspection]:
         try:
-            return self.db.query(PeriodicInspection).filter(PeriodicInspection.inspection_id == inspection_id).first()
+            return self.db.query(PeriodicInspection).filter(
+                PeriodicInspection.inspection_id == inspection_id,
+                PeriodicInspection.is_deleted == False
+            ).first()
         except Exception as e:
             logger.error(f"查询定期巡检失败 (inspection_id={inspection_id}): {str(e)}")
             raise
 
     def exists_by_inspection_id(self, inspection_id: str) -> bool:
         try:
-            return self.db.query(PeriodicInspection).filter(PeriodicInspection.inspection_id == inspection_id).first() is not None
+            return self.db.query(PeriodicInspection).filter(
+                PeriodicInspection.inspection_id == inspection_id,
+                PeriodicInspection.is_deleted == False
+            ).first() is not None
         except Exception as e:
             logger.error(f"检查定期巡检是否存在失败 (inspection_id={inspection_id}): {str(e)}")
             raise
@@ -48,7 +57,9 @@ class PeriodicInspectionRepository:
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[PeriodicInspection], int]:
         try:
-            query = self.db.query(PeriodicInspection).options(joinedload(PeriodicInspection.project))
+            query = self.db.query(PeriodicInspection).options(
+                joinedload(PeriodicInspection.project)
+            ).filter(PeriodicInspection.is_deleted == False)
 
             if project_name:
                 query = query.filter(PeriodicInspection.project_name.like(f"%{project_name}%"))
@@ -75,7 +86,11 @@ class PeriodicInspectionRepository:
 
     def find_all_unpaginated(self) -> List[PeriodicInspection]:
         try:
-            return self.db.query(PeriodicInspection).options(joinedload(PeriodicInspection.project)).order_by(PeriodicInspection.updated_at.desc().nullslast(), PeriodicInspection.created_at.desc()).all()
+            return self.db.query(PeriodicInspection).options(
+                joinedload(PeriodicInspection.project)
+            ).filter(
+                PeriodicInspection.is_deleted == False
+            ).order_by(PeriodicInspection.updated_at.desc().nullslast(), PeriodicInspection.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有定期巡检失败: {str(e)}")
             raise
@@ -101,7 +116,26 @@ class PeriodicInspectionRepository:
             logger.error(f"更新定期巡检失败: {str(e)}")
             raise
 
+    def soft_delete(self, inspection: PeriodicInspection, user_id: int = None) -> None:
+        """
+        软删除定期巡检单
+        
+        Args:
+            inspection: 要删除的巡检单对象
+            user_id: 执行删除的用户ID
+        """
+        try:
+            inspection.soft_delete(user_id)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除定期巡检失败: {str(e)}")
+            raise
+
     def delete(self, inspection: PeriodicInspection) -> None:
+        """
+        物理删除（已弃用，请使用soft_delete）
+        """
         try:
             self.db.delete(inspection)
             self.db.commit()

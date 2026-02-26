@@ -8,10 +8,14 @@ from functools import wraps
 from typing import List, Optional, Callable
 from fastapi import HTTPException, status, Depends
 from app.auth import get_current_user_required
-
-
-MANAGER_ROLES = ['管理员', '部门经理', '主管']
-ADMIN_ROLES = ['管理员']
+from app.utils.permission_config import (
+    MANAGER_ROLES,
+    ADMIN_ROLES,
+    has_permission,
+    is_manager_role,
+    is_admin_role,
+    get_role_level,
+)
 
 
 def require_roles(*required_roles: str):
@@ -116,7 +120,9 @@ def is_manager(current_user: Optional[dict]) -> bool:
     Returns:
         bool: 是否为管理员/经理
     """
-    return check_permission(current_user, MANAGER_ROLES)
+    if not current_user:
+        return False
+    return is_manager_role(current_user.get('role', ''))
 
 
 def is_admin(current_user: Optional[dict]) -> bool:
@@ -129,7 +135,9 @@ def is_admin(current_user: Optional[dict]) -> bool:
     Returns:
         bool: 是否为管理员
     """
-    return check_permission(current_user, ADMIN_ROLES)
+    if not current_user:
+        return False
+    return is_admin_role(current_user.get('role', ''))
 
 
 def get_user_role(current_user: Optional[dict]) -> str:
@@ -145,3 +153,34 @@ def get_user_role(current_user: Optional[dict]) -> str:
     if not current_user:
         return ''
     return current_user.get('role', '')
+
+
+def check_user_permission(current_user: Optional[dict], permission_id: str) -> bool:
+    """
+    检查用户是否有指定权限
+    
+    Args:
+        current_user: 当前用户信息
+        permission_id: 权限ID
+        
+    Returns:
+        bool: 是否有权限
+    """
+    if not current_user:
+        return False
+    return has_permission(current_user.get('role', ''), permission_id)
+
+
+def get_user_role_level(current_user: Optional[dict]) -> int:
+    """
+    获取用户角色级别
+    
+    Args:
+        current_user: 当前用户信息
+        
+    Returns:
+        int: 角色级别，级别越高权限越大
+    """
+    if not current_user:
+        return 0
+    return get_role_level(current_user.get('role', ''))

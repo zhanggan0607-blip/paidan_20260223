@@ -62,6 +62,16 @@ api.interceptors.response.use(
     const originalRequest = error.config
     
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const hasToken = !!userStore.getToken()
+      
+      if (!hasToken) {
+        return Promise.reject({
+          status: 401,
+          message: '未登录',
+          data: null
+        })
+      }
+      
       if (isRefreshing) {
         return new Promise((resolve) => {
           subscribeTokenRefresh((token: string) => {
@@ -83,12 +93,9 @@ api.interceptors.response.use(
         return api(originalRequest)
       }
       
-      userStore.clearUser()
-      window.location.href = '/login'
-      
       return Promise.reject({
         status: 401,
-        message: '登录已过期，请重新登录',
+        message: '登录已过期',
         data: null
       })
     }

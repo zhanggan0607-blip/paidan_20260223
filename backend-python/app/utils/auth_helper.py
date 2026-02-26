@@ -6,6 +6,13 @@ from typing import Optional, Tuple, Dict, Any
 from fastapi import Request
 from dataclasses import dataclass
 
+from app.utils.permission_config import (
+    MANAGER_ROLES,
+    is_manager_role,
+    has_permission,
+    get_role_level,
+)
+
 
 @dataclass
 class UserContext:
@@ -21,9 +28,6 @@ class UserContext:
     def is_authenticated(self) -> bool:
         """是否已认证"""
         return self.user_name is not None
-
-
-MANAGER_ROLES = ['管理员', '部门经理', '主管']
 
 
 def get_current_user_from_headers(request: Request) -> Optional[Dict[str, Any]]:
@@ -67,7 +71,7 @@ def get_user_context(
     
     user_name = user_info.get('sub') or user_info.get('name')
     role = user_info.get('role', '')
-    is_manager = role in MANAGER_ROLES
+    is_manager = is_manager_role(role)
     
     return UserContext(
         user_name=user_name,
@@ -128,3 +132,61 @@ def get_user_name(
     """
     context = get_user_context(request, current_user)
     return context.user_name
+
+
+def get_user_role(
+    request: Request,
+    current_user: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    获取用户角色
+    
+    Args:
+        request: FastAPI 请求对象
+        current_user: 当前用户信息（可选）
+        
+    Returns:
+        用户角色，未登录返回空字符串
+    """
+    user_info = current_user or get_current_user_from_headers(request)
+    if not user_info:
+        return ''
+    return user_info.get('role', '')
+
+
+def check_user_has_permission(
+    request: Request,
+    permission_id: str,
+    current_user: Optional[Dict[str, Any]] = None
+) -> bool:
+    """
+    检查用户是否有指定权限
+    
+    Args:
+        request: FastAPI 请求对象
+        permission_id: 权限ID
+        current_user: 当前用户信息（可选）
+        
+    Returns:
+        是否有权限
+    """
+    role = get_user_role(request, current_user)
+    return has_permission(role, permission_id)
+
+
+def get_user_role_level_from_request(
+    request: Request,
+    current_user: Optional[Dict[str, Any]] = None
+) -> int:
+    """
+    获取用户角色级别
+    
+    Args:
+        request: FastAPI 请求对象
+        current_user: 当前用户信息（可选）
+        
+    Returns:
+        角色级别，级别越高权限越大
+    """
+    role = get_user_role(request, current_user)
+    return get_role_level(role)

@@ -12,13 +12,16 @@ class SparePartsUsage(Base):
     brand = Column(String(100), comment="品牌")
     model = Column(String(100), comment="产品型号")
     quantity = Column(Integer, nullable=False, comment="领用数量")
+    return_quantity = Column(Integer, default=0, comment="归还数量")
     user_name = Column(String(100), nullable=False, comment="运维人员员")
     issue_time = Column(DateTime, nullable=False, comment="领用时间")
+    return_time = Column(DateTime, comment="归还时间")
     unit = Column(String(20), nullable=False, default="件", comment="单位")
     project_id = Column(String(50), comment="项目编号")
     project_name = Column(String(200), comment="项目名称")
     stock_id = Column(BigInteger, ForeignKey('spare_parts_stock.id', ondelete='SET NULL'), comment="库存记录ID")
-    status = Column(String(20), nullable=False, default="已使用", comment="状态：已使用")
+    status = Column(String(20), nullable=False, default="待归还", comment="状态：待归还/已归还")
+    remark = Column(String(500), comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
     
@@ -41,13 +44,17 @@ class SparePartsUsage(Base):
             'brand': self.brand or '',
             'model': self.model or '',
             'quantity': self.quantity,
+            'return_quantity': self.return_quantity or 0,
+            'issue_quantity': self.quantity,
             'user_name': self.user_name,
             'issue_time': self.issue_time.strftime('%Y-%m-%d %H:%M:%S') if self.issue_time else '',
+            'return_time': self.return_time.strftime('%Y-%m-%d %H:%M:%S') if self.return_time else None,
             'unit': self.unit,
             'project_id': self.project_id or '',
             'project_name': self.project_name or '',
             'stock_id': self.stock_id,
             'status': self.status,
+            'remark': self.remark or '',
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

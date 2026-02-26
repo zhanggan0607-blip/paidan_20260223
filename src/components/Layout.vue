@@ -91,6 +91,7 @@ import type { MenuItem } from '@/types'
 import { userStore, type User } from '@/stores/userStore'
 import { personnelService } from '@/services/personnel'
 import { USER_ROLES } from '@/config/constants'
+import { canShowMenu as checkMenuPermission } from '@/config/permission'
 
 export default defineComponent({
   name: 'Layout',
@@ -139,51 +140,11 @@ export default defineComponent({
 
     const handleLogout = () => {
       userStore.clearUser()
-      router.push('/login')
     }
 
     const canShowMenu = (menuId: string): boolean => {
       if (!userStore.getUser()) return false
-      
-      switch (menuId) {
-        case 'statistics':
-          return userStore.canViewStatistics()
-        case 'project-info':
-        case 'maintenance-plan':
-          return userStore.canViewProjectManagement()
-        case 'overdue-alert':
-        case 'near-expiry-alert':
-          return userStore.canViewAlerts()
-        case 'personnel':
-          return userStore.canViewPersonnel()
-        case 'customer':
-        case 'inspection-item':
-          return userStore.canViewSystemManagement()
-        case 'work-plan':
-        case 'temporary-repair':
-        case 'spot-work':
-          return userStore.canViewWorkOrder()
-        case 'spare-parts-stock':
-          return userStore.canViewSparePartsStock()
-        case 'spare-parts-issue':
-          return userStore.canViewSparePartsIssue()
-        case 'repair-tools-inbound':
-          return userStore.canViewRepairToolsInbound()
-        case 'repair-tools-issue':
-          return userStore.canViewRepairToolsIssue()
-        case 'repair-tools-return':
-          return userStore.canViewRepairToolsIssue()
-        case 'maintenance-log-fill':
-          return userStore.canFillMaintenanceLog()
-        case 'maintenance-log-list':
-          return userStore.canViewMaintenanceLog() || userStore.canViewAllMaintenanceLog()
-        case 'weekly-report-fill':
-          return userStore.canFillWeeklyReport()
-        case 'weekly-report-list':
-          return userStore.canViewWeeklyReport()
-        default:
-          return false
-      }
+      return userStore.canShowMenu(menuId)
     }
 
     const menuItems: MenuItem[] = [
@@ -216,6 +177,7 @@ export default defineComponent({
         label: '备品备件管理',
         children: [
           { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
+          { id: 'spare-parts-return', label: '备品备件归还', path: '/spare-parts/return' },
           { id: 'spare-parts-stock', label: '备品备件库存', path: '/spare-parts/stock' }
         ]
       },
@@ -314,6 +276,13 @@ export default defineComponent({
           level1: '备品备件管理',
           level2: '备品备件领用',
           full: '备品备件管理 / 备品备件领用'
+        }
+      }
+      if (path === '/spare-parts/return') {
+        return {
+          level1: '备品备件管理',
+          level2: '备品备件归还',
+          full: '备品备件管理 / 备品备件归还'
         }
       }
       if (path === '/spare-parts/stock') {
@@ -471,7 +440,7 @@ export default defineComponent({
           }
         }
       }
-      router.push('/login')
+      router.push('/project-info')
     }
 
     onMounted(async () => {

@@ -1,4 +1,5 @@
 from typing import Optional
+import logging
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -6,6 +7,7 @@ from app.services.overdue_alert import OverdueAlertService
 from app.schemas.common import ApiResponse
 from app.auth import get_current_user, get_current_user_from_headers
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/overdue-alert", tags=["Overdue Alert"])
 
 
@@ -34,6 +36,8 @@ def get_overdue_alerts(
         is_manager = role in ['管理员', '部门经理', '主管']
     
     maintenance_personnel = None if is_manager else user_name
+    
+    logger.info(f"🔴 [超期工单] user_info={user_info}, user_name={user_name}, is_manager={is_manager}, maintenance_personnel={maintenance_personnel}")
     
     service = OverdueAlertService(db)
     items, total = service.get_overdue_items(

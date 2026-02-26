@@ -22,6 +22,7 @@ const workList = ref<any[]>([])
 const userReady = ref(false)
 
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
+const canCreate = computed(() => userStore.canCreateTemporaryRepair())
 
 const tabs = computed(() => {
   if (canApprove.value) {
@@ -72,6 +73,13 @@ const handleBack = () => {
 }
 
 /**
+ * 处理新增操作
+ */
+const handleCreate = () => {
+  router.push('/temporary-repair/create')
+}
+
+/**
  * 处理审批操作
  * @param item 工单数据
  */
@@ -114,7 +122,10 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
+        <div class="nav-right">
+          <van-icon v-if="canCreate" name="plus" size="20" @click="handleCreate" class="add-icon" />
+          <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
+        </div>
       </template>
     </van-nav-bar>
     
@@ -129,7 +140,7 @@ onMounted(() => {
                 class="work-card"
               >
                 <div class="card-header">
-                  <van-tag :type="getStatusType(item.status)" size="medium" :class="{ 'returned-tag': item.status === '已退回' }">
+                  <van-tag :type="getStatusType(item.status)" size="medium">
                     {{ getDisplayStatus(item.status) }}
                   </van-tag>
                   <div class="work-id-wrapper">
@@ -295,13 +306,18 @@ onMounted(() => {
   min-height: calc(100vh - 46px - 44px);
 }
 
-.van-tag--primary.returned-tag {
-  background-color: var(--status-overdue-bg);
-  color: var(--status-overdue-text);
-  border-color: var(--status-overdue-border);
-}
-
 :deep(.van-tabs__line) {
   transition: background-color 0.3s;
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.add-icon {
+  color: #1989fa;
+  cursor: pointer;
 }
 </style>

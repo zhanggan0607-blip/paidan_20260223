@@ -44,11 +44,9 @@ class PersonnelRepository:
 
             if current_user_role and current_user_role != '管理员':
                 if current_user_role == '部门经理':
-                    if current_user_department:
-                        query = query.filter(Personnel.department == current_user_department)
-                elif current_user_role == '运维人员':
-                    if current_user_department:
-                        query = query.filter(Personnel.department == current_user_department)
+                    pass
+                else:
+                    query = query.filter(Personnel.id == -1)
 
             total = query.count()
             items = query.order_by(Personnel.created_at.desc()).offset(page * size).limit(size).all()

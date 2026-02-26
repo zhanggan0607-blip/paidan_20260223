@@ -8,10 +8,8 @@ import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { processPhoto, getCurrentLocation } from '../utils/watermark'
 import { validateIdCard } from '../utils/idCardValidator'
+import { useNavigation } from '../composables'
 
-// TODO: 工人录入页面 - 身份证OCR识别功能待完善
-// FIXME: 身份证验证逻辑应该更严格，包括有效期校验
-// TODO: 考虑加入人脸识别功能验证身份
 interface WorkerInfo {
   id?: number
   name?: string
@@ -27,6 +25,7 @@ interface WorkerInfo {
 
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 const projectId = ref('')
 const projectName = ref('')
@@ -349,7 +348,7 @@ const handleSubmit = async () => {
       }
       const workDays = personCount * dayCount
       showSuccessToast(`提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`)
-      router.back()
+      goBack('/spot-work')
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -382,7 +381,7 @@ onMounted(() => {
       placeholder 
     >
       <template #left>
-        <div class="nav-left" @click="router.back()">
+        <div class="nav-left" @click="goBack('/spot-work')">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

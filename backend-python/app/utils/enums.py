@@ -33,6 +33,63 @@ class WorkOrderStatus(str, Enum):
         return [cls.COMPLETED.value, cls.CONFIRMED.value, cls.APPROVED.value]
 
 
+class WorkOrderStatusGroup:
+    """
+    工单状态分组
+    用于前端显示的状态合并
+    - 未下发、待执行、未进行 → 未进行（红色）
+    - 执行中（青色）
+    - 待审批、待确认 → 待确认（橙色）
+    - 已确认、已审批、已完成 → 已完成（绿色）
+    - 已退回（灰色）
+    """
+    NOT_STARTED_STATUSES = ['未下发', '待执行', '未进行']
+    IN_PROGRESS_STATUSES = ['执行中']
+    PENDING_CONFIRM_STATUSES = ['待审批', '待确认']
+    COMPLETED_STATUSES = ['已确认', '已审批', '已完成']
+    REJECTED_STATUSES = ['已退回']
+    
+    @classmethod
+    def get_display_status(cls, status: str) -> str:
+        """获取状态的显示文本"""
+        if status in cls.NOT_STARTED_STATUSES:
+            return '未进行'
+        if status in cls.IN_PROGRESS_STATUSES:
+            return '执行中'
+        if status in cls.PENDING_CONFIRM_STATUSES:
+            return '待确认'
+        if status in cls.COMPLETED_STATUSES:
+            return '已完成'
+        if status in cls.REJECTED_STATUSES:
+            return '已退回'
+        return status
+    
+    @classmethod
+    def is_not_started(cls, status: str) -> bool:
+        """判断是否为未进行状态"""
+        return status in cls.NOT_STARTED_STATUSES
+    
+    @classmethod
+    def is_in_progress(cls, status: str) -> bool:
+        """判断是否为执行中状态"""
+        return status in cls.IN_PROGRESS_STATUSES
+    
+    @classmethod
+    def is_pending_confirm(cls, status: str) -> bool:
+        """判断是否为待确认状态"""
+        return status in cls.PENDING_CONFIRM_STATUSES
+    
+    @classmethod
+    def is_completed(cls, status: str) -> bool:
+        """判断是否为已完成状态"""
+        return status in cls.COMPLETED_STATUSES
+    
+    @classmethod
+    def is_rejected(cls, status: str) -> bool:
+        """判断是否为已退回状态"""
+        return status in cls.REJECTED_STATUSES
+
+
 class WorkOrderType(str, Enum):
     """工单类型枚举"""
     PERIODIC_INSPECTION = '定期巡检'

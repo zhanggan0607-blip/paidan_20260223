@@ -31,6 +31,7 @@ def record_operation_log(
         work_order_id=work_order_id,
         work_order_no=work_order_no,
         operator_name=operator_name,
+        operation_type=operation_type_code,
         operation_type_code=operation_type_code,
         operation_type_name=operation_type_name,
         operation_remark=operation_remark

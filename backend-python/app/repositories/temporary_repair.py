@@ -25,7 +25,9 @@ class TemporaryRepairRepository:
         client_name: Optional[str] = None
     ) -> tuple[List[TemporaryRepair], int]:
         try:
-            query = self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project))
+            query = self.db.query(TemporaryRepair).options(
+                joinedload(TemporaryRepair.project)
+            ).filter(TemporaryRepair.is_deleted == False)
 
             if project_name:
                 query = query.filter(TemporaryRepair.project_name.like(f'%{project_name}%'))
@@ -52,21 +54,34 @@ class TemporaryRepairRepository:
 
     def find_by_id(self, id: int) -> Optional[TemporaryRepair]:
         try:
-            return self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project)).filter(TemporaryRepair.id == id).first()
+            return self.db.query(TemporaryRepair).options(
+                joinedload(TemporaryRepair.project)
+            ).filter(
+                TemporaryRepair.id == id,
+                TemporaryRepair.is_deleted == False
+            ).first()
         except Exception as e:
             logger.error(f"查询临时维修失败 (id={id}): {str(e)}")
             raise
 
     def find_by_repair_id(self, repair_id: str) -> Optional[TemporaryRepair]:
         try:
-            return self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project)).filter(TemporaryRepair.repair_id == repair_id).first()
+            return self.db.query(TemporaryRepair).options(
+                joinedload(TemporaryRepair.project)
+            ).filter(
+                TemporaryRepair.repair_id == repair_id,
+                TemporaryRepair.is_deleted == False
+            ).first()
         except Exception as e:
             logger.error(f"查询临时维修失败 (repair_id={repair_id}): {str(e)}")
             raise
 
     def exists_by_repair_id(self, repair_id: str) -> bool:
         try:
-            return self.db.query(TemporaryRepair).filter(TemporaryRepair.repair_id == repair_id).first() is not None
+            return self.db.query(TemporaryRepair).filter(
+                TemporaryRepair.repair_id == repair_id,
+                TemporaryRepair.is_deleted == False
+            ).first() is not None
         except Exception as e:
             logger.error(f"检查临时维修是否存在失败 (repair_id={repair_id}): {str(e)}")
             raise
@@ -92,7 +107,26 @@ class TemporaryRepairRepository:
             logger.error(f"更新临时维修失败: {str(e)}")
             raise
 
+    def soft_delete(self, repair: TemporaryRepair, user_id: int = None) -> None:
+        """
+        软删除临时维修单
+        
+        Args:
+            repair: 要删除的维修单对象
+            user_id: 执行删除的用户ID
+        """
+        try:
+            repair.soft_delete(user_id)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除临时维修失败: {str(e)}")
+            raise
+
     def delete(self, repair: TemporaryRepair) -> None:
+        """
+        物理删除（已弃用，请使用soft_delete）
+        """
         try:
             self.db.delete(repair)
             self.db.commit()
@@ -103,7 +137,11 @@ class TemporaryRepairRepository:
 
     def find_all_unpaginated(self) -> List[TemporaryRepair]:
         try:
-            return self.db.query(TemporaryRepair).options(joinedload(TemporaryRepair.project)).all()
+            return self.db.query(TemporaryRepair).options(
+                joinedload(TemporaryRepair.project)
+            ).filter(
+                TemporaryRepair.is_deleted == False
+            ).all()
         except Exception as e:
             logger.error(f"查询所有临时维修失败: {str(e)}")
             raise

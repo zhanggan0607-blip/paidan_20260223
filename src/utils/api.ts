@@ -48,14 +48,16 @@ apiClient.interceptors.request.use(
       config.headers = config.headers || {}
       config.headers['Authorization'] = `Bearer ${token}`
     }
-    
-    const currentUser = userStore.getUser()
-    if (currentUser) {
+    const user = userStore.getUser()
+    console.log('[PC端API拦截器] 用户信息:', user)
+    if (user) {
       config.headers = config.headers || {}
-      config.headers['X-User-Name'] = encodeURIComponent(currentUser.name)
-      config.headers['X-User-Role'] = encodeURIComponent(currentUser.role)
+      config.headers['X-User-Name'] = encodeURIComponent(user.name || '')
+      config.headers['X-User-Role'] = encodeURIComponent(user.role || '')
+      console.log('[PC端API拦截器] 设置请求头 X-User-Name:', encodeURIComponent(user.name || ''), 'X-User-Role:', encodeURIComponent(user.role || ''))
+    } else {
+      console.log('[PC端API拦截器] 用户信息为空，未设置请求头')
     }
-    
     return config
   },
   (error) => {
@@ -97,12 +99,9 @@ apiClient.interceptors.response.use(
           return apiClient(originalRequest)
         }
         
-        userStore.clearUser()
-        window.location.href = '/login'
-        
         return Promise.reject({
           status: 401,
-          message: '登录已过期，请重新登录',
+          message: '登录已过期',
           errors: [],
           data: null
         })

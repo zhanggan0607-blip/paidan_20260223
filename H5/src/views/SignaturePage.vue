@@ -4,12 +4,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { showSuccessToast, showFailToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
+import { useNavigation } from '../composables'
 
-// TODO: 签名页面 - 考虑加入签名笔触粗细调节功能
-// FIXME: 横屏锁定在某些设备上可能不生效
-// TODO: 签名保存后应该支持重新编辑
 const router = useRouter()
 const route = useRoute()
+const { goBack } = useNavigation()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const ctx = ref<CanvasRenderingContext2D | null>(null)
@@ -160,6 +159,8 @@ const handleConfirm = async () => {
       localStorage.setItem('periodic_inspection_signature', signatureData.value)
     } else if (type === 'temporary-repair') {
       localStorage.setItem('temporary_repair_signature', signatureData.value)
+    } else if (type === 'temporary-repair-create') {
+      localStorage.setItem('temporary_repair_create_signature', signatureData.value)
     } else if (type === 'spot-work') {
       localStorage.setItem('spot_work_signature', signatureData.value)
     } else if (type === 'spot-work-apply') {
@@ -171,13 +172,13 @@ const handleConfirm = async () => {
     router.replace(from)
   } else {
     unlockOrientation()
-    router.back()
+    goBack('/')
   }
 }
 
 const handleBack = () => {
   unlockOrientation()
-  router.back()
+  goBack('/')
 }
 
 const isCanvasEmpty = () => {

@@ -176,12 +176,6 @@
   border-radius: 4px;
 }
 
-.van-tag--primary.returned-tag {
-  background-color: var(--status-overdue-bg);
-  color: var(--status-overdue-text);
-  border-color: var(--status-overdue-border);
-}
-
 /* ========== 列表样式 ========== */
 .work-list {
   padding: 12px;
