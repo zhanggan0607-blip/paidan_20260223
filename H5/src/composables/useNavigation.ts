@@ -12,14 +12,13 @@ export const useNavigation = () => {
   const router = useRouter()
 
   /**
-   * 返回上一页，如果没有历史记录则跳转到指定路径
-   * @param defaultPath 默认跳转路径
+   * 返回上一页，如果没有历史记录则跳转到首页
    */
-  const goBack = (defaultPath: string = '/') => {
+  const goBack = () => {
     if (window.history.state && window.history.state.back) {
       router.back()
     } else {
-      router.push(defaultPath)
+      router.push('/')
     }
   }
 
@@ -33,7 +32,7 @@ export const useNavigation = () => {
       'temporary_repair': '/temporary-repair',
       'spot_work': '/spot-work'
     }
-    goBack(paths[workOrderType] || '/')
+    router.push(paths[workOrderType] || '/')
   }
 
   /**
