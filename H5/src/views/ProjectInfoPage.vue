@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
@@ -8,7 +8,6 @@ import SearchInput from '../components/SearchInput.vue'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables'
 
-const router = useRouter()
 const route = useRoute()
 const { goBack } = useNavigation()
 

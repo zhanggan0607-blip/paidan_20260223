@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
@@ -36,7 +36,6 @@ interface OperationLogItem {
   created_at: string
 }
 
-const router = useRouter()
 const route = useRoute()
 const { goBack } = useNavigation()
 

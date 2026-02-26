@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
@@ -23,7 +23,6 @@ interface WorkerInfo {
   idCardBack?: string
 }
 
-const router = useRouter()
 const route = useRoute()
 const { goBack } = useNavigation()
 

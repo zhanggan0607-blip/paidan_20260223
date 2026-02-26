@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { formatDate } from '../config/constants'
@@ -23,7 +23,6 @@ const router = useRouter()
 const route = useRoute()
 const { goBack } = useNavigation()
 
-const loading = ref(false)
 const userReady = ref(false)
 
 const formData = ref({
