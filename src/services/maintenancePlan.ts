@@ -27,7 +27,7 @@ export interface MaintenancePlan {
   maintenance_requirements?: string
   maintenance_standard?: string
   plan_status: string
-  execution_status: string
+  status: string
   completion_rate?: number
   remarks?: string
   inspection_items?: string
@@ -67,7 +67,7 @@ export interface MaintenancePlanCreate {
   maintenance_requirements?: string
   maintenance_standard?: string
   plan_status: string
-  execution_status: string
+  status: string
   completion_rate?: number
   remarks?: string
   inspection_items?: string
@@ -93,7 +93,7 @@ export interface MaintenancePlanUpdate {
   maintenance_requirements?: string
   maintenance_standard?: string
   plan_status: string
-  execution_status: string
+  status: string
   completion_rate?: number
   remarks?: string
   inspection_items?: string

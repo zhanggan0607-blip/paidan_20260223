@@ -368,7 +368,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">执行状态</label>
-                <div class="form-value">{{ viewData.execution_status || '-' }}</div>
+                <div class="form-value">{{ viewData.status || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">运维人员</label>
@@ -907,7 +907,7 @@ export default defineComponent({
       maintenance_requirements: '',
       maintenance_standard: '',
       plan_status: '',
-      execution_status: '',
+      status: '',
       completion_rate: 0,
       remarks: ''
     })
@@ -932,7 +932,7 @@ export default defineComponent({
       viewData.maintenance_requirements = plan.maintenance_requirements || ''
       viewData.maintenance_standard = plan.maintenance_standard || ''
       viewData.plan_status = plan.plan_status
-      viewData.execution_status = plan.execution_status
+      viewData.status = plan.status
       viewData.completion_rate = plan.completion_rate || 0
       viewData.remarks = plan.remarks || ''
     }
@@ -972,7 +972,7 @@ export default defineComponent({
         responsible_department: string
         contact_info: string
         plan_status: string
-        execution_status: string
+        status: string
         completion_rate: number
         maintenance_content: string
         maintenance_requirements: string
@@ -1024,7 +1024,7 @@ export default defineComponent({
         responsible_department: '',
         contact_info: '',
         plan_status: '待执行',
-        execution_status: '未开始',
+        status: '未开始',
         completion_rate: 0,
         maintenance_content: '',
         maintenance_requirements: '',
@@ -1518,7 +1518,7 @@ export default defineComponent({
               : undefined,
             maintenance_standard: undefined,
             plan_status: '待执行',
-            execution_status: '未开始',
+            status: '未开始',
             completion_rate: 0,
             remarks: plan.remarks,
             inspection_items: formData.itemList.length > 0 
@@ -1625,7 +1625,7 @@ export default defineComponent({
           responsible_department: plan.responsible_department || '',
           contact_info: plan.contact_info || '',
           plan_status: plan.plan_status || '待执行',
-          execution_status: plan.execution_status || '未开始',
+          status: plan.status || '未开始',
           completion_rate: plan.completion_rate || 0,
           maintenance_content: plan.maintenance_content || '',
           maintenance_requirements: plan.maintenance_requirements || '',
@@ -1830,7 +1830,7 @@ export default defineComponent({
             maintenance_requirements: maintenanceRequirements,
             maintenance_standard: undefined,
             plan_status: plan.plan_status || '待执行',
-            execution_status: plan.execution_status || '未开始',
+            status: plan.status || '未开始',
             completion_rate: plan.completion_rate || 0,
             remarks: plan.remarks,
             inspection_items: inspectionItemsJson
