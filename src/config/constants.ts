@@ -19,34 +19,20 @@ export const PLAN_TYPE_LIST = [
 ] as const
 
 export const WORK_STATUS = {
-  NOT_STARTED: '待执行',
-  PENDING_CONFIRM: '待确认',
-  CONFIRMED: '已确认',
   IN_PROGRESS: '执行中',
+  PENDING_CONFIRM: '待确认',
   COMPLETED: '已完成',
-  CANCELLED: '已取消',
   RETURNED: '已退回'
 } as const
 
 export const WORK_STATUS_LIST = [
-  WORK_STATUS.NOT_STARTED,
-  WORK_STATUS.PENDING_CONFIRM,
-  WORK_STATUS.CONFIRMED,
   WORK_STATUS.IN_PROGRESS,
+  WORK_STATUS.PENDING_CONFIRM,
   WORK_STATUS.COMPLETED,
-  WORK_STATUS.CANCELLED
+  WORK_STATUS.RETURNED
 ] as const
 
-export const MAINTENANCE_STATUS = {
-  PENDING: '待执行',
-  IN_PROGRESS: '执行中',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-  DELAYED: '已延期'
-} as const
-
 export const EXECUTION_STATUS = {
-  NOT_STARTED: '未开始',
   IN_PROGRESS: '执行中',
   COMPLETED: '已完成',
   CANCELLED: '已取消',

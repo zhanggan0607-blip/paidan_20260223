@@ -4,10 +4,9 @@ import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
+import { formatDate, formatDateTime, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
 import { useNavigation } from '../composables/useNavigation'
 
 interface ProjectInfo {
@@ -104,8 +103,10 @@ const getStatusType = (status: string) => {
 }
 
 const getDisplayStatus = (status: string) => {
-  if (status === '已确认' || status === '已完成') return '已完成'
-  if (status === '待确认') return '待确认'
+  if (status === '未进行' || status === '未下发' || status === '待执行' || status === '执行中') return '执行中'
+  if (status === '待确认' || status === '待审批') return '待确认'
+  if (status === '已确认' || status === '已审批' || status === '已完成') return '已完成'
+  if (status === '已退回') return '已退回'
   return status
 }
 
@@ -516,7 +517,7 @@ onActivated(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

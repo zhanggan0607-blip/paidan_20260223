@@ -15,7 +15,7 @@ class TemporaryRepairBase(BaseModel):
     client_contact: Optional[str] = Field(None, max_length=100, description="客户联系人")
     client_contact_info: Optional[str] = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: str = Field("执行中", max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
     fault_description: Optional[str] = Field(None, description="故障描述")
     solution: Optional[str] = Field(None, description="解决方案")
@@ -27,7 +27,7 @@ class TemporaryRepairBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '已退回']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -44,7 +44,7 @@ class TemporaryRepairCreate(BaseModel):
     client_contact: Optional[str] = Field(None, max_length=100, description="客户联系人")
     client_contact_info: Optional[str] = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: str = Field("执行中", max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
     fault_description: Optional[str] = Field(None, description="故障描述")
     solution: Optional[str] = Field(None, description="解决方案")
@@ -100,7 +100,7 @@ class TemporaryRepairPartialUpdate(BaseModel):
     def validate_status(cls, v):
         if v is None:
             return v
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '已退回']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v

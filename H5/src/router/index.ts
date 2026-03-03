@@ -123,6 +123,12 @@ const routes = [
     meta: { title: '部门周报详情', permission: 'canViewAllWeeklyReport' }
   },
   {
+    path: '/weekly-report-all',
+    name: 'WeeklyReportAll',
+    component: () => import('../views/WeeklyReportAllPage.vue'),
+    meta: { title: '查看部门周报', permission: 'isAdmin' }
+  },
+  {
     path: '/spare-parts-issue',
     name: 'SparePartsIssue',
     component: () => import('../views/SparePartsIssuePage.vue'),

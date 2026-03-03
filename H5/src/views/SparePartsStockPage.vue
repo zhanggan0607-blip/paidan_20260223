@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
+import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import type { User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
@@ -53,7 +53,7 @@ const fetchStockList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: InboundRecord[], total: number }>>('/spare-parts/inbound-records', {
+    const response = await api.get<unknown, ApiResponse<{ items: InboundRecord[], total: number }>>('/spare-parts-stock/inbound-records', {
       params: { page: 0, pageSize: 100 }
     })
     if (response.code === 200) {
@@ -102,7 +102,7 @@ const handleSubmitInbound = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/spare-parts/inbound', {
+    const response = await api.post<unknown, ApiResponse<null>>('/spare-parts-stock/inbound', {
       product_name: inboundForm.value.productName,
       brand: inboundForm.value.brand || null,
       model: inboundForm.value.model || null,
@@ -162,7 +162,7 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

@@ -633,7 +633,7 @@ def get_statistics_detail(
     project_name: Optional[str] = Query(None, description="项目名称(项目详情时使用)"),
     order_type: Optional[str] = Query(None, description="工单类型(运维人员/项目详情时使用): inspection/repair/spotwork"),
     page: int = Query(1, ge=1, description="页码"),
-    page_size: int = Query(20, ge=1, le=10000, description="每页数量"),
+    page_size: int = Query(20, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):

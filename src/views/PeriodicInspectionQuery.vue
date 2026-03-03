@@ -463,32 +463,19 @@ export default defineComponent({
     }
 
     const getStatusClass = (status: string) => {
-      switch (status) {
-        case WORK_STATUS.NOT_STARTED:
-        case '待执行':
-        case '未进行':
-          return 'status-pending'
-        case WORK_STATUS.PENDING_CONFIRM:
-        case '待确认':
-          return 'status-confirmed'
-        case WORK_STATUS.CONFIRMED:
-        case '已确认':
-          return 'status-confirmed'
-        case WORK_STATUS.IN_PROGRESS:
-        case '执行中':
-          return 'status-in-progress'
-        case WORK_STATUS.COMPLETED:
-        case '已完成':
-          return 'status-completed'
-        case WORK_STATUS.CANCELLED:
-        case '已取消':
-          return 'status-cancelled'
-        case WORK_STATUS.RETURNED:
-        case '已退回':
-          return 'status-returned'
-        default:
-          return ''
+      if (status === '执行中') {
+        return 'status-in-progress'
       }
+      if (status === '待确认') {
+        return 'status-confirmed'
+      }
+      if (status === '已完成') {
+        return 'status-completed'
+      }
+      if (status === '已退回') {
+        return 'status-returned'
+      }
+      return ''
     }
 
     /**
@@ -547,7 +534,7 @@ export default defineComponent({
             client_contact_position: item.client_contact_position || '',
             address: item.address || '',
             maintenance_personnel: item.maintenance_personnel || '',
-            status: item.status || '未进行',
+            status: item.status || '执行中',
             execution_result: item.execution_result || '',
             remarks: item.remarks || '',
             signature: item.signature || '',

@@ -135,7 +135,7 @@ class PeriodicInspectionService:
             existing_inspection.remarks = dto.remarks
         if dto.status is not None:
             existing_inspection.status = dto.status
-            if dto.status in ['已确认', '已完成'] and not existing_inspection.actual_completion_date:
+            if dto.status == '已完成' and not existing_inspection.actual_completion_date:
                 existing_inspection.actual_completion_date = datetime.now()
         
         result = self.repository.update(existing_inspection)
@@ -275,7 +275,7 @@ class PeriodicInspectionService:
                                 inspection_content = item.get('inspection_content', '')
                                 if inspection_content:
                                     unique_items.add(inspection_content)
-                        except:
+                        except (json.JSONDecodeError, TypeError):
                             pass
             
             return len(unique_items)
@@ -313,7 +313,7 @@ class PeriodicInspectionService:
                                 inspection_content = item.get('inspection_content', '')
                                 if inspection_content:
                                     unique_items.add(inspection_content)
-                        except:
+                        except (json.JSONDecodeError, TypeError):
                             pass
             
             return len(unique_items)

@@ -146,7 +146,7 @@ class SpotWorkService:
             existing_work.signature = dto.signature
         if dto.status is not None:
             existing_work.status = dto.status
-            if dto.status in ['已确认', '已完成'] and not existing_work.actual_completion_date:
+            if dto.status == '已完成' and not existing_work.actual_completion_date:
                 existing_work.actual_completion_date = datetime.now()
         if dto.remarks is not None:
             existing_work.remarks = dto.remarks

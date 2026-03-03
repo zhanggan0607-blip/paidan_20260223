@@ -14,7 +14,7 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 settings = get_settings()
 SECRET_KEY = settings.secret_key
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -69,3 +69,26 @@ def get_current_user_from_headers(request: Request) -> Optional[Dict]:
             'role': unquote(user_role) if user_role else '运维人员'
         }
     return None
+
+
+async def get_current_admin_user(request: Request, current_user: Optional[Dict] = Depends(get_current_user)) -> Dict:
+    """
+    获取当前管理员用户，非管理员会抛出403异常
+    """
+    user_info = current_user or get_current_user_from_headers(request)
+    
+    if not user_info:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未登录",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    role = user_info.get('role', '')
+    if role not in ['管理员', '部门经理', '主管']:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="权限不足，需要管理员权限"
+        )
+    
+    return user_info

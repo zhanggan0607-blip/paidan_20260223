@@ -1,0 +1,48 @@
+{
+  "name": "@sstcp/shared",
+  "version": "1.0.0",
+  "description": "SSTCP维保管理系统共享代码库",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
+    },
+    "./utils": {
+      "types": "./src/utils/index.ts",
+      "import": "./src/utils/index.ts"
+    },
+    "./utils/format": {
+      "types": "./src/utils/format.ts",
+      "import": "./src/utils/format.ts"
+    },
+    "./utils/searchHistory": {
+      "types": "./src/utils/searchHistory.ts",
+      "import": "./src/utils/searchHistory.ts"
+    },
+    "./utils/secureStorage": {
+      "types": "./src/utils/secureStorage.ts",
+      "import": "./src/utils/secureStorage.ts"
+    },
+    "./utils/watermark": {
+      "types": "./src/utils/watermark.ts",
+      "import": "./src/utils/watermark.ts"
+    },
+    "./utils/status": {
+      "types": "./src/utils/status.ts",
+      "import": "./src/utils/status.ts"
+    }
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "typescript": "^5.0.0"
+  }
+}

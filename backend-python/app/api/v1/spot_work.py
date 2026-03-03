@@ -91,7 +91,7 @@ def get_all_spot_works(
 def get_spot_works_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=1000, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     work_id: Optional[str] = Query(None, description="Work ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
@@ -99,7 +99,7 @@ def get_spot_works_list(
     current_user: Optional[dict] = Depends(get_current_user)
 ):
     from app.models.spot_work_worker import SpotWorkWorker
-    from sqlalchemy import func as sql_func, or_
+    from sqlalchemy import func, or_, and_
     
     service = SpotWorkService(db)
     user_info = current_user or get_current_user_from_headers(request)
@@ -147,17 +147,17 @@ def get_spot_works_list(
         for item in items:
             if item.plan_start_date and item.plan_end_date:
                 date_filters.append(
-                    sql_func.and_(
+                    and_(
                         SpotWorkWorker.project_id == item.project_id,
-                        sql_func.date(SpotWorkWorker.start_date) == item.plan_start_date.date(),
-                        sql_func.date(SpotWorkWorker.end_date) == item.plan_end_date.date()
+                        func.date(SpotWorkWorker.start_date) == item.plan_start_date.date(),
+                        func.date(SpotWorkWorker.end_date) == item.plan_end_date.date()
                     )
                 )
             elif item.plan_start_date:
                 date_filters.append(
-                    sql_func.and_(
+                    and_(
                         SpotWorkWorker.project_id == item.project_id,
-                        sql_func.date(SpotWorkWorker.start_date) == item.plan_start_date.date()
+                        func.date(SpotWorkWorker.start_date) == item.plan_start_date.date()
                     )
                 )
         if date_filters:
@@ -248,7 +248,8 @@ def quick_fill_spot_work(
     if dto.photos:
         try:
             photos_list = json.loads(dto.photos) if isinstance(dto.photos, str) else dto.photos
-        except:
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning(f"Failed to parse photos JSON: {e}")
             photos_list = None
     
     create_dto = SpotWorkCreate(
@@ -301,23 +302,17 @@ def get_workers(
 ):
     """
     获取施工人员列表
+    使用日期部分比较，避免时间部分导致的匹配问题
     """
     from app.models.spot_work_worker import SpotWorkWorker
-    from datetime import datetime
-    
-    try:
-        start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
-        end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
-    except:
-        start = None
-        end = None
+    from sqlalchemy import func as sql_func
     
     query = db.query(SpotWorkWorker).filter(SpotWorkWorker.project_id == project_id)
     
-    if start:
-        query = query.filter(SpotWorkWorker.start_date == start)
-    if end:
-        query = query.filter(SpotWorkWorker.end_date == end)
+    if start_date:
+        query = query.filter(sql_func.date(SpotWorkWorker.start_date) == start_date)
+    if end_date:
+        query = query.filter(sql_func.date(SpotWorkWorker.end_date) == end_date)
     
     workers = query.all()
     

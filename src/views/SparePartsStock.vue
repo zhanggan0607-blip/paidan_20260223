@@ -308,7 +308,7 @@ export default defineComponent({
           params.product = filters.value.product
         }
         const response = await apiClient.get<ApiResponse<PaginatedResponse<InboundRecord>>>(
-          '/spare-parts/inbound-records',
+          '/spare-parts-stock/inbound-records',
           { params, signal: abortController.signal }
         ) as unknown as ApiResponse<PaginatedResponse<InboundRecord>>
         if (response && response.code === 200 && response.data) {
@@ -363,7 +363,7 @@ export default defineComponent({
           user_name: inboundForm.value.userName || null,
           remarks: inboundForm.value.remarks || null
         }
-        const response = await apiClient.post('/spare-parts/inbound', requestData) as ApiResponse<any>
+        const response = await apiClient.post('/spare-parts-stock/inbound', requestData) as ApiResponse<any>
         if (response && response.code === 200) {
           showToast('入库单提交成功！', 'success')
           handleResetForm()

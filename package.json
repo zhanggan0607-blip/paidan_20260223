@@ -2,15 +2,23 @@
   "name": "engineering-maintenance-system",
   "version": "1.0.0",
   "type": "module",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:h5": "cd H5 && npm run dev",
+    "dev:backend": "cd backend-python && python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8080",
+    "build:all": "npm run build && cd H5 && npm run build"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@sstcp/shared": "file:./packages/shared",
     "axios": "^1.13.3",
-    "chart.js": "^4.5.1",
+    "crypto-js": "^4.2.0",
     "element-plus": "^2.13.2",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5"

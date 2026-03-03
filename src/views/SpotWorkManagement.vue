@@ -40,39 +40,39 @@
               <th>项目编号</th>
               <th>项目名称</th>
               <th>零星用工编号</th>
-              <th>计划开始日期</th>
-              <th>计划结束日期</th>
-              <th>客户单位</th>
-              <th>运维人员</th>
+              <th>用工周期</th>
+              <th>用工天数</th>
+              <th>施工人数</th>
+              <th>客户联系人</th>
+              <th>客户联系电话</th>
               <th>状态</th>
-              <th>备注</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="10" style="text-align: center; padding: 20px;">加载中...</td>
+              <td colspan="11" style="text-align: center; padding: 20px;">加载中...</td>
             </tr>
             <tr v-else-if="workData.length === 0">
-              <td colspan="10" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td colspan="11" style="text-align: center; padding: 20px;">暂无数据</td>
             </tr>
             <tr v-else v-for="(item, index) in workData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td>{{ item.project_id }}</td>
               <td>{{ item.project_name }}</td>
               <td>{{ item.work_id }}</td>
-              <td>{{ formatDate(item.plan_start_date) }}</td>
-              <td>{{ formatDate(item.plan_end_date) }}</td>
-              <td>{{ item.client_name || '-' }}</td>
-              <td>{{ item.maintenance_personnel || '-' }}</td>
+              <td>{{ formatDate(item.plan_start_date) }} 至 {{ formatDate(item.plan_end_date) }}</td>
+              <td>{{ item.work_days || calculateDays(item.plan_start_date, item.plan_end_date) }} 天</td>
+              <td>{{ item.worker_count || 0 }} 人</td>
+              <td>{{ item.client_contact || '-' }}</td>
+              <td>{{ item.client_contact_info || '-' }}</td>
               <td>
-                <span v-if="item.status === WORK_STATUS.NOT_STARTED" class="status-tag status-pending">未进行</span>
+                <span v-if="item.status === WORK_STATUS.IN_PROGRESS" class="status-tag status-in-progress">执行中</span>
                 <span v-else-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="status-tag status-waiting">待确认</span>
-                <span v-else-if="item.status === WORK_STATUS.IN_PROGRESS" class="status-tag status-in-progress">待确认</span>
                 <span v-else-if="item.status === WORK_STATUS.COMPLETED" class="status-tag status-completed">已完成</span>
+                <span v-else-if="item.status === WORK_STATUS.RETURNED" class="status-tag status-returned">已退回</span>
                 <span v-else class="status-tag">{{ item.status }}</span>
               </td>
-              <td>{{ item.remarks || '-' }}</td>
               <td class="action-cell">
                 <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
                 <a href="#" v-if="isAdmin" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
@@ -119,7 +119,7 @@
     </div>
 
     <div v-if="isAddModalOpen" class="modal-overlay" @click.self="closeAddModal">
-      <div class="modal-container">
+      <div class="modal-container modal-large">
         <div class="modal-header">
           <h3 class="modal-title">新增零星用工单</h3>
           <button class="modal-close" @click="closeAddModal">×</button>
@@ -139,14 +139,22 @@
                 </select>
               </div>
               <div class="form-item">
+                <label class="form-label">项目编号</label>
+                <div class="form-value-readonly">{{ formData.project_id || '-' }}</div>
+              </div>
+              <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 计划开始日期
                 </label>
-                <input type="date" class="form-input" v-model="formData.plan_start_date" />
+                <input type="date" class="form-input" v-model="formData.plan_start_date" @change="calculateWorkDays" />
+              </div>
+              <div class="form-item">
+                <label class="form-label">用工天数</label>
+                <div class="form-value-readonly">{{ workDays }} 天</div>
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人</label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户联系人" v-model="formData.client_contact" readonly />
+                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="formData.client_contact" />
               </div>
             </div>
             <div class="form-column">
@@ -162,14 +170,22 @@
                 </select>
               </div>
               <div class="form-item">
+                <label class="form-label">工单编号</label>
+                <div class="form-value-readonly">{{ formData.work_id || '自动生成' }}</div>
+              </div>
+              <div class="form-item">
                 <label class="form-label">
                   <span class="required">*</span> 计划结束日期
                 </label>
-                <input type="date" class="form-input" v-model="formData.plan_end_date" />
+                <input type="date" class="form-input" v-model="formData.plan_end_date" @change="calculateWorkDays" />
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系方式</label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户联系方式" v-model="formData.client_contact_info" readonly />
+                <label class="form-label">施工人数</label>
+                <div class="form-value-readonly">{{ workerCount }} 人</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户联系电话</label>
+                <input type="text" class="form-input" placeholder="请输入客户联系电话" v-model="formData.client_contact_info" />
               </div>
             </div>
           </div>
@@ -177,7 +193,41 @@
             <label class="form-label">
               <span class="required">*</span> 工作内容
             </label>
-            <textarea class="form-input form-textarea" placeholder="请输入工作内容" v-model="formData.remarks" maxlength="500"></textarea>
+            <textarea class="form-input form-textarea" placeholder="请输入工作内容" v-model="formData.work_content" maxlength="800"></textarea>
+          </div>
+          
+          <div class="form-item-full">
+            <label class="form-label">施工人员</label>
+            <div class="worker-section">
+              <button type="button" class="btn btn-worker" @click="openWorkerModal">
+                {{ workerCount > 0 ? `已录入 ${workerCount} 人` : '录入施工人员' }}
+              </button>
+            </div>
+          </div>
+          
+          <div class="form-item-full">
+            <label class="form-label">
+              <span class="required">*</span> 现场图片
+            </label>
+            <PhotoUpload v-model="formData.photos" :max-count="9" />
+          </div>
+          
+          <div class="form-item-full">
+            <label class="form-label">
+              <span class="required">*</span> 班组签字
+            </label>
+            <div class="signature-section">
+              <div v-if="formData.signature" class="signature-preview">
+                <img :src="formData.signature" alt="班组签字" />
+                <button class="btn-clear-signature" @click="formData.signature = ''">清除签字</button>
+              </div>
+              <button v-else class="btn btn-signature" @click="openSignatureModal">点击签字</button>
+            </div>
+          </div>
+          
+          <div class="form-item-full">
+            <label class="form-label">备注</label>
+            <textarea class="form-input form-textarea" placeholder="请输入备注" v-model="formData.remarks" maxlength="500"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -242,11 +292,9 @@
               <div class="form-item">
                 <label class="form-label">状态</label>
                 <select class="form-input" v-model="editFormData.status">
-                  <option value="未进行">未进行</option>
+                  <option value="执行中">执行中</option>
                   <option value="待确认">待确认</option>
-                  <option value="已确认">已确认</option>
                   <option value="已完成">已完成</option>
-                  <option value="已取消">已取消</option>
                   <option value="已退回">已退回</option>
                 </select>
               </div>
@@ -265,11 +313,34 @@
         </div>
       </div>
     </div>
+
+    <div v-if="showSignatureModal" class="modal-overlay" @click.self="showSignatureModal = false">
+      <div class="modal-container signature-modal">
+        <div class="modal-header">
+          <h3 class="modal-title">班组签字</h3>
+          <button class="modal-close" @click="showSignatureModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <SignaturePad @confirm="handleSignatureConfirm" @cancel="showSignatureModal = false" />
+        </div>
+      </div>
+    </div>
+
+    <WorkerEntryModal
+      v-if="showWorkerModal"
+      :project-id="formData.project_id"
+      :project-name="formData.project_name"
+      :work-date-start="formData.plan_start_date"
+      :work-date-end="formData.plan_end_date"
+      :initial-workers="workers"
+      @close="showWorkerModal = false"
+      @confirm="handleWorkerConfirm"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, onUnmounted, reactive, watch } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted, reactive, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { spotWorkService, type SpotWork } from '@/services/spotWork'
@@ -277,8 +348,24 @@ import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
+import PhotoUpload from '@/components/PhotoUpload.vue'
+import SignaturePad from '@/components/SignaturePad.vue'
+import WorkerEntryModal from '@/components/WorkerEntryModal.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
 import { userStore } from '@/stores/userStore'
+
+interface WorkerInfo {
+  id?: number
+  name: string
+  gender: string
+  birthDate: string
+  address: string
+  idCardNumber: string
+  issuingAuthority: string
+  validPeriod: string
+  idCardFront: string
+  idCardBack: string
+}
 
 interface WorkItem {
   id: number
@@ -288,16 +375,26 @@ interface WorkItem {
   plan_start_date: string
   plan_end_date: string
   client_name: string
+  client_contact: string
+  client_contact_info: string
   maintenance_personnel: string
   status: string
   remarks?: string
+  work_content?: string
+  worker_count?: number
+  work_days?: number
+  photos?: string[]
+  signature?: string
 }
 
 export default defineComponent({
   name: 'SpotWorkManagement',
   components: {
     Toast,
-    SearchInput
+    SearchInput,
+    PhotoUpload,
+    SignaturePad,
+    WorkerEntryModal
   },
   setup() {
     const router = useRouter()
@@ -311,6 +408,8 @@ export default defineComponent({
     const isAddModalOpen = ref(false)
     const isEditModalOpen = ref(false)
     const editingId = ref<number | null>(null)
+    const showSignatureModal = ref(false)
+    const showWorkerModal = ref(false)
     
     const isAdmin = ref(userStore.isAdmin())
 
@@ -337,6 +436,7 @@ export default defineComponent({
 
     const projectList = ref<ProjectInfo[]>([])
     const personnelList = ref<Personnel[]>([])
+    const workers = ref<WorkerInfo[]>([])
 
     const formData = ref({
       project_name: '',
@@ -348,8 +448,11 @@ export default defineComponent({
       plan_start_date: '',
       plan_end_date: '',
       maintenance_personnel: '',
-      status: WORK_STATUS.NOT_STARTED,
-      remarks: ''
+      status: WORK_STATUS.IN_PROGRESS,
+      work_content: '',
+      remarks: '',
+      photos: [] as string[],
+      signature: ''
     })
 
     const editFormData = ref({
@@ -365,6 +468,28 @@ export default defineComponent({
       status: '',
       remarks: ''
     })
+
+    const workDays = computed(() => {
+      if (!formData.value.plan_start_date || !formData.value.plan_end_date) return 0
+      const start = new Date(formData.value.plan_start_date)
+      const end = new Date(formData.value.plan_end_date)
+      const diffTime = Math.abs(end.getTime() - start.getTime())
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    })
+
+    const workerCount = computed(() => workers.value.length)
+
+    const calculateDays = (startDate: string, endDate: string) => {
+      if (!startDate || !endDate) return 0
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      const diffTime = Math.abs(end.getTime() - start.getTime())
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
+    }
+
+    const calculateWorkDays = () => {
+      // This is just to trigger the computed property update
+    }
 
     const workData = ref<WorkItem[]>([])
 
@@ -388,9 +513,16 @@ export default defineComponent({
             plan_start_date: item.plan_start_date,
             plan_end_date: item.plan_end_date,
             client_name: item.client_name || '',
+            client_contact: item.client_contact || '',
+            client_contact_info: item.client_contact_info || '',
             maintenance_personnel: item.maintenance_personnel || '',
-            status: item.status || '未进行',
-            remarks: item.remarks || ''
+            status: item.status || '执行中',
+            remarks: item.remarks || '',
+            work_content: item.work_content || '',
+            worker_count: item.worker_count || 0,
+            work_days: item.work_days || 0,
+            photos: item.photos || [],
+            signature: item.signature || ''
           }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages || 1
@@ -506,9 +638,31 @@ export default defineComponent({
         plan_start_date: today,
         plan_end_date: today,
         maintenance_personnel: '',
-        status: WORK_STATUS.NOT_STARTED,
-        remarks: ''
+        status: WORK_STATUS.IN_PROGRESS,
+        work_content: '',
+        remarks: '',
+        photos: [],
+        signature: ''
       }
+      workers.value = []
+    }
+
+    const openSignatureModal = () => {
+      showSignatureModal.value = true
+    }
+
+    const handleSignatureConfirm = (signatureData: string) => {
+      formData.value.signature = signatureData
+      showSignatureModal.value = false
+    }
+
+    const openWorkerModal = () => {
+      showWorkerModal.value = true
+    }
+
+    const handleWorkerConfirm = (workerList: WorkerInfo[]) => {
+      workers.value = workerList
+      showWorkerModal.value = false
     }
 
     const handleSave = async () => {
@@ -528,8 +682,16 @@ export default defineComponent({
         showToast('请选择计划结束日期', 'error')
         return
       }
-      if (!formData.value.remarks) {
+      if (!formData.value.work_content) {
         showToast('请输入工作内容', 'error')
+        return
+      }
+      if (formData.value.photos.length === 0) {
+        showToast('请上传现场图片', 'error')
+        return
+      }
+      if (!formData.value.signature) {
+        showToast('请完成班组签字', 'error')
         return
       }
       
@@ -547,10 +709,26 @@ export default defineComponent({
           client_contact_info: formData.value.client_contact_info,
           maintenance_personnel: formData.value.maintenance_personnel,
           status: '待确认',
-          remarks: formData.value.remarks || ''
+          work_content: formData.value.work_content,
+          remarks: formData.value.remarks || '',
+          photos: JSON.stringify(formData.value.photos),
+          signature: formData.value.signature
         })
         
         if (response.code === 200) {
+          if (workers.value.length > 0) {
+            try {
+              await spotWorkService.create({
+                project_id: formData.value.project_id,
+                project_name: formData.value.project_name,
+                plan_start_date: formData.value.plan_start_date,
+                plan_end_date: formData.value.plan_end_date,
+                work_id: response.data.work_id
+              } as any)
+            } catch (e) {
+              console.error('Failed to save workers:', e)
+            }
+          }
           showToast('保存成功', 'success')
           await loadData()
           closeAddModal()
@@ -587,7 +765,7 @@ export default defineComponent({
             client_contact: data.client_contact || '',
             client_contact_info: data.client_contact_info || '',
             maintenance_personnel: data.maintenance_personnel || '',
-            status: data.status || '未进行',
+            status: data.status || '执行中',
             remarks: data.remarks || ''
           }
           editingId.value = data.id
@@ -726,6 +904,11 @@ export default defineComponent({
       projectList,
       personnelList,
       workData,
+      workers,
+      workDays,
+      workerCount,
+      showSignatureModal,
+      showWorkerModal,
       formatDate,
       WORK_STATUS,
       handleSearch,
@@ -740,7 +923,13 @@ export default defineComponent({
       handleExport,
       handleDelete,
       handleJump,
-      showToast
+      showToast,
+      calculateDays,
+      calculateWorkDays,
+      openSignatureModal,
+      handleSignatureConfirm,
+      openWorkerModal,
+      handleWorkerConfirm
     }
   }
 })
@@ -1252,5 +1441,71 @@ export default defineComponent({
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.modal-large {
+  width: 1000px;
+}
+
+.signature-modal {
+  width: 600px;
+}
+
+.worker-section {
+  padding: 12px 0;
+}
+
+.btn-worker {
+  background: #fff;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  padding: 10px 20px;
+}
+
+.btn-worker:hover {
+  background: #e3f2fd;
+}
+
+.signature-section {
+  padding: 12px 0;
+}
+
+.signature-preview {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.signature-preview img {
+  max-width: 200px;
+  max-height: 100px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.btn-clear-signature {
+  padding: 6px 12px;
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  background: #fff;
+  color: #f44336;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.btn-clear-signature:hover {
+  background: #ffebee;
+}
+
+.btn-signature {
+  background: #fff;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  padding: 12px 24px;
+}
+
+.btn-signature:hover {
+  background: #e3f2fd;
 }
 </style>

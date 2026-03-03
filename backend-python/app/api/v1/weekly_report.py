@@ -72,7 +72,7 @@ def generate_report_id(
 def get_weekly_reports(
     request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    size: int = Query(10, ge=1, le=2000, description="每页数量"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
     report_id: Optional[str] = Query(None, description="周报编号"),
     report_date: Optional[str] = Query(None, description="填报日期"),
     work_summary: Optional[str] = Query(None, description="周报内容(模糊搜索)"),

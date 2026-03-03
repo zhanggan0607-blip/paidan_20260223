@@ -158,7 +158,7 @@ class MaintenancePlanService:
                 plan_end_date=plan.plan_end_date,
                 client_name=client_name,
                 maintenance_personnel=plan.maintenance_personnel,
-                status='未进行',
+                status='执行中',
                 remarks=plan.remarks
             )
             

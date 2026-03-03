@@ -69,7 +69,7 @@ def get_all_periodic_inspection(
 def get_periodic_inspection_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=1000, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     inspection_id: Optional[str] = Query(None, description="Inspection ID (fuzzy search)"),

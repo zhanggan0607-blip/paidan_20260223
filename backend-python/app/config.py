@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     app_version: str = "1.0.0"
     debug: bool = os.getenv("DEBUG", "False").lower() in ("true", "1")
     secret_key: str = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
+    port: int = 8000
     
     database_url: str = os.getenv(
         "DATABASE_URL",
@@ -31,7 +32,7 @@ class Settings(BaseSettings):
     cors_origins: str = "*"
     
     page_size: int = 10
-    max_page_size: int = 100
+    max_page_size: int = 1000
     
     @field_validator('cors_origins', mode='after')
     @classmethod
@@ -48,8 +49,8 @@ class Settings(BaseSettings):
 
 
 class OverdueAlertConfig:
-    VALID_STATUSES: List[str] = ['未确认', '未下发', '未进行', '待确认', '已退回', '待执行', '已确认', '执行中', '待审批']
-    COMPLETED_STATUSES: List[str] = ['已完成', '已确认', '已审批']
+    VALID_STATUSES: List[str] = ['执行中', '待确认', '已退回']
+    COMPLETED_STATUSES: List[str] = ['已完成']
     WORK_ORDER_TYPES: List[str] = ['定期巡检', '临时维修', '零星用工', '维保计划']
     OVERDUE_THRESHOLD_DAYS: int = 0
     

@@ -24,7 +24,7 @@ class MaintenancePlanBase(BaseModel):
     maintenance_requirements: Optional[str] = Field(None, description="维保要求")
     maintenance_standard: Optional[str] = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
-    status: str = Field("未进行", max_length=20, description="执行状态")
+    status: str = Field("执行中", max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
     filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
     total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
@@ -42,7 +42,7 @@ class MaintenancePlanBase(BaseModel):
     @field_validator('plan_status')
     @classmethod
     def validate_plan_status(cls, v):
-        valid_statuses = ['待执行', '执行中', '已完成', '已取消', '已延期']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'计划状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -50,7 +50,7 @@ class MaintenancePlanBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '未开始', '异常']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'执行状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -86,7 +86,7 @@ class MaintenancePlanCreate(BaseModel):
     maintenance_requirements: Optional[str] = Field(None, description="维保要求")
     maintenance_standard: Optional[str] = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
-    status: str = Field("未进行", max_length=20, description="执行状态")
+    status: str = Field("执行中", max_length=20, description="执行状态")
     completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
     filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
     total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")

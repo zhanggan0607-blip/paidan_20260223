@@ -74,20 +74,20 @@ DEBUG=True
 开发模式：
 
 ```bash
-poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+poetry run uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 或使用 pip：
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 访问 API 文档
 
-- Swagger UI: http://localhost:8080/docs
-- ReDoc: http://localhost:8080/redoc
-- OpenAPI JSON: http://localhost:8080/openapi.json
+- Swagger UI: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+- OpenAPI JSON: http://localhost:8000/openapi.json
 
 ## API 端点
 
@@ -177,7 +177,7 @@ gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8080
 
 ### 端口被占用
 
-修改启动命令中的 `--port` 参数或停止占用 8080 端口的进程。
+修改启动命令中的 `--port` 参数或停止占用 8000 端口的进程。
 
 ## 贡献指南
 

@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, onActivated } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
+import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
+import type { User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 
 interface ProjectInfo {
@@ -20,7 +19,6 @@ interface ProjectInfo {
 }
 
 const router = useRouter()
-const route = useRoute()
 const { goBack } = useNavigation()
 
 const userReady = ref(false)
@@ -43,10 +41,6 @@ const showDateRangePicker = ref(false)
 const selectedProjectName = ref('')
 const submitLoading = ref(false)
 const generatedWorkId = ref('')
-
-const currentPhotos = ref<string[]>([])
-const showPhotoPopup = ref(false)
-const signature = ref('')
 
 const minDate = new Date(2020, 0, 1)
 const maxDate = new Date(2030, 11, 31)
@@ -129,10 +123,6 @@ const handleSubmit = async () => {
     showFailToast('请输入报修内容')
     return
   }
-  if (currentPhotos.value.length === 0) {
-    showFailToast('请上传现场照片')
-    return
-  }
   
   submitLoading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
@@ -168,8 +158,6 @@ const handleSubmit = async () => {
       client_contact: formData.value.clientContact,
       client_contact_info: formData.value.clientContactInfo,
       remarks: formData.value.remarks,
-      photos: JSON.stringify(currentPhotos.value),
-      signature: signature.value,
       status: '待确认'
     })
     
@@ -191,9 +179,6 @@ const handleSubmit = async () => {
         remarks: ''
       }
       selectedProjectName.value = ''
-      currentPhotos.value = []
-      signature.value = ''
-      localStorage.removeItem('temporary_repair_create_signature')
       
       router.push('/temporary-repair')
     } else {
@@ -232,113 +217,8 @@ const projectColumns = computed(() => {
   }))
 })
 
-/**
- * 处理现场图片上传弹窗
- */
-const handlePhotoUpload = () => {
-  showPhotoPopup.value = true
-}
-
-/**
- * 拍照上传
- */
-const handlePhotoCapture = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.capture = 'environment'
-  
-  input.onchange = async (e: Event) => {
-    const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) return
-    
-    showLoadingToast({ message: '处理中...', forbidClick: true })
-    
-    try {
-      const userName = userStore.getUser()?.name || '未知用户'
-      const location = await getCurrentLocation()
-      const processedFile = await processPhoto(file, {
-        userName,
-        includeLocation: true,
-        latitude: location?.latitude,
-        longitude: location?.longitude
-      })
-      
-      const formDataObj = new FormData()
-      formDataObj.append('file', processedFile)
-      
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      
-      if (response.code === 200 && response.data) {
-        currentPhotos.value.push(response.data.url)
-        showSuccessToast('上传成功')
-      }
-    } catch (error) {
-      console.error('Failed to upload photo:', error)
-      showFailToast('上传失败')
-    } finally {
-      closeToast()
-    }
-  }
-  
-  input.click()
-}
-
-/**
- * 删除图片
- */
-const handleRemovePhoto = async (index: number) => {
-  try {
-    await showConfirmDialog({
-      title: '提示',
-      message: '是否要删除，新增的图片会重新打水印'
-    })
-    currentPhotos.value.splice(index, 1)
-  } catch {
-  }
-}
-
-/**
- * 保存图片
- */
-const handlePhotoSave = () => {
-  showPhotoPopup.value = false
-  showSuccessToast('保存成功')
-}
-
-/**
- * 跳转签字页面
- */
-const handleSignature = () => {
-  router.push({
-    path: '/signature',
-    query: { 
-      from: route.fullPath,
-      type: 'temporary-repair-create'
-    }
-  })
-}
-
-/**
- * 加载签字
- */
-const loadSignature = () => {
-  const signatureData = localStorage.getItem('temporary_repair_create_signature')
-  if (signatureData) {
-    signature.value = signatureData
-  }
-}
-
 onMounted(() => {
   fetchProjectList()
-  loadSignature()
-})
-
-onActivated(() => {
-  loadSignature()
 })
 </script>
 
@@ -351,7 +231,7 @@ onActivated(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
@@ -409,31 +289,6 @@ onActivated(() => {
       />
     </van-cell-group>
 
-    <van-cell-group inset title="图片上传" class="form-group">
-      <van-cell is-link @click="handlePhotoUpload" required>
-        <template #title>
-          <span>现场图片</span>
-        </template>
-        <template #value>
-          <span :class="currentPhotos.length > 0 ? 'status-done' : 'status-action'">
-            {{ currentPhotos.length > 0 ? `已上传${currentPhotos.length}张` : '去上传' }}
-          </span>
-        </template>
-      </van-cell>
-    </van-cell-group>
-
-    <van-cell-group inset title="签字确认" class="form-group">
-      <van-cell is-link @click="handleSignature">
-        <template #title>
-          <span>用户签字</span>
-        </template>
-        <template #value>
-          <img v-if="signature" :src="signature" class="signature-preview" loading="lazy" />
-          <span v-else class="status-pending">待签字</span>
-        </template>
-      </van-cell>
-    </van-cell-group>
-
     <div class="submit-btn">
       <van-button type="primary" block :loading="submitLoading" @click="handleSubmit">
         提交
@@ -469,42 +324,6 @@ onActivated(() => {
       @confirm="handleDateRangeConfirm"
       color="#1989fa"
     />
-
-    <van-popup 
-      v-model:show="showPhotoPopup" 
-      position="bottom" 
-      round 
-      :style="{ height: '60%' }"
-    >
-      <div class="popup-content">
-        <div class="popup-header">
-          <span class="popup-title">现场图片</span>
-          <van-icon name="cross" @click="showPhotoPopup = false" />
-        </div>
-        <div class="popup-body">
-          <div class="photo-section">
-            <div class="photo-grid">
-              <div 
-                v-for="(photo, index) in currentPhotos" 
-                :key="index" 
-                class="photo-item"
-              >
-                <img :src="photo" alt="现场照片" loading="lazy" />
-                <van-icon name="delete" class="delete-icon" @click.stop="handleRemovePhoto(index)" />
-              </div>
-              <div class="photo-add" @click="handlePhotoCapture" v-if="currentPhotos.length < 9">
-                <van-icon name="photograph" size="24" />
-                <span>拍照</span>
-              </div>
-            </div>
-            <div class="photo-tip">只支持拍照，最多上传9张</div>
-          </div>
-        </div>
-        <div class="popup-footer">
-          <van-button type="primary" block @click="handlePhotoSave">保存</van-button>
-        </div>
-      </div>
-    </van-popup>
   </div>
 </template>
 
@@ -536,131 +355,5 @@ onActivated(() => {
 
 :deep(.van-cell-group--inset) {
   margin: 12px;
-}
-
-.status-done {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: #fff;
-  background-color: #07c160;
-  border-radius: 4px;
-}
-
-.status-pending {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 12px;
-  color: #fff;
-  background-color: #1989fa;
-  border-radius: 4px;
-}
-
-.status-action {
-  display: inline-block;
-  padding: 3px 10px;
-  font-size: 14px;
-  color: #fff;
-  background-color: #ff976a;
-  border-radius: 4px;
-}
-
-.signature-preview {
-  width: 80px;
-  height: 40px;
-  object-fit: contain;
-  background-color: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 4px;
-}
-
-.popup-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.popup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #ebedf0;
-}
-
-.popup-title {
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.popup-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 12px 0;
-}
-
-.popup-footer {
-  padding: 12px;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
-}
-
-.popup-footer .van-button {
-  min-height: 44px;
-  font-size: 16px;
-  border-radius: 8px;
-}
-
-.photo-section {
-  padding: 12px 16px;
-}
-
-.photo-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.photo-item {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.photo-item img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.delete-icon {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 18px;
-  color: #ee0a24;
-  background: rgba(255, 255, 255, 0.8);
-  border-radius: 50%;
-  padding: 2px;
-}
-
-.photo-add {
-  aspect-ratio: 1;
-  border: 1px dashed #dcdee0;
-  border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  color: #969799;
-  font-size: 12px;
-}
-
-.photo-tip {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #969799;
 }
 </style>

@@ -46,7 +46,7 @@ const initCanvas = () => {
   canvas.value.width = container.clientWidth
   canvas.value.height = container.clientHeight
   
-  ctx.value = canvas.value.getContext('2d')
+  ctx.value = canvas.value.getContext('2d', { willReadFrequently: true })
   if (ctx.value) {
     ctx.value.strokeStyle = '#000'
     ctx.value.lineWidth = 3

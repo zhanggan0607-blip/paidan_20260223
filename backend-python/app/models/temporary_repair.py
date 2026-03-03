@@ -17,7 +17,7 @@ class TemporaryRepair(Base, SoftDeleteMixin):
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
     client_name = Column(String(100), comment="客户单位")
     maintenance_personnel = Column(String(100), comment="运维人员")
-    status = Column(String(20), nullable=False, default="未进行", comment="状态")
+    status = Column(String(20), nullable=False, default="执行中", comment="状态")
     remarks = Column(String(500), comment="备注")
     fault_description = Column(Text, comment="故障描述")
     solution = Column(Text, comment="解决方案")
@@ -62,7 +62,7 @@ class TemporaryRepair(Base, SoftDeleteMixin):
         if self.photos:
             try:
                 photos = json.loads(self.photos)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 photos = []
         
         return {

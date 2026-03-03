@@ -252,7 +252,7 @@ export default defineComponent({
       plan_start_date: '',
       plan_end_date: '',
       maintenance_personnel: '',
-      status: WORK_STATUS.NOT_STARTED,
+      status: WORK_STATUS.IN_PROGRESS,
       remarks: ''
     })
 
@@ -284,7 +284,7 @@ export default defineComponent({
             plan_end_date: item.plan_end_date,
             client_name: item.client_name || '',
             maintenance_personnel: item.maintenance_personnel || '',
-            status: item.status || '待执行',
+            status: item.status || '执行中',
             remarks: item.remarks || ''
           }))
           totalElements.value = response.data.totalElements
@@ -439,7 +439,7 @@ export default defineComponent({
         plan_start_date: today,
         plan_end_date: today,
         maintenance_personnel: '',
-        status: WORK_STATUS.NOT_STARTED,
+        status: WORK_STATUS.IN_PROGRESS,
         remarks: ''
       }
     }
@@ -479,7 +479,7 @@ export default defineComponent({
           plan_end_date: formData.value.plan_end_date,
           client_name: formData.value.client_name,
           maintenance_personnel: formData.value.maintenance_personnel,
-          status: '未进行',
+          status: '执行中',
           remarks: formData.value.remarks || ''
         })
         

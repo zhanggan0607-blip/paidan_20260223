@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
+import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables'
 
@@ -130,13 +130,27 @@ const fetchOperationLogs = async (logId: number) => {
 }
 
 /**
+ * 获取完整图片URL
+ */
+const getFullImageUrl = (url: string): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  return window.location.origin + url
+}
+
+/**
  * 预览图片
  */
 const handlePreviewImage = (index: number) => {
   if (imageList.value.length > 0) {
+    const fullUrls = imageList.value.map(img => getFullImageUrl(img))
     showImagePreview({
-      images: imageList.value,
-      startPosition: index
+      images: fullUrls,
+      startPosition: index,
+      closeable: true,
+      showIndex: true
     })
   }
 }
@@ -159,7 +173,7 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
@@ -361,5 +375,32 @@ onMounted(() => {
   background: #e8f4ff;
   padding: 2px 6px;
   border-radius: 4px;
+}
+</style>
+
+<style>
+.van-image-preview {
+  --van-image-preview-overlay-background: rgba(0, 0, 0, 0.9);
+}
+
+.van-image-preview__image {
+  max-width: 100vw;
+  max-height: 100vh;
+  object-fit: contain;
+}
+
+.van-image-preview .van-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.van-image-preview .van-image img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
 }
 </style>

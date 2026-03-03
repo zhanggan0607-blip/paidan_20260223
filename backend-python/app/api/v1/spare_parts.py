@@ -121,7 +121,7 @@ def get_spare_parts_usage(
     project: Optional[str] = Query(None, description="项目名称"),
     status_filter: Optional[str] = Query(None, alias="status", description="状态"),
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    pageSize: int = Query(10, ge=1, le=2000, description="每页数量"),
+    pageSize: int = Query(10, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db),
     current_user: Optional[dict] = Depends(get_current_user)
 ):

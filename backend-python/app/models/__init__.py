@@ -1,3 +1,4 @@
+from app.database import Base
 from app.models.periodic_inspection import PeriodicInspection
 from app.models.periodic_inspection_record import PeriodicInspectionRecord
 from app.models.temporary_repair import TemporaryRepair
@@ -19,8 +20,11 @@ from app.models.repair_tools_inbound import RepairToolsInbound
 from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.models.operation_type import OperationType
 from app.models.online_user import OnlineUser
+from app.models.dictionary import Dictionary
+from app.models.user_dashboard_config import UserDashboardConfig
 
 __all__ = [
+    'Base',
     'PeriodicInspection',
     'PeriodicInspectionRecord',
     'TemporaryRepair',
@@ -42,5 +46,7 @@ __all__ = [
     'RepairToolsInbound',
     'WorkOrderOperationLog',
     'OperationType',
-    'OnlineUser'
+    'OnlineUser',
+    'Dictionary',
+    'UserDashboardConfig'
 ]

@@ -4,11 +4,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { WORK_STATUS, formatDate } from '../config/constants'
+import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
+import { WORK_STATUS } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
 import { useNavigation } from '../composables'
 
 const router = useRouter()
@@ -52,10 +52,8 @@ const showPhotoPopup = ref(false)
 
 const isEditable = computed(() => {
   const status = detail.value?.status
-  return status === WORK_STATUS.NOT_STARTED || 
-         status === WORK_STATUS.RETURNED ||
-         status === '未进行' ||
-         status === '待提交'
+  return status === WORK_STATUS.IN_PROGRESS || 
+         status === WORK_STATUS.RETURNED
 })
 
 const canSubmit = computed(() => {
@@ -69,7 +67,7 @@ const handleBackToList = () => {
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
 const isApproveMode = computed(() => {
-  return route.query.mode === 'approve' && canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
+  return canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
 })
 
 /**
@@ -289,7 +287,7 @@ const handleApprovePass = async () => {
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     const submitData = {
-      status: '已确认'
+      status: '已完成'
     }
     
     const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)

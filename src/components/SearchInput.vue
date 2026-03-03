@@ -32,7 +32,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { useSearchHistory } from '../utils/searchHistory'
+import { useSearchHistory } from '@sstcp/shared'
 
 export default defineComponent({
   name: 'SearchInput',

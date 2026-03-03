@@ -373,7 +373,7 @@ class SyncService:
                 plan_end_date=work_plan.plan_end_date,
                 maintenance_personnel=work_plan.maintenance_personnel,
                 maintenance_content='待填写',
-                plan_status='待执行',
+                plan_status='执行中',
                 status=work_plan.status,
                 filled_count=work_plan.filled_count or 0,
                 total_count=work_plan.total_count or 5,

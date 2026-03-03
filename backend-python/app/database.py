@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.config import get_settings
@@ -18,7 +18,35 @@ engine = create_engine(
     pool_size=10,
     max_overflow=20,
     pool_timeout=30,
+    connect_args={
+        "connect_timeout": 10,
+        "application_name": "sstcp_maintenance"
+    }
 )
+
+
+@event.listens_for(engine, "connect")
+def receive_connect(dbapi_connection, connection_record):
+    """连接创建时触发"""
+    logger.debug(f"数据库连接创建: {id(dbapi_connection)}")
+
+
+@event.listens_for(engine, "checkout")
+def receive_checkout(dbapi_connection, connection_record, connection_proxy):
+    """连接从池中取出时触发"""
+    logger.debug(f"数据库连接取出: {id(dbapi_connection)}")
+
+
+@event.listens_for(engine, "checkin")
+def receive_checkin(dbapi_connection, connection_record):
+    """连接归还到池中时触发"""
+    logger.debug(f"数据库连接归还: {id(dbapi_connection)}")
+
+
+@event.listens_for(engine, "close")
+def receive_close(dbapi_connection, connection_record):
+    """连接关闭时触发"""
+    logger.debug(f"数据库连接关闭: {id(dbapi_connection)}")
 
 try:
     with engine.connect() as connection:

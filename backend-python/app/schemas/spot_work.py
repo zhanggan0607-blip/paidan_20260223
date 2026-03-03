@@ -18,13 +18,13 @@ class SpotWorkBase(BaseModel):
     work_content: Optional[str] = Field(None, description="工作内容")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="班组签字图片")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: str = Field("执行中", max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '已退回']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -44,7 +44,7 @@ class SpotWorkCreate(BaseModel):
     work_content: Optional[str] = Field(None, description="工作内容")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="班组签字图片")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: str = Field("执行中", max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
 
@@ -88,7 +88,7 @@ class SpotWorkPartialUpdate(BaseModel):
     def validate_status(cls, v):
         if v is None:
             return v
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消', '已退回']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v

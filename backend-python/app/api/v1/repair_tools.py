@@ -117,7 +117,7 @@ async def get_personnel_projects(
 async def search_tools(
     keyword: Optional[str] = Query(None, description="搜索关键词"),
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=2000, description="每页数量"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db)
 ):
     query = db.query(RepairToolsStock).filter(RepairToolsStock.stock > 0)
@@ -306,7 +306,7 @@ async def delete_stock(
 @router.get("/inbound", summary="获取维修工具入库记录列表")
 async def get_inbound_list(
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=2000, description="每页数量"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
     tool_name: Optional[str] = Query(None, description="工具名称"),
     user_name: Optional[str] = Query(None, description="入库人"),
     db: Session = Depends(get_db)
@@ -331,7 +331,7 @@ async def get_inbound_list(
 async def get_issue_list(
     request: Request,
     page: int = Query(0, ge=0, description="页码"),
-    size: int = Query(10, ge=1, le=2000, description="每页数量"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
     tool_name: Optional[str] = Query(None, description="工具名称"),
     user_name: Optional[str] = Query(None, description="运维人员"),
     status: Optional[str] = Query(None, description="状态"),

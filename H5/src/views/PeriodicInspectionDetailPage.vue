@@ -4,11 +4,11 @@ import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast, showImagePreview } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { WORK_STATUS, formatDate } from '../config/constants'
+import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
+import { WORK_STATUS } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
 import { useNavigation } from '../composables'
 
 const router = useRouter()
@@ -18,6 +18,7 @@ const { goBack } = useNavigation()
 interface WorkPlanDetail {
   id: number
   inspection_id: string
+  plan_id?: string
   plan_type: string
   project_id: string
   project_name: string
@@ -105,7 +106,7 @@ const currentInspectionSystem = ref<InspectionSystem | null>(null)
 const showInspectionPopup = ref(false)
 
 const isApproveMode = computed(() => {
-  return route.query.mode === 'approve'
+  return canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
 })
 
 const canApprove = computed(() => {
@@ -115,8 +116,7 @@ const canApprove = computed(() => {
 const isEditable = computed(() => {
   if (isApproveMode.value) return false
   const status = detail.value?.status
-  return status === WORK_STATUS.NOT_STARTED || 
-         status === WORK_STATUS.IN_PROGRESS ||
+  return status === WORK_STATUS.IN_PROGRESS || 
          status === WORK_STATUS.RETURNED
 })
 
@@ -266,38 +266,23 @@ const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
 }
 
 /**
- * 从后端API获取项目关联的维保事项
- * 将维保计划的inspection_items JSON字段解析为巡检记录列表
- * 如果维保计划没有inspection_items，则从巡检事项表获取默认数据
+ * 从后端API获取关联维保计划的巡检事项
+ * 优先通过定期巡检单的 plan_id 获取对应维保计划的 inspection_items
+ * 如果没有关联维保计划，则从巡检事项表获取默认数据
  */
 const fetchInspectionItems = async () => {
-  if (!detail.value?.project_id) {
+  if (!detail.value) {
     return
   }
   
   inspectionItemsLoading.value = true
   try {
-    const response = await api.get<unknown, ApiResponse<MaintenancePlan[]>>(`/maintenance-plan/project/${detail.value.project_id}`)
-    if (response.code === 200 && response.data) {
-      const orderStartDate = detail.value.plan_start_date ? new Date(detail.value.plan_start_date) : null
-      const orderEndDate = detail.value.plan_end_date ? new Date(detail.value.plan_end_date) : null
-      if (orderStartDate) orderStartDate.setHours(0, 0, 0, 0)
-      if (orderEndDate) orderEndDate.setHours(0, 0, 0, 0)
-      
-      const filteredPlans = response.data.filter((plan: MaintenancePlan) => {
-        if (!plan.plan_start_date || !plan.plan_end_date) return false
-        const planStartDate = new Date(plan.plan_start_date)
-        planStartDate.setHours(0, 0, 0, 0)
-        const planEndDate = new Date(plan.plan_end_date)
-        planEndDate.setHours(0, 0, 0, 0)
-        if (orderStartDate && orderEndDate) {
-          return orderStartDate <= planEndDate && orderEndDate >= planStartDate
-        }
-        return false
-      })
-      
-      const allItems: InspectionSystem[] = []
-      filteredPlans.forEach((plan: MaintenancePlan) => {
+    const allItems: InspectionSystem[] = []
+    
+    if (detail.value.plan_id) {
+      const response = await api.get<unknown, ApiResponse<MaintenancePlan>>(`/maintenance-plan/plan-id/${detail.value.plan_id}`)
+      if (response.code === 200 && response.data) {
+        const plan = response.data
         if (plan.inspection_items) {
           try {
             const items: InspectionItemData[] = JSON.parse(plan.inspection_items)
@@ -322,19 +307,19 @@ const fetchInspectionItems = async () => {
             console.error('解析巡查项数据失败:', e)
           }
         }
-      })
-      
-      if (allItems.length === 0) {
-        const defaultItems = await fetchDefaultInspectionItems()
-        inspectionSystems.value = defaultItems
-      } else {
-        inspectionSystems.value = allItems
       }
-      
-      await loadSavedRecords()
     }
+    
+    if (allItems.length === 0) {
+      const defaultItems = await fetchDefaultInspectionItems()
+      inspectionSystems.value = defaultItems
+    } else {
+      inspectionSystems.value = allItems
+    }
+    
+    await loadSavedRecords()
   } catch (error) {
-    console.error('Failed to fetch maintenance plans:', error)
+    console.error('Failed to fetch maintenance plan:', error)
   } finally {
     inspectionItemsLoading.value = false
   }
@@ -632,7 +617,7 @@ const handleApprovePass = async () => {
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     const submitData = {
-      status: '已确认'
+      status: '已完成'
     }
     
     const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)

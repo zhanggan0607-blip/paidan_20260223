@@ -236,15 +236,19 @@ export default defineComponent({
      * 获取状态样式类
      */
     const getStatusClass = (status: string) => {
-      const statusMap: Record<string, string> = {
-        '未进行': 'status-pending',
-        '待确认': 'status-waiting',
-        '已确认': 'status-confirmed',
-        '已完成': 'status-completed',
-        '已退回': 'status-returned',
-        '已取消': 'status-cancelled'
+      if (status === '执行中') {
+        return 'status-pending'
       }
-      return statusMap[status] || ''
+      if (status === '待确认') {
+        return 'status-waiting'
+      }
+      if (status === '已完成') {
+        return 'status-completed'
+      }
+      if (status === '已退回') {
+        return 'status-returned'
+      }
+      return ''
     }
 
     /**
@@ -297,7 +301,7 @@ export default defineComponent({
               client_contact_position: item.client_contact_position || '',
               address: item.address || '',
               maintenance_personnel: item.maintenance_personnel || '',
-              status: item.status || '未进行',
+              status: item.status || '执行中',
               remarks: item.remarks || '',
               work_content: item.work_content || '',
               worker_count: item.worker_count || 0,

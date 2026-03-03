@@ -672,16 +672,13 @@ export default defineComponent({
     }
 
     const getStatusClass = (status: string) => {
-      if (status === '已确认' || status === '已完成') return 'status-completed'
+      if (status === '已完成') return 'status-completed'
       if (status === '待确认') return 'status-in-progress'
-      if (status === '未进行' || status === '已退回') return 'status-pending'
+      if (status === '执行中' || status === '已退回') return 'status-pending'
       return 'status-default'
     }
 
     const getDisplayStatus = (status: string) => {
-      if (status === '已确认' || status === '已完成') return '已完成'
-      if (status === '待确认') return '待确认'
-      if (status === '未进行' || status === '已退回') return '待处理'
       return status
     }
 

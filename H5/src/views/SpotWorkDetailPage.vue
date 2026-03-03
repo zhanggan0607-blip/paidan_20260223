@@ -4,14 +4,13 @@ import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { WORK_STATUS, formatDate } from '../config/constants'
-import { getWorkIdFontSize } from '../utils/format'
+import { formatDate, getWorkIdFontSize, processPhoto, getCurrentLocation } from '@sstcp/shared'
+import { WORK_STATUS } from '../config/constants'
 import { copyOrderId } from '../utils/clipboard'
 import { useNavigation } from '../composables'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
 
 const router = useRouter()
 const route = useRoute()
@@ -75,10 +74,8 @@ const currentWorker = ref<WorkerInfo | null>(null)
 
 const isEditable = computed(() => {
   const status = detail.value?.status
-  return status === WORK_STATUS.NOT_STARTED || 
-         status === WORK_STATUS.RETURNED ||
-         status === '未进行' ||
-         status === '待提交'
+  return status === WORK_STATUS.IN_PROGRESS || 
+         status === WORK_STATUS.RETURNED
 })
 
 const canSubmit = computed(() => {
@@ -88,7 +85,7 @@ const canSubmit = computed(() => {
 const canApprove = computed(() => userStore.canApproveSpotWork())
 
 const isApproveMode = computed(() => {
-  return route.query.mode === 'approve' && canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
+  return canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
 })
 
 const handleBackToList = () => {
@@ -101,20 +98,24 @@ const showWorkerDetail = (worker: WorkerInfo) => {
 }
 
 /**
- * 获取状态样式类
+ * 获取状态样式类名
  * @param status 状态
  * @returns 样式类名
  */
 const getStatusClass = (status: string) => {
-  const statusMap: Record<string, string> = {
-    '未进行': 'status-pending',
-    '待确认': 'status-waiting',
-    '已确认': 'status-confirmed',
-    '已完成': 'status-completed',
-    '已退回': 'status-returned',
-    '已取消': 'status-cancelled'
+  if (status === '执行中') {
+    return 'status-pending'
   }
-  return statusMap[status] || ''
+  if (status === '待确认') {
+    return 'status-waiting'
+  }
+  if (status === '已完成') {
+    return 'status-completed'
+  }
+  if (status === '已退回') {
+    return 'status-returned'
+  }
+  return ''
 }
 
 const fetchDetail = async () => {
@@ -317,7 +318,7 @@ const handleApprovePass = async () => {
     showLoadingToast({ message: '处理中...', forbidClick: true })
     
     const submitData = {
-      status: '已确认'
+      status: '已完成'
     }
     
     const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)

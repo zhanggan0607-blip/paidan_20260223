@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 OCR服务管理器
-支持主备切换、缓存机制
+支持阿里云OCR和缓存机制
 """
 
 import hashlib
@@ -11,7 +11,6 @@ import time
 from typing import Dict, Any, Optional
 
 from app.utils.aliyun_ocr import AliyunOCRService
-from app.utils.tesseract_ocr import TesseractOCRService
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +19,7 @@ class OCRServiceManager:
     """
     OCR服务管理器
     
-    支持多引擎主备切换和结果缓存
+    支持阿里云OCR引擎和结果缓存
     """
     
     _instance: Optional['OCRServiceManager'] = None
@@ -42,7 +41,6 @@ class OCRServiceManager:
         """
         if not hasattr(self, '_initialized'):
             self._aliyun_ocr = AliyunOCRService()
-            self._tesseract_ocr = TesseractOCRService()
             self._cache: Dict[str, Dict[str, Any]] = {}
             self._cache_lock = threading.Lock()
             self._cache_ttl = 7 * 24 * 60 * 60
@@ -118,7 +116,7 @@ class OCRServiceManager:
         """
         识别身份证（Base64图片）
         
-        优先使用阿里云OCR，失败时降级到Tesseract
+        使用阿里云OCR
         
         Args:
             image_base64: 图片Base64编码
@@ -141,21 +139,12 @@ class OCRServiceManager:
                 self._set_cached_result(cache_key, result)
                 return result
             else:
-                logger.warning(f"阿里云OCR识别失败，尝试降级到Tesseract: {result['message']}")
-        
-        if self._tesseract_ocr.is_available():
-            logger.info("使用Tesseract OCR引擎（备用）")
-            result = self._tesseract_ocr.recognize_idcard_base64(image_base64, side)
-            if result['success']:
-                result['engine'] = 'tesseract'
-                self._set_cached_result(cache_key, result)
+                logger.error(f"阿里云OCR识别失败: {result['message']}")
                 return result
-            else:
-                logger.error(f"Tesseract OCR识别也失败: {result['message']}")
         
         return {
             'success': False,
-            'message': '所有OCR引擎都不可用或识别失败',
+            'message': '阿里云OCR未配置或识别失败',
             'engine': None
         }
     
@@ -204,10 +193,6 @@ class OCRServiceManager:
             'aliyun': {
                 'available': self._aliyun_ocr.is_configured(),
                 'type': 'primary'
-            },
-            'tesseract': {
-                'available': self._tesseract_ocr.is_available(),
-                'type': 'fallback'
             },
             'cache': {
                 'enabled': True,

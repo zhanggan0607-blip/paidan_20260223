@@ -245,7 +245,7 @@
               <div v-for="(record, index) in viewConfirmationRecords" :key="index" class="confirmation-item">
                 <span class="confirmation-time">{{ record.time }}</span>
                 <span class="confirmation-user">{{ record.user }}</span>
-                <span :class="['confirmation-status', record.status === '已确认' ? 'status-confirmed' : record.status === '已退回' ? 'status-returned' : 'status-submitted']">
+                <span :class="['confirmation-status', record.status === '已完成' ? 'status-confirmed' : record.status === '已退回' ? 'status-returned' : 'status-submitted']">
                   {{ record.status }}
                 </span>
                 <span v-if="record.reason" class="confirmation-reason">{{ record.reason }}</span>
@@ -455,27 +455,19 @@ export default defineComponent({
     }
 
     const getStatusClass = (status: string) => {
-      switch (status) {
-        case WORK_STATUS.NOT_STARTED:
-        case '待执行':
-        case '未进行':
-          return 'status-pending'
-        case WORK_STATUS.PENDING_CONFIRM:
-        case '待确认':
-          return 'status-waiting'
-        case WORK_STATUS.IN_PROGRESS:
-          return 'status-in-progress'
-        case WORK_STATUS.COMPLETED:
-        case '已完成':
-        case '已确认':
-          return 'status-completed'
-        case WORK_STATUS.CANCELLED:
-          return 'status-cancelled'
-        case '已退回':
-          return 'status-returned'
-        default:
-          return ''
+      if (status === '执行中') {
+        return 'status-in-progress'
       }
+      if (status === '待确认') {
+        return 'status-waiting'
+      }
+      if (status === '已完成') {
+        return 'status-completed'
+      }
+      if (status === '已退回') {
+        return 'status-returned'
+      }
+      return ''
     }
 
     const loadData = async () => {
@@ -500,7 +492,7 @@ export default defineComponent({
             plan_end_date: item.plan_end_date,
             client_name: item.client_name || '',
             maintenance_personnel: item.maintenance_personnel || '',
-            status: item.status || '未进行',
+            status: item.status || '执行中',
             remarks: item.remarks || '',
             execution_result: item.execution_result || '',
             signature: item.signature || ''

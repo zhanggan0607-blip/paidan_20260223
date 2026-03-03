@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
+import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
@@ -134,7 +134,7 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

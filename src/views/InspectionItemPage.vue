@@ -120,7 +120,7 @@
           :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
           @click.stop
         >
-          <div class="context-menu-item" @click="handleAddFromMenu">
+          <div class="context-menu-item" v-if="contextMenuNode && contextMenuNode.level < 3" @click="handleAddFromMenu">
             新增子节点
           </div>
           <div class="context-menu-item" @click="handleAddSiblingFromMenu">
@@ -536,7 +536,7 @@ const handleDialogConfirm = async () => {
         item_name: dialogForm.item_name.trim(),
         item_type: dialogForm.item_type || dialogForm.currentNode.item_type,
         level: dialogForm.currentNode.level,
-        parent_id: dialogForm.currentNode.parent_id
+        parent_id: dialogForm.currentNode.parent_id || null
       }
       await inspectionItemService.create(newItem)
       ElMessage.success('新增同级节点成功')

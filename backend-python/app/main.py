@@ -5,15 +5,23 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
-from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log, weekly_report, work_order_operation_log, operation_type, ocr, online_user
+from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log, weekly_report, work_order_operation_log, operation_type, ocr, online_user, migration
 from app.database import Base, engine
 from app.exceptions import BusinessException
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.utils.logging_config import setup_logging, get_log_stats, cleanup_old_logs
 import logging
 import time
 import uuid
 import os
 
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
+setup_logging(log_level="INFO")
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -112,6 +120,7 @@ app.include_router(work_order_operation_log.router, prefix=settings.api_prefix)
 app.include_router(operation_type.router, prefix=settings.api_prefix)
 app.include_router(ocr.router, prefix=settings.api_prefix)
 app.include_router(online_user.router, prefix=settings.api_prefix)
+app.include_router(migration.router, prefix=settings.api_prefix)
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -131,6 +140,82 @@ def read_root():
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/health/detailed")
+def health_check_detailed():
+    """
+    详细健康检查，包含系统资源使用情况
+    """
+    try:
+        result = {
+            "status": "healthy",
+            "database": {
+                "pool_size": engine.pool.size(),
+                "checked_out": engine.pool.checkedout(),
+                "overflow": engine.pool.overflow()
+            }
+        }
+        
+        if PSUTIL_AVAILABLE:
+            import psutil
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            try:
+                disk = psutil.disk_usage('/')
+                disk_info = {
+                    "total_gb": round(disk.total / (1024**3), 2),
+                    "used_gb": round(disk.used / (1024**3), 2),
+                    "percent": disk.percent
+                }
+            except Exception:
+                disk_info = {"error": "Unable to get disk info"}
+            
+            result["system"] = {
+                "cpu_percent": cpu_percent,
+                "memory": {
+                    "total_gb": round(memory.total / (1024**3), 2),
+                    "used_gb": round(memory.used / (1024**3), 2),
+                    "percent": memory.percent
+                },
+                "disk": disk_info
+            }
+        else:
+            result["system"] = {"note": "psutil not available"}
+        
+        return result
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return {"status": "unhealthy", "error": str(e)}
+
+
+@app.get("/system/logs")
+def get_system_logs():
+    """
+    获取日志统计信息
+    """
+    try:
+        stats = get_log_stats()
+        return {"code": 200, "message": "success", "data": stats}
+    except Exception as e:
+        logger.error(f"Failed to get log stats: {e}")
+        return {"code": 500, "message": str(e), "data": None}
+
+
+@app.post("/system/logs/cleanup")
+def cleanup_logs(days: int = 30):
+    """
+    清理旧日志文件
+    
+    Args:
+        days: 保留天数，默认30天
+    """
+    try:
+        cleaned = cleanup_old_logs(days)
+        return {"code": 200, "message": f"Cleaned {cleaned} log files", "data": {"cleaned_count": cleaned}}
+    except Exception as e:
+        logger.error(f"Failed to cleanup logs: {e}")
+        return {"code": 500, "message": str(e), "data": None}
 
 
 @app.post("/migrate/add-total-count")
@@ -245,7 +330,7 @@ def migrate_fix_maintenance_plan_columns():
         ('maintenance_requirements', 'TEXT', '维保要求'),
         ('maintenance_standard', 'TEXT', '维保标准'),
         ('plan_status', 'VARCHAR(20)', '计划状态'),
-        ('status', 'VARCHAR(20) DEFAULT \'未进行\'', '执行状态'),
+        ('status', 'VARCHAR(20) DEFAULT \'执行中\'', '执行状态'),
         ('completion_rate', 'INTEGER DEFAULT 0', '完成率'),
         ('filled_count', 'INTEGER DEFAULT 0', '已填写检查项数量'),
         ('total_count', 'INTEGER DEFAULT 5', '检查项总数量'),
@@ -272,6 +357,83 @@ def migrate_fix_maintenance_plan_columns():
                     results[col_name] = f"Column {col_name} already exists"
             
             return {"success": True, "message": "Migration completed", "details": results}
+    except Exception as e:
+        return {"success": False, "message": str(e), "details": results}
+
+
+@app.post("/migrate/unify-status")
+def migrate_unify_status():
+    """
+    统一工单状态为4种：执行中、待确认、已完成、已退回
+    """
+    from sqlalchemy import text
+    results = {}
+    
+    try:
+        with engine.connect() as conn:
+            tables = ['periodic_inspection', 'temporary_repair', 'spot_work', 'maintenance_plan', 'work_plan']
+            old_statuses = ['未下发', '待执行', '未进行']
+            
+            for table in tables:
+                try:
+                    for status in old_statuses:
+                        result = conn.execute(text(f"""
+                            UPDATE {table} 
+                            SET status = '执行中' 
+                            WHERE status = :status
+                        """), {"status": status})
+                        if result.rowcount > 0:
+                            results[f"{table}_{status}"] = f"Updated {result.rowcount} rows"
+                    conn.commit()
+                except Exception as e:
+                    results[table] = f"Error: {str(e)}"
+            
+            try:
+                conn.execute(text("""
+                    UPDATE dictionary 
+                    SET dict_value = '执行中' 
+                    WHERE dict_value IN ('未下发', '待执行', '未进行') 
+                    AND dict_type LIKE '%status%'
+                """))
+                conn.commit()
+                results['dictionary'] = "Updated dictionary entries"
+            except Exception as e:
+                results['dictionary'] = f"Error: {str(e)}"
+            
+            return {"success": True, "message": "状态统一迁移完成", "details": results}
+    except Exception as e:
+        return {"success": False, "message": str(e), "details": results}
+
+
+@app.post("/migrate/add-indexes")
+def migrate_add_indexes():
+    """
+    添加缺失索引
+    """
+    from sqlalchemy import text
+    results = {}
+    
+    indexes = [
+        ('idx_project_info_project_manager', 'project_info', 'project_manager'),
+        ('idx_spot_work_worker_id_card', 'spot_work_worker', 'id_card_number'),
+        ('idx_spot_work_worker_name', 'spot_work_worker', 'name'),
+        ('idx_weekly_report_is_deleted', 'weekly_report', 'is_deleted'),
+        ('idx_maintenance_log_is_deleted', 'maintenance_log', 'is_deleted'),
+    ]
+    
+    try:
+        with engine.connect() as conn:
+            for idx_name, table, column in indexes:
+                try:
+                    conn.execute(text(f"""
+                        CREATE INDEX IF NOT EXISTS {idx_name} ON {table}({column})
+                    """))
+                    conn.commit()
+                    results[idx_name] = f"Created index on {table}.{column}"
+                except Exception as e:
+                    results[idx_name] = f"Error: {str(e)}"
+            
+            return {"success": True, "message": "索引添加完成", "details": results}
     except Exception as e:
         return {"success": False, "message": str(e), "details": results}
 

@@ -86,7 +86,7 @@ def record_operation_log(
 def get_maintenance_logs(
     request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    size: int = Query(10, ge=1, le=2000, description="每页数量"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
     project_name: Optional[str] = Query(None, description="项目名称(模糊搜索)"),
     log_type: Optional[str] = Query(None, description="日志类型"),
     log_date: Optional[str] = Query(None, description="日志日期"),

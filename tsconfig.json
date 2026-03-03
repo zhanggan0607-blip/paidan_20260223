@@ -17,13 +17,10 @@
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@sstcp/shared": ["packages/shared/src/index.ts"]
     }
   },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"],
-  "references": [{ "path": "./tsconfig.node.json" }],
-  "vueCompilerOptions": {
-    "target": "ES2020",
-    "jsx": "preserve"
-  }
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

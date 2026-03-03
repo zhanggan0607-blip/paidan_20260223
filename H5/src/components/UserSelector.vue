@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { showSuccessToast } from 'vant'
+import { showSuccessToast, showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import { userStore, type User } from '../stores/userStore'
+import { onlineUserService } from '../services/onlineUser'
 
 const emit = defineEmits<{
   (e: 'userChanged', user: User): void
@@ -16,18 +17,64 @@ const isReady = ref(false)
 
 const currentUser = computed(() => userStore.readonlyCurrentUser.value)
 
+/**
+ * 用户登录获取token
+ * @param user 用户信息
+ */
+const loginUser = async (user: User): Promise<boolean> => {
+  try {
+    showLoadingToast({
+      message: '登录中...',
+      forbidClick: true,
+      duration: 0
+    })
+    
+    const defaultPassword = user.phone ? user.phone.slice(-6) : '123456'
+    
+    const response = await api.post<unknown, ApiResponse<{
+      access_token: string
+      user: User
+    }>>('/auth/login-json', {
+      username: user.name,
+      password: defaultPassword,
+      device_type: 'h5'
+    })
+    
+    closeToast()
+    
+    if (response.code === 200 && response.data?.access_token) {
+      userStore.setToken(response.data.access_token)
+      onlineUserService.recordLogin('h5', user.id, user.name).catch(() => {})
+      return true
+    }
+    
+    return false
+  } catch (error) {
+    closeToast()
+    console.error('登录失败:', error)
+    return false
+  }
+}
+
 const loadUserList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<{content: User[]}>>('/personnel')
+    const response = await api.get<unknown, ApiResponse<{content: User[] | User[]}>>('/personnel/all/list')
     if (response.code === 200 && response.data) {
-      userList.value = response.data.content || []
+      const data = Array.isArray(response.data) ? response.data : (response.data.content || [])
+      userList.value = data || []
       const savedUser = userStore.getUser()
       if (savedUser) {
-        // 用户已存在，无需操作
+        const loginSuccess = await loginUser(savedUser)
+        if (!loginSuccess) {
+          console.error('自动登录失败')
+        }
       } else if (userList.value.length > 0) {
         const firstUser = userList.value[0]
         if (firstUser) {
-          userStore.setUser(firstUser)
+          const loginSuccess = await loginUser(firstUser)
+          if (loginSuccess) {
+            userStore.setUser(firstUser)
+          }
         }
       }
       isReady.value = true
@@ -44,11 +91,16 @@ const loadUserList = async () => {
   }
 }
 
-const selectUser = (user: User) => {
-  userStore.setUser(user)
-  showPopover.value = false
-  showSuccessToast(`已切换到用户: ${user.name}`)
-  emit('userChanged', user)
+const selectUser = async (user: User) => {
+  const loginSuccess = await loginUser(user)
+  if (loginSuccess) {
+    userStore.setUser(user)
+    showPopover.value = false
+    showSuccessToast(`已切换到用户: ${user.name}`)
+    emit('userChanged', user)
+  } else {
+    showSuccessToast('登录失败，请重试')
+  }
 }
 
 const userOptions = computed(() => {

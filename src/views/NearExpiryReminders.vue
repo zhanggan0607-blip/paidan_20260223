@@ -374,7 +374,7 @@ export default defineComponent({
       viewData.clientContactPosition = ''
       viewData.address = ''
       viewData.executor = item.executor || ''
-      viewData.status = WORK_STATUS.NOT_STARTED
+      viewData.status = WORK_STATUS.IN_PROGRESS
       viewData.daysFromToday = item.daysFromToday
       viewData.remainingTime = '-'
 
@@ -439,23 +439,19 @@ export default defineComponent({
     }
 
     const getStatusClass = (status: string) => {
-      switch (status) {
-        case WORK_STATUS.NOT_STARTED:
-        case '待执行':
-          return 'status-pending'
-        case WORK_STATUS.PENDING_CONFIRM:
-        case '待确认':
-          return 'status-confirmed'
-        case WORK_STATUS.IN_PROGRESS:
-          return 'status-in-progress'
-        case WORK_STATUS.COMPLETED:
-        case '已完成':
-          return 'status-completed'
-        case WORK_STATUS.CANCELLED:
-          return 'status-cancelled'
-        default:
-          return ''
+      if (status === '执行中') {
+        return 'status-pending'
       }
+      if (status === '待确认') {
+        return 'status-confirmed'
+      }
+      if (status === '已完成') {
+        return 'status-completed'
+      }
+      if (status === '已退回') {
+        return 'status-returned'
+      }
+      return ''
     }
 
     const formatDateTime = (dateStr: string) => {

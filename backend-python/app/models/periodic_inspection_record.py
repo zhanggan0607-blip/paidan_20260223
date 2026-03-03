@@ -35,7 +35,7 @@ class PeriodicInspectionRecord(Base):
         if self.photos:
             try:
                 photos = json.loads(self.photos)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 photos = []
         
         return {

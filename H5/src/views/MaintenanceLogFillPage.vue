@@ -3,10 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
+import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
 import { useNavigation } from '../composables/useNavigation'
 
 // TODO: 维保日志填报页面 - 考虑加入草稿自动保存功能

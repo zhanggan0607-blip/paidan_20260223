@@ -24,7 +24,7 @@ router = APIRouter(prefix="/project-info", tags=["项目信息管理"])
 def get_project_info_list(
     request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
-    size: int = Query(10, ge=1, le=2000, description="每页大小"),
+    size: int = Query(10, ge=1, le=1000, description="每页大小"),
     project_name: Optional[str] = Query(None, description="项目名称（模糊查询）"),
     client_name: Optional[str] = Query(None, description="客户名称（模糊查询）"),
     db: Session = Depends(get_db),

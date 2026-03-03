@@ -4,9 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
-import { getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '../utils/status'
-import { getWorkIdFontSize } from '../utils/format'
+import { formatDate, formatDateTime, getWorkIdFontSize, getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
@@ -22,13 +20,17 @@ const workList = ref<any[]>([])
 const userReady = ref(false)
 
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
-const canCreate = computed(() => userStore.canCreateTemporaryRepair())
+
+const CREATE_TAB = {
+  key: '新增工单',
+  title: '新增工单',
+  isCreate: true,
+  color: '#07c160'
+}
 
 const tabs = computed(() => {
-  if (canApprove.value) {
-    return [APPROVAL_TAB, ...BASE_WORK_TABS]
-  }
-  return BASE_WORK_TABS
+  const baseTabs = canApprove.value ? [APPROVAL_TAB, ...BASE_WORK_TABS] : BASE_WORK_TABS
+  return [...baseTabs, CREATE_TAB]
 })
 
 const currentTab = computed(() => tabs.value[activeTab.value])
@@ -47,8 +49,9 @@ const fetchWorkList = async () => {
     })
     if (response.code === 200) {
       const allItems = response.data?.content || []
+      const tab = currentTab.value as { key: string; title: string; statuses?: string[]; isCreate?: boolean; color: string }
       const filteredItems = allItems.filter((item: any) => 
-        currentTab.value?.statuses.includes(item.status)
+        tab?.statuses?.includes(item.status)
       )
       workList.value = filteredItems.sort((a: any, b: any) => {
         const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
@@ -77,6 +80,18 @@ const handleBack = () => {
  */
 const handleCreate = () => {
   router.push('/temporary-repair/create')
+}
+
+/**
+ * 处理标签页切换
+ */
+const handleTabChange = () => {
+  const tab = currentTab.value as { key: string; title: string; statuses?: string[]; isCreate?: boolean; color: string }
+  if (tab?.isCreate) {
+    handleCreate()
+    return
+  }
+  fetchWorkList()
 }
 
 /**
@@ -116,20 +131,19 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
       </template>
       <template #right>
         <div class="nav-right">
-          <van-icon v-if="canCreate" name="plus" size="20" @click="handleCreate" class="add-icon" />
           <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
         </div>
       </template>
     </van-nav-bar>
     
-    <van-tabs v-model:active="activeTab" sticky @change="fetchWorkList" :color="currentTabColor">
+    <van-tabs v-model:active="activeTab" sticky @change="handleTabChange" :color="currentTabColor">
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">
         <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
           <van-list :loading="loading" :finished="true">
@@ -314,10 +328,5 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-}
-
-.add-icon {
-  color: #1989fa;
-  cursor: pointer;
 }
 </style>

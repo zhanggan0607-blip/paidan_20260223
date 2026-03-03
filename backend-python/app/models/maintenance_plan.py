@@ -27,7 +27,7 @@ class MaintenancePlan(Base):
     maintenance_requirements = Column(Text, comment="维保要求")
     maintenance_standard = Column(Text, comment="维保标准")
     plan_status = Column(String(20), nullable=False, comment="计划状态")
-    status = Column(String(20), nullable=False, default="未进行", comment="执行状态")
+    status = Column(String(20), nullable=False, default="执行中", comment="执行状态")
     completion_rate = Column(Integer, default=0, comment="完成率")
     filled_count = Column(Integer, default=0, comment="已填写检查项数量")
     total_count = Column(Integer, default=5, comment="检查项总数量")

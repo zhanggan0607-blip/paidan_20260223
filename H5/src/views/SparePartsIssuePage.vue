@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
+import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
@@ -205,7 +205,7 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

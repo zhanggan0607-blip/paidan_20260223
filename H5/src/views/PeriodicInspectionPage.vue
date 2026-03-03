@@ -4,9 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
-import { getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '../utils/status'
-import { getWorkIdFontSize } from '../utils/format'
+import { formatDate, formatDateTime, getWorkIdFontSize, getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
@@ -128,7 +126,7 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

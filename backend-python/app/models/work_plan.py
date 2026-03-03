@@ -17,7 +17,7 @@ class WorkPlan(Base):
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
     client_name = Column(String(100), comment="客户单位")
     maintenance_personnel = Column(String(100), comment="运维人员")
-    status = Column(String(20), nullable=False, default="未进行", comment="状态")
+    status = Column(String(20), nullable=False, default="执行中", comment="状态")
     filled_count = Column(Integer, default=0, comment="已填写检查项数量")
     total_count = Column(Integer, default=5, comment="检查项总数量")
     remarks = Column(Text, comment="备注")

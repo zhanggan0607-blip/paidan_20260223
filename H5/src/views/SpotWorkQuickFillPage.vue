@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
+import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
 

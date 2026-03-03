@@ -4,7 +4,7 @@ import type { SpotWork as SpotWorkType, SpotWorkWorker, ApiResponse, PaginatedRe
 export type SpotWork = SpotWorkType
 
 export interface SpotWorkCreate {
-  work_id: string
+  work_id?: string
   plan_id?: string
   project_id: string
   project_name: string
@@ -19,6 +19,7 @@ export interface SpotWorkCreate {
   signature?: string
   status?: string
   remarks?: string
+  worker_count?: number
 }
 
 export interface SpotWorkUpdate {
@@ -37,6 +38,7 @@ export interface SpotWorkUpdate {
   signature?: string
   status?: string
   remarks?: string
+  worker_count?: number
 }
 
 export interface SpotWorkPaginatedResponse {

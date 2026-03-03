@@ -126,7 +126,7 @@ class WorkPlanService:
             plan_end_date=self._parse_date_field(dto.plan_end_date),
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
-            status=dto.status or "未进行",
+            status=dto.status or "执行中",
             filled_count=dto.filled_count or 0,
             total_count=dto.total_count or 5,
             remarks=dto.remarks

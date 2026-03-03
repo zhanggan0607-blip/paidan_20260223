@@ -4,9 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate } from '../config/constants'
-import { getStatusType, getDisplayStatus } from '../utils/status'
-import { getWorkIdFontSize } from '../utils/format'
+import { formatDate, getWorkIdFontSize, getStatusType, getDisplayStatus } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { type User } from '../stores/userStore'
@@ -194,7 +192,7 @@ const fetchWorkList = async () => {
       let items = response.data?.items || response.data?.content || []
       
       if (tabKey === 'completed') {
-        const completedStatuses = ['已完成', '已确认', '已审批']
+        const completedStatuses = ['已完成']
         items = items.filter((item: any) => completedStatuses.includes(item.status))
         items = items.map((item: any) => ({ ...item, planType: '定期巡检' }))
         

@@ -120,7 +120,7 @@ class TemporaryRepairService:
             existing_repair.maintenance_personnel = dto.maintenance_personnel
         if dto.status is not None:
             existing_repair.status = dto.status
-            if dto.status in ['已确认', '已完成'] and not existing_repair.actual_completion_date:
+            if dto.status == '已完成' and not existing_repair.actual_completion_date:
                 existing_repair.actual_completion_date = datetime.now()
         if dto.remarks is not None:
             existing_repair.remarks = dto.remarks

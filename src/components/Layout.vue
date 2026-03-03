@@ -92,6 +92,8 @@ import { userStore, type User } from '@/stores/userStore'
 import { personnelService } from '@/services/personnel'
 import { USER_ROLES } from '@/config/constants'
 import { canShowMenu as checkMenuPermission } from '@/config/permission'
+import onlineUserService from '@/services/onlineUser'
+import api from '@/utils/api'
 
 export default defineComponent({
   name: 'Layout',
@@ -399,14 +401,44 @@ export default defineComponent({
       }
     }
 
-    const selectUser = (user: User) => {
-      userStore.setUser(user)
-      showUserMenu.value = false
-      
-      const currentPath = route.path
-      const menuId = getRouteMenuId(currentPath)
-      if (menuId && !canShowMenu(menuId)) {
-        navigateToFirstAllowedRoute()
+    /**
+     * 用户登录获取token
+     * @param user 用户信息
+     */
+    const loginUser = async (user: User): Promise<boolean> => {
+      try {
+        const defaultPassword = user.phone ? user.phone.slice(-6) : '123456'
+        
+        const response = await api.post('/auth/login-json', {
+          username: user.name,
+          password: defaultPassword,
+          device_type: 'pc'
+        })
+        
+        if ((response as any).code === 200 && (response as any).data?.access_token) {
+          userStore.setToken((response as any).data.access_token)
+          onlineUserService.recordLogin('pc', user.id, user.name).catch(() => {})
+          return true
+        }
+        
+        return false
+      } catch (error) {
+        console.error('登录失败:', error)
+        return false
+      }
+    }
+
+    const selectUser = async (user: User) => {
+      const loginSuccess = await loginUser(user)
+      if (loginSuccess) {
+        userStore.setUser(user)
+        showUserMenu.value = false
+        
+        const currentPath = route.path
+        const menuId = getRouteMenuId(currentPath)
+        if (menuId && !canShowMenu(menuId)) {
+          navigateToFirstAllowedRoute()
+        }
       }
     }
 
@@ -447,8 +479,17 @@ export default defineComponent({
       await loadUserList()
       
       const storedUser = userStore.getUser()
-      if (!storedUser && userList.value.length > 0) {
-        userStore.setUser(userList.value[0])
+      if (storedUser) {
+        const loginSuccess = await loginUser(storedUser)
+        if (!loginSuccess) {
+          console.error('自动登录失败')
+        }
+      } else if (userList.value.length > 0) {
+        const firstUser = userList.value[0]
+        const loginSuccess = await loginUser(firstUser)
+        if (loginSuccess) {
+          userStore.setUser(firstUser)
+        }
       }
     })
 

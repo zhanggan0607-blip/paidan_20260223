@@ -17,7 +17,7 @@ class WorkPlanBase(BaseModel):
     plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: str = Field("执行中", max_length=20, description="状态")
     filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
     total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")
@@ -32,7 +32,7 @@ class WorkPlanBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['未进行', '待确认', '已确认', '已完成', '已取消']
+        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -48,7 +48,7 @@ class WorkPlanCreate(BaseModel):
     plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
     client_name: Optional[str] = Field(None, max_length=100, description="客户单位")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    status: str = Field("未进行", max_length=20, description="状态")
+    status: str = Field("执行中", max_length=20, description="状态")
     filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
     total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
     remarks: Optional[str] = Field(None, description="备注")

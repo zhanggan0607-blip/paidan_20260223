@@ -1,6 +1,5 @@
 from app.database import engine
 from app.models import Base
-
-print("Creating database tables...")
-Base.metadata.create_all(engine)
-print("Database tables created successfully!")
+from app.models.user_dashboard_config import UserDashboardConfig
+Base.metadata.create_all(bind=engine)
+print('Tables created successfully')

@@ -22,7 +22,7 @@ class SpotWork(Base, SoftDeleteMixin):
     work_content = Column(Text, comment="工作内容")
     photos = Column(Text, comment="现场图片JSON数组")
     signature = Column(Text, comment="班组签字图片")
-    status = Column(String(20), nullable=False, default="未进行", comment="状态")
+    status = Column(String(20), nullable=False, default="执行中", comment="状态")
     remarks = Column(String(500), comment="备注")
     actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
@@ -66,7 +66,7 @@ class SpotWork(Base, SoftDeleteMixin):
         if self.photos:
             try:
                 photos = json.loads(self.photos)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 photos = []
         
         return {

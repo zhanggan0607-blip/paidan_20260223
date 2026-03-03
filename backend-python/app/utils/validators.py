@@ -99,7 +99,7 @@ def validate_status_transition(
         )
 
 
-def validate_pagination_params(page: int, size: int, max_size: int = 100) -> tuple:
+def validate_pagination_params(page: int, size: int, max_size: int = 1000) -> tuple:
     """
     校验分页参数
     

@@ -6,7 +6,7 @@ import api from '../utils/api'
 import type { ApiResponse } from '../types'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
-import { processPhoto, getCurrentLocation } from '../utils/watermark'
+import { processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { validateIdCard } from '../utils/idCardValidator'
 import { useNavigation } from '../composables'
 

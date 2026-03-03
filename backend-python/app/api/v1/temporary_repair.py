@@ -55,7 +55,7 @@ def get_all_temporary_repairs(
 def get_temporary_repairs_list(
     request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
-    size: int = Query(10, ge=1, le=100, description="Page size"),
+    size: int = Query(10, ge=1, le=1000, description="Page size"),
     project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
     repair_id: Optional[str] = Query(None, description="Repair ID (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),

@@ -131,7 +131,7 @@ class MaintenancePlanRepository:
                 and_(
                     MaintenancePlan.execution_date >= start_date,
                     MaintenancePlan.execution_date <= end_date,
-                    MaintenancePlan.status == '未进行'
+                    MaintenancePlan.status == '执行中'
                 )
             ).order_by(MaintenancePlan.execution_date.asc()).all()
         except Exception as e:

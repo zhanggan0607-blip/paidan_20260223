@@ -3,7 +3,7 @@ export const API_CONFIG = {
     if (import.meta.env.PROD) {
       return '/api/v1'
     }
-    return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+    return import.meta.env.VITE_API_BASE_URL || '/api/v1'
   },
   TIMEOUT: 60000
 }
@@ -22,39 +22,18 @@ export const PLAN_TYPE_LIST = [
 ] as const
 
 export const WORK_STATUS = {
-  NOT_STARTED: '待执行',
-  PENDING_CONFIRM: '待确认',
-  CONFIRMED: '已确认',
   IN_PROGRESS: '执行中',
+  PENDING_CONFIRM: '待确认',
   COMPLETED: '已完成',
-  CANCELLED: '已取消',
   RETURNED: '已退回'
 } as const
 
 export const WORK_STATUS_LIST = [
-  WORK_STATUS.NOT_STARTED,
-  WORK_STATUS.PENDING_CONFIRM,
-  WORK_STATUS.CONFIRMED,
   WORK_STATUS.IN_PROGRESS,
+  WORK_STATUS.PENDING_CONFIRM,
   WORK_STATUS.COMPLETED,
-  WORK_STATUS.CANCELLED
+  WORK_STATUS.RETURNED
 ] as const
-
-export const MAINTENANCE_STATUS = {
-  PENDING: '待执行',
-  IN_PROGRESS: '执行中',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-  DELAYED: '已延期'
-} as const
-
-export const EXECUTION_STATUS = {
-  NOT_STARTED: '未开始',
-  IN_PROGRESS: '待确认',
-  COMPLETED: '已完成',
-  CANCELLED: '已取消',
-  ABNORMAL: '异常'
-} as const
 
 export const USER_ROLES = {
   ADMIN: '管理员',
@@ -83,5 +62,3 @@ export const GENDER_LIST = [
 ] as const
 
 export const DATE_FORMAT = 'YYYY-MM-DD'
-
-export { formatDate, formatDateTime, formatDateForInput } from '../utils/format'

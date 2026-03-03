@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showImagePreview } from 'vant'
 import api from '../utils/api'
 import type { ApiResponse } from '../types'
-import { formatDate, formatDateTime } from '../config/constants'
+import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
-import { useNavigation } from '../composables'
+import { userStore } from '../stores/userStore'
 
 interface WeeklyReportDetail {
   id: number
@@ -47,7 +47,7 @@ interface OperationLogItem {
 }
 
 const route = useRoute()
-const { goBack } = useNavigation()
+const router = useRouter()
 
 const loading = ref(false)
 const reportDetail = ref<WeeklyReportDetail | null>(null)
@@ -160,7 +160,26 @@ const handlePreviewImage = (index: number) => {
 }
 
 const handleBack = () => {
-  goBack()
+  const from = route.query.from as string
+  if (from === 'all') {
+    router.push('/weekly-report-all')
+  } else if (from === 'list') {
+    router.push('/weekly-report-list')
+  } else {
+    const historyState = window.history.state
+    if (historyState && historyState.back) {
+      const backPath = historyState.back
+      if (backPath.includes('weekly-report-all') || backPath.includes('weekly-report-list')) {
+        router.back()
+        return
+      }
+    }
+    if (userStore.isAdmin()) {
+      router.push('/weekly-report-all')
+    } else {
+      router.push('/weekly-report-list')
+    }
+  }
 }
 
 onMounted(() => {
@@ -177,7 +196,7 @@ onMounted(() => {
       @click-left="handleBack" 
     >
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

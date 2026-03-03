@@ -1,10 +1,11 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Text, Index, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, Text, Index, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.models.mixins import SoftDeleteMixin
 
 
-class WeeklyReport(Base):
+class WeeklyReport(Base, SoftDeleteMixin):
     __tablename__ = "weekly_report"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
@@ -27,7 +28,6 @@ class WeeklyReport(Base):
     approved_at = Column(DateTime, comment="审核时间")
     reject_reason = Column(String(500), comment="退回原因")
     created_by = Column(String(100), comment="创建人")
-    is_deleted = Column(BigInteger, default=0, comment="是否删除: 0否/1是")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
 
