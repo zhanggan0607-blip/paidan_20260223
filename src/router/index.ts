@@ -1,31 +1,5 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import { userStore } from '@/stores/userStore'
 import Layout from '@/components/Layout.vue'
-import ProjectInfoManagement from '@/views/ProjectInfoManagement.vue'
-import MaintenancePlanManagement from '@/views/MaintenancePlanManagement.vue'
-import OverdueAlert from '@/views/OverdueAlert.vue'
-import InspectionItemPage from '@/views/InspectionItemPage.vue'
-import NearExpiryReminders from '@/views/NearExpiryReminders.vue'
-import TemporaryRepairDetail from '@/views/TemporaryRepairDetail.vue'
-import PeriodicInspectionQuery from '@/views/PeriodicInspectionQuery.vue'
-import SpotWorkDetail from '@/views/SpotWorkDetail.vue'
-import PersonnelManagement from '@/views/PersonnelManagement.vue'
-import StatisticsPage from '@/views/StatisticsPage.vue'
-import TemporaryRepairQuery from '@/views/TemporaryRepairQuery.vue'
-import SpotWorkManagement from '@/views/SpotWorkManagement.vue'
-import SparePartsManagement from '@/views/SparePartsManagement.vue'
-import SparePartsIssue from '@/views/SparePartsIssue.vue'
-import SparePartsStock from '@/views/SparePartsStock.vue'
-import SparePartsReturn from '@/views/SparePartsReturn.vue'
-import WorkPlanManagement from '@/views/WorkPlanManagement.vue'
-import CustomerManagement from '@/views/CustomerManagement.vue'
-import RepairToolsIssue from '@/views/RepairToolsIssue.vue'
-import RepairToolsReturn from '@/views/RepairToolsReturn.vue'
-import RepairToolsInbound from '@/views/RepairToolsInbound.vue'
-import MaintenanceLogFill from '@/views/MaintenanceLogFill.vue'
-import MaintenanceLogList from '@/views/MaintenanceLogList.vue'
-import WeeklyReportFill from '@/views/WeeklyReportFill.vue'
-import WeeklyReportList from '@/views/WeeklyReportList.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -38,105 +12,105 @@ const routes: RouteRecordRaw[] = [
       },
       {
         path: 'statistics',
-        component: StatisticsPage
+        component: () => import('@/views/StatisticsPage.vue')
       },
       {
         path: 'project-info',
-        component: ProjectInfoManagement
+        component: () => import('@/views/ProjectInfoManagement.vue')
       },
       {
         path: 'maintenance-plan',
-        component: MaintenancePlanManagement
+        component: () => import('@/views/MaintenancePlanManagement.vue')
       },
       {
         path: 'overdue-alert',
-        component: OverdueAlert
+        component: () => import('@/views/OverdueAlert.vue')
       },
       {
         path: 'inspection-item',
-        component: InspectionItemPage
+        component: () => import('@/views/InspectionItemPage.vue')
       },
       {
         path: 'personnel',
-        component: PersonnelManagement
+        component: () => import('@/views/PersonnelManagement.vue')
       },
       {
         path: 'near-expiry-alert',
-        component: NearExpiryReminders
+        component: () => import('@/views/NearExpiryReminders.vue')
       },
       {
         path: 'work-order/temporary-repair',
-        component: TemporaryRepairQuery
+        component: () => import('@/views/TemporaryRepairQuery.vue')
       },
       {
         path: 'work-order/temporary-repair/detail',
         name: 'TemporaryRepairDetail',
-        component: TemporaryRepairDetail
+        component: () => import('@/views/TemporaryRepairDetail.vue')
       },
       {
         path: 'work-order/periodic-inspection',
-        component: PeriodicInspectionQuery
+        component: () => import('@/views/PeriodicInspectionQuery.vue')
       },
       {
         path: 'work-order/spot-work',
-        component: SpotWorkManagement
+        component: () => import('@/views/SpotWorkManagement.vue')
       },
       {
         path: 'work-order/spot-work/detail',
         name: 'SpotWorkDetail',
-        component: SpotWorkDetail
+        component: () => import('@/views/SpotWorkDetail.vue')
       },
       {
         path: 'spare-parts',
-        component: SparePartsManagement
+        component: () => import('@/views/SparePartsManagement.vue')
       },
       {
         path: 'spare-parts/issue',
-        component: SparePartsIssue
+        component: () => import('@/views/SparePartsIssue.vue')
       },
       {
         path: 'spare-parts/stock',
-        component: SparePartsStock
+        component: () => import('@/views/SparePartsStock.vue')
       },
       {
         path: 'spare-parts/return',
-        component: SparePartsReturn
+        component: () => import('@/views/SparePartsReturn.vue')
       },
       {
         path: 'work-plan',
-        component: WorkPlanManagement
+        component: () => import('@/views/WorkPlanManagement.vue')
       },
       {
         path: 'customer',
-        component: CustomerManagement
+        component: () => import('@/views/CustomerManagement.vue')
       },
       {
         path: 'repair-tools/issue',
-        component: RepairToolsIssue
+        component: () => import('@/views/RepairToolsIssue.vue')
       },
       {
         path: 'repair-tools/return',
-        component: RepairToolsReturn
+        component: () => import('@/views/RepairToolsReturn.vue')
       },
       {
         path: 'repair-tools/inbound',
-        component: RepairToolsInbound
+        component: () => import('@/views/RepairToolsInbound.vue')
       },
       {
         path: 'maintenance-log/fill',
-        component: MaintenanceLogFill
+        component: () => import('@/views/MaintenanceLogFill.vue')
       },
       {
         path: 'maintenance-log/list',
-        component: MaintenanceLogList
+        component: () => import('@/views/MaintenanceLogList.vue')
       },
       {
         path: 'weekly-report/fill',
-        component: WeeklyReportFill
+        component: () => import('@/views/WeeklyReportFill.vue')
       },
       {
         path: 'weekly-report/list',
-        component: WeeklyReportList
+        component: () => import('@/views/WeeklyReportList.vue')
       }
     ]
   }

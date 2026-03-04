@@ -12,7 +12,10 @@ export interface RequestConfig {
   getUser: () => User | null
   setToken?: (token: string) => void
   onUnauthorized?: () => void
+  onNetworkError?: (error: ApiError) => void
+  onServerError?: (error: ApiError) => void
   refreshEndpoint?: string
+  enableLogger?: boolean
 }
 
 export interface RequestInstance {
@@ -85,6 +88,21 @@ function createApiError(error: AxiosError | Error, status?: number): ApiError {
   }
 }
 
+function logRequest(config: RequestConfig, method: string, url: string, data?: unknown) {
+  if (!config.enableLogger) return
+  console.log(`[API Request] ${method.toUpperCase()} ${url}`, data || '')
+}
+
+function logResponse(config: RequestConfig, method: string, url: string, response: unknown, duration: number) {
+  if (!config.enableLogger) return
+  console.log(`[API Response] ${method.toUpperCase()} ${url} (${duration}ms)`, response)
+}
+
+function logError(config: RequestConfig, method: string, url: string, error: ApiError) {
+  if (!config.enableLogger) return
+  console.error(`[API Error] ${method.toUpperCase()} ${url}`, error)
+}
+
 export function createRequest(config: RequestConfig): RequestInstance {
   const instance: AxiosInstance = axios.create({
     baseURL: config.baseURL,
@@ -106,6 +124,9 @@ export function createRequest(config: RequestConfig): RequestInstance {
         axiosConfig.headers['X-User-Name'] = encodeURIComponent(user.name || '')
         axiosConfig.headers['X-User-Role'] = encodeURIComponent(user.role || '')
       }
+      
+      axiosConfig.metadata = { startTime: Date.now() }
+      
       return axiosConfig
     },
     (error) => Promise.reject(error)
@@ -113,10 +134,24 @@ export function createRequest(config: RequestConfig): RequestInstance {
 
   instance.interceptors.response.use(
     (response: AxiosResponse) => {
+      const duration = Date.now() - ((response.config.metadata as { startTime: number })?.startTime || 0)
+      logResponse(config, response.config.method || 'get', response.config.url || '', response.data, duration)
       return response.data
     },
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+      const apiError = createApiError(error)
+      
+      logError(config, originalRequest?.method || 'get', originalRequest?.url || '', apiError)
+      
+      if (!error.response) {
+        config.onNetworkError?.(apiError)
+        return Promise.reject(apiError)
+      }
+      
+      if (error.response.status >= 500) {
+        config.onServerError?.(apiError)
+      }
       
       if (error.response?.status === 401 && !originalRequest._retry) {
         const token = config.getToken()
@@ -184,17 +219,41 @@ export function createRequest(config: RequestConfig): RequestInstance {
 
   return {
     request: instance,
-    get: <T = unknown>(url: string, requestConfig?: object) => 
-      instance.get(url, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>,
-    post: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => 
-      instance.post(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>,
-    put: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => 
-      instance.put(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>,
-    patch: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => 
-      instance.patch(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>,
-    delete: <T = unknown>(url: string, requestConfig?: object) => 
-      instance.delete(url, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>,
+    get: <T = unknown>(url: string, requestConfig?: object) => {
+      logRequest(config, 'get', url)
+      return instance.get(url, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+    },
+    post: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => {
+      logRequest(config, 'post', url, data)
+      return instance.post(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+    },
+    put: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => {
+      logRequest(config, 'put', url, data)
+      return instance.put(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+    },
+    patch: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => {
+      logRequest(config, 'patch', url, data)
+      return instance.patch(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+    },
+    delete: <T = unknown>(url: string, requestConfig?: object) => {
+      logRequest(config, 'delete', url)
+      return instance.delete(url, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+    },
   }
+}
+
+export const handleApiError = (error: unknown, defaultMessage: string = '操作失败'): string => {
+  if (error && typeof error === 'object' && 'message' in error) {
+    return (error as ApiError).message || defaultMessage
+  }
+  return defaultMessage
+}
+
+export const isApiError = (error: unknown): error is ApiError => {
+  return error !== null && 
+         typeof error === 'object' && 
+         'status' in error && 
+         'message' in error
 }
 
 export default createRequest

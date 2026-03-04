@@ -23,7 +23,7 @@ function getLocalIP(): string {
 
 const localIP = getLocalIP()
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [vue()],
   resolve: {
     alias: {
@@ -59,5 +59,33 @@ export default defineConfig({
         proxyTimeout: 60000,
       }
     }
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production',
+        drop_debugger: mode === 'production',
+        pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
+      }
+    },
+    sourcemap: mode !== 'production',
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router'],
+          'element-plus': ['element-plus', '@element-plus/icons-vue'],
+          'axios-vendor': ['axios'],
+          'crypto-vendor': ['crypto-js']
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
+      }
+    }
+  },
+  optimizeDeps: {
+    include: ['vue', 'vue-router', 'element-plus', 'axios']
   }
-})
+}))
