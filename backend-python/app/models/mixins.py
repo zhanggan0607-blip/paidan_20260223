@@ -53,24 +53,3 @@ class SoftDeleteMixin:
             过滤后的查询对象
         """
         return query.filter(cls.is_deleted == 0)
-
-
-class AuditMixin:
-    """
-    审计Mixin
-    
-    为模型提供审计字段，包括：
-    - created_by: 创建人ID
-    - updated_by: 更新人ID
-    """
-    created_by = Column(BigInteger, comment="创建人ID")
-    updated_by = Column(BigInteger, comment="更新人ID")
-
-
-class SoftDeleteAuditMixin(SoftDeleteMixin, AuditMixin):
-    """
-    软删除和审计Mixin的组合
-    
-    同时提供软删除和审计功能
-    """
-    pass

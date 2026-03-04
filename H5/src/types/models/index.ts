@@ -1,16 +1,73 @@
 /**
- * 数据模型统一导出
+ * H5端业务模型类型定义
+ * 从shared包重新导出所有共享类型
  */
-export * from './projectInfo'
-export * from './periodicInspection'
-export * from './temporaryRepair'
-export * from './spotWork'
-export * from './personnel'
-export * from './spareParts'
-export * from './repairTools'
-export * from './common'
-export * from './workOrder'
-export * from './statistics'
-export * from './workPlan'
-export * from './weeklyReport'
-export * from './maintenanceLog'
+
+export type {
+  SpotWork,
+  SpotWorkWorker,
+  SpotWorkCreate,
+  SpotWorkUpdate,
+  SpotWorkQueryParams,
+  QuickFillRequest,
+  WorkersSaveRequest,
+  StatisticsOverview,
+  WorkByPerson,
+  TopProject,
+  ProjectInfo,
+  ProjectInfoCreate,
+  ProjectInfoUpdate,
+  ProjectInfoQueryParams,
+  Personnel,
+  PersonnelCreate,
+  PersonnelUpdate,
+  PersonnelQueryParams,
+  PeriodicInspection,
+  PeriodicInspectionRecord,
+  PeriodicInspectionCreate,
+  PeriodicInspectionUpdate,
+  PeriodicInspectionQueryParams,
+  TemporaryRepair,
+  TemporaryRepairCreate,
+  TemporaryRepairUpdate,
+  TemporaryRepairQueryParams,
+  SparePartsStock,
+  SparePartsUsage,
+  SparePartsInbound,
+  SparePartsIssueRequest,
+  SparePartsReturnRequest,
+  SparePartsInboundRequest,
+  SparePartsStockQueryParams,
+  SparePartsUsageQueryParams,
+  MaintenancePlan,
+  InspectionItem,
+  WeeklyReport,
+  MaintenanceLog,
+  OperationLog,
+  OverdueAlertItem,
+  OnlineUser,
+  OnlineCount,
+  OnlineStatistics,
+  DictionaryItem,
+  Customer,
+  IDCardOCRResult,
+  WorkOrderItem,
+  WorkOrderQueryParams,
+  WorkPlan,
+  WorkPlanQueryParams,
+  WorkPlanCreate,
+  WorkPlanUpdate,
+  WorkPlanStatistics,
+  WeeklyReportQueryParams,
+  WeeklyReportCreate,
+  WeeklyReportUpdate,
+  MaintenanceLogQueryParams,
+  MaintenanceLogCreate,
+  MaintenanceLogUpdate,
+  RepairToolsStock,
+  RepairToolsUsage,
+  RepairToolsIssueRequest,
+  RepairToolsReturnRequest,
+  RepairToolsStockQueryParams,
+  RepairToolsUsageQueryParams
+} from '@sstcp/shared'
