@@ -4,6 +4,7 @@
 """
 import asyncio
 import json
+import logging
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -13,6 +14,8 @@ from pydantic import BaseModel
 from typing import Optional, List
 from app.database import get_db
 from app.schemas.common import ApiResponse
+
+logger = logging.getLogger(__name__)
 from app.models.online_user import OnlineUser
 from app.models.personnel import Personnel
 from app.auth import get_current_user_required, get_current_user
@@ -442,8 +445,9 @@ async def online_users_stream(
                     yield f": heartbeat\n\n"
                 
             except Exception as e:
-                print(f"SSE Error: {e}")
-                yield f": error\n\n"
+                logger.error(f"SSE Error: {e}", exc_info=True)
+                yield f"data: {json.dumps({'error': str(e)}, ensure_ascii=False)}\n\n"
+                break
             
             await asyncio.sleep(2)
     

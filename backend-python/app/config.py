@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
-from pydantic import field_validator
+from pydantic import field_validator, ValidationError
 from functools import lru_cache
-from typing import List
+from typing import List, Optional
 import os
 from pathlib import Path
 
@@ -12,13 +12,10 @@ class Settings(BaseSettings):
     app_name: str = "SSTCP Maintenance System"
     app_version: str = "1.0.0"
     debug: bool = os.getenv("DEBUG", "False").lower() in ("true", "1")
-    secret_key: str = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
+    secret_key: Optional[str] = None
     port: int = 8000
     
-    database_url: str = os.getenv(
-        "DATABASE_URL",
-        "postgresql://postgres:changeme@localhost:5432/tq"
-    )
+    database_url: Optional[str] = None
     
     aliyun_access_key_id: str = os.getenv("ALIYUN_ACCESS_KEY_ID", "")
     aliyun_access_key_secret: str = os.getenv("ALIYUN_ACCESS_KEY_SECRET", "")
@@ -41,6 +38,22 @@ class Settings(BaseSettings):
             return ["*"]
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(',')]
+        return v
+    
+    @field_validator('secret_key', mode='after')
+    @classmethod
+    def validate_secret_key(cls, v):
+        if not v:
+            raise ValueError("SECRET_KEY 环境变量未设置，请在 .env 文件中配置 SECRET_KEY")
+        if v == "your-secret-key-here-change-in-production":
+            raise ValueError("SECRET_KEY 使用了不安全的默认值，请生成新的密钥 (可使用: openssl rand -hex 32)")
+        return v
+    
+    @field_validator('database_url', mode='after')
+    @classmethod
+    def validate_database_url(cls, v):
+        if not v:
+            raise ValueError("DATABASE_URL 环境变量未设置，请在 .env 文件中配置数据库连接")
         return v
     
     class Config:

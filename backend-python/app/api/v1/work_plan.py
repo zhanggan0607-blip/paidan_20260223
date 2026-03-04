@@ -1,42 +1,31 @@
+"""
+工作计划API
+提供工作计划的HTTP接口
+"""
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, status, Request, HTTPException
+import logging
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.services.work_plan import WorkPlanService, WorkPlanCreate, WorkPlanUpdate
-from app.services.personnel import PersonnelService
-from app.schemas.common import ApiResponse, PaginatedResponse
-from app.auth import get_current_user, get_current_user_from_headers
+from app.schemas.common import ApiResponse
+from app.dependencies import get_current_user_info, UserInfo
 
-
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/work-plan", tags=["Work Plan Management"])
-
-
-def validate_maintenance_personnel(db: Session, personnel_name: str) -> None:
-    """校验运维人员必须在personnel表中存在"""
-    if personnel_name:
-        personnel_service = PersonnelService(db)
-        if not personnel_service.validate_personnel_exists(personnel_name):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"运维人员'{personnel_name}'不存在于人员列表中，请先添加该人员"
-            )
 
 
 @router.get("/statistics", response_model=ApiResponse)
 def get_statistics(
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    获取工作计划统计数据
+    """
     service = WorkPlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    stats = service.get_statistics(user_name=user_name, is_manager=is_manager)
+    stats = service.get_statistics(user_name=user_info.name, is_manager=user_info.is_manager)
     return ApiResponse(
         code=200,
         message="success",
@@ -46,24 +35,19 @@ def get_statistics(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_work_plans(
-    request: Request,
     plan_type: Optional[str] = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    获取所有工作计划（不分页）
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     service = WorkPlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
     items = service.get_all_unpaginated(plan_type)
     
-    if not is_manager and user_name:
-        items = [item for item in items if item.maintenance_personnel == user_name]
+    if not user_info.is_manager and user_info.name:
+        items = [item for item in items if item.maintenance_personnel == user_info.name]
     
     return ApiResponse(
         code=200,
@@ -74,7 +58,6 @@ def get_all_work_plans(
 
 @router.get("", response_model=ApiResponse)
 def get_work_plans_list(
-    request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=1000, description="Page size"),
     plan_type: Optional[str] = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
@@ -82,18 +65,14 @@ def get_work_plans_list(
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     status: Optional[str] = Query(None, description="Status"),
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    分页获取工作计划列表
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     service = WorkPlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
-    maintenance_personnel = None if is_manager else user_name
+    maintenance_personnel = user_info.get_maintenance_personnel_filter()
     
     items, total = service.get_all(
         page=page, size=size, plan_type=plan_type, project_name=project_name, 
@@ -120,6 +99,9 @@ def get_work_plan_by_id(
     id: int,
     db: Session = Depends(get_db)
 ):
+    """
+    根据ID获取工作计划详情
+    """
     service = WorkPlanService(db)
     work_plan = service.get_by_id(id)
     return ApiResponse(
@@ -132,12 +114,14 @@ def get_work_plan_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_work_plan(
     dto: dict,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
-    if 'maintenance_personnel' in dto and dto['maintenance_personnel']:
-        validate_maintenance_personnel(db, dto['maintenance_personnel'])
+    """
+    创建工作计划
+    """
     service = WorkPlanService(db)
-    work_plan = service.create(WorkPlanCreate(**dto))
+    work_plan = service.create(WorkPlanCreate(**dto), user_info.id, user_info.name)
     return ApiResponse(
         code=200,
         message="Created successfully",
@@ -149,12 +133,14 @@ def create_work_plan(
 def update_work_plan(
     id: int,
     dto: dict,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
-    if 'maintenance_personnel' in dto and dto['maintenance_personnel']:
-        validate_maintenance_personnel(db, dto['maintenance_personnel'])
+    """
+    更新工作计划
+    """
     service = WorkPlanService(db)
-    work_plan = service.update(id, WorkPlanUpdate(**dto))
+    work_plan = service.update(id, WorkPlanUpdate(**dto), user_info.id, user_info.name)
     return ApiResponse(
         code=200,
         message="Updated successfully",
@@ -165,33 +151,14 @@ def update_work_plan(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_work_plan(
     id: int,
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
-    from app.models.work_order_operation_log import WorkOrderOperationLog
-    
+    """
+    删除工作计划（软删除）
+    """
     service = WorkPlanService(db)
-    work_plan = service.get_by_id(id)
-    plan_id = work_plan.plan_id
-    
-    user_id = current_user.get('id') if current_user else None
-    operator_name = current_user.get('name', '系统') if current_user else '系统'
-    
-    log = WorkOrderOperationLog(
-        work_order_type='work_plan',
-        work_order_id=id,
-        work_order_no=plan_id,
-        operator_name=operator_name,
-        operator_id=user_id,
-        operation_type='delete',
-        operation_type_code='delete',
-        operation_type_name='删除',
-        operation_remark=f'删除工作计划 {plan_id}'
-    )
-    db.add(log)
-    
-    service.delete(id, user_id)
+    service.delete(id, user_info.id, user_info.name)
     return ApiResponse(
         code=200,
         message="Deleted successfully",

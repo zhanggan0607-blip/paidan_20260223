@@ -2,7 +2,7 @@
  * 统一请求封装工厂
  * 提供创建Axios实例的工厂函数，支持自定义配置
  */
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig, AxiosError } from 'axios'
+import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig, type AxiosError } from 'axios'
 import type { ApiResponse, ApiError, User } from '../types/api'
 
 export interface RequestConfig {

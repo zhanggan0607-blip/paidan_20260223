@@ -121,7 +121,7 @@ export function canManageSpareParts(role: string | undefined): boolean {
   return isAdminRole(role) || role === '材料员'
 }
 
-export function canViewSpareParts(role: string | undefined): boolean {
+export function canViewSpareParts(_role: string | undefined): boolean {
   return true
 }
 

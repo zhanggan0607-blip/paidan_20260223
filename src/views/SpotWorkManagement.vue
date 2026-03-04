@@ -521,7 +521,7 @@ export default defineComponent({
             work_content: item.work_content || '',
             worker_count: item.worker_count || 0,
             work_days: item.work_days || 0,
-            photos: item.photos || [],
+            photos: typeof item.photos === 'string' ? item.photos.split(',').filter(Boolean) : (item.photos || []),
             signature: item.signature || ''
           }))
           totalElements.value = response.data.totalElements

@@ -1,43 +1,41 @@
+"""
+维保计划API
+提供维保计划的HTTP接口
+"""
 from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, HTTPException, status, Request
+import logging
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.services.maintenance_plan import MaintenancePlanService
 from app.schemas.maintenance_plan import (
     MaintenancePlanCreate,
     MaintenancePlanUpdate,
-    MaintenancePlanResponse,
     PaginatedResponse,
     ApiResponse
 )
-from app.auth import get_current_user, get_current_user_from_headers
-import logging
+from app.dependencies import get_current_user_info, UserInfo
 
 logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/maintenance-plan", tags=["Maintenance Plan Management"])
 
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_maintenance_plan(
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    获取所有维保计划（不分页）
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     service = MaintenancePlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
     items = service.get_all_unpaginated()
     
-    if not is_manager and user_name:
-        items = [item for item in items if item.maintenance_personnel == user_name]
+    if not user_info.is_manager and user_info.name:
+        items = [item for item in items if item.maintenance_personnel == user_info.name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -45,23 +43,18 @@ def get_all_maintenance_plan(
 @router.get("/project/{project_id}", response_model=ApiResponse)
 def get_maintenance_plan_by_project(
     project_id: str,
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    根据项目ID获取维保计划
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     service = MaintenancePlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
     items = service.get_by_project_id(project_id)
     
-    if not is_manager and user_name:
-        items = [item for item in items if item.maintenance_personnel == user_name]
+    if not user_info.is_manager and user_info.name:
+        items = [item for item in items if item.maintenance_personnel == user_info.name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -69,23 +62,18 @@ def get_maintenance_plan_by_project(
 @router.get("/upcoming/list", response_model=ApiResponse)
 def get_upcoming_maintenance(
     days: int = Query(7, ge=1, le=365, description="Query days"),
-    request: Request = None,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    获取即将到期的维保计划
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     service = MaintenancePlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
     items = service.get_upcoming_maintenance(days)
     
-    if not is_manager and user_name:
-        items = [item for item in items if item.maintenance_personnel == user_name]
+    if not user_info.is_manager and user_info.name:
+        items = [item for item in items if item.maintenance_personnel == user_info.name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -94,10 +82,13 @@ def get_upcoming_maintenance(
 def get_maintenance_plan_by_date_range(
     start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
-    request: Request = None,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    根据日期范围获取维保计划
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     try:
         start = datetime.fromisoformat(start_date)
         end = datetime.fromisoformat(end_date)
@@ -108,25 +99,16 @@ def get_maintenance_plan_by_date_range(
         )
 
     service = MaintenancePlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
     items = service.get_by_date_range(start, end)
     
-    if not is_manager and user_name:
-        items = [item for item in items if item.maintenance_personnel == user_name]
+    if not user_info.is_manager and user_info.name:
+        items = [item for item in items if item.maintenance_personnel == user_info.name]
     
     return ApiResponse.success([item.to_dict() for item in items])
 
 
 @router.get("", response_model=PaginatedResponse)
 def get_maintenance_plan_list(
-    request: Request,
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=1000, description="Page size"),
     plan_name: Optional[str] = Query(None, description="Plan name (fuzzy search)"),
@@ -139,18 +121,14 @@ def get_maintenance_plan_list(
     client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
     plan_type: Optional[str] = Query(None, description="Plan type (定期维保/临时维修/零星用工)"),
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    分页获取维保计划列表
+    普通用户只能看到自己的数据，管理员可以看到所有数据
+    """
     service = MaintenancePlanService(db)
-    user_info = current_user or get_current_user_from_headers(request)
-    user_name = None
-    is_manager = False
-    if user_info:
-        user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管']
-    
-    responsible_person_filter = None if is_manager else user_name
+    responsible_person_filter = user_info.get_maintenance_personnel_filter()
     
     items, total = service.get_all(
         page, size, plan_name, project_id, equipment_name,
@@ -179,6 +157,9 @@ def get_maintenance_plan_by_id(
     id: int,
     db: Session = Depends(get_db)
 ):
+    """
+    根据ID获取维保计划详情
+    """
     service = MaintenancePlanService(db)
     maintenance_plan = service.get_by_id(id)
     return ApiResponse.success(maintenance_plan.to_dict())
@@ -187,12 +168,16 @@ def get_maintenance_plan_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_maintenance_plan(
     dto: MaintenancePlanCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    创建维保计划
+    """
     logger.info(f"Creating maintenance plan: plan_id={dto.plan_id}, plan_name={dto.plan_name}")
 
     service = MaintenancePlanService(db)
-    maintenance_plan = service.create(dto)
+    maintenance_plan = service.create(dto, user_info.id, user_info.name)
 
     logger.info(f"Created successfully: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
     return ApiResponse.success(maintenance_plan.to_dict(), "Created successfully")
@@ -202,43 +187,28 @@ def create_maintenance_plan(
 def update_maintenance_plan(
     id: int,
     dto: MaintenancePlanUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    更新维保计划
+    """
     service = MaintenancePlanService(db)
-    maintenance_plan = service.update(id, dto)
+    maintenance_plan = service.update(id, dto, user_info.id, user_info.name)
     return ApiResponse.success(maintenance_plan.to_dict(), "Updated successfully")
 
 
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_maintenance_plan(
     id: int,
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
-    from app.models.work_order_operation_log import WorkOrderOperationLog
-    
+    """
+    删除维保计划（软删除）
+    """
     service = MaintenancePlanService(db)
-    maintenance_plan = service.get_by_id(id)
-    plan_id = maintenance_plan.plan_id
-    
-    user_id = current_user.get('id') if current_user else None
-    operator_name = current_user.get('name', '系统') if current_user else '系统'
-    
-    log = WorkOrderOperationLog(
-        work_order_type='maintenance_plan',
-        work_order_id=id,
-        work_order_no=plan_id,
-        operator_name=operator_name,
-        operator_id=user_id,
-        operation_type='delete',
-        operation_type_code='delete',
-        operation_type_name='删除',
-        operation_remark=f'删除维保计划 {plan_id}'
-    )
-    db.add(log)
-    
-    deleted_stats = service.delete(id, user_id)
+    deleted_stats = service.delete(id, user_info.id, user_info.name)
     return ApiResponse.success(deleted_stats, "删除成功")
 
 
@@ -246,10 +216,14 @@ def delete_maintenance_plan(
 def update_execution_status(
     id: int,
     status: str = Query(..., description="Execution status"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    更新执行状态
+    """
     service = MaintenancePlanService(db)
-    maintenance_plan = service.update_execution_status(id, status)
+    maintenance_plan = service.update_execution_status(id, status, user_info.id, user_info.name)
     return ApiResponse.success(maintenance_plan.to_dict(), "Status updated successfully")
 
 
@@ -259,6 +233,9 @@ def update_completion_rate(
     rate: int = Query(..., ge=0, le=100, description="Completion rate (0-100)"),
     db: Session = Depends(get_db)
 ):
+    """
+    更新完成率
+    """
     service = MaintenancePlanService(db)
     maintenance_plan = service.update_completion_rate(id, rate)
     return ApiResponse.success(maintenance_plan.to_dict(), "Completion rate updated successfully")

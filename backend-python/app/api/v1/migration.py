@@ -1,5 +1,7 @@
 """
 数据库迁移API
+
+注意: 此API仅限开发环境使用，生产环境请使用 Alembic 进行数据库迁移
 """
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
@@ -8,16 +10,34 @@ import os
 
 from app.database import SessionLocal
 from app.auth import get_current_admin_user
+from app.config import get_settings
 
 router = APIRouter(prefix="/migration", tags=["迁移管理"])
 
 MIGRATIONS_DIR = Path(__file__).parent.parent.parent / "migrations"
 
 
-@router.get("/status")
-def get_migration_status(current_user = Depends(get_current_admin_user)):
+def check_dev_environment():
     """
-    获取迁移状态
+    检查是否为开发环境
+    生产环境禁止通过API执行迁移操作
+    """
+    settings = get_settings()
+    if not settings.debug:
+        raise HTTPException(
+            status_code=403,
+            detail="生产环境禁止通过API执行迁移操作，请使用 Alembic 命令行工具"
+        )
+    return True
+
+
+@router.get("/status")
+def get_migration_status(
+    current_user = Depends(get_current_admin_user),
+    _ = Depends(check_dev_environment)
+):
+    """
+    获取迁移状态 (仅开发环境)
     """
     session = SessionLocal()
     try:
@@ -58,9 +78,14 @@ def get_migration_status(current_user = Depends(get_current_admin_user)):
 
 
 @router.post("/execute")
-def execute_migrations(current_user = Depends(get_current_admin_user)):
+def execute_migrations(
+    current_user = Depends(get_current_admin_user),
+    _ = Depends(check_dev_environment)
+):
     """
-    执行所有待执行的迁移
+    执行所有待执行的迁移 (仅开发环境)
+    
+    生产环境请使用: alembic upgrade head
     """
     session = SessionLocal()
     try:
@@ -149,9 +174,15 @@ def execute_migrations(current_user = Depends(get_current_admin_user)):
 
 
 @router.post("/execute/{filename}")
-def execute_single_migration(filename: str, current_user = Depends(get_current_admin_user)):
+def execute_single_migration(
+    filename: str,
+    current_user = Depends(get_current_admin_user),
+    _ = Depends(check_dev_environment)
+):
     """
-    执行单个迁移文件
+    执行单个迁移文件 (仅开发环境)
+    
+    生产环境请使用: alembic upgrade +1
     """
     filepath = MIGRATIONS_DIR / filename
     

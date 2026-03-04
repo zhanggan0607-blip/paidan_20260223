@@ -25,6 +25,10 @@
       "types": "./src/api/index.ts",
       "import": "./src/api/index.ts"
     },
+    "./api/endpoints": {
+      "types": "./src/api/endpoints.ts",
+      "import": "./src/api/endpoints.ts"
+    },
     "./utils/format": {
       "types": "./src/utils/format.ts",
       "import": "./src/utils/format.ts"
@@ -59,14 +63,14 @@
     }
   },
   "dependencies": {
-    "axios": "^1.6.0",
+    "axios": "^1.7.7",
     "crypto-js": "^4.2.0"
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
-    "typescript": "^5.0.0"
+    "typescript": "^5.6.0"
   },
   "peerDependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.7.0"
   }
 }

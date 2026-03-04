@@ -80,7 +80,7 @@ const handleSubmitReturn = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await sparePartsService.return(selectedItem.value.id, {
+    const response = await sparePartsService.returnSpare(selectedItem.value.id, {
       return_quantity: returnForm.value.returnQuantity
     })
     

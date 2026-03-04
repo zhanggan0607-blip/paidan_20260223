@@ -1,3 +1,7 @@
+"""
+工作计划服务
+提供工作计划业务逻辑处理
+"""
 from typing import List, Optional, Union
 from fastapi import HTTPException, status
 from datetime import datetime, timedelta
@@ -7,6 +11,7 @@ from app.repositories.work_plan import WorkPlanRepository
 from app.services.sync_service import SyncService
 from app.schemas.work_plan import WorkPlanCreate, WorkPlanUpdate
 from app.utils.date_utils import parse_date, parse_datetime
+from app.exceptions import NotFoundException, DuplicateException, ValidationException
 
 PLAN_TYPES = ['定期巡检', '临时维修', '零星用工']
 
@@ -20,26 +25,75 @@ class WorkPlanService:
     def __init__(self, db: Session):
         """
         初始化工作计划服务
-        @param db: 数据库会话对象
+        
+        Args:
+            db: 数据库会话对象
         """
         self.repository = WorkPlanRepository(db)
         self.sync_service = SyncService(db)
+        self._db = db
     
     def _parse_date_field(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         """
         解析日期字符串为datetime对象
-        @param date_value: 日期值，可以是字符串或datetime对象
-        @return: 解析后的datetime对象，解析失败返回None
+        
+        Args:
+            date_value: 日期值，可以是字符串或datetime对象
+            
+        Returns:
+            解析后的datetime对象，解析失败返回None
         """
         return parse_datetime(date_value)
     
     def _get_date_value(self, date_field) -> Optional[datetime.date]:
         """
         获取日期字段的date值
-        @param date_field: 日期字段，可以是datetime或date对象
-        @return: date对象
+        
+        Args:
+            date_field: 日期字段，可以是datetime或date对象
+            
+        Returns:
+            date对象
         """
         return parse_date(date_field)
+    
+    def _create_operation_log(
+        self,
+        work_order_id: int,
+        work_order_no: str,
+        operator_name: str,
+        operator_id: Optional[int],
+        operation_type: str,
+        operation_type_name: str,
+        remark: str
+    ) -> None:
+        """
+        创建操作日志
+        
+        Args:
+            work_order_id: 工单ID
+            work_order_no: 工单编号
+            operator_name: 操作者名称
+            operator_id: 操作者ID
+            operation_type: 操作类型代码
+            operation_type_name: 操作类型名称
+            remark: 备注
+        """
+        from app.models.work_order_operation_log import WorkOrderOperationLog
+        
+        log = WorkOrderOperationLog(
+            work_order_type='work_plan',
+            work_order_id=work_order_id,
+            work_order_no=work_order_no,
+            operator_name=operator_name,
+            operator_id=operator_id,
+            operation_type=operation_type,
+            operation_type_code=operation_type,
+            operation_type_name=operation_type_name,
+            operation_remark=remark
+        )
+        self._db.add(log)
+        self._db.commit()
     
     def get_all(
         self, 
@@ -53,14 +107,18 @@ class WorkPlanService:
     ) -> tuple[List[WorkPlan], int]:
         """
         分页获取工作计划列表
-        @param page: 页码，从0开始
-        @param size: 每页大小
-        @param plan_type: 计划类型筛选
-        @param project_name: 项目名称模糊查询
-        @param client_name: 客户名称筛选
-        @param status: 状态筛选
-        @param maintenance_personnel: 维保人员筛选
-        @return: (工作计划列表, 总数) 元组
+        
+        Args:
+            page: 页码，从0开始
+            size: 每页大小
+            plan_type: 计划类型筛选
+            project_name: 项目名称模糊查询
+            client_name: 客户名称筛选
+            status: 状态筛选
+            maintenance_personnel: 维保人员筛选
+            
+        Returns:
+            (工作计划列表, 总数) 元组
         """
         return self.repository.find_all(
             page, size, plan_type, project_name, client_name, status, maintenance_personnel
@@ -69,52 +127,66 @@ class WorkPlanService:
     def get_by_id(self, id: int) -> WorkPlan:
         """
         根据ID获取工作计划
-        @param id: 工作计划ID
-        @return: 工作计划对象
-        @raises HTTPException: 工作计划不存在时抛出404异常
+        
+        Args:
+            id: 工作计划ID
+            
+        Returns:
+            工作计划对象
+            
+        Raises:
+            NotFoundException: 工作计划不存在
         """
         work_plan = self.repository.find_by_id(id)
         if not work_plan:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="工作计划不存在"
-            )
+            raise NotFoundException("工作计划不存在")
         return work_plan
     
     def get_by_plan_id(self, plan_id: str) -> WorkPlan:
         """
         根据计划编号获取工作计划
-        @param plan_id: 计划编号
-        @return: 工作计划对象
-        @raises HTTPException: 工作计划不存在时抛出404异常
+        
+        Args:
+            plan_id: 计划编号
+            
+        Returns:
+            工作计划对象
+            
+        Raises:
+            NotFoundException: 工作计划不存在
         """
         work_plan = self.repository.find_by_plan_id(plan_id)
         if not work_plan:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="工作计划不存在"
-            )
+            raise NotFoundException("工作计划不存在")
         return work_plan
     
-    def create(self, dto: WorkPlanCreate) -> WorkPlan:
+    def create(
+        self, 
+        dto: WorkPlanCreate, 
+        operator_id: Optional[int] = None, 
+        operator_name: Optional[str] = None
+    ) -> WorkPlan:
         """
         创建新工作计划
         创建后会同步到对应的工单表和维保计划表
-        @param dto: 工作计划创建数据传输对象
-        @return: 创建成功的工作计划对象
-        @raises HTTPException: 计划类型无效或编号重复时抛出400异常
+        
+        Args:
+            dto: 工作计划创建数据传输对象
+            operator_id: 操作者ID
+            operator_name: 操作者名称
+            
+        Returns:
+            创建成功的工作计划对象
+            
+        Raises:
+            ValidationException: 计划类型无效
+            DuplicateException: 计划编号已存在
         """
         if dto.plan_type not in PLAN_TYPES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"工单类型必须是以下之一: {', '.join(PLAN_TYPES)}"
-            )
+            raise ValidationException(f"工单类型必须是以下之一: {', '.join(PLAN_TYPES)}")
         
         if self.repository.exists_by_plan_id(dto.plan_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="计划编号已存在"
-            )
+            raise DuplicateException("计划编号已存在")
         
         work_plan = WorkPlan(
             plan_id=dto.plan_id,
@@ -135,30 +207,52 @@ class WorkPlanService:
         result = self.repository.create(work_plan)
         self.sync_service.sync_work_plan_to_order(result)
         self.sync_service.sync_work_plan_to_maintenance_plan(result)
+        
+        if operator_name and result.id:
+            self._create_operation_log(
+                work_order_id=result.id,
+                work_order_no=result.plan_id,
+                operator_name=operator_name,
+                operator_id=operator_id,
+                operation_type='create',
+                operation_type_name='创建',
+                remark='创建工作计划'
+            )
+        
         return result
     
-    def update(self, id: int, dto: WorkPlanUpdate) -> WorkPlan:
+    def update(
+        self, 
+        id: int, 
+        dto: WorkPlanUpdate, 
+        operator_id: Optional[int] = None, 
+        operator_name: Optional[str] = None
+    ) -> WorkPlan:
         """
         更新工作计划
         更新后会同步到对应的工单表和维保计划表
-        @param id: 工作计划ID
-        @param dto: 工作计划更新数据传输对象
-        @return: 更新后的工作计划对象
-        @raises HTTPException: 计划类型无效或编号重复时抛出400异常
+        
+        Args:
+            id: 工作计划ID
+            dto: 工作计划更新数据传输对象
+            operator_id: 操作者ID
+            operator_name: 操作者名称
+            
+        Returns:
+            更新后的工作计划对象
+            
+        Raises:
+            NotFoundException: 工作计划不存在
+            ValidationException: 计划类型无效
+            DuplicateException: 计划编号已存在
         """
         existing_plan = self.get_by_id(id)
         
         if dto.plan_type not in PLAN_TYPES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"工单类型必须是以下之一: {', '.join(PLAN_TYPES)}"
-            )
+            raise ValidationException(f"工单类型必须是以下之一: {', '.join(PLAN_TYPES)}")
         
         if existing_plan.plan_id != dto.plan_id and self.repository.exists_by_plan_id(dto.plan_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="计划编号已存在"
-            )
+            raise DuplicateException("计划编号已存在")
         
         existing_plan.plan_id = dto.plan_id
         existing_plan.plan_name = dto.plan_name
@@ -177,16 +271,43 @@ class WorkPlanService:
         result = self.repository.update(existing_plan)
         self.sync_service.sync_work_plan_to_order(result)
         self.sync_service.sync_work_plan_to_maintenance_plan(result)
+        
+        if operator_name and result.id:
+            self._create_operation_log(
+                work_order_id=result.id,
+                work_order_no=result.plan_id,
+                operator_name=operator_name,
+                operator_id=operator_id,
+                operation_type='update',
+                operation_type_name='更新',
+                remark='更新工作计划'
+            )
+        
         return result
     
-    def delete(self, id: int, user_id: int = None) -> None:
+    def delete(self, id: int, user_id: int = None, operator_name: str = None) -> None:
         """
         软删除工作计划
         删除前会同步软删除关联的工单和维保计划
-        @param id: 工作计划ID
-        @param user_id: 执行删除的用户ID
+        
+        Args:
+            id: 工作计划ID
+            user_id: 执行删除的用户ID
+            operator_name: 操作者名称
         """
         work_plan = self.get_by_id(id)
+        
+        if operator_name and work_plan.id:
+            self._create_operation_log(
+                work_order_id=work_plan.id,
+                work_order_no=work_plan.plan_id,
+                operator_name=operator_name,
+                operator_id=user_id,
+                operation_type='delete',
+                operation_type_name='删除',
+                remark=f'删除工作计划 {work_plan.plan_id}'
+            )
+        
         self.sync_service.sync_work_plan_to_order(work_plan, is_delete=True, user_id=user_id)
         self.sync_service.sync_work_plan_to_maintenance_plan(work_plan, is_delete=True, user_id=user_id)
         self.repository.soft_delete(work_plan, user_id)
@@ -194,8 +315,12 @@ class WorkPlanService:
     def get_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
         """
         获取所有工作计划（不分页）
-        @param plan_type: 计划类型筛选
-        @return: 工作计划列表
+        
+        Args:
+            plan_type: 计划类型筛选
+            
+        Returns:
+            工作计划列表
         """
         return self.repository.find_all_unpaginated(plan_type)
     
@@ -206,8 +331,12 @@ class WorkPlanService:
         临期工单：计划开始日期在未来7天内且未完成
         超期工单：计划结束日期已过且未完成
         
-        TODO: 这个方法太长了，需要拆分
-        FIXME: 性能问题：全量查询后过滤，数据量大时会很慢
+        Args:
+            user_name: 用户名（用于权限过滤）
+            is_manager: 是否为管理员
+            
+        Returns:
+            统计数据字典
         """
         from app.repositories.periodic_inspection import PeriodicInspectionRepository
         from app.repositories.temporary_repair import TemporaryRepairRepository

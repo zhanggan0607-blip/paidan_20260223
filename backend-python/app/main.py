@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy import text
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import get_settings
 from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log, weekly_report, work_order_operation_log, operation_type, ocr, online_user, migration
 from app.database import Base, engine
@@ -13,6 +15,23 @@ import logging
 import time
 import uuid
 import os
+from datetime import datetime
+
+LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+LOG_FILE = os.path.join(LOG_DIR, f"app_{datetime.now().strftime('%Y%m%d')}.log")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+
+logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -37,6 +56,8 @@ async def startup_event():
             logger.error(f"创建数据库表失败: {str(e)}", exc_info=True)
         else:
             logger.info(f"数据库表或索引已存在，跳过创建")
+    
+    Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,
@@ -126,6 +147,28 @@ def read_root():
         "version": settings.app_version,
         "docs": settings.docs_url,
         "supported_versions": ["/api/v1"],
+    }
+
+
+@app.get("/health")
+def health_check():
+    """
+    健康检查端点
+    用于监控服务状态和数据库连接
+    """
+    db_status = "healthy"
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+        logger.error(f"健康检查数据库连接失败: {e}")
+    
+    return {
+        "status": "healthy" if db_status == "healthy" else "degraded",
+        "timestamp": datetime.now().isoformat(),
+        "version": settings.app_version,
+        "database": db_status
     }
 
 

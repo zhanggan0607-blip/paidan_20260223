@@ -7,16 +7,21 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
 import json
+import logging
+
 from app.models.periodic_inspection import PeriodicInspection
 from app.models.periodic_inspection_record import PeriodicInspectionRecord
 from app.models.maintenance_plan import MaintenancePlan
 from app.repositories.periodic_inspection import PeriodicInspectionRepository
+from app.repositories.personnel import PersonnelRepository
 from app.schemas.periodic_inspection import PeriodicInspectionCreate, PeriodicInspectionUpdate, PeriodicInspectionPartialUpdate
 from app.utils.dictionary_helper import get_default_periodic_inspection_status
 from app.services.sync_service import SyncService, PLAN_TYPE_INSPECTION
 from app.utils.date_utils import parse_datetime
 from app.utils.work_order_id_generator import generate_inspection_id
-from app.exceptions import NotFoundException, DuplicateException
+from app.exceptions import NotFoundException, DuplicateException, ValidationException
+
+logger = logging.getLogger(__name__)
 
 
 class PeriodicInspectionService:
@@ -27,11 +32,67 @@ class PeriodicInspectionService:
     
     def __init__(self, db: Session):
         self.repository = PeriodicInspectionRepository(db)
+        self.personnel_repository = PersonnelRepository(db)
         self.sync_service = SyncService(db)
+        self._db = db
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
         """解析日期"""
         return parse_datetime(date_value)
+    
+    def _validate_maintenance_personnel(self, personnel_name: str) -> None:
+        """
+        验证运维人员是否存在
+        
+        Args:
+            personnel_name: 运维人员姓名
+            
+        Raises:
+            ValidationException: 运维人员不存在
+        """
+        if personnel_name:
+            if not self.personnel_repository.find_by_name(personnel_name):
+                raise ValidationException(
+                    f"运维人员'{personnel_name}'不存在于人员列表中，请先添加该人员"
+                )
+    
+    def _create_operation_log(
+        self,
+        work_order_id: int,
+        work_order_no: str,
+        operator_name: str,
+        operator_id: Optional[int],
+        operation_type: str,
+        operation_type_name: str,
+        remark: str
+    ) -> None:
+        """
+        创建操作日志
+        
+        Args:
+            work_order_id: 工单ID
+            work_order_no: 工单编号
+            operator_name: 操作者名称
+            operator_id: 操作者ID
+            operation_type: 操作类型代码
+            operation_type_name: 操作类型名称
+            remark: 备注
+        """
+        from app.models.work_order_operation_log import WorkOrderOperationLog
+        
+        log = WorkOrderOperationLog(
+            work_order_type='periodic_inspection',
+            work_order_id=work_order_id,
+            work_order_no=work_order_no,
+            operator_name=operator_name,
+            operator_id=operator_id,
+            operation_type=operation_type,
+            operation_type_code=operation_type,
+            operation_type_name=operation_type_name,
+            operation_remark=remark
+        )
+        self._db.add(log)
+        self._db.commit()
     
     def get_all(
         self, 
@@ -98,19 +159,30 @@ class PeriodicInspectionService:
             raise NotFoundException("巡检单不存在")
         return inspection
     
-    def create(self, dto: PeriodicInspectionCreate) -> PeriodicInspection:
+    def create(
+        self, 
+        dto: PeriodicInspectionCreate, 
+        operator_id: Optional[int] = None, 
+        operator_name: Optional[str] = None
+    ) -> PeriodicInspection:
         """
         创建定期巡检
         
         Args:
             dto: 创建数据传输对象
+            operator_id: 操作者ID
+            operator_name: 操作者名称
             
         Returns:
             创建的巡检单对象
             
         Raises:
             DuplicateException: 巡检单编号已存在
+            ValidationException: 运维人员不存在
         """
+        if dto.maintenance_personnel:
+            self._validate_maintenance_personnel(dto.maintenance_personnel)
+        
         inspection_id = dto.inspection_id
         if inspection_id and self.repository.exists_by_inspection_id(inspection_id):
             raise DuplicateException("巡检单编号已存在")
@@ -118,7 +190,7 @@ class PeriodicInspectionService:
         if not inspection_id:
             inspection_id = generate_inspection_id(self.repository.db, dto.project_id)
         
-        default_status = get_default_periodic_inspection_status(self.repository.db)
+        default_status = get_default_periodic_inspection_status(self._db)
         
         inspection = PeriodicInspection(
             inspection_id=inspection_id,
@@ -136,15 +208,35 @@ class PeriodicInspectionService:
         
         result = self.repository.create(inspection)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)
+        
+        if operator_name and result.id:
+            self._create_operation_log(
+                work_order_id=result.id,
+                work_order_no=result.inspection_id,
+                operator_name=operator_name,
+                operator_id=operator_id,
+                operation_type='create',
+                operation_type_name='创建',
+                remark='创建定期巡检单'
+            )
+        
         return result
     
-    def update(self, id: int, dto: PeriodicInspectionUpdate) -> PeriodicInspection:
+    def update(
+        self, 
+        id: int, 
+        dto: PeriodicInspectionUpdate, 
+        operator_id: Optional[int] = None, 
+        operator_name: Optional[str] = None
+    ) -> PeriodicInspection:
         """
         更新定期巡检
         
         Args:
             id: 巡检单ID
             dto: 更新数据传输对象
+            operator_id: 操作者ID
+            operator_name: 操作者名称
             
         Returns:
             更新后的巡检单对象
@@ -152,7 +244,11 @@ class PeriodicInspectionService:
         Raises:
             NotFoundException: 巡检单不存在
             DuplicateException: 巡检单编号已存在
+            ValidationException: 运维人员不存在
         """
+        if dto.maintenance_personnel:
+            self._validate_maintenance_personnel(dto.maintenance_personnel)
+        
         existing_inspection = self.get_by_id(id)
         
         if existing_inspection.inspection_id != dto.inspection_id and self.repository.exists_by_inspection_id(dto.inspection_id):
@@ -175,37 +271,74 @@ class PeriodicInspectionService:
         
         result = self.repository.update(existing_inspection)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)
+        
+        if operator_name and result.id:
+            self._create_operation_log(
+                work_order_id=result.id,
+                work_order_no=result.inspection_id,
+                operator_name=operator_name,
+                operator_id=operator_id,
+                operation_type='update',
+                operation_type_name='更新',
+                remark='更新定期巡检单'
+            )
+        
         return result
     
-    def delete(self, id: int, user_id: int = None) -> None:
+    def delete(self, id: int, user_id: int = None, operator_name: str = None) -> None:
         """
         软删除定期巡检单
         
         Args:
             id: 巡检单ID
             user_id: 执行删除的用户ID
+            operator_name: 操作者名称
             
         Raises:
             NotFoundException: 巡检单不存在
         """
         inspection = self.get_by_id(id)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, inspection, is_delete=True, user_id=user_id)
+        
+        if operator_name and inspection.id:
+            self._create_operation_log(
+                work_order_id=inspection.id,
+                work_order_no=inspection.inspection_id,
+                operator_name=operator_name,
+                operator_id=user_id,
+                operation_type='delete',
+                operation_type_name='删除',
+                remark=f'删除定期巡检单 {inspection.inspection_id}'
+            )
+        
         self.repository.soft_delete(inspection, user_id)
     
-    def partial_update(self, id: int, dto: PeriodicInspectionPartialUpdate) -> PeriodicInspection:
+    def partial_update(
+        self, 
+        id: int, 
+        dto: PeriodicInspectionPartialUpdate, 
+        operator_id: Optional[int] = None, 
+        operator_name: Optional[str] = None
+    ) -> PeriodicInspection:
         """
         部分更新定期巡检
         
         Args:
             id: 巡检单ID
             dto: 部分更新数据传输对象
+            operator_id: 操作者ID
+            operator_name: 操作者名称
             
         Returns:
             更新后的巡检单对象
             
         Raises:
             NotFoundException: 巡检单不存在
+            ValidationException: 运维人员不存在
         """
+        if dto.maintenance_personnel:
+            self._validate_maintenance_personnel(dto.maintenance_personnel)
+        
         existing_inspection = self.get_by_id(id)
         
         if dto.signature is not None:
@@ -217,6 +350,8 @@ class PeriodicInspectionService:
             existing_inspection.execution_result = dto.execution_result
         if dto.remarks is not None:
             existing_inspection.remarks = dto.remarks
+        if dto.maintenance_personnel is not None:
+            existing_inspection.maintenance_personnel = dto.maintenance_personnel
         if dto.status is not None:
             existing_inspection.status = dto.status
             if dto.status == '已完成' and not existing_inspection.actual_completion_date:
@@ -242,9 +377,7 @@ class PeriodicInspectionService:
         总数量：该巡检单对应的不同3级节点数量
         已填写数量：已处理的3级节点数量
         """
-        db = self.repository.db
-        
-        records = db.query(PeriodicInspectionRecord).filter(
+        records = self._db.query(PeriodicInspectionRecord).filter(
             PeriodicInspectionRecord.inspection_id == inspection_id
         ).all()
         
@@ -262,7 +395,7 @@ class PeriodicInspectionService:
             total_count = len(unique_items)
             filled_count = sum(1 for item in unique_items.values() if item['inspected'])
         else:
-            total_count = self._get_total_count_from_plans(db, project_id, plan_start_date, plan_end_date)
+            total_count = self._get_total_count_from_plans(project_id, plan_start_date, plan_end_date)
             filled_count = 0
         
         return {
@@ -284,10 +417,9 @@ class PeriodicInspectionService:
         if not inspections:
             return {}
         
-        db = self.repository.db
         inspection_ids = [ins.inspection_id for ins in inspections]
         
-        all_records = db.query(PeriodicInspectionRecord).filter(
+        all_records = self._db.query(PeriodicInspectionRecord).filter(
             PeriodicInspectionRecord.inspection_id.in_(inspection_ids)
         ).all()
         
@@ -300,7 +432,7 @@ class PeriodicInspectionService:
         project_ids = list(set(ins.project_id for ins in inspections if ins.project_id))
         plans = []
         if project_ids:
-            plans = db.query(MaintenancePlan).filter(
+            plans = self._db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id.in_(project_ids)
             ).all()
         
@@ -370,10 +502,10 @@ class PeriodicInspectionService:
             
             return len(unique_items)
         except Exception as e:
-            print(f"Error getting total count from plans: {e}")
+            logger.error(f"Error getting total count from plans: {e}")
             return 0
     
-    def _get_total_count_from_plans(self, db: Session, project_id: str, plan_start_date: datetime, plan_end_date: datetime) -> int:
+    def _get_total_count_from_plans(self, project_id: str, plan_start_date: datetime, plan_end_date: datetime) -> int:
         """
         从维保计划中获取3级节点总数
         """
@@ -381,7 +513,7 @@ class PeriodicInspectionService:
             return 0
         
         try:
-            plans = db.query(MaintenancePlan).filter(
+            plans = self._db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id == project_id
             ).all()
             
@@ -408,5 +540,5 @@ class PeriodicInspectionService:
             
             return len(unique_items)
         except Exception as e:
-            print(f"Error getting total count from plans: {e}")
+            logger.error(f"Error getting total count from plans: {e}")
             return 0

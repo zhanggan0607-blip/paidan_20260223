@@ -1,15 +1,127 @@
-name: Deploy to Production
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
       - master
+      - develop
+  pull_request:
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  # 前端代码检查
+  frontend-lint:
     runs-on: ubuntu-latest
-    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install PC frontend dependencies
+        run: npm ci
+
+      - name: Lint PC frontend
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Type check PC frontend
+        run: npm run typecheck
+
+      - name: Install H5 frontend dependencies
+        working-directory: ./H5
+        run: npm ci
+
+      - name: Lint H5 frontend
+        working-directory: ./H5
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Type check H5 frontend
+        working-directory: ./H5
+        run: npm run typecheck
+
+  # 后端代码检查
+  backend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install backend dependencies
+        working-directory: ./backend-python
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 black isort mypy
+          pip install -r requirements.txt
+
+      - name: Run black check
+        working-directory: ./backend-python
+        run: black --check --diff app/
+
+      - name: Run isort check
+        working-directory: ./backend-python
+        run: isort --check-only --diff app/
+
+      - name: Run flake8
+        working-directory: ./backend-python
+        run: flake8 app/ --max-line-length=100 --exclude=app/uploads/
+
+      - name: Run mypy
+        working-directory: ./backend-python
+        run: mypy app/ --ignore-missing-imports
+        continue-on-error: true
+
+  # 后端测试
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: backend-lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install backend dependencies
+        working-directory: ./backend-python
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov pytest-asyncio httpx
+          pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: ./backend-python
+        run: pytest tests/ -v --cov=app --cov-report=xml --cov-report=term-missing
+        env:
+          SECRET_KEY: test-secret-key-for-ci-testing-12345678
+          DATABASE_URL: sqlite:///./test.db
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./backend-python/coverage.xml
+          fail_ci_if_error: false
+
+  # 构建前端
+  build-frontend:
+    runs-on: ubuntu-latest
+    needs: [frontend-lint]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,16 +146,26 @@ jobs:
         working-directory: ./H5
         run: npm run build
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Upload PC frontend artifacts
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.11'
+          name: pc-frontend-dist
+          path: dist/
 
-      - name: Install backend dependencies
-        working-directory: ./backend-python
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Upload H5 frontend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: h5-frontend-dist
+          path: H5/dist/
+
+  # 部署到生产环境
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [backend-test, build-frontend]
+    if: github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3

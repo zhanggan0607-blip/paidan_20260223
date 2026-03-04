@@ -188,7 +188,7 @@ module.exports = {
       name: 'sstcp-backend',
       cwd: '/var/www/sstcp/backend-python',
       script: '/var/www/sstcp/backend-python/venv/bin/uvicorn',
-      args: 'app.main:app --host 0.0.0.0 --port 8080',
+      args: 'app.main:app --host 0.0.0.0 --port 8000',
       interpreter: 'none',
       env: {
         NODE_ENV: 'production'
@@ -209,7 +209,7 @@ echo -e "${YELLOW}[3.2] 配置 Nginx...${NC}"
 
 cat > /etc/nginx/sites-available/sstcp << EOFNGINX
 upstream backend {
-    server 127.0.0.1:8080;
+    server 127.0.0.1:8000;
 }
 
 server {

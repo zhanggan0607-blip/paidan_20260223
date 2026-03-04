@@ -294,5 +294,3 @@ export const useUserStore = defineStore('user', () => {
     checkPermission,
   }
 })
-
-export { User }

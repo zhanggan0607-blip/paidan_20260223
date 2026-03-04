@@ -1,44 +1,23 @@
+"""
+维保周报API
+提供维保周报的HTTP接口
+"""
 from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, Query, status, Request
+import logging
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.schemas.common import ApiResponse, PaginatedResponse
+from app.schemas.common import ApiResponse
 from app.schemas.weekly_report import WeeklyReportCreate, WeeklyReportUpdate, WeeklyReportApprove, WeeklyReportSign
 from app.services.weekly_report import WeeklyReportService
 from app.models.weekly_report import WeeklyReport
 from app.models.work_order_operation_log import WorkOrderOperationLog
-from app.auth import get_current_user, get_current_user_from_headers
+from app.dependencies import get_current_user_info, UserInfo
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/weekly-report", tags=["Weekly Report Management"])
-
-
-def record_operation_log(
-    db: Session,
-    work_order_type: str,
-    work_order_id: int,
-    work_order_no: str,
-    operator_name: str,
-    operation_type_code: str,
-    operation_type_name: str,
-    operation_remark: str = None
-):
-    """
-    记录操作日志
-    """
-    log = WorkOrderOperationLog(
-        work_order_type=work_order_type,
-        work_order_id=work_order_id,
-        work_order_no=work_order_no,
-        operator_name=operator_name,
-        operation_type=operation_type_code,
-        operation_type_code=operation_type_code,
-        operation_type_name=operation_type_name,
-        operation_remark=operation_remark
-    )
-    
-    db.add(log)
-    db.commit()
 
 
 @router.get("/generate-id", response_model=ApiResponse)
@@ -70,7 +49,6 @@ def generate_report_id(
 
 @router.get("", response_model=ApiResponse)
 def get_weekly_reports(
-    request: Request,
     page: int = Query(0, ge=0, description="页码，从0开始"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
     report_id: Optional[str] = Query(None, description="周报编号"),
@@ -78,7 +56,7 @@ def get_weekly_reports(
     work_summary: Optional[str] = Query(None, description="周报内容(模糊搜索)"),
     created_by: Optional[str] = Query(None, description="创建人"),
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     获取维保周报列表
@@ -105,9 +83,8 @@ def get_weekly_reports(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_weekly_reports(
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     获取所有维保周报列表(不分页)
@@ -142,32 +119,29 @@ def get_weekly_report_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_weekly_report(
     dto: WeeklyReportCreate,
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     创建维保周报
     """
-    user_info = current_user or get_current_user_from_headers(request)
-    created_by = None
-    if user_info:
-        created_by = user_info.get('sub') or user_info.get('name')
-
     service = WeeklyReportService(db)
-    report = service.create(dto, created_by)
+    report = service.create(dto, user_info.name)
 
-    if created_by:
-        record_operation_log(
-            db=db,
+    if user_info.name and report.id:
+        log = WorkOrderOperationLog(
             work_order_type='weekly_report',
             work_order_id=report.id,
             work_order_no=report.report_id,
-            operator_name=created_by,
+            operator_name=user_info.name,
+            operator_id=user_info.id,
+            operation_type='create',
             operation_type_code='create',
             operation_type_name='创建',
             operation_remark='创建周报'
         )
+        db.add(log)
+        db.commit()
 
     return ApiResponse(
         code=200,
@@ -180,13 +154,14 @@ def create_weekly_report(
 def update_weekly_report(
     id: int,
     dto: WeeklyReportUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     更新维保周报
     """
     service = WeeklyReportService(db)
-    report = service.update(id, dto)
+    report = service.update(id, dto, user_info.id, user_info.name)
 
     return ApiResponse(
         code=200,
@@ -198,32 +173,29 @@ def update_weekly_report(
 @router.post("/{id}/submit", response_model=ApiResponse)
 def submit_weekly_report(
     id: int,
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     提交维保周报
     """
-    user_info = current_user or get_current_user_from_headers(request)
-    operator_name = None
-    if user_info:
-        operator_name = user_info.get('sub') or user_info.get('name')
-
     service = WeeklyReportService(db)
-    report = service.submit(id)
+    report = service.submit(id, user_info.id, user_info.name)
 
-    if operator_name:
-        record_operation_log(
-            db=db,
+    if user_info.name and report.id:
+        log = WorkOrderOperationLog(
             work_order_type='weekly_report',
             work_order_id=report.id,
             work_order_no=report.report_id,
-            operator_name=operator_name,
+            operator_name=user_info.name,
+            operator_id=user_info.id,
+            operation_type='submit',
             operation_type_code='submit',
             operation_type_name='提交',
             operation_remark='提交周报'
         )
+        db.add(log)
+        db.commit()
 
     return ApiResponse(
         code=200,
@@ -236,47 +208,47 @@ def submit_weekly_report(
 def approve_weekly_report(
     id: int,
     dto: WeeklyReportApprove,
-    request: Request,
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     审核维保周报
     """
-    user_info = current_user or get_current_user_from_headers(request)
-    approved_by = None
-    if user_info:
-        approved_by = user_info.get('sub') or user_info.get('name')
-
     service = WeeklyReportService(db)
     if dto.approved:
-        report = service.approve(id, approved_by)
+        report = service.approve(id, user_info.name, user_info.id, user_info.name)
         message = "审核通过"
-        if approved_by:
-            record_operation_log(
-                db=db,
+        if user_info.name and report.id:
+            log = WorkOrderOperationLog(
                 work_order_type='weekly_report',
                 work_order_id=report.id,
                 work_order_no=report.report_id,
-                operator_name=approved_by,
+                operator_name=user_info.name,
+                operator_id=user_info.id,
+                operation_type='approve',
                 operation_type_code='approve',
                 operation_type_name='审批通过',
                 operation_remark='审核通过'
             )
+            db.add(log)
+            db.commit()
     else:
-        report = service.reject(id, dto.reject_reason or "无原因")
+        report = service.reject(id, dto.reject_reason or "无原因", user_info.id, user_info.name)
         message = "已退回"
-        if approved_by:
-            record_operation_log(
-                db=db,
+        if user_info.name and report.id:
+            log = WorkOrderOperationLog(
                 work_order_type='weekly_report',
                 work_order_id=report.id,
                 work_order_no=report.report_id,
-                operator_name=approved_by,
+                operator_name=user_info.name,
+                operator_id=user_info.id,
+                operation_type='reject',
                 operation_type_code='reject',
                 operation_type_name='审批退回',
                 operation_remark=f'退回原因: {dto.reject_reason}'
             )
+            db.add(log)
+            db.commit()
 
     return ApiResponse(
         code=200,
@@ -289,13 +261,14 @@ def approve_weekly_report(
 def sign_weekly_report(
     id: int,
     dto: WeeklyReportSign,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     部门经理签字
     """
     service = WeeklyReportService(db)
-    report = service.sign(id, dto.manager_signature)
+    report = service.sign(id, dto.manager_signature, user_info.id, user_info.name)
 
     return ApiResponse(
         code=200,
@@ -307,13 +280,14 @@ def sign_weekly_report(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_weekly_report(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     删除维保周报(软删除)
     """
     service = WeeklyReportService(db)
-    service.delete(id)
+    service.delete(id, user_info.id, user_info.name)
 
     return ApiResponse(
         code=200,

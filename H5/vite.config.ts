@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import Components from 'unplugin-vue-components/vite'
-import { VantResolver } from '@vant/auto-import-resolver'
 import AutoImport from 'unplugin-auto-import/vite'
+import { VantResolver } from '@vant/auto-import-resolver'
 import { resolve } from 'path'
 import os from 'os'
 
@@ -40,7 +40,12 @@ export default defineConfig(({ mode }) => ({
   ],
   resolve: {
     alias: {
-      '@sstcp/shared': resolve(__dirname, '../packages/shared/src/index.ts')
+      '@sstcp/shared': resolve(__dirname, '../packages/shared/src/index.ts'),
+      '@sstcp/shared/utils/status': resolve(__dirname, '../packages/shared/src/utils/status.ts'),
+      '@sstcp/shared/utils/format': resolve(__dirname, '../packages/shared/src/utils/format.ts'),
+      '@sstcp/shared/api/endpoints': resolve(__dirname, '../packages/shared/src/api/endpoints.ts'),
+      '@sstcp/shared/types/api': resolve(__dirname, '../packages/shared/src/types/api.ts'),
+      '@sstcp/shared/types/permission': resolve(__dirname, '../packages/shared/src/types/permission.ts')
     }
   },
   base: mode === 'production' ? '/h5/' : '/',
@@ -57,11 +62,15 @@ export default defineConfig(({ mode }) => ({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        timeout: 30000,
+        proxyTimeout: 30000,
       },
       '/uploads': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        timeout: 60000,
+        proxyTimeout: 60000,
       }
     }
-  },
+  }
 }))
