@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 定期巡检服务
+ * 提供定期巡检工单的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 import type { PeriodicInspection as PeriodicInspectionType, ApiResponse } from '../types/api'
 
 export type PeriodicInspection = PeriodicInspectionType
@@ -52,6 +57,9 @@ export interface PeriodicInspectionPaginatedResponse {
 }
 
 export const periodicInspectionService = {
+  /**
+   * 获取定期巡检列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
@@ -60,26 +68,41 @@ export const periodicInspectionService = {
     inspection_id?: string
     status?: string
   }): Promise<PeriodicInspectionPaginatedResponse> {
-    return await apiClient.get('/periodic-inspection', { params })
+    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.LIST, { params })
   },
 
+  /**
+   * 获取定期巡检详情
+   */
   async getById(id: number): Promise<ApiResponse<PeriodicInspection>> {
-    return await apiClient.get(`/periodic-inspection/${id}`)
+    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id))
   },
 
+  /**
+   * 创建定期巡检
+   */
   async create(data: PeriodicInspectionCreate): Promise<ApiResponse<PeriodicInspection>> {
-    return await apiClient.post('/periodic-inspection', data)
+    return await request.post(API_ENDPOINTS.PERIODIC_INSPECTION.LIST, data)
   },
 
+  /**
+   * 更新定期巡检
+   */
   async update(id: number, data: PeriodicInspectionUpdate): Promise<ApiResponse<PeriodicInspection>> {
-    return await apiClient.put(`/periodic-inspection/${id}`, data)
+    return await request.put(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id), data)
   },
 
+  /**
+   * 删除定期巡检
+   */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/periodic-inspection/${id}`)
+    return await request.delete(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id))
   },
 
+  /**
+   * 获取所有定期巡检（不分页）
+   */
   async getAll(): Promise<ApiResponse<PeriodicInspection[]>> {
-    return await apiClient.get('/periodic-inspection/all/list')
+    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.ALL)
   }
 }

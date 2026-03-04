@@ -149,6 +149,58 @@ def get_all_maintenance_logs(
     )
 
 
+@router.get("/my", response_model=ApiResponse)
+def get_my_maintenance_logs(
+    request: Request,
+    page: int = Query(0, ge=0, description="页码，从0开始"),
+    size: int = Query(10, ge=1, le=1000, description="每页数量"),
+    project_name: Optional[str] = Query(None, description="项目名称(模糊搜索)"),
+    log_type: Optional[str] = Query(None, description="日志类型"),
+    log_date: Optional[str] = Query(None, description="日志日期"),
+    status: Optional[str] = Query(None, description="状态"),
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
+):
+    """
+    获取当前用户的维保日志列表
+    """
+    user_info = current_user or get_current_user_from_headers(request)
+    user_name = None
+    if user_info:
+        user_name = user_info.get('sub') or user_info.get('name')
+    
+    query = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == 0)
+    
+    if user_name:
+        query = query.filter(MaintenanceLog.created_by == user_name)
+    
+    if project_name:
+        query = query.filter(MaintenanceLog.project_name.ilike(f"%{project_name}%"))
+    if log_type:
+        query = query.filter(MaintenanceLog.log_type == log_type)
+    if log_date:
+        query = query.filter(MaintenanceLog.log_date == log_date)
+    if status:
+        query = query.filter(MaintenanceLog.status == status)
+    
+    total = query.count()
+    items = query.order_by(MaintenanceLog.created_at.desc()).offset(page * size).limit(size).all()
+    
+    return ApiResponse(
+        code=200,
+        message="success",
+        data={
+            'content': [item.to_dict() for item in items],
+            'totalElements': total,
+            'totalPages': (total + size - 1) // size,
+            'size': size,
+            'number': page,
+            'first': page == 0,
+            'last': page >= (total + size - 1) // size
+        }
+    )
+
+
 @router.get("/{id}", response_model=ApiResponse)
 def get_maintenance_log_by_id(
     id: int,

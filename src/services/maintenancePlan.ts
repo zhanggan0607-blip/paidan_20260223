@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 维保计划服务
+ * 提供维保计划的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
 export interface MaintenancePlan {
   id: number
@@ -99,7 +104,7 @@ export interface MaintenancePlanUpdate {
   inspection_items?: string
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -120,6 +125,9 @@ export interface PaginatedResponse {
 }
 
 export const maintenancePlanService = {
+  /**
+   * 获取维保计划列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
@@ -133,47 +141,77 @@ export const maintenancePlanService = {
     client_name?: string
     plan_type?: string
   }): Promise<PaginatedResponse> {
-    return await apiClient.get('/maintenance-plan', { params })
+    return await request.get(API_ENDPOINTS.MAINTENANCE_PLAN.LIST, { params })
   },
 
+  /**
+   * 获取维保计划详情
+   */
   async getById(id: number): Promise<ApiResponse<MaintenancePlan>> {
-    return await apiClient.get(`/maintenance-plan/${id}`)
+    return await request.get(API_ENDPOINTS.MAINTENANCE_PLAN.DETAIL(id))
   },
 
+  /**
+   * 创建维保计划
+   */
   async create(data: MaintenancePlanCreate): Promise<ApiResponse<MaintenancePlan>> {
-    return await apiClient.post('/maintenance-plan', data)
+    return await request.post(API_ENDPOINTS.MAINTENANCE_PLAN.LIST, data)
   },
 
+  /**
+   * 更新维保计划
+   */
   async update(id: number, data: MaintenancePlanUpdate): Promise<ApiResponse<MaintenancePlan>> {
-    return await apiClient.put(`/maintenance-plan/${id}`, data)
+    return await request.put(API_ENDPOINTS.MAINTENANCE_PLAN.DETAIL(id), data)
   },
 
+  /**
+   * 删除维保计划
+   */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/maintenance-plan/${id}`)
+    return await request.delete(API_ENDPOINTS.MAINTENANCE_PLAN.DETAIL(id))
   },
 
+  /**
+   * 获取所有维保计划
+   */
   async getAll(): Promise<ApiResponse<MaintenancePlan[]>> {
-    return await apiClient.get('/maintenance-plan/all/list')
+    return await request.get(API_ENDPOINTS.MAINTENANCE_PLAN.ALL)
   },
 
+  /**
+   * 根据项目ID获取维保计划
+   */
   async getByProjectId(projectId: string): Promise<ApiResponse<MaintenancePlan[]>> {
-    return await apiClient.get(`/maintenance-plan/project/${projectId}`)
+    return await request.get(`/maintenance-plan/project/${projectId}`)
   },
 
+  /**
+   * 获取即将到期的维保计划
+   */
   async getUpcoming(days: number = 7): Promise<ApiResponse<MaintenancePlan[]>> {
-    return await apiClient.get('/maintenance-plan/upcoming/list', { params: { days } })
+    return await request.get('/maintenance-plan/upcoming/list', { params: { days } })
   },
 
+  /**
+   * 更新维保计划状态
+   */
   async updateStatus(id: number, status: string): Promise<ApiResponse<MaintenancePlan>> {
-    return await apiClient.patch(`/maintenance-plan/${id}/status`, null, { params: { status } })
+    return await request.patch(`/maintenance-plan/${id}/status`, null, { params: { status } })
   },
 
+  /**
+   * 更新维保计划完成率
+   */
   async updateCompletionRate(id: number, rate: number): Promise<ApiResponse<MaintenancePlan>> {
-    return await apiClient.patch(`/maintenance-plan/${id}/completion-rate`, null, { params: { rate } })
+    return await request.patch(`/maintenance-plan/${id}/completion-rate`, null, { params: { rate } })
   },
 
+  /**
+   * 根据日期范围获取维保计划
+   */
   async getByDateRange(startDate: string, endDate: string): Promise<ApiResponse<MaintenancePlan[]>> {
-    return await apiClient.get('/maintenance-plan/date-range/list', {
+    return await request.get('/maintenance-plan/date-range/list', {
       params: {
         start_date: startDate,
         end_date: endDate

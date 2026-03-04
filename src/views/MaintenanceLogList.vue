@@ -415,7 +415,7 @@ export default defineComponent({
           }
         }
 
-        const response = await apiClient.get('/maintenance-log', { params }) as unknown as ApiResponse<PaginatedResponse<MaintenanceLogItem>>
+        const response = await apiClient.get('/maintenance-log', { params }) as unknown as PaginatedResponse<MaintenanceLogItem>
 
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []

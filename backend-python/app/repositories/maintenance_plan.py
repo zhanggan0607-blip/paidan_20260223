@@ -10,25 +10,38 @@ logger = logging.getLogger(__name__)
 
 class MaintenancePlanRepository:
     def __init__(self, db: Session):
-        self.db = db
+        self._db = db
+    
+    @property
+    def db(self):
+        return self._db
 
     def find_by_id(self, id: int) -> Optional[MaintenancePlan]:
         try:
-            return self.db.query(MaintenancePlan).filter(MaintenancePlan.id == id).first()
+            return self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.id == id,
+                MaintenancePlan.is_deleted == 0
+            ).first()
         except Exception as e:
             logger.error(f"查询维保计划失败 (id={id}): {str(e)}")
             raise
 
     def find_by_plan_id(self, plan_id: str) -> Optional[MaintenancePlan]:
         try:
-            return self.db.query(MaintenancePlan).filter(MaintenancePlan.plan_id == plan_id).first()
+            return self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.plan_id == plan_id,
+                MaintenancePlan.is_deleted == 0
+            ).first()
         except Exception as e:
             logger.error(f"查询维保计划失败 (plan_id={plan_id}): {str(e)}")
             raise
 
     def exists_by_plan_id(self, plan_id: str) -> bool:
         try:
-            return self.db.query(MaintenancePlan).filter(MaintenancePlan.plan_id == plan_id).first() is not None
+            return self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.plan_id == plan_id,
+                MaintenancePlan.is_deleted == 0
+            ).first() is not None
         except Exception as e:
             logger.error(f"检查维保计划是否存在失败 (plan_id={plan_id}): {str(e)}")
             raise
@@ -49,7 +62,9 @@ class MaintenancePlanRepository:
         maintenance_personnel_filter: Optional[str] = None
     ) -> tuple[List[MaintenancePlan], int]:
         try:
-            query = self.db.query(MaintenancePlan)
+            query = self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.is_deleted == 0
+            )
 
             if plan_name:
                 query = query.filter(MaintenancePlan.plan_name.like(f"%{plan_name}%"))
@@ -93,6 +108,8 @@ class MaintenancePlanRepository:
         try:
             return self.db.query(MaintenancePlan).options(
                 joinedload(MaintenancePlan.project)
+            ).filter(
+                MaintenancePlan.is_deleted == 0
             ).order_by(MaintenancePlan.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有维保计划失败: {str(e)}")
@@ -101,7 +118,8 @@ class MaintenancePlanRepository:
     def find_by_project_id_list(self, project_id: str) -> List[MaintenancePlan]:
         try:
             return self.db.query(MaintenancePlan).filter(
-                MaintenancePlan.project_id == project_id
+                MaintenancePlan.project_id == project_id,
+                MaintenancePlan.is_deleted == 0
             ).order_by(MaintenancePlan.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询项目维保计划失败 (project_id={project_id}): {str(e)}")
@@ -116,7 +134,8 @@ class MaintenancePlanRepository:
             return self.db.query(MaintenancePlan).filter(
                 and_(
                     MaintenancePlan.execution_date >= start_date,
-                    MaintenancePlan.execution_date <= end_date
+                    MaintenancePlan.execution_date <= end_date,
+                    MaintenancePlan.is_deleted == 0
                 )
             ).order_by(MaintenancePlan.execution_date.asc()).all()
         except Exception as e:
@@ -131,7 +150,8 @@ class MaintenancePlanRepository:
                 and_(
                     MaintenancePlan.execution_date >= start_date,
                     MaintenancePlan.execution_date <= end_date,
-                    MaintenancePlan.status == '执行中'
+                    MaintenancePlan.status == '执行中',
+                    MaintenancePlan.is_deleted == 0
                 )
             ).order_by(MaintenancePlan.execution_date.asc()).all()
         except Exception as e:
@@ -163,7 +183,26 @@ class MaintenancePlanRepository:
             logger.error(f"更新维保计划失败: {str(e)}")
             raise
 
+    def soft_delete(self, maintenance_plan: MaintenancePlan, user_id: int = None) -> None:
+        """
+        软删除维保计划
+        
+        Args:
+            maintenance_plan: 要删除的维保计划对象
+            user_id: 执行删除的用户ID
+        """
+        try:
+            maintenance_plan.soft_delete(user_id)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除维保计划失败: {str(e)}")
+            raise
+
     def delete(self, maintenance_plan: MaintenancePlan) -> None:
+        """
+        物理删除（已弃用，请使用soft_delete）
+        """
         try:
             self.db.delete(maintenance_plan)
             self.db.commit()

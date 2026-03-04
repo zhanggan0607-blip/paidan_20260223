@@ -2,47 +2,19 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { maintenanceLogService } from '../services'
+import type { MaintenanceLog, OperationLog } from '../types/models'
 import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables'
-
-interface MaintenanceLogDetail {
-  id: number
-  log_id: string
-  project_id: string
-  project_name: string
-  log_type: string
-  log_date: string
-  work_content: string
-  images: string | null
-  remark: string
-  created_by: string
-  created_at: string
-  updated_at: string
-}
-
-interface OperationLogItem {
-  id: number
-  work_order_type: string
-  work_order_id: number
-  work_order_no: string
-  operator_name: string
-  operator_id: number | null
-  operation_type_code: string
-  operation_type_name: string
-  operation_remark: string | null
-  created_at: string
-}
 
 const route = useRoute()
 const { goBack } = useNavigation()
 
 const loading = ref(false)
-const logDetail = ref<MaintenanceLogDetail | null>(null)
+const logDetail = ref<MaintenanceLog | null>(null)
 const imageList = ref<string[]>([])
-const operationLogs = ref<OperationLogItem[]>([])
+const operationLogs = ref<OperationLog[]>([])
 
 /**
  * 获取日志类型名称
@@ -85,9 +57,8 @@ const fetchLogDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
-    const url = `/maintenance-log/${id}`
-    console.log('Fetching detail from:', url)
-    const response = await api.get<unknown, ApiResponse<MaintenanceLogDetail>>(url)
+    console.log('Fetching detail from:', id)
+    const response = await maintenanceLogService.getById(Number(id))
     console.log('Detail response:', response)
     
     if (response.code === 200 && response.data) {
@@ -120,7 +91,7 @@ const fetchLogDetail = async () => {
  */
 const fetchOperationLogs = async (logId: number) => {
   try {
-    const response = await api.get<unknown, ApiResponse<OperationLogItem[]>>(`/maintenance-log/${logId}/operation-logs`)
+    const response = await maintenanceLogService.getOperationLogs(logId)
     if (response.code === 200) {
       operationLogs.value = response.data || []
     }
@@ -186,7 +157,7 @@ onMounted(() => {
     <div v-if="logDetail" class="detail-content">
       <van-cell-group inset title="基本信息">
         <van-cell title="日志编号" :value="logDetail.log_id" />
-        <van-cell title="日志类型" :value="getLogTypeName(logDetail.log_type)" />
+        <van-cell title="日志类型" :value="getLogTypeName(logDetail.log_type || '')" />
         <van-cell title="项目名称" :value="logDetail.project_name" />
         <van-cell title="项目编号" :value="logDetail.project_id" />
         <van-cell title="日志日期" :value="formatDate(logDetail.log_date)" />
@@ -233,8 +204,8 @@ onMounted(() => {
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
-                <span class="timeline-operator">{{ log.operator_name }}</span>
-                <span class="timeline-action">{{ log.operation_type_name }}</span>
+                <span class="timeline-operator">{{ log.operator_name || '-' }}</span>
+                <span class="timeline-action">{{ log.operation_type_name || log.operation_type }}</span>
               </div>
             </div>
           </div>

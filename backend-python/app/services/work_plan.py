@@ -179,16 +179,17 @@ class WorkPlanService:
         self.sync_service.sync_work_plan_to_maintenance_plan(result)
         return result
     
-    def delete(self, id: int) -> None:
+    def delete(self, id: int, user_id: int = None) -> None:
         """
-        删除工作计划
-        删除前会同步删除关联的工单和维保计划
+        软删除工作计划
+        删除前会同步软删除关联的工单和维保计划
         @param id: 工作计划ID
+        @param user_id: 执行删除的用户ID
         """
         work_plan = self.get_by_id(id)
-        self.sync_service.sync_work_plan_to_order(work_plan, is_delete=True)
-        self.sync_service.sync_work_plan_to_maintenance_plan(work_plan, is_delete=True)
-        self.repository.delete(work_plan)
+        self.sync_service.sync_work_plan_to_order(work_plan, is_delete=True, user_id=user_id)
+        self.sync_service.sync_work_plan_to_maintenance_plan(work_plan, is_delete=True, user_id=user_id)
+        self.repository.soft_delete(work_plan, user_id)
     
     def get_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
         """

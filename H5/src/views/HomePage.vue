@@ -5,8 +5,7 @@
  */
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { workPlanService } from '../services'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 
@@ -47,7 +46,7 @@ const hasOverdue = computed(() => statistics.value.overdue > 0)
 const fetchStatistics = async () => {
   loading.value = true
   try {
-    const response = await api.get<unknown, ApiResponse<Statistics>>('/work-plan/statistics')
+    const response = await workPlanService.getStatistics()
     if (response.code === 200) {
       statistics.value = response.data
     }

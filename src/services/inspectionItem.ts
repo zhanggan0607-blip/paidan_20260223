@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 巡检项服务
+ * 提供巡检项的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
 export interface InspectionItem {
   id: number
@@ -37,7 +42,7 @@ export interface InspectionItemUpdate {
   sort_order?: number
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -58,35 +63,56 @@ export interface PaginatedResponse {
 }
 
 export const inspectionItemService = {
+  /**
+   * 获取巡检项树形结构
+   */
   async getTree(): Promise<ApiResponse<InspectionItem[]>> {
-    return await apiClient.get('/inspection-item/tree')
+    return await request.get(API_ENDPOINTS.INSPECTION_ITEM.TREE)
   },
 
+  /**
+   * 获取所有巡检项
+   */
   async getAll(): Promise<ApiResponse<InspectionItem[]>> {
-    return await apiClient.get('/inspection-item/all/list')
+    return await request.get(API_ENDPOINTS.INSPECTION_ITEM.ALL)
   },
 
+  /**
+   * 获取巡检项列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
     keyword?: string
   }): Promise<PaginatedResponse> {
-    return await apiClient.get('/inspection-item', { params })
+    return await request.get(API_ENDPOINTS.INSPECTION_ITEM.LIST, { params })
   },
 
+  /**
+   * 获取巡检项详情
+   */
   async getById(id: number): Promise<ApiResponse<InspectionItem>> {
-    return await apiClient.get(`/inspection-item/${id}`)
+    return await request.get(API_ENDPOINTS.INSPECTION_ITEM.DETAIL(id))
   },
 
+  /**
+   * 创建巡检项
+   */
   async create(data: InspectionItemCreate): Promise<ApiResponse<InspectionItem>> {
-    return await apiClient.post('/inspection-item', data)
+    return await request.post(API_ENDPOINTS.INSPECTION_ITEM.LIST, data)
   },
 
+  /**
+   * 更新巡检项
+   */
   async update(id: number, data: InspectionItemUpdate): Promise<ApiResponse<InspectionItem>> {
-    return await apiClient.put(`/inspection-item/${id}`, data)
+    return await request.put(API_ENDPOINTS.INSPECTION_ITEM.DETAIL(id), data)
   },
 
+  /**
+   * 删除巡检项
+   */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/inspection-item/${id}`)
+    return await request.delete(API_ENDPOINTS.INSPECTION_ITEM.DETAIL(id))
   }
 }

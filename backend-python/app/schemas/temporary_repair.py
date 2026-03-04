@@ -34,7 +34,7 @@ class TemporaryRepairBase(BaseModel):
 
 
 class TemporaryRepairCreate(BaseModel):
-    repair_id: str = Field(..., max_length=50, description="维修单编号")
+    repair_id: Optional[str] = Field(None, max_length=50, description="维修单编号（可选，不传则自动生成）")
     plan_id: Optional[str] = Field(None, max_length=50, description="关联维保计划编号")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
@@ -44,7 +44,7 @@ class TemporaryRepairCreate(BaseModel):
     client_contact: Optional[str] = Field(None, max_length=100, description="客户联系人")
     client_contact_info: Optional[str] = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    status: str = Field("执行中", max_length=20, description="状态")
+    status: Optional[str] = Field(None, max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
     fault_description: Optional[str] = Field(None, description="故障描述")
     solution: Optional[str] = Field(None, description="解决方案")

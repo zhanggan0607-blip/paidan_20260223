@@ -1,4 +1,9 @@
-import api from '../utils/api'
+/**
+ * 客户服务
+ * 提供客户数据的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
 export interface Customer {
   id: number
@@ -52,28 +57,43 @@ export interface ApiResponse<T> {
 }
 
 export const customerService = {
+  /**
+   * 获取客户列表（分页）
+   */
   async getList(params: CustomerListParams): Promise<ApiResponse<CustomerListResponse>> {
-    const response = await api.get('/customer', { params })
+    const response = await request.get(API_ENDPOINTS.CUSTOMER.LIST, { params })
     return response as unknown as ApiResponse<CustomerListResponse>
   },
 
+  /**
+   * 获取客户详情
+   */
   async getById(id: number): Promise<ApiResponse<Customer>> {
-    const response = await api.get(`/customer/${id}`)
+    const response = await request.get(API_ENDPOINTS.CUSTOMER.DETAIL(id))
     return response as unknown as ApiResponse<Customer>
   },
 
+  /**
+   * 创建客户
+   */
   async create(data: CustomerCreate): Promise<ApiResponse<Customer>> {
-    const response = await api.post('/customer', data)
+    const response = await request.post(API_ENDPOINTS.CUSTOMER.LIST, data)
     return response as unknown as ApiResponse<Customer>
   },
 
+  /**
+   * 更新客户
+   */
   async update(id: number, data: CustomerUpdate): Promise<ApiResponse<Customer>> {
-    const response = await api.put(`/customer/${id}`, data)
+    const response = await request.put(API_ENDPOINTS.CUSTOMER.DETAIL(id), data)
     return response as unknown as ApiResponse<Customer>
   },
 
+  /**
+   * 删除客户
+   */
   async delete(id: number, cascade: boolean = false): Promise<ApiResponse<void>> {
-    const response = await api.delete(`/customer/${id}`, { params: { cascade } })
+    const response = await request.delete(API_ENDPOINTS.CUSTOMER.DETAIL(id), { params: { cascade } })
     return response as unknown as ApiResponse<void>
   }
 }

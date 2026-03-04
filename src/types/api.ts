@@ -1,19 +1,24 @@
-export interface ApiResponse<T = unknown> {
-  code: number
-  message: string
-  data: T
-}
+/**
+ * API响应类型定义
+ * 从共享包导入基础类型，保留PC端特有的业务模型类型
+ */
+export type {
+  ApiResponse,
+  PaginatedData,
+  PaginatedResponse,
+  LegacyPaginatedResponse,
+  QueryParams,
+  ListQueryParams,
+  ApiError,
+  User,
+  UserInfo,
+  TokenPayload,
+  LoginRequest,
+  LoginResponse,
+  RefreshTokenResponse
+} from '@sstcp/shared'
 
-export interface PaginatedResponse<T = unknown> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  content?: T[]
-  totalElements?: number
-}
-
-export interface QueryParams {
+export interface SparePartsIssueQueryParams {
   page: number
   pageSize: number
   user?: string
@@ -21,13 +26,9 @@ export interface QueryParams {
   project?: string
 }
 
-export interface SparePartsIssueQueryParams extends QueryParams {
-  user?: string
-  product?: string
-  project?: string
-}
-
-export interface SparePartsStockQueryParams extends QueryParams {
+export interface SparePartsStockQueryParams {
+  page: number
+  pageSize: number
   product?: string
   user?: string
 }
@@ -148,13 +149,6 @@ export interface ToastState {
   visible: boolean
   message: string
   type: 'success' | 'error' | 'warning' | 'info'
-}
-
-export interface ApiError {
-  status: number
-  message: string
-  errors: unknown[]
-  data: unknown
 }
 
 export interface SpotWork {

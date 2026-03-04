@@ -356,7 +356,7 @@ export default defineComponent({
         const response = await apiClient.get('/repair-tools/issue', { 
           params, 
           signal: abortController.signal 
-        }) as unknown as ApiResponse<PaginatedResponse<RepairToolsIssueItem>>
+        }) as unknown as PaginatedResponse<RepairToolsIssueItem>
         
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
@@ -374,7 +374,7 @@ export default defineComponent({
       try {
         const response = await apiClient.get('/repair-tools/stock', { 
           params: { page: 0, size: 500 } 
-        }) as unknown as ApiResponse<PaginatedResponse<Tool>>
+        }) as unknown as PaginatedResponse<Tool>
         if (response && response.code === 200 && response.data) {
           toolList.value = response.data.items || response.data.content || []
         }

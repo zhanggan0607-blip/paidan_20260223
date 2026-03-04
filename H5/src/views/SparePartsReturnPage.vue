@@ -1,35 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { sparePartsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
-
-interface SparePartsUsageItem {
-  id: number
-  project_id: string
-  projectName: string
-  productName: string
-  brand: string
-  model: string
-  quantity: number
-  return_quantity: number
-  userName: string
-  issueTime: string
-  returnTime: string | null
-  unit: string
-  status: string
-  stock_id: number | null
-}
+import type { SparePartsUsage } from '../types/models'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
-const usageList = ref<SparePartsUsageItem[]>([])
+const usageList = ref<SparePartsUsage[]>([])
 
 const showReturnPopup = ref(false)
-const selectedItem = ref<SparePartsUsageItem | null>(null)
+const selectedItem = ref<SparePartsUsage | null>(null)
 const returnForm = ref({
   returnQuantity: 1 as number
 })
@@ -46,9 +29,7 @@ const fetchUsageList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: SparePartsUsageItem[], total: number }>>('/spare-parts/usage', {
-      params: { page: 0, pageSize: 100, status: '待归还' }
-    })
+    const response = await sparePartsService.getUsageList({ page: 0, pageSize: 100, status: '待归还' })
     if (response.code === 200) {
       usageList.value = response.data?.items || []
     }
@@ -63,7 +44,7 @@ const fetchUsageList = async () => {
 /**
  * 打开归还弹窗
  */
-const handleOpenReturn = (item: SparePartsUsageItem) => {
+const handleOpenReturn = (item: SparePartsUsage) => {
   selectedItem.value = item
   returnForm.value.returnQuantity = 1
   showReturnPopup.value = true
@@ -99,7 +80,7 @@ const handleSubmitReturn = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.put<unknown, ApiResponse<null>>(`/spare-parts/usage/${selectedItem.value.id}/return`, {
+    const response = await sparePartsService.return(selectedItem.value.id, {
       return_quantity: returnForm.value.returnQuantity
     })
     
@@ -126,7 +107,7 @@ const handleSubmitReturn = async () => {
 /**
  * 获取待归还数量
  */
-const getPendingReturn = (item: SparePartsUsageItem | null) => {
+const getPendingReturn = (item: SparePartsUsage | null) => {
   if (!item) return 0
   return item.quantity - (item.return_quantity || 0)
 }

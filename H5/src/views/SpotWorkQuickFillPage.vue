@@ -2,18 +2,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { spotWorkService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
-
-interface ProjectInfo {
-  id: number
-  project_id: string
-  project_name: string
-  client_name: string
-}
+import type { ProjectInfo } from '../types/models'
 
 const router = useRouter()
 const { goBack } = useNavigation()
@@ -46,7 +39,7 @@ const dateDisplayText = computed(() => {
 
 const fetchProjectList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectInfo[]>>('/project-info/all/list')
+    const response = await projectInfoService.getAll()
     if (response.code === 200) {
       projectList.value = response.data || []
     }
@@ -112,14 +105,14 @@ const handleSubmit = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/spot-work/quick-fill', {
+    const response = await spotWorkService.quickFill({
       project_id: formData.value.projectId,
       project_name: formData.value.projectName,
       plan_start_date: formData.value.workDateStart,
       plan_end_date: formData.value.workDateEnd,
       work_content: formData.value.workContent,
       remark: formData.value.remark
-    })
+    } as any)
     if (response.code === 200) {
       showSuccessToast('提交成功')
       goBack()

@@ -1,5 +1,8 @@
+"""
+定期巡检服务
+提供定期巡检业务逻辑处理
+"""
 from typing import List, Optional, Union
-from fastapi import HTTPException, status
 from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy import func, distinct
@@ -12,14 +15,22 @@ from app.schemas.periodic_inspection import PeriodicInspectionCreate, PeriodicIn
 from app.utils.dictionary_helper import get_default_periodic_inspection_status
 from app.services.sync_service import SyncService, PLAN_TYPE_INSPECTION
 from app.utils.date_utils import parse_datetime
+from app.utils.work_order_id_generator import generate_inspection_id
+from app.exceptions import NotFoundException, DuplicateException
 
 
 class PeriodicInspectionService:
+    """
+    定期巡检服务
+    提供定期巡检的增删改查等业务逻辑
+    """
+    
     def __init__(self, db: Session):
         self.repository = PeriodicInspectionRepository(db)
         self.sync_service = SyncService(db)
     
     def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
+        """解析日期"""
         return parse_datetime(date_value)
     
     def get_all(
@@ -32,39 +43,85 @@ class PeriodicInspectionService:
         status: Optional[str] = None,
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[PeriodicInspection], int]:
+        """
+        分页获取定期巡检列表
+        
+        Args:
+            page: 页码
+            size: 每页数量
+            project_name: 项目名称
+            client_name: 客户名称
+            inspection_id: 巡检单编号
+            status: 状态
+            maintenance_personnel: 运维人员
+            
+        Returns:
+            (巡检单列表, 总数)
+        """
         return self.repository.find_all(
             page, size, project_name, client_name, inspection_id, status, maintenance_personnel
         )
     
     def get_by_id(self, id: int) -> PeriodicInspection:
+        """
+        根据ID获取定期巡检
+        
+        Args:
+            id: 巡检单ID
+            
+        Returns:
+            巡检单对象
+            
+        Raises:
+            NotFoundException: 巡检单不存在
+        """
         inspection = self.repository.find_by_id(id)
         if not inspection:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="巡检单不存在"
-            )
+            raise NotFoundException("巡检单不存在")
         return inspection
     
     def get_by_inspection_id(self, inspection_id: str) -> PeriodicInspection:
+        """
+        根据巡检单编号获取定期巡检
+        
+        Args:
+            inspection_id: 巡检单编号
+            
+        Returns:
+            巡检单对象
+            
+        Raises:
+            NotFoundException: 巡检单不存在
+        """
         inspection = self.repository.find_by_inspection_id(inspection_id)
         if not inspection:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="巡检单不存在"
-            )
+            raise NotFoundException("巡检单不存在")
         return inspection
     
     def create(self, dto: PeriodicInspectionCreate) -> PeriodicInspection:
-        if self.repository.exists_by_inspection_id(dto.inspection_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="巡检单编号已存在"
-            )
+        """
+        创建定期巡检
+        
+        Args:
+            dto: 创建数据传输对象
+            
+        Returns:
+            创建的巡检单对象
+            
+        Raises:
+            DuplicateException: 巡检单编号已存在
+        """
+        inspection_id = dto.inspection_id
+        if inspection_id and self.repository.exists_by_inspection_id(inspection_id):
+            raise DuplicateException("巡检单编号已存在")
+        
+        if not inspection_id:
+            inspection_id = generate_inspection_id(self.repository.db, dto.project_id)
         
         default_status = get_default_periodic_inspection_status(self.repository.db)
         
         inspection = PeriodicInspection(
-            inspection_id=dto.inspection_id,
+            inspection_id=inspection_id,
             project_id=dto.project_id,
             project_name=dto.project_name,
             plan_start_date=self._parse_date(dto.plan_start_date),
@@ -82,13 +139,24 @@ class PeriodicInspectionService:
         return result
     
     def update(self, id: int, dto: PeriodicInspectionUpdate) -> PeriodicInspection:
+        """
+        更新定期巡检
+        
+        Args:
+            id: 巡检单ID
+            dto: 更新数据传输对象
+            
+        Returns:
+            更新后的巡检单对象
+            
+        Raises:
+            NotFoundException: 巡检单不存在
+            DuplicateException: 巡检单编号已存在
+        """
         existing_inspection = self.get_by_id(id)
         
         if existing_inspection.inspection_id != dto.inspection_id and self.repository.exists_by_inspection_id(dto.inspection_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="巡检单编号已存在"
-            )
+            raise DuplicateException("巡检单编号已存在")
         
         existing_inspection.inspection_id = dto.inspection_id
         existing_inspection.project_id = dto.project_id
@@ -116,12 +184,28 @@ class PeriodicInspectionService:
         Args:
             id: 巡检单ID
             user_id: 执行删除的用户ID
+            
+        Raises:
+            NotFoundException: 巡检单不存在
         """
         inspection = self.get_by_id(id)
-        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, inspection, is_delete=True)
+        self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, inspection, is_delete=True, user_id=user_id)
         self.repository.soft_delete(inspection, user_id)
     
     def partial_update(self, id: int, dto: PeriodicInspectionPartialUpdate) -> PeriodicInspection:
+        """
+        部分更新定期巡检
+        
+        Args:
+            id: 巡检单ID
+            dto: 部分更新数据传输对象
+            
+        Returns:
+            更新后的巡检单对象
+            
+        Raises:
+            NotFoundException: 巡检单不存在
+        """
         existing_inspection = self.get_by_id(id)
         
         if dto.signature is not None:
@@ -143,6 +227,12 @@ class PeriodicInspectionService:
         return result
     
     def get_all_unpaginated(self) -> List[PeriodicInspection]:
+        """
+        获取所有定期巡检（不分页）
+        
+        Returns:
+            巡检单列表
+        """
         return self.repository.find_all_unpaginated()
     
     def get_inspection_counts(self, inspection_id: str, project_id: str, plan_start_date: datetime, plan_end_date: datetime) -> dict:

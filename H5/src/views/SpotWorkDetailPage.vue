@@ -2,8 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { spotWorkService, uploadService, operationLogService } from '../services'
 import { formatDate, getWorkIdFontSize, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
 import { copyOrderId } from '../utils/clipboard'
@@ -11,54 +10,14 @@ import { useNavigation } from '../composables'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
+import type { SpotWork, SpotWorkWorker } from '../types/models'
 
 const router = useRouter()
 const route = useRoute()
 const { goBack } = useNavigation()
 
-interface WorkerInfo {
-  id: number
-  name: string
-  gender: string
-  birth_date: string
-  address: string
-  id_card_number: string
-  issuing_authority: string
-  valid_period: string
-  id_card_front: string
-  id_card_back: string
-}
-
-interface SpotWorkDetail {
-  id: number
-  work_id: string
-  plan_id?: string
-  plan_type?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name?: string
-  client_contact?: string
-  client_contact_info?: string
-  address?: string
-  client_contact_position?: string
-  maintenance_personnel?: string
-  status: string
-  remarks?: string
-  work_content?: string
-  photos?: string | string[]
-  signature?: string
-  actual_completion_date?: string
-  created_at: string
-  updated_at: string
-  worker_count?: number
-  work_days?: number
-  workers?: WorkerInfo[]
-}
-
 const loading = ref(false)
-const detail = ref<SpotWorkDetail | null>(null)
+const detail = ref<SpotWork | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
 const formData = ref({
@@ -70,7 +29,7 @@ const formData = ref({
 const currentPhotos = ref<string[]>([])
 const showPhotoPopup = ref(false)
 const showWorkerPopup = ref(false)
-const currentWorker = ref<WorkerInfo | null>(null)
+const currentWorker = ref<SpotWorkWorker | null>(null)
 
 const isEditable = computed(() => {
   const status = detail.value?.status
@@ -92,7 +51,7 @@ const handleBackToList = () => {
   goBack()
 }
 
-const showWorkerDetail = (worker: WorkerInfo) => {
+const showWorkerDetail = (worker: SpotWorkWorker) => {
   currentWorker.value = worker
   showWorkerPopup.value = true
 }
@@ -126,7 +85,7 @@ const fetchDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
-    const response = await api.get<unknown, ApiResponse<SpotWorkDetail>>(`/spot-work/${id}`)
+    const response = await spotWorkService.getById(Number(id))
     if (response.code === 200) {
       detail.value = response.data
       if (response.data) {
@@ -193,9 +152,7 @@ const handlePhotoCapture = () => {
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
       
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const response = await uploadService.uploadFile(processedFile)
       
       if (response.code === 200 && response.data) {
         currentPhotos.value.push(response.data.url)
@@ -260,7 +217,7 @@ const handleSubmit = async () => {
       remarks: formData.value.remarks
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
+    const response = await spotWorkService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
@@ -289,7 +246,7 @@ const handleSave = async () => {
       remarks: formData.value.remarks
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, saveData)
+    const response = await spotWorkService.patch(detail.value?.id!, saveData)
     
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
@@ -321,7 +278,7 @@ const handleApprovePass = async () => {
       status: '已完成'
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
+    const response = await spotWorkService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
@@ -358,7 +315,7 @@ const handleApproveReject = async () => {
       status: '已退回'
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/spot-work/${detail.value?.id}`, submitData)
+    const response = await spotWorkService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
@@ -392,7 +349,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   if (!user) return
   
   try {
-    await api.post('/work-order-operation-log', {
+    await operationLogService.create({
       work_order_type: 'spot_work',
       work_order_id: detail.value.id,
       work_order_no: detail.value.work_id,

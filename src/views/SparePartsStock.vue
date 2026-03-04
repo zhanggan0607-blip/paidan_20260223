@@ -307,10 +307,10 @@ export default defineComponent({
         if (filters.value.product) {
           params.product = filters.value.product
         }
-        const response = await apiClient.get<ApiResponse<PaginatedResponse<InboundRecord>>>(
+        const response = await apiClient.get<PaginatedResponse<InboundRecord>>(
           '/spare-parts-stock/inbound-records',
           { params, signal: abortController.signal }
-        ) as unknown as ApiResponse<PaginatedResponse<InboundRecord>>
+        ) as unknown as PaginatedResponse<InboundRecord>
         if (response && response.code === 200 && response.data) {
           recordList.value = response.data.items || []
           total.value = response.data.total || 0

@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 工作计划服务
+ * 提供工作计划的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 import { PLAN_TYPE_LIST, PLAN_TYPES } from '../config/constants'
 
 export type PlanType = typeof PLAN_TYPE_LIST[number]
@@ -45,7 +50,7 @@ export interface WorkPlanUpdate {
   remarks?: string
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -66,6 +71,9 @@ export interface PaginatedResponse {
 }
 
 export const workPlanService = {
+  /**
+   * 获取工作计划列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
@@ -74,28 +82,43 @@ export const workPlanService = {
     client_name?: string
     status?: string
   }): Promise<PaginatedResponse> {
-    return await apiClient.get('/work-plan', { params })
+    return await request.get(API_ENDPOINTS.WORK_PLAN.LIST, { params })
   },
 
+  /**
+   * 获取所有工作计划（不分页）
+   */
   async getAll(params?: {
     plan_type?: PlanType
   }): Promise<ApiResponse<WorkPlan[]>> {
-    return await apiClient.get('/work-plan/all/list', { params })
+    return await request.get(API_ENDPOINTS.WORK_PLAN.ALL, { params })
   },
 
+  /**
+   * 获取工作计划详情
+   */
   async getById(id: number): Promise<ApiResponse<WorkPlan>> {
-    return await apiClient.get(`/work-plan/${id}`)
+    return await request.get(API_ENDPOINTS.WORK_PLAN.DETAIL(id))
   },
 
+  /**
+   * 创建工作计划
+   */
   async create(data: WorkPlanCreate): Promise<ApiResponse<WorkPlan>> {
-    return await apiClient.post('/work-plan', data)
+    return await request.post(API_ENDPOINTS.WORK_PLAN.LIST, data)
   },
 
+  /**
+   * 更新工作计划
+   */
   async update(id: number, data: WorkPlanUpdate): Promise<ApiResponse<WorkPlan>> {
-    return await apiClient.put(`/work-plan/${id}`, data)
+    return await request.put(API_ENDPOINTS.WORK_PLAN.DETAIL(id), data)
   },
 
+  /**
+   * 删除工作计划
+   */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/work-plan/${id}`)
+    return await request.delete(API_ENDPOINTS.WORK_PLAN.DETAIL(id))
   }
 }

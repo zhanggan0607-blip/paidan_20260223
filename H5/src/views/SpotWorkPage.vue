@@ -2,8 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { spotWorkService } from '../services'
 import { formatDate, formatDateTime, getWorkIdFontSize, getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
@@ -33,18 +32,12 @@ const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1
 
 const fetchWorkList = async () => {
   if (!userReady.value) return
-  // TODO: 这里应该支持真正的分页，而不是一次性加载
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<any>>('/spot-work', { 
-      params: { 
-        page: 0,
-        size: 100
-      } 
-    })
+    const response = await spotWorkService.getList({ page: 0, size: 100 })
     if (response.code === 200) {
-      const allItems = response.data?.content || []
+      const allItems = response.data?.content || response.data?.items || []
       const filteredItems = allItems.filter((item: any) => 
         currentTab.value?.statuses.includes(item.status)
       )

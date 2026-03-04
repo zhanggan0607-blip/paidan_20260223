@@ -30,7 +30,7 @@ class PeriodicInspectionBase(BaseModel):
 
 
 class PeriodicInspectionCreate(BaseModel):
-    inspection_id: str = Field(..., max_length=50, description="工单编号")
+    inspection_id: Optional[str] = Field(None, max_length=50, description="工单编号（可选，不传则自动生成）")
     plan_id: Optional[str] = Field(None, max_length=50, description="关联维保计划编号")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")

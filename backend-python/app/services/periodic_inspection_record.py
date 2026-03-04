@@ -1,7 +1,12 @@
+"""
+巡检记录服务
+提供巡检记录业务逻辑处理
+"""
 import json
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.models.periodic_inspection_record import PeriodicInspectionRecord
+from app.repositories.periodic_inspection_record import PeriodicInspectionRecordRepository
 from app.schemas.periodic_inspection_record import (
     PeriodicInspectionRecordCreate,
     PeriodicInspectionRecordUpdate,
@@ -10,27 +15,64 @@ from app.schemas.periodic_inspection_record import (
 
 
 class PeriodicInspectionRecordService:
+    """
+    巡检记录服务
+    提供巡检记录的增删改查等业务逻辑
+    """
+    
     def __init__(self, db: Session):
-        self.db = db
+        self.repository = PeriodicInspectionRecordRepository(db)
 
     def get_by_inspection_id(self, inspection_id: str) -> List[PeriodicInspectionRecord]:
-        records = self.db.query(PeriodicInspectionRecord).filter(
-            PeriodicInspectionRecord.inspection_id == inspection_id
-        ).all()
-        return records
+        """
+        根据巡检单编号获取所有记录
+        
+        Args:
+            inspection_id: 巡检单编号
+            
+        Returns:
+            巡检记录列表
+        """
+        return self.repository.find_by_inspection_id(inspection_id)
 
     def get_by_id(self, record_id: int) -> Optional[PeriodicInspectionRecord]:
-        return self.db.query(PeriodicInspectionRecord).filter(
-            PeriodicInspectionRecord.id == record_id
-        ).first()
+        """
+        根据ID获取巡检记录
+        
+        Args:
+            record_id: 记录ID
+            
+        Returns:
+            巡检记录
+        """
+        return self.repository.find_by_id(record_id)
 
     def create(self, dto: PeriodicInspectionRecordCreate) -> PeriodicInspectionRecord:
+        """
+        创建巡检记录
+        
+        Args:
+            dto: 创建数据传输对象
+            
+        Returns:
+            创建的记录
+        """
         return self.upsert(dto)
 
     def update(self, record_id: int, dto: PeriodicInspectionRecordUpdate) -> PeriodicInspectionRecord:
+        """
+        更新巡检记录
+        
+        Args:
+            record_id: 记录ID
+            dto: 更新数据传输对象
+            
+        Returns:
+            更新后的记录
+        """
         record = self.get_by_id(record_id)
         if not record:
-            raise ValueError(f"Record with id {record_id} not found")
+            raise ValueError(f"记录不存在 (id={record_id})")
         
         if dto.inspected is not None:
             record.inspected = dto.inspected
@@ -39,34 +81,43 @@ class PeriodicInspectionRecordService:
         if dto.inspection_result is not None:
             record.inspection_result = dto.inspection_result
         
-        self.db.commit()
-        self.db.refresh(record)
-        return record
+        return self.repository.update(record)
 
     def upsert(self, dto: PeriodicInspectionRecordCreate) -> PeriodicInspectionRecord:
-        existing = self.db.query(PeriodicInspectionRecord).filter(
-            PeriodicInspectionRecord.inspection_id == dto.inspection_id,
-            PeriodicInspectionRecord.item_id == dto.item_id
-        ).first()
+        """
+        创建或更新巡检记录
         
-        if existing:
-            existing.item_name = dto.item_name
-            existing.inspection_item = dto.inspection_item
-            existing.inspection_content = dto.inspection_content
-            existing.check_content = dto.check_content
-            existing.brief_description = dto.brief_description
-            existing.equipment_name = dto.equipment_name
-            existing.equipment_location = dto.equipment_location
-            existing.inspected = dto.inspected
-            existing.photos = json.dumps(dto.photos) if dto.photos else '[]'
-            existing.inspection_result = dto.inspection_result
-            self.db.commit()
-            self.db.refresh(existing)
-            return existing
-        else:
-            return self.create(dto)
+        Args:
+            dto: 创建数据传输对象
+            
+        Returns:
+            创建或更新后的记录
+        """
+        return self.repository.upsert(
+            inspection_id=dto.inspection_id,
+            item_id=dto.item_id,
+            item_name=dto.item_name,
+            inspection_item=dto.inspection_item,
+            inspection_content=dto.inspection_content,
+            check_content=dto.check_content,
+            brief_description=dto.brief_description,
+            equipment_name=dto.equipment_name,
+            equipment_location=dto.equipment_location,
+            inspected=dto.inspected or False,
+            photos=json.dumps(dto.photos) if dto.photos else '[]',
+            inspection_result=dto.inspection_result
+        )
 
     def batch_save(self, dto: BatchRecordSave) -> List[PeriodicInspectionRecord]:
+        """
+        批量保存巡检记录
+        
+        Args:
+            dto: 批量保存数据传输对象
+            
+        Returns:
+            保存的记录列表
+        """
         results = []
         for record_dto in dto.records:
             record_dto.inspection_id = dto.inspection_id
@@ -75,13 +126,24 @@ class PeriodicInspectionRecordService:
         return results
 
     def delete(self, record_id: int) -> None:
+        """
+        删除巡检记录
+        
+        Args:
+            record_id: 记录ID
+        """
         record = self.get_by_id(record_id)
         if record:
-            self.db.delete(record)
-            self.db.commit()
+            self.repository.delete(record)
 
-    def delete_by_inspection_id(self, inspection_id: str) -> None:
-        self.db.query(PeriodicInspectionRecord).filter(
-            PeriodicInspectionRecord.inspection_id == inspection_id
-        ).delete()
-        self.db.commit()
+    def delete_by_inspection_id(self, inspection_id: str) -> int:
+        """
+        删除指定巡检单的所有记录
+        
+        Args:
+            inspection_id: 巡检单编号
+            
+        Returns:
+            删除的记录数量
+        """
+        return self.repository.delete_by_inspection_id(inspection_id)

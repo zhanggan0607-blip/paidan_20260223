@@ -2,8 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { spotWorkService, ocrService, uploadService } from '../services'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { processPhoto, getCurrentLocation } from '@sstcp/shared'
@@ -53,12 +52,10 @@ const fetchWorkerList = async () => {
   if (!projectId.value) return
   
   try {
-    const response = await api.get<unknown, ApiResponse<WorkerInfo[]>>('/spot-work/workers', {
-      params: {
-        project_id: projectId.value,
-        start_date: workDateStart.value,
-        end_date: workDateEnd.value
-      }
+    const response = await spotWorkService.getWorkers({
+      project_id: projectId.value,
+      start_date: workDateStart.value,
+      end_date: workDateEnd.value
     })
     if (response.code === 200) {
       workerList.value = response.data || []
@@ -120,15 +117,7 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
       const originalBase64 = await fileToBase64(file)
       
       try {
-        const ocrResponse = await api.post<unknown, ApiResponse<{
-          name?: string
-          gender?: string
-          birthDate?: string
-          address?: string
-          idCardNumber?: string
-          issuingAuthority?: string
-          validPeriod?: string
-        }>>('/ocr/idcard', {
+        const ocrResponse = await ocrService.recognizeIDCard({
           imageBase64: originalBase64,
           side: side === 'front' ? 'face' : 'back'
         })
@@ -139,11 +128,11 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
           if (side === 'front') {
             if (ocrData.name) currentWorker.value.name = ocrData.name
             if (ocrData.gender) currentWorker.value.gender = ocrData.gender
-            if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
+            if (ocrData.birth_date) currentWorker.value.birthDate = ocrData.birth_date
             if (ocrData.address) currentWorker.value.address = ocrData.address
-            if (ocrData.idCardNumber) {
-              currentWorker.value.idCardNumber = ocrData.idCardNumber
-              const validation = validateIdCard(ocrData.idCardNumber)
+            if (ocrData.id_card_number) {
+              currentWorker.value.idCardNumber = ocrData.id_card_number
+              const validation = validateIdCard(ocrData.id_card_number)
               if (!validation.valid) {
                 idCardError.value = validation.message
               } else {
@@ -151,13 +140,13 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
               }
             }
           } else {
-            if (ocrData.issuingAuthority) currentWorker.value.issuingAuthority = ocrData.issuingAuthority
-            if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
+            if (ocrData.issuing_authority) currentWorker.value.issuingAuthority = ocrData.issuing_authority
+            if (ocrData.valid_period) currentWorker.value.validPeriod = ocrData.valid_period
           }
           
-          if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
+          if (side === 'front' && !ocrData.name && !ocrData.id_card_number) {
             showFailToast('身份证识别失败，请确保图片清晰')
-          } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
+          } else if (side === 'back' && !ocrData.issuing_authority && !ocrData.valid_period) {
             showFailToast('身份证反面识别失败，请确保图片清晰')
           }
         } else if (ocrResponse.code !== 200) {
@@ -181,12 +170,7 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
       
       showLoadingToast({ message: '上传图片...', forbidClick: true })
       
-      const formDataObj = new FormData()
-      formDataObj.append('file', processedFile)
-      
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const response = await uploadService.uploadFile(processedFile)
       
       if (response.code === 200 && response.data) {
         const imageUrl = response.data.url
@@ -319,6 +303,9 @@ const handleSaveWorker = () => {
   showSuccessToast('保存成功')
 }
 
+/**
+ * 提交表单
+ */
 const handleSubmit = async () => {
   if (workerList.value.length === 0) {
     showFailToast('请至少添加一名施工人员')
@@ -329,7 +316,7 @@ const handleSubmit = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/spot-work/workers', {
+    const response = await spotWorkService.saveWorkers({
       project_id: projectId.value,
       project_name: projectName.value,
       start_date: workDateStart.value,

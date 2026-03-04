@@ -1,48 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { repairToolsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
-
-interface RepairToolsIssueItem {
-  id: number
-  tool_id: string
-  tool_name: string
-  specification: string
-  quantity: number
-  user_name: string
-  issue_time: string
-  project_name: string
-  status: string
-}
-
-interface ToolStockItem {
-  id: number
-  tool_id: string
-  tool_name: string
-  category: string
-  specification: string
-  stock: number
-  unit: string
-}
-
-interface ProjectItem {
-  project_id: string
-  project_name: string
-}
+import type { RepairToolsUsage, RepairToolsStock, ProjectInfo } from '../types/models'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
-const issueList = ref<RepairToolsIssueItem[]>([])
-const toolStockList = ref<ToolStockItem[]>([])
-const projectList = ref<ProjectItem[]>([])
+const issueList = ref<RepairToolsUsage[]>([])
+const toolStockList = ref<RepairToolsStock[]>([])
+const projectList = ref<ProjectInfo[]>([])
 
 const showIssuePopup = ref(false)
-const selectedTool = ref<ToolStockItem | null>(null)
+const selectedTool = ref<RepairToolsStock | null>(null)
 const issueForm = ref({
   projectId: '',
   projectName: '',
@@ -51,7 +24,7 @@ const issueForm = ref({
 })
 
 const filteredToolList = computed(() => {
-  return toolStockList.value.filter(item => item.stock > 0)
+  return toolStockList.value.filter(item => (item.stock || 0) > 0)
 })
 
 const maxQuantity = computed(() => {
@@ -65,9 +38,7 @@ const fetchIssueList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: RepairToolsIssueItem[], total: number }>>('/repair-tools/issue', {
-      params: { page: 0, size: 100 }
-    })
+    const response = await repairToolsService.getIssueList({ page: 0, size: 100 })
     if (response.code === 200) {
       issueList.value = response.data?.items || []
     }
@@ -84,9 +55,7 @@ const fetchIssueList = async () => {
  */
 const fetchToolStockList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: ToolStockItem[], total: number }>>('/repair-tools/stock', {
-      params: { page: 0, size: 500 }
-    })
+    const response = await repairToolsService.getStockList({ page: 0, size: 500 })
     if (response.code === 200) {
       toolStockList.value = response.data?.items || []
     }
@@ -100,7 +69,7 @@ const fetchToolStockList = async () => {
  */
 const fetchProjectList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectItem[]>>('/project-info/all/list')
+    const response = await projectInfoService.getAll()
     if (response.code === 200) {
       projectList.value = response.data || []
     }
@@ -112,7 +81,7 @@ const fetchProjectList = async () => {
 /**
  * 选择工具
  */
-const handleSelectTool = (item: ToolStockItem) => {
+const handleSelectTool = (item: RepairToolsStock) => {
   selectedTool.value = item
   issueForm.value.quantity = 1
 }
@@ -147,7 +116,7 @@ const handleSubmitIssue = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/repair-tools/issue', {
+    const response = await repairToolsService.issue({
       tool_id: selectedTool.value.tool_id || String(selectedTool.value.id),
       tool_name: selectedTool.value.tool_name,
       specification: selectedTool.value.specification || null,
@@ -259,11 +228,11 @@ onMounted(() => {
               </div>
               <div class="info-row">
                 <span class="label">运维人员</span>
-                <span class="value">{{ item.user_name }}</span>
+                <span class="value">{{ item.user_name || '-' }}</span>
               </div>
               <div class="info-row">
                 <span class="label">领用时间</span>
-                <span class="value">{{ formatDate(item.issue_time) }}</span>
+                <span class="value">{{ formatDate(item.issue_time) || '-' }}</span>
               </div>
               <div class="info-row">
                 <span class="label">所属项目</span>

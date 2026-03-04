@@ -2,34 +2,18 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { maintenanceLogService } from '../services'
+import type { MaintenanceLog } from '../types/models'
 import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 
-interface MaintenanceLogItem {
-  id: number
-  log_id: string
-  project_id: string
-  project_name: string
-  log_type: string
-  log_date: string
-  work_content: string
-  images: string
-  remark: string
-  status: string
-  created_by: string
-  created_at: string
-  updated_at: string
-}
-
 const router = useRouter()
 const { goBack } = useNavigation()
 
 const loading = ref(false)
-const logList = ref<MaintenanceLogItem[]>([])
+const logList = ref<MaintenanceLog[]>([])
 
 const canViewAll = computed(() => {
   return userStore.isAdmin() || userStore.isDepartmentManager()
@@ -90,9 +74,7 @@ const fetchLogList = async () => {
       }
     }
     
-    const response = await api.get<unknown, ApiResponse<{ content: MaintenanceLogItem[] }>>('/maintenance-log', { 
-      params
-    })
+    const response = await maintenanceLogService.getList(params)
     
     if (response.code === 200) {
       logList.value = response.data?.content || []
@@ -108,7 +90,7 @@ const fetchLogList = async () => {
 /**
  * 查看详情
  */
-const handleView = (item: MaintenanceLogItem) => {
+const handleView = (item: MaintenanceLog) => {
   router.push(`/maintenance-log-detail/${item.id}`)
 }
 
@@ -154,7 +136,7 @@ onMounted(() => {
           >
             <div class="card-header">
               <van-tag type="success" size="medium">
-                {{ getLogTypeName(item.log_type) }}
+                {{ getLogTypeName(item.log_type || '') }}
               </van-tag>
               <span class="log-id" :style="{ fontSize: getLogIdFontSize(item.log_id) + 'px' }">
                 {{ item.log_id }}

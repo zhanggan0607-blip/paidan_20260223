@@ -2,8 +2,7 @@
 import { ref, onMounted, onActivated, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast, showImagePreview } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { periodicInspectionService, maintenancePlanService, inspectionItemService, uploadService, operationLogService } from '../services'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
@@ -19,41 +18,22 @@ interface WorkPlanDetail {
   id: number
   inspection_id: string
   plan_id?: string
-  plan_type: string
+  plan_type?: string
   project_id: string
   project_name: string
   plan_start_date: string
   plan_end_date: string
-  client_name: string
-  client_contact: string
-  client_contact_info: string
-  address: string
-  maintenance_personnel: string
+  client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  address?: string
+  maintenance_personnel?: string
   status: string
-  execution_result: string
-  remarks: string
-  signature: string
+  execution_result?: string
+  remarks?: string
+  signature?: string
   created_at: string
   updated_at: string
-}
-
-interface MaintenancePlan {
-  id: number
-  plan_id: string
-  plan_name: string
-  project_id: string
-  project_name: string
-  equipment_name: string
-  equipment_location: string
-  maintenance_content: string
-  maintenance_requirements: string
-  maintenance_standard: string
-  plan_status: string
-  execution_status: string
-  responsible_person: string
-  plan_start_date: string
-  plan_end_date: string
-  inspection_items?: string
 }
 
 interface InspectionItemData {
@@ -201,7 +181,7 @@ const fetchDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
-    const response = await api.get<unknown, ApiResponse<WorkPlanDetail>>(`/periodic-inspection/${id}`)
+    const response = await periodicInspectionService.getById(Number(id))
     if (response.code === 200) {
       detail.value = response.data
       if (response.data) {
@@ -225,7 +205,7 @@ const fetchDetail = async () => {
  */
 const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
   try {
-    const response = await api.get<unknown, ApiResponse<InspectionItemTree[]>>('/inspection-item/tree')
+    const response = await inspectionItemService.getTree()
     if (response.code === 200 && response.data) {
       const allItems: InspectionSystem[] = []
       let itemIndex = 0
@@ -256,7 +236,7 @@ const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
         })
       }
       
-      processTreeItems(response.data)
+      processTreeItems(response.data as any)
       return allItems
     }
   } catch (error) {
@@ -280,7 +260,7 @@ const fetchInspectionItems = async () => {
     const allItems: InspectionSystem[] = []
     
     if (detail.value.plan_id) {
-      const response = await api.get<unknown, ApiResponse<MaintenancePlan>>(`/maintenance-plan/plan-id/${detail.value.plan_id}`)
+      const response = await maintenancePlanService.getByPlanId(detail.value.plan_id)
       if (response.code === 200 && response.data) {
         const plan = response.data
         if (plan.inspection_items) {
@@ -332,7 +312,7 @@ const loadSavedRecords = async () => {
   if (!detail.value?.inspection_id) return
   
   try {
-    const response = await api.get<unknown, ApiResponse<any[]>>(`/periodic-inspection-record/inspection/${detail.value.inspection_id}`)
+    const response = await periodicInspectionService.getRecordsByInspectionId(detail.value.inspection_id)
     if (response.code === 200 && response.data) {
       response.data.forEach((savedRecord: any) => {
         const index = inspectionSystems.value.findIndex(item => String(item.id) === String(savedRecord.item_id))
@@ -373,7 +353,7 @@ const saveRecordToBackend = async (system: InspectionSystem) => {
       inspection_result: system.inspection_result
     }
     
-    await api.post('/periodic-inspection-record', recordData)
+    await periodicInspectionService.createRecord(recordData)
   } catch (error) {
     console.error('Failed to save record:', error)
   }
@@ -470,9 +450,7 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
       
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const response = await uploadService.uploadFile(processedFile)
       
       if (response.code === 200 && response.data) {
         const index = inspectionSystems.value.findIndex(s => s.id === system.id)
@@ -558,7 +536,7 @@ const handleSubmit = async () => {
       filled_count: filledCount.value
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
+    const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
@@ -588,7 +566,7 @@ const handleSave = async () => {
       filled_count: filledCount.value
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, saveData)
+    const response = await periodicInspectionService.patch(detail.value?.id!, saveData)
     
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
@@ -620,7 +598,7 @@ const handleApprovePass = async () => {
       status: '已完成'
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
+    const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
@@ -657,7 +635,7 @@ const handleApproveReject = async () => {
       status: '已退回'
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, submitData)
+    const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
@@ -705,7 +683,7 @@ const autoSaveFieldContent = async () => {
         filled_count: filledCount.value
       }
       
-      await api.put<unknown, ApiResponse<any>>(`/periodic-inspection/${detail.value?.id}`, saveData)
+      await periodicInspectionService.update(detail.value?.id!, saveData)
     } catch (error) {
       console.error('Auto save failed:', error)
     }
@@ -732,7 +710,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   if (!user) return
   
   try {
-    await api.post('/work-order-operation-log', {
+    await operationLogService.create({
       work_order_type: 'periodic_inspection',
       work_order_id: detail.value.id,
       work_order_no: detail.value.inspection_id,

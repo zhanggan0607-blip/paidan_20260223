@@ -22,3 +22,15 @@ class DuplicateException(BusinessException):
     """重复数据异常"""
     def __init__(self, message: str = "数据已存在"):
         super().__init__(message, 409)
+
+
+class ForbiddenException(BusinessException):
+    """权限不足异常"""
+    def __init__(self, message: str = "权限不足"):
+        super().__init__(message, 403)
+
+
+class UnauthorizedException(BusinessException):
+    """未授权异常"""
+    def __init__(self, message: str = "未登录或登录已过期"):
+        super().__init__(message, 401)

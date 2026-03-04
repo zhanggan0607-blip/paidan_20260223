@@ -2,8 +2,10 @@ from sqlalchemy import Column, BigInteger, String, DateTime, Text, Integer, Floa
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.models.mixins import SoftDeleteMixin
 
-class MaintenancePlan(Base):
+
+class MaintenancePlan(Base, SoftDeleteMixin):
     __tablename__ = "maintenance_plan"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")

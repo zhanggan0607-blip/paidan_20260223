@@ -6,34 +6,15 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { weeklyReportService } from '../services'
 import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
-
-interface WeeklyReportItem {
-  id: number
-  report_id: string
-  project_id: string
-  project_name: string
-  week_start_date: string
-  week_end_date: string
-  report_date: string
-  work_summary: string
-  work_content: string
-  next_week_plan: string
-  issues: string
-  suggestions: string
-  status: string
-  created_by: string
-  created_at: string
-  updated_at: string
-}
+import type { WeeklyReport } from '../types/models'
 
 const router = useRouter()
 
 const loading = ref(false)
-const reportList = ref<WeeklyReportItem[]>([])
+const reportList = ref<WeeklyReport[]>([])
 
 /**
  * 获取状态名称
@@ -74,9 +55,7 @@ const fetchReportList = async () => {
       size: 100
     }
     
-    const response = await api.get<unknown, ApiResponse<{ content: WeeklyReportItem[] }>>('/weekly-report', { 
-      params
-    })
+    const response = await weeklyReportService.getList(params)
     
     if (response.code === 200) {
       reportList.value = response.data?.content || []
@@ -92,7 +71,7 @@ const fetchReportList = async () => {
 /**
  * 查看详情
  */
-const handleView = (item: WeeklyReportItem) => {
+const handleView = (item: WeeklyReport) => {
   router.push(`/weekly-report-detail/${item.id}?from=all`)
 }
 

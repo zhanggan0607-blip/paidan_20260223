@@ -31,7 +31,7 @@ class SpotWorkBase(BaseModel):
 
 
 class SpotWorkCreate(BaseModel):
-    work_id: str = Field(..., max_length=50, description="工单编号")
+    work_id: Optional[str] = Field(None, max_length=50, description="工单编号（可选，不传则自动生成）")
     plan_id: Optional[str] = Field(None, max_length=50, description="关联维保计划编号")
     project_id: str = Field(..., max_length=50, description="项目编号")
     project_name: str = Field(..., max_length=200, description="项目名称")
@@ -44,7 +44,7 @@ class SpotWorkCreate(BaseModel):
     work_content: Optional[str] = Field(None, description="工作内容")
     photos: Optional[List[str]] = Field(None, description="现场图片列表")
     signature: Optional[str] = Field(None, description="班组签字图片")
-    status: str = Field("执行中", max_length=20, description="状态")
+    status: Optional[str] = Field(None, max_length=20, description="状态")
     remarks: Optional[str] = Field(None, max_length=500, description="备注")
 
 

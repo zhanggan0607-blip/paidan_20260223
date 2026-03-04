@@ -2,8 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { temporaryRepairService } from '../services'
 import { formatDate, formatDateTime, getWorkIdFontSize, getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
@@ -41,11 +40,9 @@ const fetchWorkList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<any>>('/temporary-repair', { 
-      params: { 
-        page: 0,
-        size: 100
-      } 
+    const response = await temporaryRepairService.getList({ 
+      page: 0,
+      size: 100
     })
     if (response.code === 200) {
       const allItems = response.data?.content || []

@@ -36,7 +36,7 @@ services:
     volumes:
       - uploads_data:/app/uploads
     ports:
-      - "8080:8080"
+      - "8000:8000"
 
   frontend-pc:
     build:

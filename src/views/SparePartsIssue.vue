@@ -373,7 +373,7 @@ export default defineComponent({
         const response = await apiClient.get('/spare-parts/usage', {
           params,
           signal: abortController.signal
-        }) as unknown as ApiResponse<PaginatedResponse<SparePartsIssueItem>>
+        }) as unknown as PaginatedResponse<SparePartsIssueItem>
 
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
@@ -392,9 +392,9 @@ export default defineComponent({
      */
     const loadStock = async () => {
       try {
-        const response = await apiClient.get('/spare-parts/stock', {
+        const response = await apiClient.get('/spare-parts-stock/stock', {
           params: { page: 0, pageSize: 500 }
-        }) as unknown as ApiResponse<PaginatedResponse<SparePartsStock>>
+        }) as unknown as PaginatedResponse<SparePartsStock>
         if (response && response.code === 200 && response.data) {
           stockList.value = response.data.items || response.data.content || []
         }

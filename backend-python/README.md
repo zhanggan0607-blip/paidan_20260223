@@ -143,7 +143,7 @@ pytest --cov=app --cov-report=html
 docker build -t sstcp-maintenance-backend .
 
 # 运行容器
-docker run -p 8080:8080 sstcp-maintenance-backend
+docker run -p 8000:8000 sstcp-maintenance-backend
 ```
 
 ### 生产环境
@@ -151,7 +151,7 @@ docker run -p 8080:8080 sstcp-maintenance-backend
 使用 Gunicorn + Uvicorn workers：
 
 ```bash
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8080
+gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
 ```
 
 ## 性能优化

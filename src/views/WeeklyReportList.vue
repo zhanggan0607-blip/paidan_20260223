@@ -494,7 +494,7 @@ export default defineComponent({
           params.created_by = filters.value.createdBy
         }
 
-        const response = await apiClient.get('/weekly-report', { params }) as unknown as ApiResponse<PaginatedResponse<WeeklyReportItem>>
+        const response = await apiClient.get('/weekly-report', { params }) as unknown as PaginatedResponse<WeeklyReportItem>
         
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []

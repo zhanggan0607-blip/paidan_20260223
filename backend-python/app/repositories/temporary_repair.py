@@ -1,18 +1,24 @@
+"""
+临时维修Repository
+提供临时维修数据访问方法
+"""
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from app.models.temporary_repair import TemporaryRepair
+from app.repositories.base import BaseRepository
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-class TemporaryRepairRepository:
-    def __init__(self, db: Session):
-        self._db = db
+class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
+    """
+    临时维修Repository
+    继承BaseRepository，复用通用CRUD方法
+    """
     
-    @property
-    def db(self):
-        return self._db
+    def __init__(self, db: Session):
+        super().__init__(db, TemporaryRepair)
 
     def find_all(
         self,
@@ -24,6 +30,21 @@ class TemporaryRepairRepository:
         maintenance_personnel: Optional[str] = None,
         client_name: Optional[str] = None
     ) -> tuple[List[TemporaryRepair], int]:
+        """
+        分页查询临时维修列表
+        
+        Args:
+            page: 页码
+            size: 每页数量
+            project_name: 项目名称（模糊查询）
+            repair_id: 维修单编号（模糊查询）
+            status: 状态
+            maintenance_personnel: 运维人员
+            client_name: 客户名称（模糊查询）
+            
+        Returns:
+            (维修单列表, 总数)
+        """
         try:
             query = self.db.query(TemporaryRepair).options(
                 joinedload(TemporaryRepair.project)
@@ -53,6 +74,15 @@ class TemporaryRepairRepository:
             raise
 
     def find_by_id(self, id: int) -> Optional[TemporaryRepair]:
+        """
+        根据ID查询临时维修
+        
+        Args:
+            id: 维修单ID
+            
+        Returns:
+            维修单对象，未找到返回None
+        """
         try:
             return self.db.query(TemporaryRepair).options(
                 joinedload(TemporaryRepair.project)
@@ -65,6 +95,15 @@ class TemporaryRepairRepository:
             raise
 
     def find_by_repair_id(self, repair_id: str) -> Optional[TemporaryRepair]:
+        """
+        根据维修单编号查询
+        
+        Args:
+            repair_id: 维修单编号
+            
+        Returns:
+            维修单对象，未找到返回None
+        """
         try:
             return self.db.query(TemporaryRepair).options(
                 joinedload(TemporaryRepair.project)
@@ -77,6 +116,15 @@ class TemporaryRepairRepository:
             raise
 
     def exists_by_repair_id(self, repair_id: str) -> bool:
+        """
+        检查维修单编号是否存在
+        
+        Args:
+            repair_id: 维修单编号
+            
+        Returns:
+            是否存在
+        """
         try:
             return self.db.query(TemporaryRepair).filter(
                 TemporaryRepair.repair_id == repair_id,
@@ -84,27 +132,6 @@ class TemporaryRepairRepository:
             ).first() is not None
         except Exception as e:
             logger.error(f"检查临时维修是否存在失败 (repair_id={repair_id}): {str(e)}")
-            raise
-
-    def create(self, repair: TemporaryRepair) -> TemporaryRepair:
-        try:
-            self.db.add(repair)
-            self.db.commit()
-            self.db.refresh(repair)
-            return repair
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"创建临时维修失败: {str(e)}")
-            raise
-
-    def update(self, repair: TemporaryRepair) -> TemporaryRepair:
-        try:
-            self.db.commit()
-            self.db.refresh(repair)
-            return repair
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"更新临时维修失败: {str(e)}")
             raise
 
     def soft_delete(self, repair: TemporaryRepair, user_id: int = None) -> None:
@@ -123,19 +150,13 @@ class TemporaryRepairRepository:
             logger.error(f"软删除临时维修失败: {str(e)}")
             raise
 
-    def delete(self, repair: TemporaryRepair) -> None:
-        """
-        物理删除（已弃用，请使用soft_delete）
-        """
-        try:
-            self.db.delete(repair)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"删除临时维修失败: {str(e)}")
-            raise
-
     def find_all_unpaginated(self) -> List[TemporaryRepair]:
+        """
+        查询所有临时维修（不分页）
+        
+        Returns:
+            维修单列表
+        """
         try:
             return self.db.query(TemporaryRepair).options(
                 joinedload(TemporaryRepair.project)

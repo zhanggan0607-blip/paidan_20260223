@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 数据字典服务
+ * 提供数据字典的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
 export interface Dictionary {
   id: number
@@ -12,7 +17,7 @@ export interface Dictionary {
   updated_at: string
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -33,26 +38,41 @@ export interface PaginatedResponse {
 }
 
 export const dictionaryService = {
+  /**
+   * 获取字典列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
     dict_type?: string
   }): Promise<PaginatedResponse> {
-    return await apiClient.get('/dictionary', { params })
+    return await request.get(API_ENDPOINTS.DICTIONARY.LIST, { params })
   },
 
+  /**
+   * 根据类型获取字典
+   */
   async getByType(dictType: string): Promise<ApiResponse<Dictionary[]>> {
-    return await apiClient.get(`/dictionary/type/${dictType}`)
+    return await request.get(API_ENDPOINTS.DICTIONARY.BY_TYPE(dictType))
   },
 
+  /**
+   * 获取所有字典
+   */
   async getAll(dictType?: string): Promise<ApiResponse<Dictionary[]>> {
-    return await apiClient.get('/dictionary/all/list', { params: { dict_type: dictType } })
+    return await request.get('/dictionary/all/list', { params: { dict_type: dictType } })
   },
 
+  /**
+   * 获取字典详情
+   */
   async getById(id: number): Promise<ApiResponse<Dictionary>> {
-    return await apiClient.get(`/dictionary/${id}`)
+    return await request.get(API_ENDPOINTS.DICTIONARY.DETAIL(id))
   },
 
+  /**
+   * 创建字典
+   */
   async create(data: {
     dict_type: string
     dict_key: string
@@ -61,9 +81,12 @@ export const dictionaryService = {
     sort_order?: number
     is_active?: boolean
   }): Promise<ApiResponse<Dictionary>> {
-    return await apiClient.post('/dictionary', data)
+    return await request.post(API_ENDPOINTS.DICTIONARY.LIST, data)
   },
 
+  /**
+   * 更新字典
+   */
   async update(id: number, data: {
     dict_type?: string
     dict_key?: string
@@ -72,11 +95,14 @@ export const dictionaryService = {
     sort_order?: number
     is_active?: boolean
   }): Promise<ApiResponse<Dictionary>> {
-    return await apiClient.put(`/dictionary/${id}`, data)
+    return await request.put(API_ENDPOINTS.DICTIONARY.DETAIL(id), data)
   },
 
+  /**
+   * 删除字典
+   */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/dictionary/${id}`)
+    return await request.delete(API_ENDPOINTS.DICTIONARY.DETAIL(id))
   }
 }
 

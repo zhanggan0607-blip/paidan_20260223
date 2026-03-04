@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 零星用工服务
+ * 提供零星用工工单的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 import type { SpotWork as SpotWorkType, SpotWorkWorker, ApiResponse, PaginatedResponse } from '../types/api'
 
 export type SpotWork = SpotWorkType
@@ -56,6 +61,9 @@ export interface SpotWorkPaginatedResponse {
 }
 
 export const spotWorkService = {
+  /**
+   * 获取零星用工列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
@@ -63,26 +71,41 @@ export const spotWorkService = {
     work_id?: string
     status?: string
   }): Promise<SpotWorkPaginatedResponse> {
-    return await apiClient.get('/spot-work', { params })
+    return await request.get(API_ENDPOINTS.SPOT_WORK.LIST, { params })
   },
 
+  /**
+   * 获取所有零星用工（不分页）
+   */
   async getAll(): Promise<ApiResponse<SpotWork[]>> {
-    return await apiClient.get('/spot-work/all/list')
+    return await request.get(API_ENDPOINTS.SPOT_WORK.ALL)
   },
 
+  /**
+   * 获取零星用工详情
+   */
   async getById(id: number): Promise<ApiResponse<SpotWork>> {
-    return await apiClient.get(`/spot-work/${id}`)
+    return await request.get(API_ENDPOINTS.SPOT_WORK.DETAIL(id))
   },
 
+  /**
+   * 创建零星用工
+   */
   async create(data: SpotWorkCreate): Promise<ApiResponse<SpotWork>> {
-    return await apiClient.post('/spot-work', data)
+    return await request.post(API_ENDPOINTS.SPOT_WORK.LIST, data)
   },
 
+  /**
+   * 更新零星用工
+   */
   async update(id: number, data: SpotWorkUpdate): Promise<ApiResponse<SpotWork>> {
-    return await apiClient.put(`/spot-work/${id}`, data)
+    return await request.put(API_ENDPOINTS.SPOT_WORK.DETAIL(id), data)
   },
 
+  /**
+   * 删除零星用工
+   */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/spot-work/${id}`)
+    return await request.delete(API_ENDPOINTS.SPOT_WORK.DETAIL(id))
   }
 }

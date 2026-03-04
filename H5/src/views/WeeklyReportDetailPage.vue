@@ -2,57 +2,19 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showImagePreview } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { weeklyReportService } from '../services'
 import { formatDate, formatDateTime } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
-
-interface WeeklyReportDetail {
-  id: number
-  report_id: string
-  project_id: string
-  project_name: string
-  week_start_date: string
-  week_end_date: string
-  report_date: string
-  work_summary: string
-  work_content: string
-  next_week_plan: string
-  issues: string
-  suggestions: string
-  images: string
-  manager_signature: string
-  manager_sign_time: string
-  status: string
-  approved_by: string
-  approved_at: string
-  reject_reason: string
-  created_by: string
-  created_at: string
-  updated_at: string
-}
-
-interface OperationLogItem {
-  id: number
-  work_order_type: string
-  work_order_id: number
-  work_order_no: string
-  operator_name: string
-  operator_id: number | null
-  operation_type_code: string
-  operation_type_name: string
-  operation_remark: string | null
-  created_at: string
-}
+import type { WeeklyReport, OperationLog } from '../types/models'
 
 const route = useRoute()
 const router = useRouter()
 
 const loading = ref(false)
-const reportDetail = ref<WeeklyReportDetail | null>(null)
+const reportDetail = ref<WeeklyReport | null>(null)
 const imageList = ref<string[]>([])
-const operationLogs = ref<OperationLogItem[]>([])
+const operationLogs = ref<OperationLog[]>([])
 const loadingLogs = ref(false)
 
 /**
@@ -102,7 +64,7 @@ const fetchOperationLogs = async (reportId: number) => {
   if (!reportId) return
   loadingLogs.value = true
   try {
-    const response = await api.get<unknown, ApiResponse<OperationLogItem[]>>(`/weekly-report/${reportId}/operation-logs`)
+    const response = await weeklyReportService.getOperationLogs(reportId)
     if (response.code === 200) {
       operationLogs.value = response.data || []
     }
@@ -125,14 +87,16 @@ const fetchReportDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
-    const response = await api.get<unknown, ApiResponse<WeeklyReportDetail>>(`/weekly-report/${id}`)
+    const response = await weeklyReportService.getById(Number(id))
     
     if (response.code === 200 && response.data) {
       reportDetail.value = response.data
       
       if (response.data.images) {
         try {
-          const imgs = JSON.parse(response.data.images)
+          const imgs = typeof response.data.images === 'string' 
+            ? JSON.parse(response.data.images) 
+            : response.data.images
           imageList.value = Array.isArray(imgs) ? imgs : []
         } catch {
           imageList.value = []

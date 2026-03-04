@@ -165,10 +165,33 @@ def update_work_plan(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_work_plan(
     id: int,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
+    from app.models.work_order_operation_log import WorkOrderOperationLog
+    
     service = WorkPlanService(db)
-    service.delete(id)
+    work_plan = service.get_by_id(id)
+    plan_id = work_plan.plan_id
+    
+    user_id = current_user.get('id') if current_user else None
+    operator_name = current_user.get('name', '系统') if current_user else '系统'
+    
+    log = WorkOrderOperationLog(
+        work_order_type='work_plan',
+        work_order_id=id,
+        work_order_no=plan_id,
+        operator_name=operator_name,
+        operator_id=user_id,
+        operation_type='delete',
+        operation_type_code='delete',
+        operation_type_name='删除',
+        operation_remark=f'删除工作计划 {plan_id}'
+    )
+    db.add(log)
+    
+    service.delete(id, user_id)
     return ApiResponse(
         code=200,
         message="Deleted successfully",

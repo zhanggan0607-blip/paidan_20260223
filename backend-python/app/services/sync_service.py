@@ -55,7 +55,7 @@ class SyncService:
             return order.work_id
         return ''
     
-    def sync_order_to_work_plan(self, order_type: str, order, is_delete: bool = False) -> Optional[WorkPlan]:
+    def sync_order_to_work_plan(self, order_type: str, order, is_delete: bool = False, user_id: int = None) -> Optional[WorkPlan]:
         """
         将工单数据同步到WorkPlan表
         
@@ -63,6 +63,7 @@ class SyncService:
             order_type: 工单类型 (定期巡检/临时维修/零星用工)
             order: 工单对象 (PeriodicInspection/TemporaryRepair/SpotWork)
             is_delete: 是否为删除操作
+            user_id: 执行删除的用户ID
         
         Returns:
             同步后的WorkPlan对象，删除操作返回None
@@ -72,8 +73,8 @@ class SyncService:
         if is_delete:
             existing_plan = self.work_plan_repo.find_by_plan_id(plan_id)
             if existing_plan:
-                self.work_plan_repo.delete(existing_plan)
-                logger.info(f"同步删除WorkPlan: plan_id={plan_id}, type={order_type}")
+                self.work_plan_repo.soft_delete(existing_plan, user_id)
+                logger.info(f"同步软删除WorkPlan: plan_id={plan_id}, type={order_type}")
             return None
         
         existing_plan = self.work_plan_repo.find_by_plan_id(plan_id)
@@ -114,13 +115,14 @@ class SyncService:
             logger.info(f"同步创建WorkPlan: plan_id={plan_id}, type={order_type}")
             return result
     
-    def sync_work_plan_to_order(self, work_plan: WorkPlan, is_delete: bool = False):
+    def sync_work_plan_to_order(self, work_plan: WorkPlan, is_delete: bool = False, user_id: int = None):
         """
         将WorkPlan数据同步到对应的工单表
         
         Args:
             work_plan: WorkPlan对象
             is_delete: 是否为删除操作
+            user_id: 执行删除的用户ID
         
         Returns:
             同步后的工单对象，删除操作返回None
@@ -132,18 +134,18 @@ class SyncService:
             if plan_type == PLAN_TYPE_INSPECTION:
                 existing = self.inspection_repo.find_by_inspection_id(plan_id)
                 if existing:
-                    self.inspection_repo.delete(existing)
-                    logger.info(f"同步删除PeriodicInspection: inspection_id={plan_id}")
+                    self.inspection_repo.soft_delete(existing, user_id)
+                    logger.info(f"同步软删除PeriodicInspection: inspection_id={plan_id}")
             elif plan_type == PLAN_TYPE_REPAIR:
                 existing = self.repair_repo.find_by_repair_id(plan_id)
                 if existing:
-                    self.repair_repo.delete(existing)
-                    logger.info(f"同步删除TemporaryRepair: repair_id={plan_id}")
+                    self.repair_repo.soft_delete(existing, user_id)
+                    logger.info(f"同步软删除TemporaryRepair: repair_id={plan_id}")
             elif plan_type == PLAN_TYPE_SPOTWORK:
                 existing = self.spotwork_repo.find_by_work_id(plan_id)
                 if existing:
-                    self.spotwork_repo.delete(existing)
-                    logger.info(f"同步删除SpotWork: work_id={plan_id}")
+                    self.spotwork_repo.soft_delete(existing, user_id)
+                    logger.info(f"同步软删除SpotWork: work_id={plan_id}")
             return None
         
         if plan_type == PLAN_TYPE_INSPECTION:
@@ -168,6 +170,7 @@ class SyncService:
             existing.maintenance_personnel = work_plan.maintenance_personnel
             existing.status = work_plan.status
             existing.filled_count = work_plan.filled_count or 0
+            existing.total_count = work_plan.total_count or 5
             existing.remarks = work_plan.remarks
             
             result = self.inspection_repo.update(existing)
@@ -184,6 +187,7 @@ class SyncService:
                 maintenance_personnel=work_plan.maintenance_personnel,
                 status=work_plan.status,
                 filled_count=work_plan.filled_count or 0,
+                total_count=work_plan.total_count or 5,
                 remarks=work_plan.remarks
             )
             
@@ -203,6 +207,8 @@ class SyncService:
             existing.client_name = work_plan.client_name
             existing.maintenance_personnel = work_plan.maintenance_personnel
             existing.status = work_plan.status
+            existing.filled_count = work_plan.filled_count or 0
+            existing.total_count = work_plan.total_count or 5
             existing.remarks = work_plan.remarks
             
             result = self.repair_repo.update(existing)
@@ -218,6 +224,8 @@ class SyncService:
                 client_name=work_plan.client_name,
                 maintenance_personnel=work_plan.maintenance_personnel,
                 status=work_plan.status,
+                filled_count=work_plan.filled_count or 0,
+                total_count=work_plan.total_count or 5,
                 remarks=work_plan.remarks
             )
             
@@ -237,6 +245,8 @@ class SyncService:
             existing.client_name = work_plan.client_name
             existing.maintenance_personnel = work_plan.maintenance_personnel
             existing.status = work_plan.status
+            existing.filled_count = work_plan.filled_count or 0
+            existing.total_count = work_plan.total_count or 5
             existing.remarks = work_plan.remarks
             
             result = self.spotwork_repo.update(existing)
@@ -252,6 +262,8 @@ class SyncService:
                 client_name=work_plan.client_name,
                 maintenance_personnel=work_plan.maintenance_personnel,
                 status=work_plan.status,
+                filled_count=work_plan.filled_count or 0,
+                total_count=work_plan.total_count or 5,
                 remarks=work_plan.remarks
             )
             
@@ -259,13 +271,14 @@ class SyncService:
             logger.info(f"同步创建SpotWork: work_id={work_plan.plan_id}")
             return result
 
-    def sync_maintenance_plan_to_work_plan(self, maintenance_plan: MaintenancePlan, is_delete: bool = False) -> Optional[WorkPlan]:
+    def sync_maintenance_plan_to_work_plan(self, maintenance_plan: MaintenancePlan, is_delete: bool = False, user_id: int = None) -> Optional[WorkPlan]:
         """
         将MaintenancePlan数据同步到WorkPlan表
         
         Args:
             maintenance_plan: MaintenancePlan对象
             is_delete: 是否为删除操作
+            user_id: 执行删除的用户ID
         
         Returns:
             同步后的WorkPlan对象，删除操作返回None
@@ -275,8 +288,8 @@ class SyncService:
         if is_delete:
             existing_plan = self.work_plan_repo.find_by_plan_id(plan_id)
             if existing_plan:
-                self.work_plan_repo.delete(existing_plan)
-                logger.info(f"同步删除WorkPlan (from MaintenancePlan): plan_id={plan_id}")
+                self.work_plan_repo.soft_delete(existing_plan, user_id)
+                logger.info(f"同步软删除WorkPlan (from MaintenancePlan): plan_id={plan_id}")
             return None
         
         existing_plan = self.work_plan_repo.find_by_plan_id(plan_id)
@@ -322,13 +335,14 @@ class SyncService:
             logger.info(f"同步创建WorkPlan (from MaintenancePlan): plan_id={plan_id}")
             return result
 
-    def sync_work_plan_to_maintenance_plan(self, work_plan: WorkPlan, is_delete: bool = False) -> Optional[MaintenancePlan]:
+    def sync_work_plan_to_maintenance_plan(self, work_plan: WorkPlan, is_delete: bool = False, user_id: int = None) -> Optional[MaintenancePlan]:
         """
         将WorkPlan数据同步到MaintenancePlan表
         
         Args:
             work_plan: WorkPlan对象
             is_delete: 是否为删除操作
+            user_id: 执行删除的用户ID
         
         Returns:
             同步后的MaintenancePlan对象，删除操作返回None
@@ -338,8 +352,8 @@ class SyncService:
         if is_delete:
             existing_plan = self.maintenance_plan_repo.find_by_plan_id(plan_id)
             if existing_plan:
-                self.maintenance_plan_repo.delete(existing_plan)
-                logger.info(f"同步删除MaintenancePlan (from WorkPlan): plan_id={plan_id}")
+                self.maintenance_plan_repo.soft_delete(existing_plan, user_id)
+                logger.info(f"同步软删除MaintenancePlan (from WorkPlan): plan_id={plan_id}")
             return None
         
         existing_plan = self.maintenance_plan_repo.find_by_plan_id(plan_id)

@@ -2,45 +2,20 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { projectInfoService, customerService } from '../services'
 import SearchInput from '../components/SearchInput.vue'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables'
+import type { Customer, ProjectInfo } from '../types/models'
 
 const route = useRoute()
 const { goBack } = useNavigation()
-
-interface Customer {
-  id: number
-  name: string
-  address: string | null
-  contact_person: string
-  phone: string
-  contact_position: string | null
-}
-
-interface ProjectInfo {
-  id?: number
-  project_id: string
-  project_name: string
-  completion_date: string
-  maintenance_end_date: string
-  maintenance_period: string
-  client_name: string
-  address: string
-  project_abbr: string
-  project_manager: string
-  client_contact: string
-  client_contact_position: string
-  client_contact_info: string
-}
 
 const loading = ref(false)
 const isEdit = ref(false)
 const projectId = ref<number | null>(null)
 
-const formData = ref<ProjectInfo>({
+const formData = ref<Partial<ProjectInfo>>({
   project_id: '',
   project_name: '',
   completion_date: '',
@@ -78,7 +53,7 @@ const filteredCustomers = computed(() => {
     return customerList.value
   }
   return customerList.value.filter(c => 
-    c.name.toLowerCase().includes(searchKeyword.value.toLowerCase())
+    (c.name || c.customer_name || '').toLowerCase().includes(searchKeyword.value.toLowerCase())
   )
 })
 
@@ -88,7 +63,7 @@ const maxDate = new Date(2030, 11, 31)
 const fetchCustomers = async () => {
   customerLoading.value = true
   try {
-    const response = await api.get<unknown, ApiResponse<{ content: Customer[] }>>('/customer?size=100')
+    const response = await customerService.getList({ size: 100 })
     if (response.code === 200 && response.data) {
       customerList.value = response.data.content || []
     }
@@ -102,7 +77,7 @@ const fetchCustomers = async () => {
 const fetchProjectInfo = async (id: number) => {
   loading.value = true
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectInfo>>(`/project-info/${id}`)
+    const response = await projectInfoService.getById(id)
     if (response.code === 200 && response.data) {
       const completionDate = response.data.completion_date ? response.data.completion_date.split('T')[0] ?? '' : ''
       const maintenanceEndDate = response.data.maintenance_end_date ? response.data.maintenance_end_date.split('T')[0] ?? '' : ''
@@ -156,31 +131,31 @@ const onEndDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => {
 }
 
 const validateForm = (): boolean => {
-  if (!formData.value.project_id.trim()) {
+  if (!formData.value?.project_id?.trim()) {
     showToast('请输入项目编号')
     return false
   }
-  if (!formData.value.project_name.trim()) {
+  if (!formData.value?.project_name?.trim()) {
     showToast('请输入项目名称')
     return false
   }
-  if (!formData.value.completion_date) {
+  if (!formData.value?.completion_date) {
     showToast('请选择开始日期')
     return false
   }
-  if (!formData.value.maintenance_end_date) {
+  if (!formData.value?.maintenance_end_date) {
     showToast('请选择结束日期')
     return false
   }
-  if (!formData.value.maintenance_period) {
+  if (!formData.value?.maintenance_period) {
     showToast('请选择维保频率')
     return false
   }
-  if (!formData.value.client_name.trim()) {
+  if (!formData.value?.client_name?.trim()) {
     showToast('请选择客户单位')
     return false
   }
-  if (!formData.value.address.trim()) {
+  if (!formData.value?.address?.trim()) {
     showToast('请输入客户地址')
     return false
   }
@@ -190,18 +165,32 @@ const validateForm = (): boolean => {
 const handleSubmit = async () => {
   if (!validateForm()) return
 
+  if (!formData.value.project_id || !formData.value.project_name) {
+    showToast('请填写项目编号和项目名称')
+    return
+  }
+
   try {
     const submitData = {
-      ...formData.value,
+      project_id: formData.value.project_id,
+      project_name: formData.value.project_name,
       completion_date: formData.value.completion_date + 'T00:00:00',
-      maintenance_end_date: formData.value.maintenance_end_date + 'T00:00:00'
+      maintenance_end_date: formData.value.maintenance_end_date + 'T00:00:00',
+      maintenance_period: formData.value.maintenance_period,
+      client_name: formData.value.client_name,
+      address: formData.value.address,
+      project_abbr: formData.value.project_abbr,
+      project_manager: formData.value.project_manager,
+      client_contact: formData.value.client_contact,
+      client_contact_position: formData.value.client_contact_position,
+      client_contact_info: formData.value.client_contact_info
     }
 
     let response
     if (isEdit.value && projectId.value) {
-      response = await api.put<unknown, ApiResponse<ProjectInfo>>(`/project-info/${projectId.value}`, submitData)
+      response = await projectInfoService.update(projectId.value, submitData)
     } else {
-      response = await api.post<unknown, ApiResponse<ProjectInfo>>('/project-info', submitData)
+      response = await projectInfoService.create(submitData)
     }
 
     if (response.code === 200) {
@@ -227,7 +216,7 @@ const handleDelete = async () => {
       message: '请确认是否要删除该项目？'
     })
 
-    const response = await api.delete<unknown, ApiResponse<null>>(`/project-info/${projectId.value}`)
+    const response = await projectInfoService.delete(projectId.value)
     if (response.code === 200) {
       showSuccessToast('删除成功')
       goBack()

@@ -2,7 +2,8 @@
  * 在线用户服务
  * 提供在线用户统计和心跳功能
  */
-import api from '@/utils/api'
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
 export interface OnlineUser {
   id: number
@@ -47,7 +48,7 @@ export const onlineUserService = {
    * 获取在线用户数量统计
    */
   async getOnlineCount(): Promise<OnlineCount> {
-    const response = await api.get('/online/count')
+    const response = await request.get(API_ENDPOINTS.ONLINE_USER.COUNT)
     return response.data
   },
 
@@ -56,7 +57,7 @@ export const onlineUserService = {
    */
   async getOnlineUsers(deviceType?: string): Promise<OnlineUser[]> {
     const params = deviceType ? { device_type: deviceType } : {}
-    const response = await api.get('/online/users', { params })
+    const response = await request.get(API_ENDPOINTS.ONLINE_USER.USERS, { params })
     return response.data
   },
 
@@ -64,7 +65,7 @@ export const onlineUserService = {
    * 获取在线用户详细统计
    */
   async getOnlineStatistics(): Promise<OnlineStatistics> {
-    const response = await api.get('/online/statistics')
+    const response = await request.get(API_ENDPOINTS.ONLINE_USER.STATISTICS)
     return response.data
   },
 
@@ -72,38 +73,33 @@ export const onlineUserService = {
    * 发送心跳更新活跃状态
    */
   async sendHeartbeat(deviceType: string = 'pc'): Promise<void> {
-    await api.post('/online/heartbeat', { device_type: deviceType })
+    await request.post(API_ENDPOINTS.ONLINE_USER.HEARTBEAT, { device_type: deviceType })
   },
 
   /**
    * 记录登录
-   * @param deviceType 设备类型 pc/h5
-   * @param userId 用户ID（可选，用于PC端切换用户场景）
-   * @param userName 用户名称（可选）
    */
   async recordLogin(deviceType: string = 'pc', userId?: number, userName?: string): Promise<void> {
-    const params: any = { device_type: deviceType }
+    const params: Record<string, unknown> = { device_type: deviceType }
     if (userId) {
       params.user_id = userId
       params.user_name = userName
     }
-    await api.post('/online/login', params)
+    await request.post(API_ENDPOINTS.ONLINE_USER.LOGIN, params)
   },
 
   /**
    * 记录登出
-   * @param userId 用户ID（可选，用于PC端切换用户场景）
-   * @param deviceType 设备类型（可选，用于PC端切换用户场景）
    */
   async logout(userId?: number, deviceType?: string): Promise<void> {
-    const params: any = {}
+    const params: Record<string, unknown> = {}
     if (userId) {
       params.user_id = userId
     }
     if (deviceType) {
       params.device_type = deviceType
     }
-    await api.post('/online/logout', params)
+    await request.post(API_ENDPOINTS.ONLINE_USER.LOGOUT, params)
   }
 }
 

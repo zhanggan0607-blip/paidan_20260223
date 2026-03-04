@@ -2,44 +2,21 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { temporaryRepairService, uploadService, operationLogService } from '../services'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
+import type { TemporaryRepair } from '../types/models'
 
 const router = useRouter()
 const route = useRoute()
 const { goBack } = useNavigation()
 
-interface RepairDetail {
-  id: number
-  repair_id: string
-  plan_type: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name: string
-  client_contact: string
-  client_contact_info: string
-  address: string
-  maintenance_personnel: string
-  status: string
-  remarks: string
-  fault_description: string
-  solution: string
-  photos: string[]
-  signature: string
-  created_at: string
-  updated_at: string
-}
-
 const loading = ref(false)
-const detail = ref<RepairDetail | null>(null)
+const detail = ref<TemporaryRepair | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 
 const formData = ref({
@@ -108,7 +85,7 @@ const fetchDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
   
   try {
-    const response = await api.get<unknown, ApiResponse<RepairDetail>>(`/temporary-repair/${id}`)
+    const response = await temporaryRepairService.getById(Number(id))
     if (response.code === 200) {
       detail.value = response.data
       if (response.data) {
@@ -164,9 +141,7 @@ const handlePhotoCapture = () => {
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
       
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const response = await uploadService.uploadFile(processedFile)
       
       if (response.code === 200 && response.data) {
         currentPhotos.value.push(response.data.url)
@@ -230,7 +205,7 @@ const handleSubmit = async () => {
       status: WORK_STATUS.PENDING_CONFIRM
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
+    const response = await temporaryRepairService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
@@ -258,7 +233,7 @@ const handleSave = async () => {
       remarks: formData.value.remarks
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, saveData)
+    const response = await temporaryRepairService.patch(detail.value?.id!, saveData)
     
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
@@ -290,7 +265,7 @@ const handleApprovePass = async () => {
       status: '已完成'
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
+    const response = await temporaryRepairService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
@@ -327,7 +302,7 @@ const handleApproveReject = async () => {
       status: '已退回'
     }
     
-    const response = await api.patch<unknown, ApiResponse<any>>(`/temporary-repair/${detail.value?.id}`, submitData)
+    const response = await temporaryRepairService.patch(detail.value?.id!, submitData)
     
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
@@ -361,7 +336,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   if (!user) return
   
   try {
-    await api.post('/work-order-operation-log', {
+    await operationLogService.create({
       work_order_type: 'temporary_repair',
       work_order_id: detail.value.id,
       work_order_no: detail.value.repair_id,

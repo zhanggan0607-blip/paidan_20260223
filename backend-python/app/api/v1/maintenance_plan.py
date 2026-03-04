@@ -212,10 +212,33 @@ def update_maintenance_plan(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_maintenance_plan(
     id: int,
-    db: Session = Depends(get_db)
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: Optional[dict] = Depends(get_current_user)
 ):
+    from app.models.work_order_operation_log import WorkOrderOperationLog
+    
     service = MaintenancePlanService(db)
-    deleted_stats = service.delete(id)
+    maintenance_plan = service.get_by_id(id)
+    plan_id = maintenance_plan.plan_id
+    
+    user_id = current_user.get('id') if current_user else None
+    operator_name = current_user.get('name', '系统') if current_user else '系统'
+    
+    log = WorkOrderOperationLog(
+        work_order_type='maintenance_plan',
+        work_order_id=id,
+        work_order_no=plan_id,
+        operator_name=operator_name,
+        operator_id=user_id,
+        operation_type='delete',
+        operation_type_code='delete',
+        operation_type_name='删除',
+        operation_remark=f'删除维保计划 {plan_id}'
+    )
+    db.add(log)
+    
+    deleted_stats = service.delete(id, user_id)
     return ApiResponse.success(deleted_stats, "删除成功")
 
 

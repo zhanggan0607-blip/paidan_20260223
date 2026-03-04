@@ -1,7 +1,10 @@
-import apiClient from '../utils/api'
+/**
+ * 项目信息服务
+ * 提供项目信息的增删改查等功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
-// TODO: 类型定义应该抽到单独的types文件里
-// FIXME: ProjectInfoCreate和ProjectInfoUpdate有很多重复字段
 export interface ProjectInfo {
   id: number
   project_id: string
@@ -50,7 +53,7 @@ export interface ProjectInfoUpdate {
   client_contact_info?: string
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -71,33 +74,50 @@ export interface PaginatedResponse {
 }
 
 export const projectInfoService = {
+  /**
+   * 获取项目列表（分页）
+   */
   async getList(params?: {
     page?: number
     size?: number
     project_name?: string
     client_name?: string
   }): Promise<PaginatedResponse> {
-    // TODO: 可以加入缓存机制，避免重复请求
-    return await apiClient.get('/project-info', { params })
+    return await request.get(API_ENDPOINTS.PROJECT_INFO.LIST, { params })
   },
 
+  /**
+   * 获取项目详情
+   */
   async getById(id: number): Promise<ApiResponse<ProjectInfo>> {
-    return await apiClient.get(`/project-info/${id}`)
+    return await request.get(API_ENDPOINTS.PROJECT_INFO.DETAIL(id))
   },
 
+  /**
+   * 创建项目
+   */
   async create(data: ProjectInfoCreate): Promise<ApiResponse<ProjectInfo>> {
-    return await apiClient.post('/project-info', data)
+    return await request.post(API_ENDPOINTS.PROJECT_INFO.LIST, data)
   },
 
+  /**
+   * 更新项目
+   */
   async update(id: number, data: ProjectInfoUpdate): Promise<ApiResponse<ProjectInfo>> {
-    return await apiClient.put(`/project-info/${id}`, data)
+    return await request.put(API_ENDPOINTS.PROJECT_INFO.DETAIL(id), data)
   },
 
+  /**
+   * 删除项目
+   */
   async delete(id: number, cascade: boolean = false): Promise<ApiResponse<null>> {
-    return await apiClient.delete(`/project-info/${id}`, { params: { cascade } })
+    return await request.delete(API_ENDPOINTS.PROJECT_INFO.DETAIL(id), { params: { cascade } })
   },
 
+  /**
+   * 获取所有项目（不分页）
+   */
   async getAll(): Promise<ApiResponse<ProjectInfo[]>> {
-    return await apiClient.get('/project-info/all/list')
+    return await request.get(API_ENDPOINTS.PROJECT_INFO.ALL)
   }
 }

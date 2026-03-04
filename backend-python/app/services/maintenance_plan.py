@@ -213,15 +213,17 @@ class MaintenancePlanService:
         
         return result
     
-    def delete(self, id: int) -> dict:
+    def delete(self, id: int, user_id: int = None) -> dict:
         """
-        删除维保计划，并级联删除关联的工单数据
+        软删除维保计划，并级联软删除关联的工单数据
         返回删除统计信息
+        @param id: 维保计划ID
+        @param user_id: 执行删除的用户ID
         """
         maintenance_plan = self.get_by_id(id)
         plan_id = maintenance_plan.plan_id
         
-        logger.info(f"🗑️ [Service] 开始删除维保计划: id={id}, plan_id={plan_id}")
+        logger.info(f"🗑️ [Service] 开始软删除维保计划: id={id}, plan_id={plan_id}")
         
         deleted_stats = {
             'plan_id': plan_id,
@@ -232,24 +234,38 @@ class MaintenancePlanService:
         }
         
         try:
-            deleted_stats['periodic_inspections'] = self.repository.db.query(PeriodicInspection).filter(
-                PeriodicInspection.plan_id == plan_id
-            ).delete(synchronize_session=False)
+            from datetime import datetime
             
-            deleted_stats['temporary_repairs'] = self.repository.db.query(TemporaryRepair).filter(
-                TemporaryRepair.plan_id == plan_id
-            ).delete(synchronize_session=False)
+            periodic_inspections = self.repository.db.query(PeriodicInspection).filter(
+                PeriodicInspection.plan_id == plan_id,
+                PeriodicInspection.is_deleted == 0
+            ).all()
+            for insp in periodic_inspections:
+                insp.soft_delete(user_id)
+                deleted_stats['periodic_inspections'] += 1
             
-            deleted_stats['spot_works'] = self.repository.db.query(SpotWork).filter(
-                SpotWork.plan_id == plan_id
-            ).delete(synchronize_session=False)
+            temporary_repairs = self.repository.db.query(TemporaryRepair).filter(
+                TemporaryRepair.plan_id == plan_id,
+                TemporaryRepair.is_deleted == 0
+            ).all()
+            for repair in temporary_repairs:
+                repair.soft_delete(user_id)
+                deleted_stats['temporary_repairs'] += 1
             
-            self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan, is_delete=True)
+            spot_works = self.repository.db.query(SpotWork).filter(
+                SpotWork.plan_id == plan_id,
+                SpotWork.is_deleted == 0
+            ).all()
+            for work in spot_works:
+                work.soft_delete(user_id)
+                deleted_stats['spot_works'] += 1
+            
+            self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan, is_delete=True, user_id=user_id)
             deleted_stats['work_plan'] = True
             
-            self.repository.delete(maintenance_plan)
+            self.repository.soft_delete(maintenance_plan, user_id)
             
-            logger.info(f"✅ [Service] 维保计划删除成功: plan_id={plan_id}, "
+            logger.info(f"✅ [Service] 维保计划软删除成功: plan_id={plan_id}, "
                        f"定期巡检={deleted_stats['periodic_inspections']}, "
                        f"临时维修={deleted_stats['temporary_repairs']}, "
                        f"零星用工={deleted_stats['spot_works']}")
@@ -257,7 +273,7 @@ class MaintenancePlanService:
             return deleted_stats
             
         except Exception as e:
-            logger.error(f"❌ [Service] 删除维保计划失败: plan_id={plan_id}, error={str(e)}")
+            logger.error(f"❌ [Service] 软删除维保计划失败: plan_id={plan_id}, error={str(e)}")
             raise
     
     def update_status(self, id: int, status: str) -> MaintenancePlan:

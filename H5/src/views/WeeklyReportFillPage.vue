@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { weeklyReportService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
@@ -34,9 +33,7 @@ const currentReportDate = ref<string[]>([
  */
 const generateReportId = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<{ report_id: string }>>('/weekly-report/generate-id', {
-      params: { report_date: formData.value.reportDate }
-    })
+    const response = await weeklyReportService.generateId({ report_date: formData.value.reportDate })
     
     if (response.code === 200 && response.data) {
       formData.value.reportId = response.data.report_id
@@ -75,7 +72,7 @@ const handleSubmit = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/weekly-report', {
+    const response = await weeklyReportService.create({
       report_id: formData.value.reportId,
       report_date: formData.value.reportDate,
       work_summary: formData.value.workSummary,

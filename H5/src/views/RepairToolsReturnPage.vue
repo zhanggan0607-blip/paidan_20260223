@@ -1,32 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
-
-interface RepairToolsIssueItem {
-  id: number
-  tool_id: string
-  tool_name: string
-  specification: string
-  quantity: number
-  return_quantity: number
-  user_name: string
-  issue_time: string
-  project_name: string
-  status: string
-  stock_id: number | null
-}
+import type { RepairToolsUsage } from '../types/models'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
-const issueList = ref<RepairToolsIssueItem[]>([])
+const issueList = ref<RepairToolsUsage[]>([])
 
 const showReturnPopup = ref(false)
-const selectedItem = ref<RepairToolsIssueItem | null>(null)
+const selectedItem = ref<RepairToolsUsage | null>(null)
 const returnForm = ref({
   returnQuantity: 1 as number
 })
@@ -43,9 +29,7 @@ const fetchIssueList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: RepairToolsIssueItem[], total: number }>>('/repair-tools/issue', {
-      params: { page: 0, size: 100, status: '待归还' }
-    })
+    const response = await repairToolsService.getIssueList({ page: 0, size: 100, status: '待归还' })
     if (response.code === 200) {
       issueList.value = response.data?.items || []
     }
@@ -60,7 +44,7 @@ const fetchIssueList = async () => {
 /**
  * 打开归还弹窗
  */
-const handleOpenReturn = (item: RepairToolsIssueItem) => {
+const handleOpenReturn = (item: RepairToolsUsage) => {
   selectedItem.value = item
   returnForm.value.returnQuantity = 1
   showReturnPopup.value = true
@@ -96,7 +80,7 @@ const handleSubmitReturn = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.put<unknown, ApiResponse<null>>(`/repair-tools/issue/${selectedItem.value.id}/return`, {
+    const response = await repairToolsService.returnTool(selectedItem.value.id, {
       return_quantity: returnForm.value.returnQuantity
     })
     
@@ -123,7 +107,7 @@ const handleSubmitReturn = async () => {
 /**
  * 获取待归还数量
  */
-const getPendingReturn = (item: RepairToolsIssueItem | null) => {
+const getPendingReturn = (item: RepairToolsUsage | null) => {
   if (!item) return 0
   return item.quantity - (item.return_quantity || 0)
 }
@@ -181,7 +165,7 @@ onMounted(() => {
             <div class="card-header">
               <span class="tool-name">{{ item.tool_name }}</span>
               <span class="status-badge status-pending">
-                待归还 {{ getPendingReturn(item) }} 件
+                {{ item.status || '待归还' }} {{ getPendingReturn(item) }} 件
               </span>
             </div>
             <div class="card-body">
@@ -203,11 +187,11 @@ onMounted(() => {
               </div>
               <div class="info-row">
                 <span class="label">运维人员</span>
-                <span class="value">{{ item.user_name }}</span>
+                <span class="value">{{ item.user_name || '-' }}</span>
               </div>
               <div class="info-row">
                 <span class="label">领用时间</span>
-                <span class="value">{{ formatDate(item.issue_time) }}</span>
+                <span class="value">{{ formatDate(item.issue_time) || '-' }}</span>
               </div>
               <div class="info-row">
                 <span class="label">所属项目</span>

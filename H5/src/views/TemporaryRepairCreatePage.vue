@@ -2,21 +2,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { projectInfoService, temporaryRepairService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import type { User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
-
-interface ProjectInfo {
-  id: number
-  project_id: string
-  project_name: string
-  client_name: string
-  client_contact?: string
-  client_contact_info?: string
-}
+import type { ProjectInfo } from '../types/models'
 
 const router = useRouter()
 const { goBack } = useNavigation()
@@ -57,7 +48,7 @@ const dateDisplayText = computed(() => {
  */
 const fetchProjectList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectInfo[]>>('/project-info/all/list')
+    const response = await projectInfoService.getAll()
     if (response.code === 200) {
       projectList.value = response.data || []
     }
@@ -115,11 +106,11 @@ const handleDateRangeConfirm = (values: Date[]) => {
  * 提交临时维修单
  */
 const handleSubmit = async () => {
-  if (!formData.value.projectName) {
+  if (!formData.value?.projectName) {
     showFailToast('请选择项目名称')
     return
   }
-  if (!formData.value.remarks) {
+  if (!formData.value?.remarks) {
     showFailToast('请输入报修内容')
     return
   }
@@ -132,14 +123,14 @@ const handleSubmit = async () => {
     const todayStr = today.toISOString().slice(0, 10).replace(/-/g, '')
     const prefix = `WX-${formData.value.projectId}-${todayStr}`
     
-    const countResponse = await api.get<unknown, ApiResponse<any>>('/temporary-repair', { 
-      params: { page: 0, size: 1, repair_id: prefix }
+    const countResponse = await temporaryRepairService.getList({ 
+      page: 0, size: 1, repair_id: prefix 
     })
     let sequence = '01'
     if (countResponse.code === 200) {
       const items = countResponse.data?.content || []
       const matchingItems = items.filter((item: any) => item.repair_id && item.repair_id.startsWith(prefix))
-      if (matchingItems.length > 0) {
+      if (matchingItems.length > 0 && matchingItems[0]) {
         const lastId = matchingItems[0].repair_id
         const lastSeq = parseInt(lastId.split('-').pop() || '0')
         sequence = String(lastSeq + 1).padStart(2, '0')
@@ -148,7 +139,7 @@ const handleSubmit = async () => {
     
     const repairId = `${prefix}-${sequence}`
     
-    const response = await api.post<unknown, ApiResponse<{repair_id: string}>>('/temporary-repair', {
+    const response = await temporaryRepairService.create({
       repair_id: repairId,
       project_id: formData.value.projectId,
       project_name: formData.value.projectName,
@@ -159,7 +150,7 @@ const handleSubmit = async () => {
       client_contact_info: formData.value.clientContactInfo,
       remarks: formData.value.remarks,
       status: '待确认'
-    })
+    } as any)
     
     if (response.code === 200) {
       generatedWorkId.value = repairId

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { showSuccessToast, showLoadingToast, closeToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { authService } from '../services/auth'
+import { personnelService } from '../services/personnel'
 import { userStore, type User } from '../stores/userStore'
 import { onlineUserService } from '../services/onlineUser'
 
@@ -31,10 +31,7 @@ const loginUser = async (user: User): Promise<boolean> => {
     
     const defaultPassword = user.phone ? user.phone.slice(-6) : '123456'
     
-    const response = await api.post<unknown, ApiResponse<{
-      access_token: string
-      user: User
-    }>>('/auth/login-json', {
+    const response = await authService.login({
       username: user.name,
       password: defaultPassword,
       device_type: 'h5'
@@ -58,10 +55,16 @@ const loginUser = async (user: User): Promise<boolean> => {
 
 const loadUserList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<{content: User[] | User[]}>>('/personnel/all/list')
+    const response = await personnelService.getAll()
     if (response.code === 200 && response.data) {
-      const data = Array.isArray(response.data) ? response.data : (response.data.content || [])
-      userList.value = data || []
+      const data = Array.isArray(response.data) ? response.data : []
+      userList.value = data.map(p => ({
+        id: p.id,
+        name: p.name,
+        role: p.role || '',
+        department: p.department || '',
+        phone: p.phone || ''
+      }))
       const savedUser = userStore.getUser()
       if (savedUser) {
         const loginSuccess = await loginUser(savedUser)

@@ -25,7 +25,9 @@ class WorkPlanRepository:
         maintenance_personnel: Optional[str] = None
     ) -> tuple[List[WorkPlan], int]:
         try:
-            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project))
+            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+                WorkPlan.is_deleted == 0
+            )
 
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)
@@ -52,21 +54,30 @@ class WorkPlanRepository:
 
     def find_by_id(self, id: int) -> Optional[WorkPlan]:
         try:
-            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(WorkPlan.id == id).first()
+            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+                WorkPlan.id == id,
+                WorkPlan.is_deleted == 0
+            ).first()
         except Exception as e:
             logger.error(f"查询工作计划失败 (id={id}): {str(e)}")
             raise
 
     def find_by_plan_id(self, plan_id: str) -> Optional[WorkPlan]:
         try:
-            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(WorkPlan.plan_id == plan_id).first()
+            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+                WorkPlan.plan_id == plan_id,
+                WorkPlan.is_deleted == 0
+            ).first()
         except Exception as e:
             logger.error(f"查询工作计划失败 (plan_id={plan_id}): {str(e)}")
             raise
 
     def exists_by_plan_id(self, plan_id: str) -> bool:
         try:
-            return self.db.query(WorkPlan).filter(WorkPlan.plan_id == plan_id).first() is not None
+            return self.db.query(WorkPlan).filter(
+                WorkPlan.plan_id == plan_id,
+                WorkPlan.is_deleted == 0
+            ).first() is not None
         except Exception as e:
             logger.error(f"检查工作计划是否存在失败 (plan_id={plan_id}): {str(e)}")
             raise
@@ -92,7 +103,26 @@ class WorkPlanRepository:
             logger.error(f"更新工作计划失败: {str(e)}")
             raise
 
+    def soft_delete(self, work_plan: WorkPlan, user_id: int = None) -> None:
+        """
+        软删除工作计划
+        
+        Args:
+            work_plan: 要删除的工作计划对象
+            user_id: 执行删除的用户ID
+        """
+        try:
+            work_plan.soft_delete(user_id)
+            self.db.commit()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除工作计划失败: {str(e)}")
+            raise
+
     def delete(self, work_plan: WorkPlan) -> None:
+        """
+        物理删除（已弃用，请使用soft_delete）
+        """
         try:
             self.db.delete(work_plan)
             self.db.commit()
@@ -103,7 +133,9 @@ class WorkPlanRepository:
 
     def find_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
         try:
-            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project))
+            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+                WorkPlan.is_deleted == 0
+            )
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)
             return query.order_by(WorkPlan.created_at.desc()).all()

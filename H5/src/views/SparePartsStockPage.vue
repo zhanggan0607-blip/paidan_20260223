@@ -1,38 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { sparePartsService, personnelService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
-import type { User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
-
-interface InboundRecord {
-  id: number
-  inboundNo: string
-  productName: string
-  brand: string
-  model: string
-  quantity: number
-  supplier: string
-  userName: string
-  inboundTime: string
-  unit: string
-  remarks: string
-}
-
-interface SimpleUser {
-  id: number
-  name: string
-  role: string
-}
+import type { SparePartsInbound, Personnel } from '../types/models'
 
 const { goBack } = useNavigation()
 
 const loading = ref(false)
-const stockList = ref<InboundRecord[]>([])
-const userList = ref<SimpleUser[]>([])
+const stockList = ref<SparePartsInbound[]>([])
+const userList = ref<Personnel[]>([])
 
 const showInboundPopup = ref(false)
 const inboundForm = ref({
@@ -53,9 +32,7 @@ const fetchStockList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: InboundRecord[], total: number }>>('/spare-parts-stock/inbound-records', {
-      params: { page: 0, pageSize: 100 }
-    })
+    const response = await sparePartsService.getInboundRecords({ page: 0, pageSize: 100 })
     if (response.code === 200) {
       stockList.value = response.data?.items || []
     }
@@ -72,9 +49,9 @@ const fetchStockList = async () => {
  */
 const fetchUserList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<User[]>>('/personnel/all/list')
+    const response = await personnelService.getAll()
     if (response.code === 200) {
-      userList.value = (response.data || []).filter((user: User) => user.role === 'material_manager')
+      userList.value = (response.data || []).filter((user: Personnel) => user.role === 'material_manager')
     }
   } catch (error) {
     console.error('Failed to fetch user list:', error)
@@ -102,15 +79,15 @@ const handleSubmitInbound = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/spare-parts-stock/inbound', {
+    const response = await sparePartsService.inbound({
       product_name: inboundForm.value.productName,
-      brand: inboundForm.value.brand || null,
-      model: inboundForm.value.model || null,
+      brand: inboundForm.value.brand || undefined,
+      model: inboundForm.value.model || undefined,
       quantity: inboundForm.value.quantity,
-      supplier: inboundForm.value.supplier || null,
+      supplier: inboundForm.value.supplier || undefined,
       unit: inboundForm.value.unit,
       user_name: inboundForm.value.userName,
-      remarks: inboundForm.value.remarks || null
+      remarks: inboundForm.value.remarks || undefined
     })
     
     if (response.code === 200) {
@@ -213,7 +190,7 @@ onMounted(() => {
               </div>
               <div class="info-row">
                 <span class="label">入库人</span>
-                <span class="value">{{ item.userName }}</span>
+                <span class="value">{{ item.userName || item.user_name || '-' }}</span>
               </div>
               <div class="info-row" v-if="item.remarks">
                 <span class="label">备注</span>

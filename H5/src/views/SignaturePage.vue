@@ -2,8 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showSuccessToast, showFailToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { periodicInspectionService } from '../services'
 import { useNavigation } from '../composables'
 
 const router = useRouter()
@@ -137,9 +136,9 @@ const handleConfirm = async () => {
   if (type === 'periodic-inspection' && inspectionId) {
     showLoadingToast({ message: '保存签名...', forbidClick: true })
     try {
-      const response = await api.patch<unknown, ApiResponse<any>>(`/periodic-inspection/${inspectionId}`, {
+      const response = await periodicInspectionService.update(Number(inspectionId), {
         signature: signatureData.value
-      })
+      } as any)
       if (response.code === 200) {
         localStorage.setItem('periodic_inspection_signature', signatureData.value)
         showSuccessToast('签名保存成功')

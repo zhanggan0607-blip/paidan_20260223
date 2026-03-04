@@ -2,21 +2,12 @@
 import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { spotWorkService, projectInfoService, uploadService } from '../services'
 import { formatDate, formatDateTime, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
-
-interface ProjectInfo {
-  id: number
-  project_id: string
-  project_name: string
-  client_name: string
-  client_contact?: string
-  client_contact_info?: string
-}
+import type { ProjectInfo } from '../types/models'
 
 const router = useRouter()
 const route = useRoute()
@@ -142,7 +133,7 @@ const copyOrderId = async (orderId: string) => {
  */
 const fetchProjectList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectInfo[]>>('/project-info/all/list')
+    const response = await projectInfoService.getAll()
     if (response.code === 200) {
       projectList.value = response.data || []
     }
@@ -161,11 +152,9 @@ const fetchWorkList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<any>>('/spot-work', { 
-      params: { 
-        page: 0,
-        size: 100
-      } 
+    const response = await spotWorkService.getList({ 
+      page: 0,
+      size: 100
     })
     if (response.code === 200) {
       const allItems = response.data?.content || []
@@ -273,7 +262,7 @@ const handleSubmit = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<{work_id: string}>>('/spot-work/quick-fill', {
+    const response = await spotWorkService.quickFill({
       project_id: applyFormData.value.projectId,
       project_name: applyFormData.value.projectName,
       plan_start_date: applyFormData.value.workDateStart,
@@ -285,7 +274,7 @@ const handleSubmit = async () => {
       client_contact_info: applyFormData.value.clientContactInfo,
       photos: JSON.stringify(currentPhotos.value),
       signature: signature.value
-    })
+    } as any)
     if (response.code === 200) {
       generatedWorkId.value = response.data?.work_id || ''
       showSuccessToast({
@@ -375,13 +364,11 @@ const fetchWorkerCount = async () => {
   }
   
   try {
-    const response = await api.get<unknown, ApiResponse<any[]>>('/spot-work/workers', {
-      params: {
-        project_id: applyFormData.value.projectId,
-        start_date: applyFormData.value.workDateStart,
-        end_date: applyFormData.value.workDateEnd
-      }
-    })
+    const response = await spotWorkService.getWorkersByProject(
+      applyFormData.value.projectId,
+      applyFormData.value.workDateStart,
+      applyFormData.value.workDateEnd
+    )
     if (response.code === 200) {
       workerCount.value = response.data?.length || 0
     }
@@ -426,9 +413,7 @@ const handlePhotoCapture = () => {
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
       
-      const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
+      const response = await uploadService.uploadFile(processedFile)
       
       if (response.code === 200 && response.data) {
         currentPhotos.value.push(response.data.url)

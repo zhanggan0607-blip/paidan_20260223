@@ -300,7 +300,7 @@ export default defineComponent({
         const response = await apiClient.get('/repair-tools/stock', { 
           params, 
           signal: abortController.signal 
-        }) as unknown as ApiResponse<PaginatedResponse<RepairToolsStockItem>>
+        }) as unknown as PaginatedResponse<RepairToolsStockItem>
         
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []

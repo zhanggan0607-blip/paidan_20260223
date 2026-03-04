@@ -1,3 +1,9 @@
+/**
+ * 用户状态管理
+ * 提供两种导出方式：
+ * 1. userStore - 兼容旧代码的对象式API
+ * 2. useUserStore - Pinia Composition API
+ */
 import { ref, readonly, watch } from 'vue'
 import {
   RoleCode,

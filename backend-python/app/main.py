@@ -9,19 +9,11 @@ from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspe
 from app.database import Base, engine
 from app.exceptions import BusinessException
 from app.middleware.rate_limit import RateLimitMiddleware
-from app.utils.logging_config import setup_logging, get_log_stats, cleanup_old_logs
 import logging
 import time
 import uuid
 import os
 
-try:
-    import psutil
-    PSUTIL_AVAILABLE = True
-except ImportError:
-    PSUTIL_AVAILABLE = False
-
-setup_logging(log_level="INFO")
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
@@ -135,87 +127,6 @@ def read_root():
         "docs": settings.docs_url,
         "supported_versions": ["/api/v1"],
     }
-
-
-@app.get("/health")
-def health_check():
-    return {"status": "healthy"}
-
-
-@app.get("/health/detailed")
-def health_check_detailed():
-    """
-    详细健康检查，包含系统资源使用情况
-    """
-    try:
-        result = {
-            "status": "healthy",
-            "database": {
-                "pool_size": engine.pool.size(),
-                "checked_out": engine.pool.checkedout(),
-                "overflow": engine.pool.overflow()
-            }
-        }
-        
-        if PSUTIL_AVAILABLE:
-            import psutil
-            cpu_percent = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            try:
-                disk = psutil.disk_usage('/')
-                disk_info = {
-                    "total_gb": round(disk.total / (1024**3), 2),
-                    "used_gb": round(disk.used / (1024**3), 2),
-                    "percent": disk.percent
-                }
-            except Exception:
-                disk_info = {"error": "Unable to get disk info"}
-            
-            result["system"] = {
-                "cpu_percent": cpu_percent,
-                "memory": {
-                    "total_gb": round(memory.total / (1024**3), 2),
-                    "used_gb": round(memory.used / (1024**3), 2),
-                    "percent": memory.percent
-                },
-                "disk": disk_info
-            }
-        else:
-            result["system"] = {"note": "psutil not available"}
-        
-        return result
-    except Exception as e:
-        logger.error(f"Health check failed: {e}")
-        return {"status": "unhealthy", "error": str(e)}
-
-
-@app.get("/system/logs")
-def get_system_logs():
-    """
-    获取日志统计信息
-    """
-    try:
-        stats = get_log_stats()
-        return {"code": 200, "message": "success", "data": stats}
-    except Exception as e:
-        logger.error(f"Failed to get log stats: {e}")
-        return {"code": 500, "message": str(e), "data": None}
-
-
-@app.post("/system/logs/cleanup")
-def cleanup_logs(days: int = 30):
-    """
-    清理旧日志文件
-    
-    Args:
-        days: 保留天数，默认30天
-    """
-    try:
-        cleaned = cleanup_old_logs(days)
-        return {"code": 200, "message": f"Cleaned {cleaned} log files", "data": {"cleaned_count": cleaned}}
-    except Exception as e:
-        logger.error(f"Failed to cleanup logs: {e}")
-        return {"code": 500, "message": str(e), "data": None}
 
 
 @app.post("/migrate/add-total-count")

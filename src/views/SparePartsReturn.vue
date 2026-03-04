@@ -298,7 +298,7 @@ export default defineComponent({
         const response = await apiClient.get('/spare-parts/usage', { 
           params, 
           signal: abortController.signal 
-        }) as unknown as ApiResponse<PaginatedResponse<SparePartsUsageItem>>
+        }) as unknown as PaginatedResponse<SparePartsUsageItem>
         
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []

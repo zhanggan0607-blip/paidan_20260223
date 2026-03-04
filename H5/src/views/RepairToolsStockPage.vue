@@ -1,28 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
-
-interface RepairToolsStockItem {
-  id: number
-  tool_id: string
-  tool_name: string
-  category: string
-  specification: string
-  unit: string
-  stock: number
-  min_stock: number
-  location: string
-  last_stock_time: string
-}
+import type { RepairToolsStock } from '../types/models'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
-const stockList = ref<RepairToolsStockItem[]>([])
+const stockList = ref<RepairToolsStock[]>([])
 
 const showAddPopup = ref(false)
 const showRestockPopup = ref(false)
@@ -57,9 +44,7 @@ const fetchStockList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: RepairToolsStockItem[], total: number }>>('/repair-tools/stock', {
-      params: { page: 0, size: 100 }
-    })
+    const response = await repairToolsService.getStockList({ page: 0, size: 100 })
     if (response.code === 200) {
       stockList.value = response.data?.items || []
     }
@@ -93,17 +78,17 @@ const handleAdd = () => {
 /**
  * 编辑工具
  */
-const handleEdit = (item: RepairToolsStockItem) => {
+const handleEdit = (item: RepairToolsStock) => {
   isEdit.value = true
   addForm.value = {
     id: item.id,
     tool_name: item.tool_name,
-    category: item.category,
-    specification: item.specification,
+    category: item.category || '',
+    specification: item.specification || '',
     unit: item.unit,
-    stock: item.stock,
-    min_stock: item.min_stock,
-    location: item.location,
+    stock: item.stock || 0,
+    min_stock: item.min_stock || 0,
+    location: item.location || '',
     remark: ''
   }
   showAddPopup.value = true
@@ -124,9 +109,9 @@ const handleSubmitAdd = async () => {
   try {
     let response
     if (isEdit.value) {
-      response = await api.put<unknown, ApiResponse<null>>(`/repair-tools/stock/${addForm.value.id}`, addForm.value)
+      response = await repairToolsService.updateStock(addForm.value.id, addForm.value)
     } else {
-      response = await api.post<unknown, ApiResponse<null>>('/repair-tools/stock', addForm.value)
+      response = await repairToolsService.createStock(addForm.value)
     }
     
     if (response.code === 200) {
@@ -148,11 +133,11 @@ const handleSubmitAdd = async () => {
 /**
  * 入库
  */
-const handleRestock = (item: RepairToolsStockItem) => {
+const handleRestock = (item: RepairToolsStock) => {
   restockForm.value = {
     id: item.id,
     tool_name: item.tool_name,
-    current_stock: item.stock,
+    current_stock: item.stock || 0,
     quantity: 1,
     remark: ''
   }
@@ -172,7 +157,7 @@ const handleSubmitRestock = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>(`/repair-tools/stock/${restockForm.value.id}/restock`, {
+    const response = await repairToolsService.restock(restockForm.value.id, {
       quantity: restockForm.value.quantity,
       remark: restockForm.value.remark
     })
@@ -196,8 +181,8 @@ const handleSubmitRestock = async () => {
 /**
  * 获取库存样式
  */
-const getStockClass = (item: RepairToolsStockItem) => {
-  return item.stock <= item.min_stock ? 'stock-low' : 'stock-normal'
+const getStockClass = (item: RepairToolsStock) => {
+  return (item.stock || 0) <= (item.min_stock || 0) ? 'stock-low' : 'stock-normal'
 }
 
 const handleBack = () => {

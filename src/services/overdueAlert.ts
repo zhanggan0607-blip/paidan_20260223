@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 超期预警服务
+ * 提供超期工单查询功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 
 export interface OverdueItem {
   id: string
@@ -13,7 +18,7 @@ export interface OverdueItem {
   executor: string
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   code: number
   message: string
   data: T
@@ -25,6 +30,9 @@ export interface OverdueAlertResponse {
 }
 
 export const overdueAlertService = {
+  /**
+   * 获取超期预警列表
+   */
   async getOverdueAlerts(params?: {
     project_name?: string
     client_name?: string
@@ -37,6 +45,6 @@ export const overdueAlertService = {
       size: 1000,
       ...params
     }
-    return await apiClient.get('/overdue-alert', { params: queryParams })
+    return await request.get(API_ENDPOINTS.OVERDUE_ALERT.LIST, { params: queryParams })
   }
 }

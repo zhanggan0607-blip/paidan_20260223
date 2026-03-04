@@ -1,48 +1,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { sparePartsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
-
-interface SparePartsIssueItem {
-  id: number
-  project_id: string
-  projectName: string
-  productName: string
-  brand: string
-  model: string
-  quantity: number
-  userName: string
-  issueTime: string
-  unit: string
-}
-
-interface StockItem {
-  id: number
-  productName: string
-  brand: string
-  model: string
-  quantity: number
-  unit: string
-}
-
-interface ProjectItem {
-  project_id: string
-  project_name: string
-}
+import type { SparePartsUsage, SparePartsStock, ProjectInfo } from '../types/models'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
-const issueList = ref<SparePartsIssueItem[]>([])
-const stockList = ref<StockItem[]>([])
-const projectList = ref<ProjectItem[]>([])
+const issueList = ref<SparePartsUsage[]>([])
+const stockList = ref<SparePartsStock[]>([])
+const projectList = ref<ProjectInfo[]>([])
 
 const showIssuePopup = ref(false)
-const selectedStock = ref<StockItem | null>(null)
+const selectedStock = ref<SparePartsStock | null>(null)
 const issueForm = ref({
   projectId: '',
   projectName: '',
@@ -50,7 +23,7 @@ const issueForm = ref({
 })
 
 const filteredStockList = computed(() => {
-  return stockList.value.filter(item => item.quantity > 0)
+  return stockList.value.filter(item => (item.quantity || item.stock || 0) > 0)
 })
 
 const maxQuantity = computed(() => {
@@ -64,9 +37,7 @@ const fetchIssueList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: SparePartsIssueItem[], total: number }>>('/spare-parts/usage', {
-      params: { page: 0, pageSize: 100 }
-    })
+    const response = await sparePartsService.getUsageList({ page: 0, pageSize: 100 })
     if (response && response.code === 200) {
       issueList.value = response.data?.items || []
     }
@@ -83,9 +54,7 @@ const fetchIssueList = async () => {
  */
 const fetchStockList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<{ items: StockItem[], total: number }>>('/spare-parts/stock', {
-      params: { page: 0, pageSize: 500 }
-    })
+    const response = await sparePartsService.getStockList({ page: 0, pageSize: 500 })
     if (response.code === 200) {
       stockList.value = response.data?.items || []
     }
@@ -99,7 +68,7 @@ const fetchStockList = async () => {
  */
 const fetchProjectList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectItem[]>>('/project-info/all/list')
+    const response = await projectInfoService.getAll()
     if (response.code === 200) {
       projectList.value = response.data || []
     }
@@ -111,7 +80,7 @@ const fetchProjectList = async () => {
 /**
  * 选择库存产品
  */
-const handleSelectStock = (item: StockItem) => {
+const handleSelectStock = (item: SparePartsStock) => {
   selectedStock.value = item
   issueForm.value.quantity = 1
 }
@@ -146,7 +115,7 @@ const handleSubmitIssue = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
   
   try {
-    const response = await api.post<unknown, ApiResponse<null>>('/spare-parts/usage', {
+    const response = await sparePartsService.issue({
       product_name: selectedStock.value.productName,
       brand: selectedStock.value.brand || null,
       model: selectedStock.value.model || null,
@@ -230,8 +199,8 @@ onMounted(() => {
             class="issue-card"
           >
             <div class="card-header">
-              <span class="product-name">{{ item.productName }}</span>
-              <span class="issue-date">{{ formatDate(item.issueTime) }}</span>
+              <span class="product-name">{{ item.productName || item.product_name }}</span>
+              <span class="issue-date">{{ formatDate(item.issueTime || item.issue_time) }}</span>
             </div>
             <div class="card-body">
               <div class="info-row">
@@ -256,7 +225,7 @@ onMounted(() => {
               </div>
               <div class="info-row">
                 <span class="label">运维人员</span>
-                <span class="value">{{ item.userName }}</span>
+                <span class="value">{{ item.userName || item.user_name || '-' }}</span>
               </div>
             </div>
           </div>

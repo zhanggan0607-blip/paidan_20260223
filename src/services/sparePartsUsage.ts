@@ -1,4 +1,9 @@
-import apiClient from '../utils/api'
+/**
+ * 备件使用服务
+ * 提供备件使用记录查询功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
 import type { SparePartsUsage as SparePartsUsageType, ApiResponse } from '../types/api'
 
 export type SparePartsUsage = SparePartsUsageType
@@ -9,6 +14,9 @@ export interface SparePartsUsageListResponse {
 }
 
 export const sparePartsUsageService = {
+  /**
+   * 获取备件使用列表
+   */
   async getList(params?: {
     page?: number
     pageSize?: number
@@ -16,6 +24,6 @@ export const sparePartsUsageService = {
     product?: string
     project?: string
   }): Promise<ApiResponse<SparePartsUsageListResponse>> {
-    return await apiClient.get('/spare-parts/usage', { params })
+    return await request.get(API_ENDPOINTS.SPARE_PARTS_USAGE.LIST, { params })
   }
 }

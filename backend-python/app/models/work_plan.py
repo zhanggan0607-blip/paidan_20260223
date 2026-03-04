@@ -1,10 +1,11 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text
+from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text, Boolean
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
+from app.models.mixins import SoftDeleteMixin
 
 
-class WorkPlan(Base):
+class WorkPlan(Base, SoftDeleteMixin):
     __tablename__ = "work_plan"
     
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
+import { maintenanceLogService, projectInfoService, uploadService } from '../services'
+import type { ProjectInfo } from '../types/models'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
@@ -11,12 +11,6 @@ import { useNavigation } from '../composables/useNavigation'
 // TODO: 维保日志填报页面 - 考虑加入草稿自动保存功能
 // FIXME: 图片上传失败时没有重试机制
 // TODO: 表单数据应该支持本地缓存，防止页面刷新丢失
-interface ProjectInfo {
-  id: number
-  project_id: string
-  project_name: string
-  client_name: string
-}
 
 interface LogImage {
   id?: number
@@ -58,7 +52,7 @@ const selectedProjectName = ref('')
  */
 const fetchProjectList = async () => {
   try {
-    const response = await api.get<unknown, ApiResponse<ProjectInfo[]>>('/project-info/all/list')
+    const response = await projectInfoService.getAll()
     if (response.code === 200) {
       projectList.value = response.data || []
     }
@@ -177,15 +171,8 @@ const handleDeleteImage = async (index: number) => {
 const uploadImage = async (image: LogImage): Promise<string | null> => {
   if (!image.file) return null
   
-  const formDataObj = new FormData()
-  formDataObj.append('file', image.file)
-  
   try {
-    const response = await api.post<unknown, ApiResponse<{ url: string }>>('/upload', formDataObj, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    const response = await uploadService.uploadFile(image.file)
     if (response.code === 200 && response.data) {
       return response.data.url
     }
@@ -223,14 +210,11 @@ const handleSubmit = async () => {
       }
     }
     
-    const response = await api.post<unknown, ApiResponse<null>>('/maintenance-log', {
+    const response = await maintenanceLogService.create({
       project_id: formData.value.projectId,
       project_name: formData.value.projectName,
-      log_type: formData.value.logType,
       log_date: formData.value.logDate,
-      work_content: formData.value.workContent,
-      remark: formData.value.remark,
-      images: uploadedUrls
+      log_content: formData.value.workContent,
     })
     
     if (response.code === 200) {

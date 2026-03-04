@@ -1,21 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import api from '../utils/api'
-import type { ApiResponse } from '../types'
-
-interface OperationLog {
-  id: number
-  work_order_type: string
-  work_order_id: number
-  work_order_no: string
-  operator_name: string
-  operator_id: number | null
-  operation_type_code: string
-  operation_type_name: string
-  color_code: string | null
-  operation_remark: string | null
-  created_at: string
-}
+import { operationLogService } from '../services/operationLog'
+import type { OperationLog } from '../types/models'
 
 const props = defineProps<{
   workOrderType: string
@@ -57,9 +43,10 @@ const fetchLogs = async () => {
   
   loading.value = true
   try {
-    const response = await api.get<unknown, ApiResponse<OperationLog[]>>(
-      `/work-order-operation-log?work_order_type=${props.workOrderType}&work_order_id=${props.workOrderId}`
-    )
+    const response = await operationLogService.getByWorkOrder({
+      work_order_type: props.workOrderType,
+      work_order_id: props.workOrderId
+    })
     if (response.code === 200) {
       logs.value = response.data || []
     }
