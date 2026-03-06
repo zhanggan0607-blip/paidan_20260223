@@ -93,7 +93,9 @@ export const customerService = {
    * 删除客户
    */
   async delete(id: number, cascade: boolean = false): Promise<ApiResponse<void>> {
-    const response = await request.delete(API_ENDPOINTS.CUSTOMER.DETAIL(id), { params: { cascade } })
+    const response = await request.delete(API_ENDPOINTS.CUSTOMER.DETAIL(id), {
+      params: { cascade },
+    })
     return response as unknown as ApiResponse<void>
-  }
+  },
 }

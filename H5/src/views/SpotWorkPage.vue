@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { spotWorkService } from '../services'
-import { formatDate, formatDateTime, getWorkIdFontSize, getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '@sstcp/shared'
+import {
+  formatDate,
+  formatDateTime,
+  getWorkIdFontSize,
+  getStatusType,
+  getDisplayStatus,
+  BASE_WORK_TABS,
+  APPROVAL_TAB,
+} from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
@@ -38,7 +46,7 @@ const fetchWorkList = async () => {
     const response = await spotWorkService.getList({ page: 0, size: 100 })
     if (response.code === 200) {
       const allItems = response.data?.content || response.data?.items || []
-      const filteredItems = allItems.filter((item: any) => 
+      const filteredItems = allItems.filter((item: any) =>
         currentTab.value?.statuses.includes(item.status)
       )
       workList.value = filteredItems.sort((a: any, b: any) => {
@@ -89,16 +97,17 @@ onMounted(() => {
     }
   }
 })
+
+onActivated(() => {
+  if (userReady.value) {
+    fetchWorkList()
+  }
+})
 </script>
 
 <template>
   <div class="spot-work-page">
-    <van-nav-bar 
-      title="零星用工" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="零星用工" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -106,27 +115,34 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
+        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
       </template>
     </van-nav-bar>
-    
-    <van-tabs v-model:active="activeTab" sticky @change="fetchWorkList" :color="currentTabColor">
+
+    <van-tabs v-model:active="activeTab" sticky :color="currentTabColor" @change="fetchWorkList">
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">
         <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
           <van-list :loading="loading" :finished="true">
             <div class="work-list">
-              <div 
-                v-for="item in workList" 
-                :key="item.id"
-                class="work-card"
-              >
+              <div v-for="item in workList" :key="item.id" class="work-card">
                 <div class="card-header">
                   <van-tag :type="getStatusType(item.status)" size="medium">
                     {{ getDisplayStatus(item.status) }}
                   </van-tag>
                   <div class="work-id-wrapper">
-                    <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.work_id) + 'px' }">{{ item.work_id }}</span>
-                    <van-button size="mini" type="primary" plain class="copy-btn" @click.stop="copyOrderId(item.work_id)">复制单号</van-button>
+                    <span
+                      class="work-id"
+                      :style="{ fontSize: getWorkIdFontSize(item.work_id) + 'px' }"
+                      >{{ item.work_id }}</span
+                    >
+                    <van-button
+                      size="mini"
+                      type="primary"
+                      plain
+                      class="copy-btn"
+                      @click.stop="copyOrderId(item.work_id)"
+                      >复制单号</van-button
+                    >
                   </div>
                 </div>
                 <div class="card-body">
@@ -140,31 +156,33 @@ onMounted(() => {
                   </div>
                   <div class="info-row">
                     <span class="label">运维时间</span>
-                    <span class="value">{{ formatDate(item.plan_start_date) }} -- {{ formatDate(item.plan_end_date) }}</span>
+                    <span class="value"
+                      >{{ formatDate(item.plan_start_date) }} --
+                      {{ formatDate(item.plan_end_date) }}</span
+                    >
                   </div>
                   <div class="info-row">
                     <span class="label">备注</span>
                     <span class="value">{{ item.remarks || '-' }}</span>
                   </div>
-                  <div class="info-row" v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'">
+                  <div
+                    v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'"
+                    class="info-row"
+                  >
                     <span class="label">提交时间</span>
                     <span class="value">{{ formatDateTime(item.updated_at) }}</span>
                   </div>
                 </div>
                 <div class="card-footer">
-                  <van-button 
+                  <van-button
                     v-if="currentTab?.key === '审批'"
-                    type="success" 
+                    type="success"
                     size="small"
                     @click="handleApprove(item)"
                   >
                     审批
                   </van-button>
-                  <van-button 
-                    type="primary" 
-                    size="small"
-                    @click="handleView(item)"
-                  >
+                  <van-button type="primary" size="small" @click="handleView(item)">
                     查看
                   </van-button>
                 </div>

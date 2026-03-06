@@ -4,7 +4,7 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { SpotWork as SpotWorkType, SpotWorkWorker, ApiResponse, PaginatedResponse } from '../types/api'
+import type { SpotWork as SpotWorkType, ApiResponse } from '../types/api'
 
 export type SpotWork = SpotWorkType
 
@@ -107,5 +107,5 @@ export const spotWorkService = {
    */
   async delete(id: number): Promise<ApiResponse<null>> {
     return await request.delete(API_ENDPOINTS.SPOT_WORK.DETAIL(id))
-  }
+  },
 }

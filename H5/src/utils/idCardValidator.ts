@@ -34,7 +34,10 @@ export function validateIdCard(idCard: string): IdCardValidationResult {
   }
 
   if (!/^\d{17}[\dX]$/.test(idCardUpper)) {
-    return { valid: false, message: '身份证号码格式不正确，前17位必须为数字，最后一位可以是数字或X' }
+    return {
+      valid: false,
+      message: '身份证号码格式不正确，前17位必须为数字，最后一位可以是数字或X',
+    }
   }
 
   let sum = 0
@@ -42,7 +45,7 @@ export function validateIdCard(idCard: string): IdCardValidationResult {
     sum += parseInt(idCardUpper[i]!, 10) * WEIGHTS[i]!
   }
   const checkCode = CHECK_CODES[sum % 11]
-  
+
   if (idCardUpper[17] !== checkCode) {
     return { valid: false, message: '身份证号码校验码错误，请检查是否输入正确' }
   }
@@ -65,7 +68,7 @@ export function validateIdCard(idCard: string): IdCardValidationResult {
   const birthDateObj = new Date(year, month - 1, day)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  
+
   if (birthDateObj > today) {
     return { valid: false, message: '身份证号码中出生日期不能晚于今天' }
   }
@@ -82,7 +85,7 @@ export function validateIdCard(idCard: string): IdCardValidationResult {
     valid: true,
     message: '身份证号码验证通过',
     birthDate,
-    gender
+    gender,
   }
 }
 
@@ -95,11 +98,11 @@ export function extractBirthDate(idCard: string): string | null {
   if (!idCard || idCard.length !== 18) {
     return null
   }
-  
+
   const year = idCard.substring(6, 10)
   const month = idCard.substring(10, 12)
   const day = idCard.substring(12, 14)
-  
+
   return `${year}-${month}-${day}`
 }
 
@@ -112,7 +115,7 @@ export function extractGender(idCard: string): string | null {
   if (!idCard || idCard.length !== 18) {
     return null
   }
-  
+
   const genderCode = parseInt(idCard.substring(16, 17), 10)
   return genderCode % 2 === 1 ? '男' : '女'
 }
@@ -126,17 +129,17 @@ export function calculateAge(birthDate: string): number | null {
   if (!birthDate) {
     return null
   }
-  
+
   const birth = new Date(birthDate)
   const today = new Date()
-  
+
   let age = today.getFullYear() - birth.getFullYear()
   const monthDiff = today.getMonth() - birth.getMonth()
-  
+
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
     age--
   }
-  
+
   return age >= 0 ? age : null
 }
 

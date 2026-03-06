@@ -15,10 +15,13 @@ export const uploadService = {
   /**
    * 上传图片（Base64）
    */
-  async uploadImageBase64(base64Data: string, filename?: string): Promise<ApiResponse<UploadResponse>> {
+  async uploadImageBase64(
+    base64Data: string,
+    filename?: string
+  ): Promise<ApiResponse<UploadResponse>> {
     return request.post(API_ENDPOINTS.UPLOAD.BASE64, {
       image_base64: base64Data,
-      filename
+      filename,
     })
   },
 
@@ -30,8 +33,8 @@ export const uploadService = {
     formData.append('file', file)
     return request.post(API_ENDPOINTS.UPLOAD.FILE, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+        'Content-Type': 'multipart/form-data',
+      },
     })
   },
 }

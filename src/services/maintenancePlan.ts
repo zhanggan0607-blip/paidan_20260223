@@ -204,18 +204,23 @@ export const maintenancePlanService = {
    * 更新维保计划完成率
    */
   async updateCompletionRate(id: number, rate: number): Promise<ApiResponse<MaintenancePlan>> {
-    return await request.patch(`/maintenance-plan/${id}/completion-rate`, null, { params: { rate } })
+    return await request.patch(`/maintenance-plan/${id}/completion-rate`, null, {
+      params: { rate },
+    })
   },
 
   /**
    * 根据日期范围获取维保计划
    */
-  async getByDateRange(startDate: string, endDate: string): Promise<ApiResponse<MaintenancePlan[]>> {
+  async getByDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<ApiResponse<MaintenancePlan[]>> {
     return await request.get('/maintenance-plan/date-range/list', {
       params: {
         start_date: startDate,
-        end_date: endDate
-      }
+        end_date: endDate,
+      },
     })
-  }
+  },
 }

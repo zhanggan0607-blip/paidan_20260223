@@ -36,7 +36,7 @@
               </div>
             </div>
             <div class="action-buttons">
-              <button @click="handleAdd" class="btn btn-add">新增领用</button>
+              <button class="btn btn-add" @click="handleAdd">新增领用</button>
             </div>
           </div>
 
@@ -66,7 +66,12 @@
                 <tr v-else-if="dataList.length === 0">
                   <td colspan="10" class="empty-cell">暂无数据</td>
                 </tr>
-                <tr v-else v-for="(item, index) in dataList" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+                <tr
+                  v-for="(item, index) in dataList"
+                  v-else
+                  :key="item.id"
+                  :class="{ 'even-row': index % 2 === 0 }"
+                >
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.project_id }}</td>
                   <td>{{ item.project_name }}</td>
@@ -82,11 +87,13 @@
             </table>
 
             <div class="pagination-section">
-              <div class="pagination-info">
-                共 {{ total }} 条记录
-              </div>
+              <div class="pagination-info">共 {{ total }} 条记录</div>
               <div class="pagination-controls">
-                <button class="page-btn page-nav" :disabled="currentPage === 1" @click="handlePageChange(currentPage - 1)">
+                <button
+                  class="page-btn page-nav"
+                  :disabled="currentPage === 1"
+                  @click="handlePageChange(currentPage - 1)"
+                >
                   &lt;
                 </button>
                 <button
@@ -98,10 +105,14 @@
                 >
                   {{ page }}
                 </button>
-                <button class="page-btn page-nav" :disabled="currentPage >= totalPages" @click="handlePageChange(currentPage + 1)">
+                <button
+                  class="page-btn page-nav"
+                  :disabled="currentPage >= totalPages"
+                  @click="handlePageChange(currentPage + 1)"
+                >
                   &gt;
                 </button>
-                <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+                <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
                   <option value="10">10 条 / 页</option>
                   <option value="20">20 条 / 页</option>
                   <option value="50">50 条 / 页</option>
@@ -109,7 +120,13 @@
                 </select>
                 <div class="page-jump">
                   <span>跳至</span>
-                  <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+                  <input
+                    v-model="jumpPage"
+                    type="number"
+                    class="page-input"
+                    min="1"
+                    :max="totalPages"
+                  />
                   <span>页</span>
                   <button class="page-btn page-go" @click="handleJump">Go</button>
                 </div>
@@ -138,7 +155,10 @@
                 @input="handleProductSearch"
                 @focus="showProductDropdown = true"
               />
-              <div v-if="showProductDropdown && filteredStockList.length > 0" class="product-dropdown">
+              <div
+                v-if="showProductDropdown && filteredStockList.length > 0"
+                class="product-dropdown"
+              >
                 <div
                   v-for="stock in filteredStockList"
                   :key="stock.id"
@@ -146,21 +166,33 @@
                   @click="selectProduct(stock)"
                 >
                   <span class="product-name">{{ stock.product_name }}</span>
-                  <span class="product-spec">{{ stock.brand || '-' }} / {{ stock.model || '-' }}</span>
+                  <span class="product-spec"
+                    >{{ stock.brand || '-' }} / {{ stock.model || '-' }}</span
+                  >
                   <span class="product-stock">库存: {{ stock.quantity }}</span>
                 </div>
               </div>
-              <div v-if="showProductDropdown && productSearchKeyword && filteredStockList.length === 0" class="product-dropdown">
+              <div
+                v-if="showProductDropdown && productSearchKeyword && filteredStockList.length === 0"
+                class="product-dropdown"
+              >
                 <div class="product-empty">未找到匹配的产品</div>
               </div>
             </div>
             <div v-if="selectedProduct" class="selected-product-info">
-              已选择: {{ selectedProduct.product_name }} ({{ selectedProduct.brand || '无品牌' }} / {{ selectedProduct.model || '无型号' }}) - 库存: {{ selectedProduct.quantity }}
+              已选择: {{ selectedProduct.product_name }} ({{ selectedProduct.brand || '无品牌' }} /
+              {{ selectedProduct.model || '无型号' }}) - 库存: {{ selectedProduct.quantity }}
             </div>
           </div>
           <div class="form-item">
             <label class="form-label">领用数量<span class="required">*</span></label>
-            <input v-model.number="formData.quantity" type="number" :min="1" class="form-input" placeholder="请输入领用数量" />
+            <input
+              v-model.number="formData.quantity"
+              type="number"
+              :min="1"
+              class="form-input"
+              placeholder="请输入领用数量"
+            />
           </div>
           <div class="form-item">
             <label class="form-label">运维人员</label>
@@ -176,19 +208,27 @@
             <label class="form-label">所属项目</label>
             <select v-model="formData.project_id" class="form-select" @change="handleProjectChange">
               <option value="">请选择项目</option>
-              <option v-for="project in filteredProjectList" :key="project.project_id" :value="project.project_id">
+              <option
+                v-for="project in filteredProjectList"
+                :key="project.project_id"
+                :value="project.project_id"
+              >
                 {{ project.project_name }}
               </option>
             </select>
           </div>
           <div class="form-item">
             <label class="form-label">备注</label>
-            <textarea v-model="formData.remark" class="form-textarea" placeholder="请输入备注"></textarea>
+            <textarea
+              v-model="formData.remark"
+              class="form-textarea"
+              placeholder="请输入备注"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeAddModal">取消</button>
-          <button class="confirm-btn" @click="handleSubmit" :disabled="submitting">
+          <button class="confirm-btn" :disabled="submitting" @click="handleSubmit">
             {{ submitting ? '提交中...' : '确认' }}
           </button>
         </div>
@@ -198,10 +238,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, onUnmounted, watch } from 'vue'
+import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import { USER_ROLES } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
 import { userStore } from '@/stores/userStore'
 
@@ -262,7 +301,7 @@ interface PersonnelProject {
 export default defineComponent({
   name: 'SparePartsIssue',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
@@ -277,7 +316,7 @@ export default defineComponent({
     const filters = ref({
       user: '',
       product: '',
-      project: ''
+      project: '',
     })
 
     const formData = ref({
@@ -285,7 +324,7 @@ export default defineComponent({
       quantity: 1,
       project_id: '',
       remark: '',
-      user_id: ''
+      user_id: '',
     })
 
     const stockList = ref<SparePartsStock[]>([])
@@ -324,15 +363,15 @@ export default defineComponent({
      */
     const filteredStockList = computed(() => {
       if (!productSearchKeyword.value) {
-        return stockList.value.filter(s => s.quantity > 0)
+        return stockList.value.filter((s) => s.quantity > 0)
       }
       const keyword = productSearchKeyword.value.toLowerCase()
-      return stockList.value.filter(s =>
-        s.quantity > 0 && (
-          s.product_name.toLowerCase().includes(keyword) ||
-          (s.brand && s.brand.toLowerCase().includes(keyword)) ||
-          (s.model && s.model.toLowerCase().includes(keyword))
-        )
+      return stockList.value.filter(
+        (s) =>
+          s.quantity > 0 &&
+          (s.product_name.toLowerCase().includes(keyword) ||
+            (s.brand && s.brand.toLowerCase().includes(keyword)) ||
+            (s.model && s.model.toLowerCase().includes(keyword)))
       )
     })
 
@@ -342,7 +381,7 @@ export default defineComponent({
     const filteredProjectList = computed(() => {
       if (formData.value.user_id) {
         const userProjects = personnelProjects.value.find(
-          pp => pp.personnel_id === Number(formData.value.user_id)
+          (pp) => pp.personnel_id === Number(formData.value.user_id)
         )
         if (userProjects) {
           return userProjects.projects
@@ -364,16 +403,16 @@ export default defineComponent({
       try {
         const params: Record<string, any> = {
           page: currentPage.value - 1,
-          pageSize: pageSize.value
+          pageSize: pageSize.value,
         }
         if (filters.value.user) params.user = filters.value.user
         if (filters.value.product) params.product = filters.value.product
         if (filters.value.project) params.project = filters.value.project
 
-        const response = await apiClient.get('/spare-parts/usage', {
+        const response = (await apiClient.get('/spare-parts/usage', {
           params,
-          signal: abortController.signal
-        }) as unknown as PaginatedResponse<SparePartsIssueItem>
+          signal: abortController.signal,
+        })) as unknown as PaginatedResponse<SparePartsIssueItem>
 
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
@@ -392,9 +431,9 @@ export default defineComponent({
      */
     const loadStock = async () => {
       try {
-        const response = await apiClient.get('/spare-parts-stock/stock', {
-          params: { page: 0, pageSize: 500 }
-        }) as unknown as PaginatedResponse<SparePartsStock>
+        const response = (await apiClient.get('/spare-parts-stock/stock', {
+          params: { page: 0, pageSize: 500 },
+        })) as unknown as PaginatedResponse<SparePartsStock>
         if (response && response.code === 200 && response.data) {
           stockList.value = response.data.items || response.data.content || []
         }
@@ -408,7 +447,9 @@ export default defineComponent({
      */
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info/all/list') as unknown as ApiResponse<Project[]>
+        const response = (await apiClient.get('/project-info/all/list')) as unknown as ApiResponse<
+          Project[]
+        >
         if (response && response.code === 200 && response.data) {
           projectList.value = response.data || []
         }
@@ -422,7 +463,9 @@ export default defineComponent({
      */
     const loadPersonnelProjects = async () => {
       try {
-        const response = await apiClient.get('/repair-tools/personnel-projects') as unknown as ApiResponse<PersonnelProject[]>
+        const response = (await apiClient.get(
+          '/repair-tools/personnel-projects'
+        )) as unknown as ApiResponse<PersonnelProject[]>
         if (response && response.code === 200 && response.data) {
           personnelProjects.value = response.data || []
         }
@@ -463,12 +506,15 @@ export default defineComponent({
     const handleProjectChange = async () => {
       if (formData.value.project_id) {
         try {
-          const response = await apiClient.get('/repair-tools/personnel-projects', {
-            params: { project_id: formData.value.project_id }
-          }) as unknown as ApiResponse<User[]>
+          const response = (await apiClient.get('/repair-tools/personnel-projects', {
+            params: { project_id: formData.value.project_id },
+          })) as unknown as ApiResponse<User[]>
           if (response && response.code === 200 && response.data && response.data.length > 0) {
             const projectUserIds = response.data.map((u: User) => u.id)
-            if (formData.value.user_id && !projectUserIds.includes(Number(formData.value.user_id))) {
+            if (
+              formData.value.user_id &&
+              !projectUserIds.includes(Number(formData.value.user_id))
+            ) {
               formData.value.user_id = ''
             }
           }
@@ -495,7 +541,7 @@ export default defineComponent({
         quantity: 1,
         project_id: '',
         remark: '',
-        user_id: ''
+        user_id: '',
       }
       productSearchKeyword.value = ''
       selectedProduct.value = null
@@ -522,9 +568,9 @@ export default defineComponent({
 
       submitting.value = true
       try {
-        const project = projectList.value.find(p => p.project_id === formData.value.project_id)
+        const project = projectList.value.find((p) => p.project_id === formData.value.project_id)
 
-        const response = await apiClient.post('/spare-parts/usage', {
+        const response = (await apiClient.post('/spare-parts/usage', {
           product_name: selectedProduct.value?.product_name,
           brand: selectedProduct.value?.brand,
           model: selectedProduct.value?.model,
@@ -533,8 +579,8 @@ export default defineComponent({
           user_name: userStore.getUser()?.name,
           project_id: formData.value.project_id || null,
           project_name: project?.project_name || null,
-          remark: formData.value.remark
-        }) as unknown as ApiResponse<any>
+          remark: formData.value.remark,
+        })) as unknown as ApiResponse<any>
 
         if (response && response.code === 200) {
           alert('领用成功')
@@ -655,9 +701,9 @@ export default defineComponent({
       handleSubmit,
       handlePageChange,
       handlePageSizeChange,
-      handleJump
+      handleJump,
     }
-  }
+  },
 })
 </script>
 
@@ -831,8 +877,12 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .pagination-section {

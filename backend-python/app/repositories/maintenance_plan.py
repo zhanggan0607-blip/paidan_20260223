@@ -20,7 +20,7 @@ class MaintenancePlanRepository:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.id == id,
-                MaintenancePlan.is_deleted == 0
+                MaintenancePlan.is_deleted == False
             ).first()
         except Exception as e:
             logger.error(f"查询维保计划失败 (id={id}): {str(e)}")
@@ -30,7 +30,7 @@ class MaintenancePlanRepository:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.plan_id == plan_id,
-                MaintenancePlan.is_deleted == 0
+                MaintenancePlan.is_deleted == False
             ).first()
         except Exception as e:
             logger.error(f"查询维保计划失败 (plan_id={plan_id}): {str(e)}")
@@ -40,7 +40,7 @@ class MaintenancePlanRepository:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.plan_id == plan_id,
-                MaintenancePlan.is_deleted == 0
+                MaintenancePlan.is_deleted == False
             ).first() is not None
         except Exception as e:
             logger.error(f"检查维保计划是否存在失败 (plan_id={plan_id}): {str(e)}")
@@ -63,7 +63,7 @@ class MaintenancePlanRepository:
     ) -> tuple[List[MaintenancePlan], int]:
         try:
             query = self.db.query(MaintenancePlan).filter(
-                MaintenancePlan.is_deleted == 0
+                MaintenancePlan.is_deleted == False
             )
 
             if plan_name:
@@ -109,7 +109,7 @@ class MaintenancePlanRepository:
             return self.db.query(MaintenancePlan).options(
                 joinedload(MaintenancePlan.project)
             ).filter(
-                MaintenancePlan.is_deleted == 0
+                MaintenancePlan.is_deleted == False
             ).order_by(MaintenancePlan.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有维保计划失败: {str(e)}")
@@ -119,7 +119,7 @@ class MaintenancePlanRepository:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id == project_id,
-                MaintenancePlan.is_deleted == 0
+                MaintenancePlan.is_deleted == False
             ).order_by(MaintenancePlan.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询项目维保计划失败 (project_id={project_id}): {str(e)}")
@@ -135,7 +135,7 @@ class MaintenancePlanRepository:
                 and_(
                     MaintenancePlan.execution_date >= start_date,
                     MaintenancePlan.execution_date <= end_date,
-                    MaintenancePlan.is_deleted == 0
+                    MaintenancePlan.is_deleted == False
                 )
             ).order_by(MaintenancePlan.execution_date.asc()).all()
         except Exception as e:
@@ -151,7 +151,7 @@ class MaintenancePlanRepository:
                     MaintenancePlan.execution_date >= start_date,
                     MaintenancePlan.execution_date <= end_date,
                     MaintenancePlan.status == '执行中',
-                    MaintenancePlan.is_deleted == 0
+                    MaintenancePlan.is_deleted == False
                 )
             ).order_by(MaintenancePlan.execution_date.asc()).all()
         except Exception as e:

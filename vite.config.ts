@@ -33,8 +33,11 @@ export default defineConfig(({ mode }) => ({
       '@sstcp/shared/utils/format': resolve(__dirname, 'packages/shared/src/utils/format.ts'),
       '@sstcp/shared/api/endpoints': resolve(__dirname, 'packages/shared/src/api/endpoints.ts'),
       '@sstcp/shared/types/api': resolve(__dirname, 'packages/shared/src/types/api.ts'),
-      '@sstcp/shared/types/permission': resolve(__dirname, 'packages/shared/src/types/permission.ts')
-    }
+      '@sstcp/shared/types/permission': resolve(
+        __dirname,
+        'packages/shared/src/types/permission.ts'
+      ),
+    },
   },
   server: {
     host: true,
@@ -57,8 +60,8 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         timeout: 60000,
         proxyTimeout: 60000,
-      }
-    }
+      },
+    },
   },
   build: {
     minify: 'terser',
@@ -66,8 +69,8 @@ export default defineConfig(({ mode }) => ({
       compress: {
         drop_console: mode === 'production',
         drop_debugger: mode === 'production',
-        pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
-      }
+        pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : [],
+      },
     },
     sourcemap: mode !== 'production',
     chunkSizeWarningLimit: 1000,
@@ -77,15 +80,15 @@ export default defineConfig(({ mode }) => ({
           'vue-vendor': ['vue', 'vue-router'],
           'element-plus': ['element-plus', '@element-plus/icons-vue'],
           'axios-vendor': ['axios'],
-          'crypto-vendor': ['crypto-js']
+          'crypto-vendor': ['crypto-js'],
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
-      }
-    }
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+      },
+    },
   },
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'element-plus', 'axios']
-  }
+    include: ['vue', 'vue-router', 'element-plus', 'axios'],
+  },
 }))

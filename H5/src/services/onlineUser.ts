@@ -40,7 +40,11 @@ export const onlineUserService = {
   /**
    * 记录登录
    */
-  async recordLogin(deviceType: string = 'h5', userId?: number, userName?: string): Promise<ApiResponse<null>> {
+  async recordLogin(
+    deviceType: string = 'h5',
+    userId?: number,
+    userName?: string
+  ): Promise<ApiResponse<null>> {
     const params: Record<string, unknown> = { device_type: deviceType }
     if (userId) {
       params.user_id = userId

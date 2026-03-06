@@ -88,7 +88,10 @@ export const periodicInspectionService = {
   /**
    * 更新定期巡检
    */
-  async update(id: number, data: PeriodicInspectionUpdate): Promise<ApiResponse<PeriodicInspection>> {
+  async update(
+    id: number,
+    data: PeriodicInspectionUpdate
+  ): Promise<ApiResponse<PeriodicInspection>> {
     return await request.put(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id), data)
   },
 
@@ -104,5 +107,5 @@ export const periodicInspectionService = {
    */
   async getAll(): Promise<ApiResponse<PeriodicInspection[]>> {
     return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.ALL)
-  }
+  },
 }

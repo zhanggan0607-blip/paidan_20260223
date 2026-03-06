@@ -26,9 +26,7 @@
           </div>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-add" @click="handleAdd">
-            新增零星用工单
-          </button>
+          <button class="btn btn-add" @click="handleAdd">新增零星用工单</button>
         </div>
       </div>
 
@@ -51,32 +49,71 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="11" style="text-align: center; padding: 20px;">加载中...</td>
+              <td colspan="11" style="text-align: center; padding: 20px">加载中...</td>
             </tr>
             <tr v-else-if="workData.length === 0">
-              <td colspan="11" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td colspan="11" style="text-align: center; padding: 20px">暂无数据</td>
             </tr>
-            <tr v-else v-for="(item, index) in workData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <tr
+              v-for="(item, index) in workData"
+              v-else
+              :key="item.id"
+              :class="{ 'even-row': index % 2 === 0 }"
+            >
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td>{{ item.project_id }}</td>
               <td>{{ item.project_name }}</td>
               <td>{{ item.work_id }}</td>
-              <td>{{ formatDate(item.plan_start_date) }} 至 {{ formatDate(item.plan_end_date) }}</td>
-              <td>{{ item.work_days || calculateDays(item.plan_start_date, item.plan_end_date) }} 天</td>
+              <td>
+                {{ formatDate(item.plan_start_date) }} 至 {{ formatDate(item.plan_end_date) }}
+              </td>
+              <td>
+                {{ item.work_days || calculateDays(item.plan_start_date, item.plan_end_date) }} 天
+              </td>
               <td>{{ item.worker_count || 0 }} 人</td>
               <td>{{ item.client_contact || '-' }}</td>
               <td>{{ item.client_contact_info || '-' }}</td>
               <td>
-                <span v-if="item.status === WORK_STATUS.IN_PROGRESS" class="status-tag status-in-progress">执行中</span>
-                <span v-else-if="item.status === WORK_STATUS.PENDING_CONFIRM" class="status-tag status-waiting">待确认</span>
-                <span v-else-if="item.status === WORK_STATUS.COMPLETED" class="status-tag status-completed">已完成</span>
-                <span v-else-if="item.status === WORK_STATUS.RETURNED" class="status-tag status-returned">已退回</span>
+                <span
+                  v-if="item.status === WORK_STATUS.IN_PROGRESS"
+                  class="status-tag status-in-progress"
+                  >执行中</span
+                >
+                <span
+                  v-else-if="item.status === WORK_STATUS.PENDING_CONFIRM"
+                  class="status-tag status-waiting"
+                  >待确认</span
+                >
+                <span
+                  v-else-if="item.status === WORK_STATUS.COMPLETED"
+                  class="status-tag status-completed"
+                  >已完成</span
+                >
+                <span
+                  v-else-if="item.status === WORK_STATUS.RETURNED"
+                  class="status-tag status-returned"
+                  >已退回</span
+                >
                 <span v-else class="status-tag">{{ item.status }}</span>
               </td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="isAdmin" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-                <a href="#" v-if="item.status === WORK_STATUS.COMPLETED" class="action-link action-export" @click.prevent="handleExport(item)">导出</a>
+                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
+                  >查看</a
+                >
+                <a
+                  v-if="isAdmin"
+                  href="#"
+                  class="action-link action-edit"
+                  @click.prevent="handleEdit(item)"
+                  >编辑</a
+                >
+                <a
+                  v-if="item.status === WORK_STATUS.COMPLETED"
+                  href="#"
+                  class="action-link action-export"
+                  @click.prevent="handleExport(item)"
+                  >导出</a
+                >
               </td>
             </tr>
           </tbody>
@@ -84,9 +121,7 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">
-          共 {{ totalElements }} 条记录
-        </div>
+        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
         <div class="pagination-controls">
           <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
             &lt;
@@ -100,17 +135,21 @@
           >
             {{ page }}
           </button>
-          <button class="page-btn page-nav" :disabled="currentPage === totalPages" @click="currentPage++">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+          >
             &gt;
           </button>
-          <select class="page-select" v-model="pageSize">
+          <select v-model="pageSize" class="page-select">
             <option value="10">10 条 / 页</option>
             <option value="20">20 条 / 页</option>
             <option value="50">50 条 / 页</option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
             <span>页</span>
             <button class="page-btn page-go" @click="handleJump">Go</button>
           </div>
@@ -128,12 +167,18 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <select class="form-input" v-model="formData.project_name" @change="handleProjectChange">
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <select
+                  v-model="formData.project_name"
+                  class="form-input"
+                  @change="handleProjectChange"
+                >
                   <option value="">请选择项目</option>
-                  <option v-for="project in projectList" :key="project.id" :value="project.project_name">
+                  <option
+                    v-for="project in projectList"
+                    :key="project.id"
+                    :value="project.project_name"
+                  >
                     {{ project.project_name }}
                   </option>
                 </select>
@@ -143,10 +188,13 @@
                 <div class="form-value-readonly">{{ formData.project_id || '-' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划开始日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.plan_start_date" @change="calculateWorkDays" />
+                <label class="form-label"> <span class="required">*</span> 计划开始日期 </label>
+                <input
+                  v-model="formData.plan_start_date"
+                  type="date"
+                  class="form-input"
+                  @change="calculateWorkDays"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">用工天数</label>
@@ -154,15 +202,18 @@
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人</label>
-                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="formData.client_contact" />
+                <input
+                  v-model="formData.client_contact"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系人"
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 运维人员
-                </label>
-                <select class="form-input" v-model="formData.maintenance_personnel">
+                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select v-model="formData.maintenance_personnel" class="form-input">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person.id" :value="person.name">
                     {{ person.name }}
@@ -174,10 +225,13 @@
                 <div class="form-value-readonly">{{ formData.work_id || '自动生成' }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划结束日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.plan_end_date" @change="calculateWorkDays" />
+                <label class="form-label"> <span class="required">*</span> 计划结束日期 </label>
+                <input
+                  v-model="formData.plan_end_date"
+                  type="date"
+                  class="form-input"
+                  @change="calculateWorkDays"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">施工人数</label>
@@ -185,17 +239,25 @@
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系电话</label>
-                <input type="text" class="form-input" placeholder="请输入客户联系电话" v-model="formData.client_contact_info" />
+                <input
+                  v-model="formData.client_contact_info"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系电话"
+                />
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">
-              <span class="required">*</span> 工作内容
-            </label>
-            <textarea class="form-input form-textarea" placeholder="请输入工作内容" v-model="formData.work_content" maxlength="800"></textarea>
+            <label class="form-label"> <span class="required">*</span> 工作内容 </label>
+            <textarea
+              v-model="formData.work_content"
+              class="form-input form-textarea"
+              placeholder="请输入工作内容"
+              maxlength="800"
+            ></textarea>
           </div>
-          
+
           <div class="form-item-full">
             <label class="form-label">施工人员</label>
             <div class="worker-section">
@@ -204,35 +266,38 @@
               </button>
             </div>
           </div>
-          
+
           <div class="form-item-full">
-            <label class="form-label">
-              <span class="required">*</span> 现场图片
-            </label>
+            <label class="form-label"> <span class="required">*</span> 现场图片 </label>
             <PhotoUpload v-model="formData.photos" :max-count="9" />
           </div>
-          
+
           <div class="form-item-full">
-            <label class="form-label">
-              <span class="required">*</span> 班组签字
-            </label>
+            <label class="form-label"> <span class="required">*</span> 班组签字 </label>
             <div class="signature-section">
               <div v-if="formData.signature" class="signature-preview">
                 <img :src="formData.signature" alt="班组签字" />
-                <button class="btn-clear-signature" @click="formData.signature = ''">清除签字</button>
+                <button class="btn-clear-signature" @click="formData.signature = ''">
+                  清除签字
+                </button>
               </div>
               <button v-else class="btn btn-signature" @click="openSignatureModal">点击签字</button>
             </div>
           </div>
-          
+
           <div class="form-item-full">
             <label class="form-label">备注</label>
-            <textarea class="form-input form-textarea" placeholder="请输入备注" v-model="formData.remarks" maxlength="500"></textarea>
+            <textarea
+              v-model="formData.remarks"
+              class="form-input form-textarea"
+              placeholder="请输入备注"
+              maxlength="500"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeAddModal">取消</button>
-          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleSave">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -257,22 +322,23 @@
                 <div class="form-value-readonly">{{ editFormData.work_id }}</div>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划开始日期
-                </label>
-                <input type="date" class="form-input" v-model="editFormData.plan_start_date" />
+                <label class="form-label"> <span class="required">*</span> 计划开始日期 </label>
+                <input v-model="editFormData.plan_start_date" type="date" class="form-input" />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人</label>
-                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="editFormData.client_contact" />
+                <input
+                  v-model="editFormData.client_contact"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系人"
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 运维人员
-                </label>
-                <select class="form-input" v-model="editFormData.maintenance_personnel">
+                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select v-model="editFormData.maintenance_personnel" class="form-input">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person.id" :value="person.name">
                     {{ person.name }}
@@ -280,18 +346,21 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划结束日期
-                </label>
-                <input type="date" class="form-input" v-model="editFormData.plan_end_date" />
+                <label class="form-label"> <span class="required">*</span> 计划结束日期 </label>
+                <input v-model="editFormData.plan_end_date" type="date" class="form-input" />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系方式</label>
-                <input type="text" class="form-input" placeholder="请输入客户联系方式" v-model="editFormData.client_contact_info" />
+                <input
+                  v-model="editFormData.client_contact_info"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系方式"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">状态</label>
-                <select class="form-input" v-model="editFormData.status">
+                <select v-model="editFormData.status" class="form-input">
                   <option value="执行中">执行中</option>
                   <option value="待确认">待确认</option>
                   <option value="已完成">已完成</option>
@@ -302,12 +371,17 @@
           </div>
           <div class="form-item-full">
             <label class="form-label">备注</label>
-            <textarea class="form-input form-textarea" placeholder="请输入备注" v-model="editFormData.remarks" maxlength="500"></textarea>
+            <textarea
+              v-model="editFormData.remarks"
+              class="form-input form-textarea"
+              placeholder="请输入备注"
+              maxlength="500"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" @click="handleUpdate" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -394,7 +468,7 @@ export default defineComponent({
     SearchInput,
     PhotoUpload,
     SignaturePad,
-    WorkerEntryModal
+    WorkerEntryModal,
   },
   setup() {
     const router = useRouter()
@@ -410,16 +484,19 @@ export default defineComponent({
     const editingId = ref<number | null>(null)
     const showSignatureModal = ref(false)
     const showWorkerModal = ref(false)
-    
+
     const isAdmin = ref(userStore.isAdmin())
 
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -431,7 +508,7 @@ export default defineComponent({
     const searchForm = ref({
       project_name: '',
       work_id: '',
-      status: ''
+      status: '',
     })
 
     const projectList = ref<ProjectInfo[]>([])
@@ -452,7 +529,7 @@ export default defineComponent({
       work_content: '',
       remarks: '',
       photos: [] as string[],
-      signature: ''
+      signature: '',
     })
 
     const editFormData = ref({
@@ -466,7 +543,7 @@ export default defineComponent({
       client_contact_info: '',
       maintenance_personnel: '',
       status: '',
-      remarks: ''
+      remarks: '',
     })
 
     const workDays = computed(() => {
@@ -501,9 +578,9 @@ export default defineComponent({
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
           work_id: searchForm.value.work_id || undefined,
-          status: searchForm.value.status || undefined
+          status: searchForm.value.status || undefined,
         })
-        
+
         if (response.code === 200) {
           workData.value = response.data.content.map((item: SpotWork) => ({
             id: item.id,
@@ -521,8 +598,11 @@ export default defineComponent({
             work_content: item.work_content || '',
             worker_count: item.worker_count || 0,
             work_days: item.work_days || 0,
-            photos: typeof item.photos === 'string' ? item.photos.split(',').filter(Boolean) : (item.photos || []),
-            signature: item.signature || ''
+            photos:
+              typeof item.photos === 'string'
+                ? item.photos.split(',').filter(Boolean)
+                : item.photos || [],
+            signature: item.signature || '',
           }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages || 1
@@ -566,7 +646,9 @@ export default defineComponent({
     }
 
     const handleProjectChange = async () => {
-      const selectedProject = projectList.value.find(p => p.project_name === formData.value.project_name)
+      const selectedProject = projectList.value.find(
+        (p) => p.project_name === formData.value.project_name
+      )
       if (selectedProject) {
         formData.value.project_id = selectedProject.project_id
         formData.value.client_name = selectedProject.client_name
@@ -579,7 +661,7 @@ export default defineComponent({
 
     const generateWorkId = async () => {
       if (!formData.value.project_id) return
-      
+
       try {
         const today = new Date()
         const year = today.getFullYear()
@@ -587,12 +669,12 @@ export default defineComponent({
         const day = String(today.getDate()).padStart(2, '0')
         const dateStr = `${year}${month}${day}`
         const prefix = `YG-${formData.value.project_id}-${dateStr}`
-        
+
         const response = await spotWorkService.getAll()
-        
+
         if (response.code === 200) {
           const existingWorks = response.data.filter(
-            item => item.work_id && item.work_id.startsWith(prefix)
+            (item) => item.work_id && item.work_id.startsWith(prefix)
           )
           const nextNumber = existingWorks.length + 1
           formData.value.work_id = `${prefix}-${String(nextNumber).padStart(2, '0')}`
@@ -642,7 +724,7 @@ export default defineComponent({
         work_content: '',
         remarks: '',
         photos: [],
-        signature: ''
+        signature: '',
       }
       workers.value = []
     }
@@ -694,9 +776,9 @@ export default defineComponent({
         showToast('请完成班组签字', 'error')
         return
       }
-      
+
       saving.value = true
-      
+
       try {
         const response = await spotWorkService.create({
           work_id: formData.value.work_id,
@@ -712,9 +794,9 @@ export default defineComponent({
           work_content: formData.value.work_content,
           remarks: formData.value.remarks || '',
           photos: JSON.stringify(formData.value.photos),
-          signature: formData.value.signature
+          signature: formData.value.signature,
         })
-        
+
         if (response.code === 200) {
           if (workers.value.length > 0) {
             try {
@@ -723,7 +805,7 @@ export default defineComponent({
                 project_name: formData.value.project_name,
                 plan_start_date: formData.value.plan_start_date,
                 plan_end_date: formData.value.plan_end_date,
-                work_id: response.data.work_id
+                work_id: response.data.work_id,
               } as any)
             } catch (e) {
               console.error('Failed to save workers:', e)
@@ -746,7 +828,7 @@ export default defineComponent({
     const handleView = (item: WorkItem) => {
       router.push({
         name: 'SpotWorkDetail',
-        query: { id: item.id }
+        query: { id: item.id },
       })
     }
 
@@ -766,7 +848,7 @@ export default defineComponent({
             client_contact_info: data.client_contact_info || '',
             maintenance_personnel: data.maintenance_personnel || '',
             status: data.status || '执行中',
-            remarks: data.remarks || ''
+            remarks: data.remarks || '',
           }
           editingId.value = data.id
           isEditModalOpen.value = true
@@ -795,9 +877,9 @@ export default defineComponent({
         showToast('请选择计划结束日期', 'error')
         return
       }
-      
+
       saving.value = true
-      
+
       try {
         const response = await spotWorkService.update(editFormData.value.id, {
           work_id: editFormData.value.work_id,
@@ -810,9 +892,9 @@ export default defineComponent({
           client_contact_info: editFormData.value.client_contact_info,
           maintenance_personnel: editFormData.value.maintenance_personnel,
           status: editFormData.value.status,
-          remarks: editFormData.value.remarks || ''
+          remarks: editFormData.value.remarks || '',
         })
-        
+
         if (response.code === 200) {
           showToast('更新成功', 'success')
           await loadData()
@@ -838,9 +920,9 @@ export default defineComponent({
         await ElMessageBox.confirm(`确定要删除用工单 ${item.work_id} 吗？`, '提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
-          type: 'warning'
+          type: 'warning',
         })
-        
+
         await spotWorkService.delete(item.id)
         showToast('删除成功', 'success')
         loadData()
@@ -929,9 +1011,9 @@ export default defineComponent({
       openSignatureModal,
       handleSignatureConfirm,
       openWorkerModal,
-      handleWorkerConfirm
+      handleWorkerConfirm,
     }
-  }
+  },
 })
 </script>
 
@@ -1350,7 +1432,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 

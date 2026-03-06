@@ -65,7 +65,7 @@
                 <tr v-else-if="dataList.length === 0">
                   <td colspan="13" class="empty-cell">暂无数据</td>
                 </tr>
-                <tr v-else v-for="(item, index) in dataList" :key="item.id">
+                <tr v-for="(item, index) in dataList" v-else :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.project_id || '-' }}</td>
                   <td>{{ item.project_name || '-' }}</td>
@@ -78,15 +78,20 @@
                   <td>{{ item.user_name }}</td>
                   <td>{{ item.issue_time }}</td>
                   <td>
-                    <span :class="['status-badge', item.status === '待归还' ? 'status-pending' : 'status-returned']">
+                    <span
+                      :class="[
+                        'status-badge',
+                        item.status === '待归还' ? 'status-pending' : 'status-returned',
+                      ]"
+                    >
                       {{ item.status }}
                     </span>
                   </td>
                   <td>
-                    <button 
+                    <button
                       v-if="getPendingReturn(item) > 0"
-                      @click="handleOpenReturn(item)" 
                       class="return-button"
+                      @click="handleOpenReturn(item)"
                     >
                       归还
                     </button>
@@ -101,35 +106,35 @@
                 共 {{ total }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
               </div>
               <div class="pagination-controls">
-                <button 
-                  @click="handlePageChange(currentPage - 1)" 
+                <button
                   :disabled="currentPage === 1"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage - 1)"
                 >
                   上一页
                 </button>
                 <span class="pagination-pages">
-                  <input 
-                    v-model.number="currentPage" 
-                    type="number" 
-                    :min="1" 
+                  <input
+                    v-model.number="currentPage"
+                    type="number"
+                    :min="1"
                     :max="totalPages"
                     class="pagination-input"
                   />
                   <span class="pagination-slash">/</span>
                   <span>{{ totalPages }}</span>
                 </span>
-                <button 
-                  @click="handlePageChange(currentPage + 1)" 
+                <button
                   :disabled="currentPage === totalPages"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage + 1)"
                 >
                   下一页
                 </button>
               </div>
               <div class="page-size-selector">
                 <span>每页</span>
-                <select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
+                <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
                   <option :value="10">10</option>
                   <option :value="20">20</option>
                   <option :value="50">50</option>
@@ -152,47 +157,89 @@
         <div class="modal-body">
           <div class="form-item">
             <label class="form-label">产品名称</label>
-            <input :value="selectedItem?.product_name" type="text" class="form-input" readonly disabled />
+            <input
+              :value="selectedItem?.product_name"
+              type="text"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">品牌</label>
-            <input :value="selectedItem?.brand || '-'" type="text" class="form-input" readonly disabled />
+            <input
+              :value="selectedItem?.brand || '-'"
+              type="text"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">产品型号</label>
-            <input :value="selectedItem?.model || '-'" type="text" class="form-input" readonly disabled />
+            <input
+              :value="selectedItem?.model || '-'"
+              type="text"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">所属项目</label>
-            <input :value="selectedItem?.project_name || '-'" type="text" class="form-input" readonly disabled />
+            <input
+              :value="selectedItem?.project_name || '-'"
+              type="text"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">领用数量</label>
-            <input :value="selectedItem?.quantity" type="number" class="form-input" readonly disabled />
+            <input
+              :value="selectedItem?.quantity"
+              type="number"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">已归还</label>
-            <input :value="selectedItem?.return_quantity || 0" type="number" class="form-input" readonly disabled />
+            <input
+              :value="selectedItem?.return_quantity || 0"
+              type="number"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">待归还</label>
-            <input :value="getPendingReturn(selectedItem)" type="number" class="form-input" readonly disabled />
+            <input
+              :value="getPendingReturn(selectedItem)"
+              type="number"
+              class="form-input"
+              readonly
+              disabled
+            />
           </div>
           <div class="form-item">
             <label class="form-label">归还数量<span class="required">*</span></label>
-            <input 
-              v-model.number="returnQuantity" 
-              type="number" 
-              :min="1" 
+            <input
+              v-model.number="returnQuantity"
+              type="number"
+              :min="1"
               :max="maxReturnQuantity"
-              class="form-input" 
-              placeholder="请输入归还数量" 
+              class="form-input"
+              placeholder="请输入归还数量"
             />
           </div>
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeReturnModal">取消</button>
-          <button class="confirm-btn" @click="handleSubmitReturn" :disabled="submitting">
+          <button class="confirm-btn" :disabled="submitting" @click="handleSubmitReturn">
             {{ submitting ? '提交中...' : '确认归还' }}
           </button>
         </div>
@@ -230,7 +277,7 @@ interface SparePartsUsageItem {
 export default defineComponent({
   name: 'SparePartsReturn',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
@@ -246,7 +293,7 @@ export default defineComponent({
     const filters = ref({
       user: '',
       productName: '',
-      status: ''
+      status: '',
     })
 
     let abortController: AbortController | null = null
@@ -289,17 +336,17 @@ export default defineComponent({
       try {
         const params: Record<string, any> = {
           page: currentPage.value - 1,
-          pageSize: pageSize.value
+          pageSize: pageSize.value,
         }
         if (filters.value.user) params.user = filters.value.user
         if (filters.value.productName) params.product = filters.value.productName
         if (filters.value.status) params.status = filters.value.status
 
-        const response = await apiClient.get('/spare-parts/usage', { 
-          params, 
-          signal: abortController.signal 
-        }) as unknown as PaginatedResponse<SparePartsUsageItem>
-        
+        const response = (await apiClient.get('/spare-parts/usage', {
+          params,
+          signal: abortController.signal,
+        })) as unknown as PaginatedResponse<SparePartsUsageItem>
+
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
           total.value = response.data.total || response.data.totalElements || 0
@@ -356,16 +403,23 @@ export default defineComponent({
         return
       }
 
-      if (!confirm(`确认归还 ${selectedItem.value.product_name} ${returnQuantity.value}${selectedItem.value.unit}?`)) {
+      if (
+        !confirm(
+          `确认归还 ${selectedItem.value.product_name} ${returnQuantity.value}${selectedItem.value.unit}?`
+        )
+      ) {
         return
       }
 
       submitting.value = true
       try {
-        const response = await apiClient.put(`/spare-parts/usage/${selectedItem.value.id}/return`, {
-          return_quantity: returnQuantity.value
-        }) as unknown as ApiResponse<any>
-        
+        const response = (await apiClient.put(
+          `/spare-parts/usage/${selectedItem.value.id}/return`,
+          {
+            return_quantity: returnQuantity.value,
+          }
+        )) as unknown as ApiResponse<any>
+
         if (response && response.code === 200) {
           alert('归还成功')
           closeReturnModal()
@@ -435,9 +489,9 @@ export default defineComponent({
       closeReturnModal,
       handleSubmitReturn,
       handlePageChange,
-      handlePageSizeChange
+      handlePageSizeChange,
     }
-  }
+  },
 })
 </script>
 
@@ -531,7 +585,9 @@ export default defineComponent({
   cursor: pointer;
   background: linear-gradient(135deg, #388e3c 0%, #66bb6a 100%);
   color: #fff;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .return-button:hover {
@@ -603,8 +659,12 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .status-badge {

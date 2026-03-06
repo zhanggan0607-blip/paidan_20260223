@@ -27,9 +27,7 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">
-          + 新增维保计划
-        </button>
+        <button class="btn btn-add" @click="openModal">+ 新增维保计划</button>
       </div>
     </div>
 
@@ -49,7 +47,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in planData" :key="item.project_id" :class="{ 'even-row': index % 2 === 0 }">
+          <tr
+            v-for="(item, index) in planData"
+            :key="item.project_id"
+            :class="{ 'even-row': index % 2 === 0 }"
+          >
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.project_id }}</td>
             <td>{{ item.project_name }}</td>
@@ -60,8 +62,12 @@
             <td>{{ item.address || '-' }}</td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑计划</a>
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)"
+                >编辑计划</a
+              >
+              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
+                >删除</a
+              >
             </td>
           </tr>
         </tbody>
@@ -69,9 +75,7 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">
-        共 {{ totalElements }} 条记录
-      </div>
+      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
       <div class="pagination-controls">
         <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
           &lt;
@@ -85,17 +89,21 @@
         >
           {{ page }}
         </button>
-        <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage >= totalPages - 1"
+          @click="currentPage++"
+        >
           &gt;
         </button>
-        <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
           <option value="10">10 条 / 页</option>
           <option value="20">20 条 / 页</option>
           <option value="50">50 条 / 页</option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
           <span>页</span>
           <button class="page-btn page-go" @click="handleJump">Go</button>
         </div>
@@ -113,15 +121,13 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <el-select 
-                  v-model="formData.selectedProjectId" 
-                  placeholder="请选择或搜索项目" 
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <el-select
+                  v-model="formData.selectedProjectId"
+                  placeholder="请选择或搜索项目"
                   filterable
                   size="default"
-                  style="width: 100%;"
+                  style="width: 100%"
                   @change="handleProjectChange"
                 >
                   <el-option
@@ -134,25 +140,50 @@
               </div>
               <div class="form-item">
                 <label class="form-label">维保频率</label>
-                <input type="text" class="form-input form-input-readonly" v-model="formData.maintenance_period" readonly />
+                <input
+                  v-model="formData.maintenance_period"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">项目地址</label>
-                <input type="text" class="form-input form-input-readonly" v-model="formData.address" readonly />
+                <input
+                  v-model="formData.address"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">项目编号</label>
-                <input type="text" class="form-input form-input-readonly" v-model="formData.project_id" readonly />
+                <input
+                  v-model="formData.project_id"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">项目结束日期</label>
-                <input type="text" class="form-input form-input-readonly" v-model="formData.maintenance_end_date" readonly />
+                <input
+                  v-model="formData.maintenance_end_date"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">客户单位</label>
-                <input type="text" class="form-input form-input-readonly" v-model="formData.client_name" readonly />
+                <input
+                  v-model="formData.client_name"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
             </div>
           </div>
@@ -175,16 +206,21 @@
               <tbody>
                 <tr v-for="(plan, index) in formData.planList" :key="index">
                   <td>
-                    <input type="text" class="table-input" v-model="plan.plan_id" placeholder="请输入" />
+                    <input
+                      v-model="plan.plan_id"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
                   </td>
                   <td>
-                    <input type="date" class="table-input" v-model="plan.plan_start_date" />
+                    <input v-model="plan.plan_start_date" type="date" class="table-input" />
                   </td>
                   <td>
-                    <input type="date" class="table-input" v-model="plan.plan_end_date" />
+                    <input v-model="plan.plan_end_date" type="date" class="table-input" />
                   </td>
                   <td>
-                    <select class="table-input" v-model="plan.responsible_person">
+                    <select v-model="plan.responsible_person" class="table-input">
                       <option value="">请选择</option>
                       <option v-for="person in personnelList" :key="person" :value="person">
                         {{ person }}
@@ -192,10 +228,17 @@
                     </select>
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="plan.remarks" placeholder="请输入" />
+                    <input
+                      v-model="plan.remarks"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
                   </td>
                   <td class="action-cell">
-                    <a href="#" class="action-link action-delete" @click.prevent="removePlan(index)">删除</a>
+                    <a href="#" class="action-link action-delete" @click.prevent="removePlan(index)"
+                      >删除</a
+                    >
                   </td>
                 </tr>
               </tbody>
@@ -212,7 +255,7 @@
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th style="width: 60px;">事项编号</th>
+                  <th style="width: 60px">事项编号</th>
                   <th>巡查类</th>
                   <th>巡查项</th>
                   <th>巡查内容</th>
@@ -224,14 +267,19 @@
               <tbody>
                 <tr v-for="(item, index) in formData.itemList" :key="index">
                   <td>
-                    <input type="text" class="table-input table-input-readonly" :value="index + 1" readonly />
+                    <input
+                      type="text"
+                      class="table-input table-input-readonly"
+                      :value="index + 1"
+                      readonly
+                    />
                   </td>
                   <td>
-                    <el-select 
-                      v-model="item.level1_id" 
-                      placeholder="选择巡查类" 
+                    <el-select
+                      v-model="item.level1_id"
+                      placeholder="选择巡查类"
                       size="small"
-                      style="width: 100%;"
+                      style="width: 100%"
                       @change="handleLevel1Change(index)"
                     >
                       <el-option
@@ -243,11 +291,11 @@
                     </el-select>
                   </td>
                   <td>
-                    <el-select 
-                      v-model="item.level2_id" 
-                      placeholder="选择巡查项" 
+                    <el-select
+                      v-model="item.level2_id"
+                      placeholder="选择巡查项"
                       size="small"
-                      style="width: 100%;"
+                      style="width: 100%"
                       :disabled="!item.level1_id"
                       @change="handleLevel2Change(index)"
                     >
@@ -260,11 +308,11 @@
                     </el-select>
                   </td>
                   <td>
-                    <el-select 
-                      v-model="item.level3_id" 
-                      placeholder="选择巡查内容" 
+                    <el-select
+                      v-model="item.level3_id"
+                      placeholder="选择巡查内容"
                       size="small"
-                      style="width: 100%;"
+                      style="width: 100%"
                       :disabled="!item.level2_id"
                       @change="handleLevel3Change(index)"
                     >
@@ -277,18 +325,25 @@
                     </el-select>
                   </td>
                   <td>
-                    <el-input 
-                      v-model="item.check_requirements" 
+                    <el-input
+                      v-model="item.check_requirements"
                       placeholder="自动带出"
                       size="small"
                       readonly
                     />
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="item.brief_description" placeholder="请输入" />
+                    <input
+                      v-model="item.brief_description"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
                   </td>
                   <td class="action-cell">
-                    <a href="#" class="action-link action-delete" @click.prevent="removeItem(index)">删除</a>
+                    <a href="#" class="action-link action-delete" @click.prevent="removeItem(index)"
+                      >删除</a
+                    >
                   </td>
                 </tr>
               </tbody>
@@ -301,7 +356,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleSave">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -315,11 +370,25 @@
           <button class="modal-close" @click="closeViewModal">×</button>
         </div>
         <div class="modal-body">
-          <div class="view-plan-pagination" v-if="viewPlanList.length > 1">
-            <span class="view-plan-info">计划 {{ currentViewPlanIndex + 1 }} / {{ viewPlanList.length }}</span>
+          <div v-if="viewPlanList.length > 1" class="view-plan-pagination">
+            <span class="view-plan-info"
+              >计划 {{ currentViewPlanIndex + 1 }} / {{ viewPlanList.length }}</span
+            >
             <div class="view-plan-nav">
-              <button class="view-plan-btn" :disabled="currentViewPlanIndex === 0" @click="prevViewPlan">&lt; 上一条</button>
-              <button class="view-plan-btn" :disabled="currentViewPlanIndex >= viewPlanList.length - 1" @click="nextViewPlan">下一条 &gt;</button>
+              <button
+                class="view-plan-btn"
+                :disabled="currentViewPlanIndex === 0"
+                @click="prevViewPlan"
+              >
+                &lt; 上一条
+              </button>
+              <button
+                class="view-plan-btn"
+                :disabled="currentViewPlanIndex >= viewPlanList.length - 1"
+                @click="nextViewPlan"
+              >
+                下一条 &gt;
+              </button>
             </div>
           </div>
           <div class="form-grid">
@@ -342,7 +411,9 @@
               </div>
               <div class="form-item">
                 <label class="form-label">下次维保日期</label>
-                <div class="form-value">{{ formatDate(viewData.next_maintenance_date) || '-' }}</div>
+                <div class="form-value">
+                  {{ formatDate(viewData.next_maintenance_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">负责部门</label>
@@ -386,15 +457,21 @@
           </div>
           <div class="form-item-full">
             <label class="form-label">维保内容</label>
-            <div class="form-value form-value-textarea">{{ viewData.maintenance_content || '-' }}</div>
+            <div class="form-value form-value-textarea">
+              {{ viewData.maintenance_content || '-' }}
+            </div>
           </div>
           <div class="form-item-full">
             <label class="form-label">维保要求</label>
-            <div class="form-value form-value-textarea">{{ viewData.maintenance_requirements || '-' }}</div>
+            <div class="form-value form-value-textarea">
+              {{ viewData.maintenance_requirements || '-' }}
+            </div>
           </div>
           <div class="form-item-full">
             <label class="form-label">维保标准</label>
-            <div class="form-value form-value-textarea">{{ viewData.maintenance_standard || '-' }}</div>
+            <div class="form-value form-value-textarea">
+              {{ viewData.maintenance_standard || '-' }}
+            </div>
           </div>
           <div class="form-item-full">
             <label class="form-label">备注</label>
@@ -418,15 +495,13 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <el-select 
-                  v-model="editData.selectedProjectId" 
-                  placeholder="请选择或搜索项目" 
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <el-select
+                  v-model="editData.selectedProjectId"
+                  placeholder="请选择或搜索项目"
                   filterable
                   size="default"
-                  style="width: 100%;"
+                  style="width: 100%"
                   @change="handleEditProjectChange"
                 >
                   <el-option
@@ -439,25 +514,50 @@
               </div>
               <div class="form-item">
                 <label class="form-label">维保频率</label>
-                <input type="text" class="form-input form-input-readonly" v-model="editData.maintenance_period" readonly />
+                <input
+                  v-model="editData.maintenance_period"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">项目地址</label>
-                <input type="text" class="form-input form-input-readonly" v-model="editData.address" readonly />
+                <input
+                  v-model="editData.address"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">项目编号</label>
-                <input type="text" class="form-input form-input-readonly" v-model="editData.project_id" readonly />
+                <input
+                  v-model="editData.project_id"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">项目结束日期</label>
-                <input type="text" class="form-input form-input-readonly" v-model="editData.maintenance_end_date" readonly />
+                <input
+                  v-model="editData.maintenance_end_date"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">客户单位</label>
-                <input type="text" class="form-input form-input-readonly" v-model="editData.client_name" readonly />
+                <input
+                  v-model="editData.client_name"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
               </div>
             </div>
           </div>
@@ -469,7 +569,7 @@
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th style="width: 50px;">序号</th>
+                  <th style="width: 50px">序号</th>
                   <th>工单编号</th>
                   <th>计划开始日期</th>
                   <th>计划结束日期</th>
@@ -482,16 +582,21 @@
                 <tr v-for="(plan, index) in editData.planList" :key="plan.id || index">
                   <td class="text-center">{{ index + 1 }}</td>
                   <td>
-                    <input type="text" class="table-input" v-model="plan.plan_id" placeholder="请输入" />
+                    <input
+                      v-model="plan.plan_id"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
                   </td>
                   <td>
-                    <input type="date" class="table-input" v-model="plan.plan_start_date" />
+                    <input v-model="plan.plan_start_date" type="date" class="table-input" />
                   </td>
                   <td>
-                    <input type="date" class="table-input" v-model="plan.plan_end_date" />
+                    <input v-model="plan.plan_end_date" type="date" class="table-input" />
                   </td>
                   <td>
-                    <select class="table-input" v-model="plan.responsible_person">
+                    <select v-model="plan.responsible_person" class="table-input">
                       <option value="">请选择</option>
                       <option v-for="person in personnelList" :key="person" :value="person">
                         {{ person }}
@@ -499,10 +604,20 @@
                     </select>
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="plan.remarks" placeholder="请输入" />
+                    <input
+                      v-model="plan.remarks"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
                   </td>
                   <td class="action-cell">
-                    <a href="#" class="action-link action-delete" @click.prevent="deleteEditPlan(index)">删除</a>
+                    <a
+                      href="#"
+                      class="action-link action-delete"
+                      @click.prevent="deleteEditPlan(index)"
+                      >删除</a
+                    >
                   </td>
                 </tr>
               </tbody>
@@ -519,7 +634,7 @@
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th style="width: 60px;">事项编号</th>
+                  <th style="width: 60px">事项编号</th>
                   <th>巡查类</th>
                   <th>巡查项</th>
                   <th>巡查内容</th>
@@ -531,14 +646,19 @@
               <tbody>
                 <tr v-for="(item, index) in editData.itemList" :key="index">
                   <td>
-                    <input type="text" class="table-input table-input-readonly" :value="index + 1" readonly />
+                    <input
+                      type="text"
+                      class="table-input table-input-readonly"
+                      :value="index + 1"
+                      readonly
+                    />
                   </td>
                   <td>
-                    <el-select 
-                      v-model="item.level1_id" 
-                      placeholder="选择巡查类" 
+                    <el-select
+                      v-model="item.level1_id"
+                      placeholder="选择巡查类"
                       size="small"
-                      style="width: 100%;"
+                      style="width: 100%"
                       @change="handleEditLevel1Change(index)"
                     >
                       <el-option
@@ -550,11 +670,11 @@
                     </el-select>
                   </td>
                   <td>
-                    <el-select 
-                      v-model="item.level2_id" 
-                      placeholder="选择巡查项" 
+                    <el-select
+                      v-model="item.level2_id"
+                      placeholder="选择巡查项"
                       size="small"
-                      style="width: 100%;"
+                      style="width: 100%"
                       :disabled="!item.level1_id"
                       @change="handleEditLevel2Change(index)"
                     >
@@ -567,11 +687,11 @@
                     </el-select>
                   </td>
                   <td>
-                    <el-select 
-                      v-model="item.level3_id" 
-                      placeholder="选择巡查内容" 
+                    <el-select
+                      v-model="item.level3_id"
+                      placeholder="选择巡查内容"
                       size="small"
-                      style="width: 100%;"
+                      style="width: 100%"
                       :disabled="!item.level2_id"
                       @change="handleEditLevel3Change(index)"
                     >
@@ -584,18 +704,28 @@
                     </el-select>
                   </td>
                   <td>
-                    <el-input 
-                      v-model="item.check_requirements" 
+                    <el-input
+                      v-model="item.check_requirements"
                       placeholder="自动带出"
                       size="small"
                       readonly
                     />
                   </td>
                   <td>
-                    <input type="text" class="table-input" v-model="item.brief_description" placeholder="请输入" />
+                    <input
+                      v-model="item.brief_description"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
                   </td>
                   <td class="action-cell">
-                    <a href="#" class="action-link action-delete" @click.prevent="removeEditItem(index)">删除</a>
+                    <a
+                      href="#"
+                      class="action-link action-delete"
+                      @click.prevent="removeEditItem(index)"
+                      >删除</a
+                    >
                   </td>
                 </tr>
               </tbody>
@@ -605,11 +735,10 @@
               <button class="btn btn-add-small" @click="importEditItems">导入事项</button>
             </div>
           </div>
-
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" @click="handleUpdate" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -617,9 +746,9 @@
     </div>
 
     <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
-    <ConfirmDialog 
-      :visible="confirmDialog.visible" 
-      :title="confirmDialog.title" 
+    <ConfirmDialog
+      :visible="confirmDialog.visible"
+      :title="confirmDialog.title"
       :message="confirmDialog.message"
       @confirm="handleConfirm"
       @cancel="handleCancelConfirm"
@@ -628,13 +757,30 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
+import {
+  defineComponent,
+  reactive,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  watchEffect,
+} from 'vue'
 import { ElSelect, ElOption, ElInput } from 'element-plus'
-import { maintenancePlanService, type MaintenancePlan, type MaintenancePlanCreate, type MaintenancePlanUpdate } from '../services/maintenancePlan'
+import {
+  maintenancePlanService,
+  type MaintenancePlan,
+  type MaintenancePlanCreate,
+  type MaintenancePlanUpdate,
+} from '../services/maintenancePlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
 import { dictionaryService, dictionaryTypes, type Dictionary } from '../services/dictionary'
-import { inspectionItemService, type InspectionItem as ApiInspectionItem } from '../services/inspectionItem'
+import {
+  inspectionItemService,
+  type InspectionItem as ApiInspectionItem,
+} from '../services/inspectionItem'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
@@ -673,12 +819,12 @@ export default defineComponent({
     SearchInput,
     ElSelect,
     ElOption,
-    ElInput
+    ElInput,
   },
   setup() {
     const searchForm = reactive({
       projectName: '',
-      clientName: ''
+      clientName: '',
     })
 
     const currentPage = ref(0)
@@ -690,7 +836,7 @@ export default defineComponent({
     const isViewModalOpen = ref(false)
     const isEditModalOpen = ref(false)
     const editingId = ref<number | null>(null)
-    
+
     const planData = ref<AggregatedPlanData[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
@@ -703,13 +849,13 @@ export default defineComponent({
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const confirmDialog = reactive({
       visible: false,
       title: '确认',
-      message: ''
+      message: '',
     })
 
     let pendingConfirmAction: (() => void) | null = null
@@ -742,7 +888,7 @@ export default defineComponent({
       try {
         const response = await personnelService.getAll()
         if (response.code === 200 && response.data) {
-          personnelList.value = response.data.map(p => p.name)
+          personnelList.value = response.data.map((p) => p.name)
         }
       } catch (error) {
         console.error('加载人员选项失败:', error)
@@ -754,9 +900,9 @@ export default defineComponent({
         const [planTypeRes, planStatusRes, executionStatusRes] = await Promise.all([
           dictionaryService.getByType(dictionaryTypes.MAINTENANCE_PLAN_TYPE),
           dictionaryService.getByType(dictionaryTypes.MAINTENANCE_PLAN_STATUS),
-          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_EXECUTION_STATUS)
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_EXECUTION_STATUS),
         ])
-        
+
         if (planTypeRes.code === 200 && planTypeRes.data) {
           planTypeOptions.value = planTypeRes.data
         }
@@ -798,7 +944,7 @@ export default defineComponent({
       maintenance_end_date: '',
       client_name: '',
       planList: [] as PlanItem[],
-      itemList: [] as InspectionItem[]
+      itemList: [] as InspectionItem[],
     })
 
     const inspectionTreeData = ref<InspectionTreeNode[]>([])
@@ -810,17 +956,17 @@ export default defineComponent({
         if (data.selectedProjectId) {
           formData.selectedProjectId = data.selectedProjectId
         }
-      }
+      },
     })
 
     const transformInspectionTree = (items: ApiInspectionItem[]): InspectionTreeNode[] => {
-      return items.map(item => ({
+      return items.map((item) => ({
         id: String(item.id),
         label: item.item_name,
         level: item.level,
         checkRequirement: item.check_content || undefined,
         checkStandard: item.check_standard || undefined,
-        children: item.children ? transformInspectionTree(item.children) : undefined
+        children: item.children ? transformInspectionTree(item.children) : undefined,
       }))
     }
 
@@ -836,17 +982,17 @@ export default defineComponent({
     }
 
     const level1Nodes = computed(() => {
-      return inspectionTreeData.value.filter(node => node.level === 1)
+      return inspectionTreeData.value.filter((node) => node.level === 1)
     })
 
     const getLevel2Nodes = (level1Id: string) => {
-      const level1Node = inspectionTreeData.value.find(node => node.id === level1Id)
+      const level1Node = inspectionTreeData.value.find((node) => node.id === level1Id)
       return level1Node?.children || []
     }
 
     const getLevel3Nodes = (level1Id: string, level2Id: string) => {
       const level2Nodes = getLevel2Nodes(level1Id)
-      const level2Node = level2Nodes.find(node => node.id === level2Id)
+      const level2Node = level2Nodes.find((node) => node.id === level2Id)
       return level2Node?.children || []
     }
 
@@ -864,10 +1010,10 @@ export default defineComponent({
       item.level3_id = ''
       item.check_requirements = ''
       item.inspection_content = ''
-      
+
       if (item.level1_id && item.level2_id) {
         const level2Nodes = getLevel2Nodes(item.level1_id)
-        const level2Node = level2Nodes.find(node => node.id === item.level2_id)
+        const level2Node = level2Nodes.find((node) => node.id === item.level2_id)
         if (level2Node) {
           item.inspection_item = level2Node.label
         }
@@ -877,10 +1023,10 @@ export default defineComponent({
     const handleLevel3Change = (index: number) => {
       const item = formData.itemList[index]
       item.check_requirements = ''
-      
+
       if (item.level1_id && item.level2_id && item.level3_id) {
         const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
-        const level3Node = level3Nodes.find(node => node.id === item.level3_id)
+        const level3Node = level3Nodes.find((node) => node.id === item.level3_id)
         if (level3Node) {
           item.inspection_content = level3Node.label
           item.check_requirements = level3Node.checkRequirement || ''
@@ -909,7 +1055,7 @@ export default defineComponent({
       plan_status: '',
       status: '',
       completion_rate: 0,
-      remarks: ''
+      remarks: '',
     })
 
     const viewPlanList = ref<MaintenancePlan[]>([])
@@ -987,7 +1133,7 @@ export default defineComponent({
         level1_id: string
         level2_id: string
         level3_id: string
-      }[]
+      }[],
     })
 
     const deleteEditPlan = (index: number) => {
@@ -1028,13 +1174,16 @@ export default defineComponent({
         completion_rate: 0,
         maintenance_content: '',
         maintenance_requirements: '',
-        maintenance_standard: ''
+        maintenance_standard: '',
       })
     }
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -1065,7 +1214,7 @@ export default defineComponent({
     }
 
     const handleProjectChange = () => {
-      const selectedProject = projectList.value.find(p => p.id === formData.selectedProjectId)
+      const selectedProject = projectList.value.find((p) => p.id === formData.selectedProjectId)
       if (selectedProject) {
         formData.project_id = selectedProject.project_id
         formData.address = selectedProject.address
@@ -1084,10 +1233,16 @@ export default defineComponent({
       }
     }
 
-    const generatePlanList = (projectId: string, startDate: Date, endDate: Date, period: string, projectManager: string = ''): PlanItem[] => {
+    const generatePlanList = (
+      projectId: string,
+      startDate: Date,
+      endDate: Date,
+      period: string,
+      projectManager: string = ''
+    ): PlanItem[] => {
       const list: PlanItem[] = []
       const planPeriods = generateMaintenancePeriods(startDate, endDate, period)
-      
+
       planPeriods.forEach((periodInfo, index) => {
         const planId = `${projectId}-${String(index + 1).padStart(3, '0')}`
         list.push({
@@ -1095,10 +1250,10 @@ export default defineComponent({
           plan_start_date: formatDateToString(periodInfo.start),
           plan_end_date: formatDateToString(periodInfo.end),
           responsible_person: projectManager,
-          remarks: ''
+          remarks: '',
         })
       })
-      
+
       return list
     }
 
@@ -1107,9 +1262,11 @@ export default defineComponent({
       end: Date
     }
 
-    const generateMaintenancePeriods = (projStart: Date, projEnd: Date, period: string): PeriodInfo[] => {
-      const periods: PeriodInfo[] = []
-      
+    const generateMaintenancePeriods = (
+      projStart: Date,
+      projEnd: Date,
+      period: string
+    ): PeriodInfo[] => {
       if (period === '每天') {
         return generateDailyPeriods(projStart, projEnd)
       } else if (period === '每周') {
@@ -1121,7 +1278,7 @@ export default defineComponent({
       } else if (period === '每半年') {
         return generateHalfYearlyPeriods(projStart, projEnd)
       }
-      
+
       return generateMonthlyPeriods(projStart, projEnd)
     }
 
@@ -1130,125 +1287,125 @@ export default defineComponent({
       // 后续考虑改成按需生成或者限制最大数量
       const periods: PeriodInfo[] = []
       let currentDate = new Date(projStart)
-      
+
       while (currentDate <= projEnd) {
         periods.push({
           start: new Date(currentDate),
-          end: new Date(currentDate)
+          end: new Date(currentDate),
         })
         currentDate.setDate(currentDate.getDate() + 1)
       }
-      
+
       return periods
     }
 
     const generateWeeklyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
       const periods: PeriodInfo[] = []
       let currentStart = new Date(projStart)
-      
+
       while (currentStart <= projEnd) {
         const dayOfWeek = currentStart.getDay()
         const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
         const daysToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek
-        
+
         const weekStart = new Date(currentStart)
         weekStart.setDate(weekStart.getDate() + daysToMonday)
         if (weekStart < projStart) {
           weekStart.setTime(projStart.getTime())
         }
-        
+
         const weekEnd = new Date(currentStart)
         weekEnd.setDate(weekEnd.getDate() + daysToSunday)
         if (weekEnd > projEnd) {
           weekEnd.setTime(projEnd.getTime())
         }
-        
+
         periods.push({
           start: new Date(weekStart),
-          end: new Date(weekEnd)
+          end: new Date(weekEnd),
         })
-        
+
         const nextWeekStart = new Date(currentStart)
         nextWeekStart.setDate(nextWeekStart.getDate() + (7 - dayOfWeek) + 1)
         currentStart = nextWeekStart
       }
-      
+
       return periods
     }
 
     const generateMonthlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
       const periods: PeriodInfo[] = []
       let currentStart = new Date(projStart)
-      
+
       while (currentStart <= projEnd) {
         const year = currentStart.getFullYear()
         const month = currentStart.getMonth()
-        
+
         const monthStart = new Date(year, month, 1)
         if (monthStart < projStart) {
           monthStart.setTime(projStart.getTime())
         }
-        
+
         const monthEnd = new Date(year, month + 1, 0)
         if (monthEnd > projEnd) {
           monthEnd.setTime(projEnd.getTime())
         }
-        
+
         periods.push({
           start: new Date(monthStart),
-          end: new Date(monthEnd)
+          end: new Date(monthEnd),
         })
-        
+
         currentStart = new Date(year, month + 1, 1)
       }
-      
+
       return periods
     }
 
     const generateQuarterlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
       const periods: PeriodInfo[] = []
       let currentStart = new Date(projStart)
-      
+
       while (currentStart <= projEnd) {
         const year = currentStart.getFullYear()
         const month = currentStart.getMonth()
         const quarter = Math.floor(month / 3)
-        
+
         const quarterStartMonth = quarter * 3
         const quarterEndMonth = quarterStartMonth + 2
-        
+
         const quarterStart = new Date(year, quarterStartMonth, 1)
         if (quarterStart < projStart) {
           quarterStart.setTime(projStart.getTime())
         }
-        
+
         const quarterEnd = new Date(year, quarterEndMonth + 1, 0)
         if (quarterEnd > projEnd) {
           quarterEnd.setTime(projEnd.getTime())
         }
-        
+
         periods.push({
           start: new Date(quarterStart),
-          end: new Date(quarterEnd)
+          end: new Date(quarterEnd),
         })
-        
+
         currentStart = new Date(year, quarterEndMonth + 1, 1)
       }
-      
+
       return periods
     }
 
     const generateHalfYearlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
       const periods: PeriodInfo[] = []
       let currentStart = new Date(projStart)
-      
+
       while (currentStart <= projEnd) {
         const year = currentStart.getFullYear()
         const month = currentStart.getMonth()
         const half = month < 6 ? 0 : 1
-        
+
         let halfStart: Date, halfEnd: Date
-        
+
         if (half === 0) {
           halfStart = new Date(year, 0, 1)
           halfEnd = new Date(year, 6, 0)
@@ -1256,26 +1413,26 @@ export default defineComponent({
           halfStart = new Date(year, 6, 1)
           halfEnd = new Date(year, 12, 0)
         }
-        
+
         if (halfStart < projStart) {
           halfStart.setTime(projStart.getTime())
         }
         if (halfEnd > projEnd) {
           halfEnd.setTime(projEnd.getTime())
         }
-        
+
         periods.push({
           start: new Date(halfStart),
-          end: new Date(halfEnd)
+          end: new Date(halfEnd),
         })
-        
+
         if (half === 0) {
           currentStart = new Date(year, 6, 1)
         } else {
           currentStart = new Date(year + 1, 0, 1)
         }
       }
-      
+
       return periods
     }
 
@@ -1289,7 +1446,7 @@ export default defineComponent({
     const addPlan = () => {
       const projectId = formData.project_id || 'PRJ'
       let newNum = 1
-      
+
       if (formData.planList.length > 0) {
         const lastPlan = formData.planList[formData.planList.length - 1]
         if (lastPlan && lastPlan.plan_id) {
@@ -1300,13 +1457,13 @@ export default defineComponent({
           }
         }
       }
-      
+
       formData.planList.push({
         plan_id: `${projectId}-${String(newNum).padStart(3, '0')}`,
         plan_start_date: '',
         plan_end_date: '',
         responsible_person: '',
-        remarks: ''
+        remarks: '',
       })
     }
 
@@ -1325,7 +1482,7 @@ export default defineComponent({
         brief_description: '',
         level1_id: '',
         level2_id: '',
-        level3_id: ''
+        level3_id: '',
       })
     }
 
@@ -1349,19 +1506,22 @@ export default defineComponent({
       loading.value = true
       try {
         const response = await maintenancePlanService.getAll()
-        
+
         if (response.code === 200 && response.data) {
-          const projectMap = new Map<string, {
-            project_id: string
-            project_name: string
-            plan_start_date: string
-            plan_end_date: string
-            plan_count: number
-            client_name: string
-            address: string
-            plans: MaintenancePlan[]
-          }>()
-          
+          const projectMap = new Map<
+            string,
+            {
+              project_id: string
+              project_name: string
+              plan_start_date: string
+              plan_end_date: string
+              plan_count: number
+              client_name: string
+              address: string
+              plans: MaintenancePlan[]
+            }
+          >()
+
           response.data.forEach((plan: MaintenancePlan) => {
             const existing = projectMap.get(plan.project_id)
             if (existing) {
@@ -1382,28 +1542,28 @@ export default defineComponent({
                 plan_count: 1,
                 client_name: (plan as any).client_name || '',
                 address: (plan as any).address || '',
-                plans: [plan]
+                plans: [plan],
               })
             }
           })
-          
+
           let items = Array.from(projectMap.values())
-          
+
           if (searchForm.projectName) {
-            items = items.filter(item => 
+            items = items.filter((item) =>
               item.project_name.toLowerCase().includes(searchForm.projectName.toLowerCase())
             )
           }
-          
+
           if (searchForm.clientName) {
-            items = items.filter(item => 
+            items = items.filter((item) =>
               item.client_name.toLowerCase().includes(searchForm.clientName.toLowerCase())
             )
           }
-          
+
           totalElements.value = items.length
           totalPages.value = Math.ceil(items.length / pageSize.value) || 1
-          
+
           const start = currentPage.value * pageSize.value
           const end = start + pageSize.value
           planData.value = items.slice(start, end)
@@ -1479,7 +1639,7 @@ export default defineComponent({
 
       saving.value = true
       try {
-        const selectedProject = projectList.value.find(p => p.id === formData.selectedProjectId)
+        const selectedProject = projectList.value.find((p) => p.id === formData.selectedProjectId)
         if (!selectedProject) {
           showToast('请选择项目', 'error')
           return
@@ -1510,28 +1670,39 @@ export default defineComponent({
             responsible_person: plan.responsible_person || '',
             responsible_department: formData.client_name,
             contact_info: undefined,
-            maintenance_content: formData.itemList.length > 0 
-              ? formData.itemList.map(item => item.inspection_content).filter(Boolean).join('; ')
-              : '常规维保',
-            maintenance_requirements: formData.itemList.length > 0 
-              ? formData.itemList.map(item => item.check_requirements).filter(Boolean).join('; ')
-              : undefined,
+            maintenance_content:
+              formData.itemList.length > 0
+                ? formData.itemList
+                    .map((item) => item.inspection_content)
+                    .filter(Boolean)
+                    .join('; ')
+                : '常规维保',
+            maintenance_requirements:
+              formData.itemList.length > 0
+                ? formData.itemList
+                    .map((item) => item.check_requirements)
+                    .filter(Boolean)
+                    .join('; ')
+                : undefined,
             maintenance_standard: undefined,
             plan_status: '执行中',
             status: '未开始',
             completion_rate: 0,
             remarks: plan.remarks,
-            inspection_items: formData.itemList.length > 0 
-              ? JSON.stringify(formData.itemList.map(item => ({
-                  level1_id: item.level1_id || '',
-                  level2_id: item.level2_id || '',
-                  level3_id: item.level3_id || '',
-                  inspection_item: item.inspection_item || '',
-                  inspection_content: item.inspection_content || '',
-                  check_requirements: item.check_requirements || '',
-                  brief_description: item.brief_description || ''
-                })))
-              : undefined
+            inspection_items:
+              formData.itemList.length > 0
+                ? JSON.stringify(
+                    formData.itemList.map((item) => ({
+                      level1_id: item.level1_id || '',
+                      level2_id: item.level2_id || '',
+                      level3_id: item.level3_id || '',
+                      inspection_item: item.inspection_item || '',
+                      inspection_content: item.inspection_content || '',
+                      check_requirements: item.check_requirements || '',
+                      brief_description: item.brief_description || '',
+                    }))
+                  )
+                : undefined,
           }
 
           try {
@@ -1542,7 +1713,7 @@ export default defineComponent({
             } else {
               response = await maintenancePlanService.create(planData)
             }
-            
+
             if (response.code === 200 || response.code === 201) {
               successCount++
             } else {
@@ -1552,13 +1723,16 @@ export default defineComponent({
             failCount++
           }
         }
-        
+
         if (successCount > 0) {
-          showToast(`成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`, 'success')
+          showToast(
+            `成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`,
+            'success'
+          )
           closeModal()
           resetForm()
           editingId.value = null
-          
+
           currentPage.value = 0
           await loadData()
         } else {
@@ -1588,17 +1762,17 @@ export default defineComponent({
         showToast('没有可编辑的计划', 'warning')
         return
       }
-      
+
       if (projectList.value.length === 0) {
         await loadProjectList()
       }
-      
-      const project = projectList.value.find(p => p.project_id === item.project_id)
-      
+
+      const project = projectList.value.find((p) => p.project_id === item.project_id)
+
       editData.selectedProjectId = project ? project.id : undefined
       editData.project_id = item.project_id
       editData.plan_name = item.project_name
-      
+
       if (project) {
         editData.maintenance_period = project.maintenance_period || ''
         editData.address = project.address || ''
@@ -1610,7 +1784,7 @@ export default defineComponent({
         editData.maintenance_end_date = ''
         editData.client_name = item.client_name || ''
       }
-      
+
       editData.planList = item.plans.map((plan: MaintenancePlan) => {
         return {
           id: plan.id,
@@ -1621,7 +1795,9 @@ export default defineComponent({
           remarks: plan.remarks || '',
           plan_type: plan.plan_type || '定期维保',
           execution_date: plan.execution_date ? formatDateForInput(plan.execution_date) : '',
-          next_maintenance_date: plan.next_maintenance_date ? formatDateForInput(plan.next_maintenance_date) : '',
+          next_maintenance_date: plan.next_maintenance_date
+            ? formatDateForInput(plan.next_maintenance_date)
+            : '',
           responsible_department: plan.responsible_department || '',
           contact_info: plan.contact_info || '',
           plan_status: plan.plan_status || '执行中',
@@ -1629,15 +1805,17 @@ export default defineComponent({
           completion_rate: plan.completion_rate || 0,
           maintenance_content: plan.maintenance_content || '',
           maintenance_requirements: plan.maintenance_requirements || '',
-          maintenance_standard: plan.maintenance_standard || ''
+          maintenance_standard: plan.maintenance_standard || '',
         }
       })
-      
+
       editData.itemList = []
       const firstPlan = item.plans[0]
       if (firstPlan.maintenance_content) {
         const contents = firstPlan.maintenance_content.split('; ')
-        const requirements = firstPlan.maintenance_requirements ? firstPlan.maintenance_requirements.split('; ') : []
+        const requirements = firstPlan.maintenance_requirements
+          ? firstPlan.maintenance_requirements.split('; ')
+          : []
         contents.forEach((content: string, index: number) => {
           editData.itemList.push({
             item_id: '',
@@ -1647,13 +1825,13 @@ export default defineComponent({
             brief_description: '',
             level1_id: '',
             level2_id: '',
-            level3_id: ''
+            level3_id: '',
           })
         })
       }
-      
+
       editingId.value = editData.planList[0].id
-      
+
       isEditModalOpen.value = true
     }
 
@@ -1669,7 +1847,7 @@ export default defineComponent({
     }
 
     const handleEditProjectChange = () => {
-      const selectedProject = projectList.value.find(p => p.id === editData.selectedProjectId)
+      const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
       if (selectedProject) {
         editData.project_id = selectedProject.project_id
         editData.address = selectedProject.address || ''
@@ -1693,10 +1871,10 @@ export default defineComponent({
       item.level3_id = ''
       item.check_requirements = ''
       item.inspection_content = ''
-      
+
       if (item.level1_id && item.level2_id) {
         const level2Nodes = getLevel2Nodes(item.level1_id)
-        const level2Node = level2Nodes.find(node => node.id === item.level2_id)
+        const level2Node = level2Nodes.find((node) => node.id === item.level2_id)
         if (level2Node) {
           item.inspection_item = level2Node.label
         }
@@ -1706,10 +1884,10 @@ export default defineComponent({
     const handleEditLevel3Change = (index: number) => {
       const item = editData.itemList[index]
       item.check_requirements = ''
-      
+
       if (item.level1_id && item.level2_id && item.level3_id) {
         const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
-        const level3Node = level3Nodes.find(node => node.id === item.level3_id)
+        const level3Node = level3Nodes.find((node) => node.id === item.level3_id)
         if (level3Node) {
           item.inspection_content = level3Node.label
           item.check_requirements = level3Node.checkRequirement || ''
@@ -1726,7 +1904,7 @@ export default defineComponent({
         brief_description: '',
         level1_id: '',
         level2_id: '',
-        level3_id: ''
+        level3_id: '',
       })
     }
 
@@ -1736,7 +1914,7 @@ export default defineComponent({
 
     const importEditItems = () => {
       showConfirm('导入事项将覆盖当前事项列表，是否继续？', () => {
-        const selectedProject = projectList.value.find(p => p.id === editData.selectedProjectId)
+        const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
         if (selectedProject && (selectedProject as any).inspection_items) {
           try {
             const items = JSON.parse((selectedProject as any).inspection_items)
@@ -1748,7 +1926,7 @@ export default defineComponent({
               brief_description: item.brief_description || '',
               level1_id: '',
               level2_id: '',
-              level3_id: ''
+              level3_id: '',
             }))
             showToast('导入成功', 'success')
           } catch (e) {
@@ -1779,7 +1957,7 @@ export default defineComponent({
 
       saving.value = true
       try {
-        const selectedProject = projectList.value.find(p => p.id === editData.selectedProjectId)
+        const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
         if (!selectedProject) {
           showToast('请选择项目', 'error')
           return
@@ -1788,23 +1966,34 @@ export default defineComponent({
         let successCount = 0
         let failCount = 0
 
-        const maintenanceContent = editData.itemList.length > 0 
-          ? editData.itemList.map(item => item.inspection_content).filter(Boolean).join('; ')
-          : '常规维保'
-        const maintenanceRequirements = editData.itemList.length > 0 
-          ? editData.itemList.map(item => item.check_requirements).filter(Boolean).join('; ')
-          : undefined
-        const inspectionItemsJson = editData.itemList.length > 0 
-          ? JSON.stringify(editData.itemList.map(item => ({
-              level1_id: item.level1_id || '',
-              level2_id: item.level2_id || '',
-              level3_id: item.level3_id || '',
-              inspection_item: item.inspection_item || '',
-              inspection_content: item.inspection_content || '',
-              check_requirements: item.check_requirements || '',
-              brief_description: item.brief_description || ''
-            })))
-          : undefined
+        const maintenanceContent =
+          editData.itemList.length > 0
+            ? editData.itemList
+                .map((item) => item.inspection_content)
+                .filter(Boolean)
+                .join('; ')
+            : '常规维保'
+        const maintenanceRequirements =
+          editData.itemList.length > 0
+            ? editData.itemList
+                .map((item) => item.check_requirements)
+                .filter(Boolean)
+                .join('; ')
+            : undefined
+        const inspectionItemsJson =
+          editData.itemList.length > 0
+            ? JSON.stringify(
+                editData.itemList.map((item) => ({
+                  level1_id: item.level1_id || '',
+                  level2_id: item.level2_id || '',
+                  level3_id: item.level3_id || '',
+                  inspection_item: item.inspection_item || '',
+                  inspection_content: item.inspection_content || '',
+                  check_requirements: item.check_requirements || '',
+                  brief_description: item.brief_description || '',
+                }))
+              )
+            : undefined
 
         for (const plan of editData.planList) {
           if (!plan.plan_start_date || !plan.plan_end_date) {
@@ -1822,7 +2011,9 @@ export default defineComponent({
             plan_start_date: formatDateForAPI(plan.plan_start_date),
             plan_end_date: formatDateForAPI(plan.plan_end_date),
             execution_date: plan.execution_date ? formatDateForAPI(plan.execution_date) : undefined,
-            next_maintenance_date: plan.next_maintenance_date ? formatDateForAPI(plan.next_maintenance_date) : undefined,
+            next_maintenance_date: plan.next_maintenance_date
+              ? formatDateForAPI(plan.next_maintenance_date)
+              : undefined,
             responsible_person: plan.responsible_person || '',
             responsible_department: editData.client_name,
             contact_info: undefined,
@@ -1833,7 +2024,7 @@ export default defineComponent({
             status: plan.status || '未开始',
             completion_rate: plan.completion_rate || 0,
             remarks: plan.remarks,
-            inspection_items: inspectionItemsJson
+            inspection_items: inspectionItemsJson,
           }
 
           try {
@@ -1843,7 +2034,7 @@ export default defineComponent({
             } else {
               response = await maintenancePlanService.create(updateData)
             }
-            
+
             if (response.code === 200 || response.code === 201) {
               successCount++
             } else {
@@ -1853,9 +2044,12 @@ export default defineComponent({
             failCount++
           }
         }
-        
+
         if (successCount > 0) {
-          showToast(`成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`, 'success')
+          showToast(
+            `成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`,
+            'success'
+          )
           closeEditModal()
           currentPage.value = 0
           await loadData()
@@ -2000,9 +2194,9 @@ export default defineComponent({
       handleLevel2Change,
       handleLevel3Change,
       deleteEditPlan,
-      addEditPlan
+      addEditPlan,
     }
-  }
+  },
 })
 </script>
 
@@ -2101,21 +2295,21 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #2E7D32;
+  background: #2e7d32;
   color: #fff;
 }
 
 .btn-add:hover:not(:disabled) {
-  background: #1B5E20;
+  background: #1b5e20;
 }
 
 .btn-search {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-search:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .table-section {
@@ -2132,7 +2326,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #E0E0E0;
+  background: #e0e0e0;
 }
 
 .data-table th {
@@ -2182,15 +2376,15 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .action-edit {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .action-delete {
-  color: #D32F2F;
+  color: #d32f2f;
 }
 
 .pagination-section {
@@ -2232,8 +2426,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196F3;
-  color: #2196F3;
+  border-color: #2196f3;
+  color: #2196f3;
 }
 
 .page-btn:disabled {
@@ -2242,9 +2436,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-nav {
@@ -2282,14 +2476,14 @@ export default defineComponent({
 
 .page-input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -2299,7 +2493,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .modal-overlay {
@@ -2400,7 +2594,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 
@@ -2484,12 +2678,12 @@ export default defineComponent({
 }
 
 .btn-save {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .section-title {
@@ -2498,7 +2692,7 @@ export default defineComponent({
   color: #333;
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #2196F3;
+  border-bottom: 2px solid #2196f3;
 }
 
 .section-divider {
@@ -2519,7 +2713,7 @@ export default defineComponent({
 }
 
 .inner-table thead {
-  background: #E0E0E0;
+  background: #e0e0e0;
 }
 
 .inner-table th {
@@ -2573,7 +2767,7 @@ export default defineComponent({
 
 .btn-add-small {
   padding: 6px 12px;
-  background: #2E7D32;
+  background: #2e7d32;
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -2585,7 +2779,7 @@ export default defineComponent({
 }
 
 .btn-add-small:hover {
-  background: #1B5E20;
+  background: #1b5e20;
 }
 
 .form-input-readonly {

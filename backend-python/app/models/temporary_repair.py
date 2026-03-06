@@ -16,6 +16,8 @@ class TemporaryRepair(Base, SoftDeleteMixin):
     plan_start_date = Column(DateTime, nullable=False, comment="计划开始日期")
     plan_end_date = Column(DateTime, nullable=False, comment="计划结束日期")
     client_name = Column(String(100), comment="客户单位")
+    client_contact = Column(String(100), comment="客户联系人")
+    client_contact_info = Column(String(50), comment="客户联系电话")
     maintenance_personnel = Column(String(100), comment="运维人员")
     status = Column(String(20), nullable=False, default="执行中", comment="状态")
     remarks = Column(String(500), comment="备注")
@@ -74,8 +76,8 @@ class TemporaryRepair(Base, SoftDeleteMixin):
             'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
             'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
             'client_name': client_name,
-            'client_contact': client_contact,
-            'client_contact_info': client_contact_info,
+            'client_contact': self.client_contact or client_contact,
+            'client_contact_info': self.client_contact_info or client_contact_info,
             'address': address,
             'client_contact_position': client_contact_position,
             'maintenance_personnel': self.maintenance_personnel,

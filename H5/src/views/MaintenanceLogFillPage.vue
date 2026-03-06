@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+} from 'vant'
 import { maintenanceLogService, projectInfoService, uploadService } from '../services'
 import type { ProjectInfo } from '../types/models'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
@@ -28,7 +34,7 @@ const formData = ref({
   logType: 'maintenance',
   logDate: formatDate(new Date()),
   workContent: '',
-  remark: ''
+  remark: '',
 })
 
 const projectList = ref<ProjectInfo[]>([])
@@ -42,7 +48,7 @@ const today = new Date()
 const currentDate = ref<string[]>([
   today.getFullYear().toString(),
   (today.getMonth() + 1).toString().padStart(2, '0'),
-  today.getDate().toString().padStart(2, '0')
+  today.getDate().toString().padStart(2, '0'),
 ])
 
 const selectedProjectName = ref('')
@@ -64,10 +70,16 @@ const fetchProjectList = async () => {
 /**
  * 项目选择确认
  */
-const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOptions: Array<{ text: string; value: string }>, selectedValues: string[] }) => {
+const handleProjectConfirm = ({
+  selectedOptions,
+  selectedValues,
+}: {
+  selectedOptions: Array<{ text: string; value: string }>
+  selectedValues: string[]
+}) => {
   const selectedValue = selectedValues && selectedValues.length > 0 ? selectedValues[0] : null
   if (selectedValue) {
-    const project = projectList.value.find(p => p.id.toString() === selectedValue)
+    const project = projectList.value.find((p) => p.id.toString() === selectedValue)
     if (project) {
       formData.value.projectId = project.project_id
       formData.value.projectName = project.project_name
@@ -76,7 +88,7 @@ const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOpt
   } else if (selectedOptions && selectedOptions.length > 0) {
     const selected = selectedOptions[0]
     if (selected) {
-      const project = projectList.value.find(p => p.id.toString() === selected.value)
+      const project = projectList.value.find((p) => p.id.toString() === selected.value)
       if (project) {
         formData.value.projectId = project.project_id
         formData.value.projectName = project.project_name
@@ -108,7 +120,7 @@ const handleTakePhoto = async () => {
   input.type = 'file'
   input.accept = 'image/*'
   input.capture = 'environment'
-  
+
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
@@ -121,13 +133,13 @@ const handleTakePhoto = async () => {
           userName,
           includeLocation: true,
           latitude: location?.latitude,
-          longitude: location?.longitude
+          longitude: location?.longitude,
         })
         const url = URL.createObjectURL(processedFile)
         images.value.push({
           file: processedFile,
           url: url,
-          description: ''
+          description: '',
         })
       } catch (error) {
         console.error('Failed to process photo:', error)
@@ -135,14 +147,14 @@ const handleTakePhoto = async () => {
         images.value.push({
           file: file,
           url: url,
-          description: ''
+          description: '',
         })
       } finally {
         closeToast()
       }
     }
   }
-  
+
   input.click()
 }
 
@@ -153,7 +165,7 @@ const handleDeleteImage = async (index: number) => {
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '请确认是否要删除该图片？'
+      message: '请确认是否要删除该图片？',
     })
     const img = images.value[index]
     if (img && img.url && img.url.startsWith('blob:')) {
@@ -170,7 +182,7 @@ const handleDeleteImage = async (index: number) => {
  */
 const uploadImage = async (image: LogImage): Promise<string | null> => {
   if (!image.file) return null
-  
+
   try {
     const response = await uploadService.uploadFile(image.file)
     if (response.code === 200 && response.data) {
@@ -195,10 +207,10 @@ const handleSubmit = async () => {
     showFailToast('请输入工作内容')
     return
   }
-  
+
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const uploadedUrls: string[] = []
     for (const image of images.value) {
@@ -209,14 +221,16 @@ const handleSubmit = async () => {
         }
       }
     }
-    
+
     const response = await maintenanceLogService.create({
       project_id: formData.value.projectId,
       project_name: formData.value.projectName,
       log_date: formData.value.logDate,
-      log_content: formData.value.workContent,
+      work_content: formData.value.workContent || undefined,
+      images: uploadedUrls.length > 0 ? uploadedUrls : undefined,
+      remark: formData.value.remark || undefined,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('提交成功')
       goBack()
@@ -237,11 +251,11 @@ const handleBack = () => {
 }
 
 const projectColumns = computed(() => {
-  return projectList.value.map(p => ({
+  return projectList.value.map((p) => ({
     text: p.project_name,
     value: p.id.toString(),
     project_id: p.project_id,
-    client_name: p.client_name
+    client_name: p.client_name,
   }))
 })
 
@@ -252,11 +266,7 @@ onMounted(() => {
 
 <template>
   <div class="maintenance-log-fill-page">
-    <van-nav-bar 
-      :title="pageTitle" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar :title="pageTitle" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
@@ -267,19 +277,19 @@ onMounted(() => {
         <UserSelector />
       </template>
     </van-nav-bar>
-    
+
     <van-cell-group inset title="基本信息">
       <div class="two-column-form">
         <div class="form-row">
-          <van-cell 
+          <van-cell
             :title="selectedProjectName || '选择项目'"
             label="项目名称"
             is-link
             required
-            @click="showProjectPicker = true"
             class="form-cell"
+            @click="showProjectPicker = true"
           />
-          <van-cell 
+          <van-cell
             v-if="formData.projectId"
             :title="formData.projectId"
             label="项目编号"
@@ -287,19 +297,19 @@ onMounted(() => {
           />
         </div>
         <div class="form-row">
-          <van-cell 
+          <van-cell
             :title="formData.logDate"
             label="填写日期"
             is-link
             required
-            @click="showDatePicker = true"
             class="form-cell"
+            @click="showDatePicker = true"
           />
         </div>
       </div>
-      <van-field 
-        v-model="formData.workContent" 
-        label="工作内容" 
+      <van-field
+        v-model="formData.workContent"
+        label="工作内容"
         placeholder="请输入工作内容"
         type="textarea"
         rows="3"
@@ -307,9 +317,9 @@ onMounted(() => {
         show-word-limit
         required
       />
-      <van-field 
-        v-model="formData.remark" 
-        label="备注" 
+      <van-field
+        v-model="formData.remark"
+        label="备注"
         placeholder="请输入备注"
         type="textarea"
         rows="2"
@@ -319,17 +329,9 @@ onMounted(() => {
     <van-cell-group inset title="现场照片">
       <div class="image-section">
         <div class="image-list">
-          <div 
-            v-for="(image, index) in images" 
-            :key="index"
-            class="image-item"
-          >
+          <div v-for="(image, index) in images" :key="index" class="image-item">
             <img :src="image.url" alt="现场照片" loading="lazy" />
-            <van-icon 
-              name="delete" 
-              class="delete-icon"
-              @click="handleDeleteImage(index)"
-            />
+            <van-icon name="delete" class="delete-icon" @click="handleDeleteImage(index)" />
           </div>
           <div class="image-add" @click="handleTakePhoto">
             <van-icon name="photograph" size="24" />
@@ -340,9 +342,7 @@ onMounted(() => {
     </van-cell-group>
 
     <div class="submit-btn">
-      <van-button type="primary" block :loading="loading" @click="handleSubmit">
-        提交
-      </van-button>
+      <van-button type="primary" block :loading="loading" @click="handleSubmit"> 提交 </van-button>
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round destroy-on-close>
@@ -357,8 +357,8 @@ onMounted(() => {
 
     <van-popup v-model:show="showDatePicker" position="bottom" round>
       <van-date-picker
-        title="选择填写日期"
         v-model="currentDate"
+        title="选择填写日期"
         :min-date="minDate"
         :max-date="maxDate"
         @confirm="handleDateConfirm"

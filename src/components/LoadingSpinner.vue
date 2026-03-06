@@ -6,23 +6,23 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { defineComponent } from 'vue'
 
 export default defineComponent({
   name: 'LoadingSpinner',
   props: {
     visible: {
       type: Boolean,
-      default: false
+      default: false,
     },
     text: {
       type: String,
-      default: '加载中...'
-    }
+      default: '加载中...',
+    },
   },
   setup() {
     return {}
-  }
+  },
 })
 </script>
 
@@ -45,7 +45,7 @@ export default defineComponent({
   width: 50px;
   height: 50px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196F3;
+  border-top: 4px solid #2196f3;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

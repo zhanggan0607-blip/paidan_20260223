@@ -13,6 +13,12 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
   },
 
+  DINGTALK: {
+    LOGIN: '/dingtalk/login',
+    SYNC_USERS: '/dingtalk/sync-users',
+    CHECK_CONFIG: '/dingtalk/check-config',
+  },
+
   PROJECT_INFO: {
     LIST: '/project-info',
     DETAIL: (id: number) => `/project-info/${id}`,
@@ -38,7 +44,8 @@ export const API_ENDPOINTS = {
     RECORDS: (id: number) => `/periodic-inspection/${id}/records`,
     RECORD_DETAIL: (inspectionId: number, recordId: number) =>
       `/periodic-inspection/${inspectionId}/records/${recordId}`,
-    RECORD_BY_INSPECTION: (inspectionId: string) => `/periodic-inspection-record/inspection/${inspectionId}`,
+    RECORD_BY_INSPECTION: (inspectionId: string) =>
+      `/periodic-inspection-record/inspection/${inspectionId}`,
     CREATE_RECORD: '/periodic-inspection-record',
     SUBMIT: (id: number) => `/periodic-inspection/${id}/submit`,
     APPROVE: (id: number) => `/periodic-inspection/${id}/approve`,
@@ -180,7 +187,7 @@ export const API_ENDPOINTS = {
 
   UPLOAD: {
     IMAGE: '/upload/image',
-    FILE: '/upload/file',
+    FILE: '/upload',
     BASE64: '/upload/base64',
   },
 

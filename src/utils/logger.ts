@@ -20,7 +20,7 @@ export const logger = {
     if (isDev) {
       console.info(...args)
     }
-  }
+  },
 }
 
 export class AppError extends Error {
@@ -28,7 +28,12 @@ export class AppError extends Error {
   public code: string
   public data: unknown
 
-  constructor(message: string, status: number = 500, code: string = 'UNKNOWN_ERROR', data: unknown = null) {
+  constructor(
+    message: string,
+    status: number = 500,
+    code: string = 'UNKNOWN_ERROR',
+    data: unknown = null
+  ) {
     super(message)
     this.name = 'AppError'
     this.status = status
@@ -45,7 +50,7 @@ export const errorHandler = {
     }
 
     const apiError = error as ApiError
-    
+
     if (apiError && typeof apiError.status === 'number') {
       const message = apiError.message || '请求失败'
       logger.error(`[${context || 'API'}]`, message, apiError)
@@ -69,7 +74,7 @@ export const errorHandler = {
       return error.message
     }
     return '操作失败，请稍后重试'
-  }
+  },
 }
 
 export const toastHelper = {
@@ -84,5 +89,5 @@ export const toastHelper = {
   },
   info(message: string): { visible: boolean; message: string; type: 'info' } {
     return { visible: true, message, type: 'info' }
-  }
+  },
 }

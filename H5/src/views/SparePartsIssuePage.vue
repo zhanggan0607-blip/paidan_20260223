@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+} from 'vant'
 import { sparePartsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
@@ -19,11 +25,11 @@ const selectedStock = ref<SparePartsStock | null>(null)
 const issueForm = ref({
   projectId: '',
   projectName: '',
-  quantity: 1 as number
+  quantity: 1 as number,
 })
 
 const filteredStockList = computed(() => {
-  return stockList.value.filter(item => (item.quantity || item.stock || 0) > 0)
+  return stockList.value.filter((item) => (item.quantity || item.stock || 0) > 0)
 })
 
 const maxQuantity = computed(() => {
@@ -105,7 +111,7 @@ const handleSubmitIssue = async () => {
   try {
     await showConfirmDialog({
       title: '确认领用',
-      message: `确认领用 ${selectedStock.value.productName} ${issueForm.value.quantity}${selectedStock.value.unit}?`
+      message: `确认领用 ${selectedStock.value.productName} ${issueForm.value.quantity}${selectedStock.value.unit}?`,
     })
   } catch {
     return
@@ -113,7 +119,7 @@ const handleSubmitIssue = async () => {
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await sparePartsService.issue({
       product_name: selectedStock.value.productName,
@@ -124,9 +130,9 @@ const handleSubmitIssue = async () => {
       issue_time: new Date().toISOString(),
       unit: selectedStock.value.unit,
       project_id: issueForm.value.projectId || null,
-      project_name: issueForm.value.projectName || null
+      project_name: issueForm.value.projectName || null,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('领用成功')
       showIssuePopup.value = false
@@ -134,7 +140,7 @@ const handleSubmitIssue = async () => {
       issueForm.value = {
         projectId: '',
         projectName: '',
-        quantity: 1
+        quantity: 1,
       }
       fetchIssueList()
       fetchStockList()
@@ -167,12 +173,7 @@ onMounted(() => {
 
 <template>
   <div class="spare-parts-issue-page">
-    <van-nav-bar 
-      title="备品备件领用" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="备品备件领用" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -180,24 +181,18 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <div class="action-bar">
-      <van-button type="primary" size="small" @click="showIssuePopup = true">
-        新增领用
-      </van-button>
+      <van-button type="primary" size="small" @click="showIssuePopup = true"> 新增领用 </van-button>
     </div>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchIssueList">
       <van-list :loading="loading" :finished="true">
         <div class="issue-list">
-          <div 
-            v-for="item in issueList" 
-            :key="item.id"
-            class="issue-card"
-          >
+          <div v-for="item in issueList" :key="item.id" class="issue-card">
             <div class="card-header">
               <span class="product-name">{{ item.productName || item.product_name }}</span>
               <span class="issue-date">{{ formatDate(item.issueTime || item.issue_time) }}</span>
@@ -240,12 +235,12 @@ onMounted(() => {
           <span class="popup-title">新增备品备件领用</span>
           <van-icon name="cross" @click="showIssuePopup = false" />
         </div>
-        
+
         <div class="popup-body">
           <div class="section-title">选择产品</div>
           <div class="stock-list">
-            <div 
-              v-for="item in filteredStockList" 
+            <div
+              v-for="item in filteredStockList"
               :key="item.id"
               class="stock-item"
               :class="{ selected: selectedStock?.id === item.id }"
@@ -260,60 +255,54 @@ onMounted(() => {
             </div>
             <van-empty v-if="filteredStockList.length === 0" description="暂无库存" />
           </div>
-          
+
           <div class="section-title">领用信息</div>
           <van-cell-group inset>
-            <van-field 
+            <van-field
               :model-value="selectedStock?.productName || ''"
               label="产品名称"
               placeholder="请选择产品"
               readonly
               required
             />
-            <van-field 
-              :model-value="selectedStock?.brand || ''"
-              label="品牌"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedStock?.model || ''"
-              label="产品型号"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedStock?.unit || ''"
-              label="单位"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedStock?.quantity || 0"
-              label="库存数量"
-              readonly
-            />
+            <van-field :model-value="selectedStock?.brand || ''" label="品牌" readonly />
+            <van-field :model-value="selectedStock?.model || ''" label="产品型号" readonly />
+            <van-field :model-value="selectedStock?.unit || ''" label="单位" readonly />
+            <van-field :model-value="selectedStock?.quantity || 0" label="库存数量" readonly />
             <van-field label="领用数量" required>
               <template #input>
-                <van-stepper 
-                  v-model="issueForm.quantity" 
-                  :min="1" 
+                <van-stepper
+                  v-model="issueForm.quantity"
+                  :min="1"
                   :max="maxQuantity"
                   theme="round"
                   button-size="22"
                 />
               </template>
             </van-field>
-            <van-field 
+            <van-field
               v-model="issueForm.projectName"
               label="所属项目"
               placeholder="请选择项目"
               required
             >
               <template #input>
-                <select v-model="issueForm.projectId" class="project-select" @change="() => {
-                  const project = projectList.find(p => p.project_id === issueForm.projectId)
-                  issueForm.projectName = project ? project.project_name : ''
-                }">
+                <select
+                  v-model="issueForm.projectId"
+                  class="project-select"
+                  @change="
+                    () => {
+                      const project = projectList.find((p) => p.project_id === issueForm.projectId)
+                      issueForm.projectName = project ? project.project_name : ''
+                    }
+                  "
+                >
                   <option value="">请选择项目</option>
-                  <option v-for="project in projectList" :key="project.project_id" :value="project.project_id">
+                  <option
+                    v-for="project in projectList"
+                    :key="project.project_id"
+                    :value="project.project_id"
+                  >
                     {{ project.project_name }}
                   </option>
                 </select>
@@ -321,7 +310,7 @@ onMounted(() => {
             </van-field>
           </van-cell-group>
         </div>
-        
+
         <div class="popup-footer">
           <van-button type="primary" block :loading="loading" @click="handleSubmitIssue">
             确认领用

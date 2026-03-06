@@ -114,5 +114,5 @@ export const inspectionItemService = {
    */
   async delete(id: number): Promise<ApiResponse<null>> {
     return await request.delete(API_ENDPOINTS.INSPECTION_ITEM.DETAIL(id))
-  }
+  },
 }

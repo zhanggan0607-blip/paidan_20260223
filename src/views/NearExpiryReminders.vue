@@ -47,7 +47,11 @@
           <tr v-if="filteredData.length === 0">
             <td colspan="9" class="empty-cell">暂无数据</td>
           </tr>
-          <tr v-for="(item, index) in paginatedData" :key="item.id + '-' + item.workOrderType" :class="{ 'even-row': index % 2 === 0 }">
+          <tr
+            v-for="(item, index) in paginatedData"
+            :key="item.id + '-' + item.workOrderType"
+            :class="{ 'even-row': index % 2 === 0 }"
+          >
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.workOrderId }}</td>
             <td>{{ item.projectId }}</td>
@@ -65,9 +69,7 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">
-        共 {{ totalElements }} 条记录
-      </div>
+      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
       <div class="pagination-controls">
         <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
           &lt;
@@ -81,17 +83,21 @@
         >
           {{ page }}
         </button>
-        <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage >= totalPages - 1"
+          @click="currentPage++"
+        >
           &gt;
         </button>
-        <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
           <option value="10">10 条 / 页</option>
           <option value="20">20 条 / 页</option>
           <option value="50">50 条 / 页</option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
           <span>页</span>
           <button class="page-btn page-go" @click="handleJump">Go</button>
         </div>
@@ -159,11 +165,15 @@
               </div>
               <div class="form-item">
                 <label class="form-label">合同剩余时间</label>
-                <div class="form-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
+                <div class="form-value" :class="getRemainingTimeClass()">
+                  {{ viewData.remainingTime || '-' }}
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">状态</label>
-                <div class="form-value" :class="getStatusClass(viewData.status)">{{ viewData.status || '-' }}</div>
+                <div class="form-value" :class="getStatusClass(viewData.status)">
+                  {{ viewData.status || '-' }}
+                </div>
               </div>
             </div>
           </div>
@@ -184,7 +194,7 @@ import { userStore } from '../stores/userStore'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
-import { formatDate, USER_ROLES, WORK_STATUS } from '../config/constants'
+import { USER_ROLES, WORK_STATUS } from '../config/constants'
 import type { ApiResponse } from '../types/api'
 
 interface NearExpiryItem {
@@ -203,14 +213,14 @@ export default defineComponent({
   components: {
     LoadingSpinner,
     Toast,
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
     const isViewModalOpen = ref(false)
     const searchForm = reactive({
       projectName: '',
-      clientName: ''
+      clientName: '',
     })
 
     const currentPage = ref(0)
@@ -221,7 +231,7 @@ export default defineComponent({
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const viewData = reactive({
@@ -240,10 +250,13 @@ export default defineComponent({
       executor: '',
       status: '',
       daysFromToday: 0,
-      remainingTime: ''
+      remainingTime: '',
     })
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -255,19 +268,22 @@ export default defineComponent({
       return date.toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit'
+        day: '2-digit',
       })
     }
 
-    const getDaysClass = (days: number): string => {
+    const getDaysClass = (_days: number): string => {
       return 'days-warning'
     }
 
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await apiClient.get<unknown, ApiResponse<{ items: any[], total: number }>>('/expiring-soon', { params: { page: 0, size: 1000 } })
-        
+        const response = await apiClient.get<unknown, ApiResponse<{ items: any[]; total: number }>>(
+          '/expiring-soon',
+          { params: { page: 0, size: 1000 } }
+        )
+
         const items: NearExpiryItem[] = []
 
         if (response.code === 200 && response.data?.items) {
@@ -280,7 +296,7 @@ export default defineComponent({
               workOrderType: item.workOrderType,
               planStartDate: item.planStartDate,
               daysFromToday: item.daysRemaining,
-              executor: item.executor
+              executor: item.executor,
             })
           })
         }
@@ -299,17 +315,17 @@ export default defineComponent({
 
       const user = userStore.getUser()
       if (user && user.role === USER_ROLES.EMPLOYEE) {
-        result = result.filter(item => item.executor === user.name)
+        result = result.filter((item) => item.executor === user.name)
       }
 
       if (searchForm.projectName) {
-        result = result.filter(item => 
+        result = result.filter((item) =>
           item.projectName.toLowerCase().includes(searchForm.projectName.toLowerCase())
         )
       }
 
       if (searchForm.clientName) {
-        result = result.filter(item => 
+        result = result.filter((item) =>
           item.projectId.toLowerCase().includes(searchForm.clientName.toLowerCase())
         )
       }
@@ -381,7 +397,9 @@ export default defineComponent({
       try {
         const projectResponse = await projectInfoService.getAll()
         if (projectResponse.code === 200 && projectResponse.data) {
-          const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.projectId)
+          const project = projectResponse.data.find(
+            (p: ProjectInfo) => p.project_id === item.projectId
+          )
           if (project) {
             viewData.projectName = project.project_name || viewData.projectName
             viewData.clientName = project.client_name || ''
@@ -405,30 +423,30 @@ export default defineComponent({
 
     const calculateRemainingTime = (endDate: string): string => {
       if (!endDate) return '-'
-      
+
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      
+
       const end = new Date(endDate)
       end.setHours(0, 0, 0, 0)
-      
+
       const diffTime = end.getTime() - today.getTime()
-      
+
       if (diffTime < 0) {
         return '已过期'
       }
-      
+
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
+
       const years = Math.floor(diffDays / 365)
       const months = Math.floor((diffDays % 365) / 30)
       const days = diffDays % 30
-      
+
       const parts: string[] = []
       if (years > 0) parts.push(`${years}年`)
       if (months > 0) parts.push(`${months}月`)
       if (days > 0 || parts.length === 0) parts.push(`${days}日`)
-      
+
       return parts.join('')
     }
 
@@ -462,7 +480,7 @@ export default defineComponent({
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       })
     }
 
@@ -505,9 +523,9 @@ export default defineComponent({
       handlePageSizeChange,
       handleJump,
       handleView,
-      closeViewModal
+      closeViewModal,
     }
-  }
+  },
 })
 </script>
 
@@ -603,12 +621,12 @@ export default defineComponent({
 }
 
 .btn-search {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-search:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .btn-reset {
@@ -635,7 +653,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #E0E0E0;
+  background: #e0e0e0;
 }
 
 .data-table th {
@@ -649,7 +667,7 @@ export default defineComponent({
 }
 
 .data-table .th-days-warning {
-  color: #F57C00;
+  color: #f57c00;
 }
 
 .data-table td {
@@ -675,17 +693,17 @@ export default defineComponent({
 }
 
 .days-critical {
-  color: #D32F2F;
+  color: #d32f2f;
   font-weight: 600;
 }
 
 .data-table .days-warning {
-  color: #F57C00;
+  color: #f57c00;
   font-weight: 600;
 }
 
 .days-normal {
-  color: #388E3C;
+  color: #388e3c;
 }
 
 .action-cell {
@@ -709,7 +727,7 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .pagination-section {
@@ -751,8 +769,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196F3;
-  color: #2196F3;
+  border-color: #2196f3;
+  color: #2196f3;
 }
 
 .page-btn:disabled {
@@ -761,9 +779,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-nav {
@@ -801,14 +819,14 @@ export default defineComponent({
 
 .page-input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -818,7 +836,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .modal-overlay {
@@ -938,32 +956,32 @@ export default defineComponent({
 }
 
 .remaining-normal {
-  color: #388E3C;
+  color: #388e3c;
   font-weight: 500;
 }
 
 .remaining-expired {
-  color: #D32F2F;
+  color: #d32f2f;
   font-weight: 600;
 }
 
 .status-pending {
-  color: #FF9800;
+  color: #ff9800;
 }
 
 .status-confirmed {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .status-in-progress {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .status-completed {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .status-cancelled {
-  color: #D32F2F;
+  color: #d32f2f;
 }
 </style>

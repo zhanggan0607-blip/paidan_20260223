@@ -1,22 +1,18 @@
 <template>
   <div class="photo-upload">
     <div class="photo-grid">
-      <div
-        v-for="(photo, index) in photos"
-        :key="index"
-        class="photo-item"
-      >
+      <div v-for="(photo, index) in photos" :key="index" class="photo-item">
         <img :src="photo" alt="现场图片" loading="lazy" @click="previewPhoto(photo)" />
-        <button class="delete-btn" @click.stop="removePhoto(index)" title="删除">×</button>
+        <button class="delete-btn" title="删除" @click.stop="removePhoto(index)">×</button>
       </div>
-      <div class="photo-add" v-if="photos.length < maxCount">
+      <div v-if="photos.length < maxCount" class="photo-add">
         <input
           ref="fileInputRef"
           type="file"
           accept="image/*"
           capture="environment"
-          @change="handleFileSelect"
           style="display: none"
+          @change="handleFileSelect"
         />
         <button class="add-btn" @click="triggerFileSelect">
           <span class="add-icon">+</span>
@@ -24,9 +20,7 @@
         </button>
       </div>
     </div>
-    <div class="photo-tip">
-      支持 jpg、png 格式，单张不超过 5MB，最多 {{ maxCount }} 张
-    </div>
+    <div class="photo-tip">支持 jpg、png 格式，单张不超过 5MB，最多 {{ maxCount }} 张</div>
   </div>
 </template>
 
@@ -38,25 +32,28 @@ export default defineComponent({
   props: {
     modelValue: {
       type: Array as () => string[],
-      default: () => []
+      default: () => [],
     },
     maxCount: {
       type: Number,
-      default: 9
+      default: 9,
     },
     maxSize: {
       type: Number,
-      default: 5 * 1024 * 1024
-    }
+      default: 5 * 1024 * 1024,
+    },
   },
   emits: ['update:modelValue', 'upload'],
   setup(props, { emit }) {
     const photos = ref<string[]>([...props.modelValue])
     const fileInputRef = ref<HTMLInputElement | null>(null)
 
-    watch(() => props.modelValue, (newVal) => {
-      photos.value = [...newVal]
-    })
+    watch(
+      () => props.modelValue,
+      (newVal) => {
+        photos.value = [...newVal]
+      }
+    )
 
     const triggerFileSelect = () => {
       fileInputRef.value?.click()
@@ -101,9 +98,9 @@ export default defineComponent({
       triggerFileSelect,
       handleFileSelect,
       removePhoto,
-      previewPhoto
+      previewPhoto,
     }
-  }
+  },
 })
 </script>
 

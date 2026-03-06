@@ -4,9 +4,9 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import { PLAN_TYPE_LIST, PLAN_TYPES } from '../config/constants'
+import { PLAN_TYPE_LIST } from '../config/constants'
 
-export type PlanType = typeof PLAN_TYPE_LIST[number]
+export type PlanType = (typeof PLAN_TYPE_LIST)[number]
 
 export interface WorkPlan {
   id: number
@@ -88,9 +88,7 @@ export const workPlanService = {
   /**
    * 获取所有工作计划（不分页）
    */
-  async getAll(params?: {
-    plan_type?: PlanType
-  }): Promise<ApiResponse<WorkPlan[]>> {
+  async getAll(params?: { plan_type?: PlanType }): Promise<ApiResponse<WorkPlan[]>> {
     return await request.get(API_ENDPOINTS.WORK_PLAN.ALL, { params })
   },
 
@@ -120,5 +118,5 @@ export const workPlanService = {
    */
   async delete(id: number): Promise<ApiResponse<null>> {
     return await request.delete(API_ENDPOINTS.WORK_PLAN.DETAIL(id))
-  }
+  },
 }

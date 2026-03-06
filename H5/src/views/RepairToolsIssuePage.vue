@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+} from 'vant'
 import { repairToolsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
@@ -20,11 +26,11 @@ const issueForm = ref({
   projectId: '',
   projectName: '',
   quantity: 1 as number,
-  remark: ''
+  remark: '',
 })
 
 const filteredToolList = computed(() => {
-  return toolStockList.value.filter(item => (item.stock || 0) > 0)
+  return toolStockList.value.filter((item) => (item.stock || 0) > 0)
 })
 
 const maxQuantity = computed(() => {
@@ -106,7 +112,7 @@ const handleSubmitIssue = async () => {
   try {
     await showConfirmDialog({
       title: '确认领用',
-      message: `确认领用 ${selectedTool.value.tool_name} ${issueForm.value.quantity}件?`
+      message: `确认领用 ${selectedTool.value.tool_name} ${issueForm.value.quantity}件?`,
     })
   } catch {
     return
@@ -114,7 +120,7 @@ const handleSubmitIssue = async () => {
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await repairToolsService.issue({
       tool_id: selectedTool.value.tool_id || String(selectedTool.value.id),
@@ -124,9 +130,9 @@ const handleSubmitIssue = async () => {
       user_name: userStore.getUser()?.name,
       project_id: issueForm.value.projectId || null,
       project_name: issueForm.value.projectName || null,
-      remark: issueForm.value.remark || null
+      remark: issueForm.value.remark || null,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('领用成功')
       showIssuePopup.value = false
@@ -135,7 +141,7 @@ const handleSubmitIssue = async () => {
         projectId: '',
         projectName: '',
         quantity: 1,
-        remark: ''
+        remark: '',
       }
       fetchIssueList()
       fetchToolStockList()
@@ -176,12 +182,7 @@ onMounted(() => {
 
 <template>
   <div class="repair-tools-issue-page">
-    <van-nav-bar 
-      title="维修工具领用" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="维修工具领用" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -189,24 +190,18 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <div class="action-bar">
-      <van-button type="primary" size="small" @click="showIssuePopup = true">
-        新增领用
-      </van-button>
+      <van-button type="primary" size="small" @click="showIssuePopup = true"> 新增领用 </van-button>
     </div>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchIssueList">
       <van-list :loading="loading" :finished="true">
         <div class="issue-list">
-          <div 
-            v-for="item in issueList" 
-            :key="item.id"
-            class="issue-card"
-          >
+          <div v-for="item in issueList" :key="item.id" class="issue-card">
             <div class="card-header">
               <span class="tool-name">{{ item.tool_name }}</span>
               <span :class="['status-badge', getStatusClass(item.status)]">
@@ -251,12 +246,12 @@ onMounted(() => {
           <span class="popup-title">新增维修工具领用</span>
           <van-icon name="cross" @click="showIssuePopup = false" />
         </div>
-        
+
         <div class="popup-body">
           <div class="section-title">选择工具</div>
           <div class="tool-list">
-            <div 
-              v-for="item in filteredToolList" 
+            <div
+              v-for="item in filteredToolList"
               :key="item.id"
               class="tool-item"
               :class="{ selected: selectedTool?.id === item.id }"
@@ -271,61 +266,59 @@ onMounted(() => {
             </div>
             <van-empty v-if="filteredToolList.length === 0" description="暂无库存" />
           </div>
-          
+
           <div class="section-title">领用信息</div>
           <van-cell-group inset>
-            <van-field 
+            <van-field
               :model-value="selectedTool?.tool_name || ''"
               label="工具名称"
               placeholder="请选择工具"
               readonly
               required
             />
-            <van-field 
-              :model-value="selectedTool?.tool_id || ''"
-              label="工具编号"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedTool?.specification || ''"
-              label="规格型号"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedTool?.stock || 0"
-              label="库存数量"
-              readonly
-            />
+            <van-field :model-value="selectedTool?.tool_id || ''" label="工具编号" readonly />
+            <van-field :model-value="selectedTool?.specification || ''" label="规格型号" readonly />
+            <van-field :model-value="selectedTool?.stock || 0" label="库存数量" readonly />
             <van-field label="领用数量" required>
               <template #input>
-                <van-stepper 
-                  v-model="issueForm.quantity" 
-                  :min="1" 
+                <van-stepper
+                  v-model="issueForm.quantity"
+                  :min="1"
                   :max="maxQuantity"
                   theme="round"
                   button-size="22"
                 />
               </template>
             </van-field>
-            <van-field 
+            <van-field
               v-model="issueForm.projectName"
               label="所属项目"
               placeholder="请选择项目"
               required
             >
               <template #input>
-                <select v-model="issueForm.projectId" class="project-select" @change="() => {
-                  const project = projectList.find(p => p.project_id === issueForm.projectId)
-                  issueForm.projectName = project ? project.project_name : ''
-                }">
+                <select
+                  v-model="issueForm.projectId"
+                  class="project-select"
+                  @change="
+                    () => {
+                      const project = projectList.find((p) => p.project_id === issueForm.projectId)
+                      issueForm.projectName = project ? project.project_name : ''
+                    }
+                  "
+                >
                   <option value="">请选择项目</option>
-                  <option v-for="project in projectList" :key="project.project_id" :value="project.project_id">
+                  <option
+                    v-for="project in projectList"
+                    :key="project.project_id"
+                    :value="project.project_id"
+                  >
                     {{ project.project_name }}
                   </option>
                 </select>
               </template>
             </van-field>
-            <van-field 
+            <van-field
               v-model="issueForm.remark"
               label="备注"
               placeholder="请输入备注"
@@ -334,7 +327,7 @@ onMounted(() => {
             />
           </van-cell-group>
         </div>
-        
+
         <div class="popup-footer">
           <van-button type="primary" block :loading="loading" @click="handleSubmitIssue">
             确认领用

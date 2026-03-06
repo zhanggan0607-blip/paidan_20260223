@@ -15,14 +15,23 @@
               <div class="form-card-body">
                 <div class="form-grid two-columns">
                   <div class="form-item">
-                    <label class="form-label">
-                      <span class="required">*</span> 填报日期
-                    </label>
-                    <input v-model="formData.reportDate" type="date" class="form-input" @change="generateReportId" />
+                    <label class="form-label"> <span class="required">*</span> 填报日期 </label>
+                    <input
+                      v-model="formData.reportDate"
+                      type="date"
+                      class="form-input"
+                      @change="generateReportId"
+                    />
                   </div>
                   <div class="form-item">
                     <label class="form-label">周报编号</label>
-                    <input v-model="formData.reportId" type="text" class="form-input" readonly disabled />
+                    <input
+                      v-model="formData.reportId"
+                      type="text"
+                      class="form-input"
+                      readonly
+                      disabled
+                    />
                   </div>
                 </div>
               </div>
@@ -34,12 +43,10 @@
               </div>
               <div class="form-card-body">
                 <div class="form-item full-width">
-                  <label class="form-label">
-                    <span class="required">*</span> 本周工作总结
-                  </label>
-                  <textarea 
-                    v-model="formData.workSummary" 
-                    class="form-textarea" 
+                  <label class="form-label"> <span class="required">*</span> 本周工作总结 </label>
+                  <textarea
+                    v-model="formData.workSummary"
+                    class="form-textarea"
                     placeholder="请输入本周工作总结"
                     rows="4"
                     maxlength="1000"
@@ -48,27 +55,27 @@
                 </div>
                 <div class="form-item full-width">
                   <label class="form-label">下周工作计划</label>
-                  <textarea 
-                    v-model="formData.nextWeekPlan" 
-                    class="form-textarea" 
+                  <textarea
+                    v-model="formData.nextWeekPlan"
+                    class="form-textarea"
                     placeholder="请输入下周工作计划"
                     rows="3"
                   ></textarea>
                 </div>
                 <div class="form-item full-width">
                   <label class="form-label">存在问题</label>
-                  <textarea 
-                    v-model="formData.issues" 
-                    class="form-textarea" 
+                  <textarea
+                    v-model="formData.issues"
+                    class="form-textarea"
                     placeholder="请输入存在问题"
                     rows="3"
                   ></textarea>
                 </div>
                 <div class="form-item full-width">
                   <label class="form-label">建议措施</label>
-                  <textarea 
-                    v-model="formData.suggestions" 
-                    class="form-textarea" 
+                  <textarea
+                    v-model="formData.suggestions"
+                    class="form-textarea"
                     placeholder="请输入建议措施"
                     rows="3"
                   ></textarea>
@@ -78,7 +85,7 @@
 
             <div class="form-actions">
               <button class="btn btn-cancel" @click="handleCancel">取消</button>
-              <button class="btn btn-submit" @click="handleSubmit" :disabled="submitting">
+              <button class="btn btn-submit" :disabled="submitting" @click="handleSubmit">
                 {{ submitting ? '提交中...' : '提交' }}
               </button>
             </div>
@@ -108,7 +115,7 @@ export default defineComponent({
       workSummary: '',
       nextWeekPlan: '',
       issues: '',
-      suggestions: ''
+      suggestions: '',
     })
 
     /**
@@ -116,12 +123,12 @@ export default defineComponent({
      */
     const generateReportId = async () => {
       if (!formData.value.reportDate) return
-      
+
       try {
-        const response = await apiClient.get('/weekly-report/generate-id', {
-          params: { report_date: formData.value.reportDate }
-        }) as unknown as ApiResponse<{ report_id: string }>
-        
+        const response = (await apiClient.get('/weekly-report/generate-id', {
+          params: { report_date: formData.value.reportDate },
+        })) as unknown as ApiResponse<{ report_id: string }>
+
         if (response.code === 200 && response.data) {
           formData.value.reportId = response.data.report_id
         }
@@ -140,19 +147,19 @@ export default defineComponent({
         alert('请输入本周工作总结')
         return
       }
-      
+
       submitting.value = true
-      
+
       try {
-        const response = await apiClient.post('/weekly-report', {
+        const response = (await apiClient.post('/weekly-report', {
           report_id: formData.value.reportId,
           report_date: formData.value.reportDate,
           work_summary: formData.value.workSummary,
           next_week_plan: formData.value.nextWeekPlan,
           issues: formData.value.issues,
-          suggestions: formData.value.suggestions
-        }) as unknown as ApiResponse<null>
-        
+          suggestions: formData.value.suggestions,
+        })) as unknown as ApiResponse<null>
+
         if (response.code === 200) {
           alert('提交成功')
           router.back()
@@ -183,9 +190,9 @@ export default defineComponent({
       submitting,
       generateReportId,
       handleSubmit,
-      handleCancel
+      handleCancel,
     }
-  }
+  },
 })
 </script>
 

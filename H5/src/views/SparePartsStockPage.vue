@@ -22,7 +22,7 @@ const inboundForm = ref({
   supplier: '',
   unit: '件',
   userName: '',
-  remarks: ''
+  remarks: '',
 })
 
 /**
@@ -51,7 +51,9 @@ const fetchUserList = async () => {
   try {
     const response = await personnelService.getAll()
     if (response.code === 200) {
-      userList.value = (response.data || []).filter((user: Personnel) => user.role === 'material_manager')
+      userList.value = (response.data || []).filter(
+        (user: Personnel) => user.role === 'material_manager'
+      )
     }
   } catch (error) {
     console.error('Failed to fetch user list:', error)
@@ -77,7 +79,7 @@ const handleSubmitInbound = async () => {
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await sparePartsService.inbound({
       product_name: inboundForm.value.productName,
@@ -87,9 +89,9 @@ const handleSubmitInbound = async () => {
       supplier: inboundForm.value.supplier || undefined,
       unit: inboundForm.value.unit,
       user_name: inboundForm.value.userName,
-      remarks: inboundForm.value.remarks || undefined
+      remarks: inboundForm.value.remarks || undefined,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('入库成功')
       showInboundPopup.value = false
@@ -101,7 +103,7 @@ const handleSubmitInbound = async () => {
         supplier: '',
         unit: '件',
         userName: '',
-        remarks: ''
+        remarks: '',
       }
       fetchStockList()
     } else {
@@ -132,12 +134,7 @@ onMounted(() => {
 
 <template>
   <div class="spare-parts-stock-page">
-    <van-nav-bar 
-      title="配品备件入库" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="配品备件入库" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -145,24 +142,20 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <div class="action-bar">
       <van-button type="primary" size="small" @click="showInboundPopup = true">
         新增入库
       </van-button>
     </div>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchStockList">
       <van-list :loading="loading" :finished="true">
         <div class="stock-list">
-          <div 
-            v-for="item in stockList" 
-            :key="item.id"
-            class="stock-card"
-          >
+          <div v-for="item in stockList" :key="item.id" class="stock-card">
             <div class="card-header">
               <span class="stock-name">{{ item.productName }}</span>
               <span class="stock-date">{{ formatDate(item.inboundTime) }}</span>
@@ -192,7 +185,7 @@ onMounted(() => {
                 <span class="label">入库人</span>
                 <span class="value">{{ item.userName || item.user_name || '-' }}</span>
               </div>
-              <div class="info-row" v-if="item.remarks">
+              <div v-if="item.remarks" class="info-row">
                 <span class="label">备注</span>
                 <span class="value">{{ item.remarks }}</span>
               </div>
@@ -210,39 +203,23 @@ onMounted(() => {
           <van-icon name="cross" @click="showInboundPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field 
+          <van-field
             v-model="inboundForm.productName"
             label="产品名称"
             placeholder="请输入产品名称"
             required
           />
-          <van-field 
-            v-model="inboundForm.brand"
-            label="品牌"
-            placeholder="请输入品牌"
-          />
-          <van-field 
-            v-model="inboundForm.model"
-            label="产品型号"
-            placeholder="请输入产品型号"
-          />
-          <van-field 
+          <van-field v-model="inboundForm.brand" label="品牌" placeholder="请输入品牌" />
+          <van-field v-model="inboundForm.model" label="产品型号" placeholder="请输入产品型号" />
+          <van-field
             v-model="inboundForm.quantity"
             type="number"
             label="入库数量"
             placeholder="请输入入库数量"
             required
           />
-          <van-field 
-            v-model="inboundForm.supplier"
-            label="供应商"
-            placeholder="请输入供应商"
-          />
-          <van-field 
-            v-model="inboundForm.unit"
-            label="单位"
-            placeholder="请输入单位"
-          >
+          <van-field v-model="inboundForm.supplier" label="供应商" placeholder="请输入供应商" />
+          <van-field v-model="inboundForm.unit" label="单位" placeholder="请输入单位">
             <template #input>
               <select v-model="inboundForm.unit" class="unit-select">
                 <option value="件">件</option>
@@ -253,7 +230,7 @@ onMounted(() => {
               </select>
             </template>
           </van-field>
-          <van-field 
+          <van-field
             v-model="inboundForm.userName"
             label="入库人"
             placeholder="请选择入库人"
@@ -268,7 +245,7 @@ onMounted(() => {
               </select>
             </template>
           </van-field>
-          <van-field 
+          <van-field
             v-model="inboundForm.remarks"
             label="备注"
             placeholder="请输入备注"

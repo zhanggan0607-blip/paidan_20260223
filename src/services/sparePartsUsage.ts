@@ -25,5 +25,5 @@ export const sparePartsUsageService = {
     project?: string
   }): Promise<ApiResponse<SparePartsUsageListResponse>> {
     return await request.get(API_ENDPOINTS.SPARE_PARTS_USAGE.LIST, { params })
-  }
+  },
 }

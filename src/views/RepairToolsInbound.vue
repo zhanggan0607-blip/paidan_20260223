@@ -18,7 +18,9 @@
               </div>
             </div>
             <div class="action-buttons">
-              <button v-if="isMaterialManager" @click="handleAdd" class="btn btn-add">新增入库</button>
+              <button v-if="isMaterialManager" class="btn btn-add" @click="handleAdd">
+                新增入库
+              </button>
             </div>
           </div>
 
@@ -48,7 +50,7 @@
                 <tr v-else-if="dataList.length === 0">
                   <td colspan="10" class="empty-cell">暂无数据</td>
                 </tr>
-                <tr v-else v-for="(item, index) in dataList" :key="item.id">
+                <tr v-for="(item, index) in dataList" v-else :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.tool_id }}</td>
                   <td>{{ item.tool_name }}</td>
@@ -56,15 +58,22 @@
                   <td>{{ item.specification }}</td>
                   <td>{{ item.unit }}</td>
                   <td>
-                    <span :class="['stock-badge', item.stock <= item.min_stock ? 'stock-low' : 'stock-normal']">
+                    <span
+                      :class="[
+                        'stock-badge',
+                        item.stock <= item.min_stock ? 'stock-low' : 'stock-normal',
+                      ]"
+                    >
                       {{ item.stock }}
                     </span>
                   </td>
                   <td>{{ item.location }}</td>
                   <td>{{ item.last_stock_time }}</td>
                   <td>
-                    <button @click="handleEdit(item)" class="action-btn edit-btn">编辑</button>
-                    <button @click="handleRestock(item)" class="action-btn restock-btn">入库</button>
+                    <button class="action-btn edit-btn" @click="handleEdit(item)">编辑</button>
+                    <button class="action-btn restock-btn" @click="handleRestock(item)">
+                      入库
+                    </button>
                   </td>
                 </tr>
               </tbody>
@@ -75,35 +84,35 @@
                 共 {{ total }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
               </div>
               <div class="pagination-controls">
-                <button 
-                  @click="handlePageChange(currentPage - 1)" 
+                <button
                   :disabled="currentPage === 1"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage - 1)"
                 >
                   上一页
                 </button>
                 <span class="pagination-pages">
-                  <input 
-                    v-model.number="currentPage" 
-                    type="number" 
-                    :min="1" 
+                  <input
+                    v-model.number="currentPage"
+                    type="number"
+                    :min="1"
                     :max="totalPages"
                     class="pagination-input"
                   />
                   <span class="pagination-slash">/</span>
                   <span>{{ totalPages }}</span>
                 </span>
-                <button 
-                  @click="handlePageChange(currentPage + 1)" 
+                <button
                   :disabled="currentPage === totalPages"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage + 1)"
                 >
                   下一页
                 </button>
               </div>
               <div class="page-size-selector">
                 <span>每页</span>
-                <select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
+                <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
                   <option :value="10">10</option>
                   <option :value="20">20</option>
                   <option :value="50">50</option>
@@ -126,7 +135,12 @@
         <div class="modal-body">
           <div class="form-item">
             <label class="form-label">工具名称<span class="required">*</span></label>
-            <input v-model="formData.tool_name" type="text" class="form-input" placeholder="请输入工具名称" />
+            <input
+              v-model="formData.tool_name"
+              type="text"
+              class="form-input"
+              placeholder="请输入工具名称"
+            />
           </div>
           <div class="form-item">
             <label class="form-label">工具分类<span class="required">*</span></label>
@@ -142,36 +156,67 @@
           </div>
           <div class="form-item">
             <label class="form-label">规格型号</label>
-            <input v-model="formData.specification" type="text" class="form-input" placeholder="请输入规格型号" />
+            <input
+              v-model="formData.specification"
+              type="text"
+              class="form-input"
+              placeholder="请输入规格型号"
+            />
           </div>
           <div class="form-row">
             <div class="form-item half">
               <label class="form-label">单位<span class="required">*</span></label>
-              <input v-model="formData.unit" type="text" class="form-input" placeholder="如：个、把、台" />
+              <input
+                v-model="formData.unit"
+                type="text"
+                class="form-input"
+                placeholder="如：个、把、台"
+              />
             </div>
             <div class="form-item half">
               <label class="form-label">库存数量<span class="required">*</span></label>
-              <input v-model.number="formData.stock" type="number" :min="0" class="form-input" placeholder="请输入数量" />
+              <input
+                v-model.number="formData.stock"
+                type="number"
+                :min="0"
+                class="form-input"
+                placeholder="请输入数量"
+              />
             </div>
           </div>
           <div class="form-row">
             <div class="form-item half">
               <label class="form-label">最低库存</label>
-              <input v-model.number="formData.min_stock" type="number" :min="0" class="form-input" placeholder="预警阈值" />
+              <input
+                v-model.number="formData.min_stock"
+                type="number"
+                :min="0"
+                class="form-input"
+                placeholder="预警阈值"
+              />
             </div>
             <div class="form-item half">
               <label class="form-label">存放位置</label>
-              <input v-model="formData.location" type="text" class="form-input" placeholder="如：A区1号柜" />
+              <input
+                v-model="formData.location"
+                type="text"
+                class="form-input"
+                placeholder="如：A区1号柜"
+              />
             </div>
           </div>
           <div class="form-item">
             <label class="form-label">备注</label>
-            <textarea v-model="formData.remark" class="form-textarea" placeholder="请输入备注"></textarea>
+            <textarea
+              v-model="formData.remark"
+              class="form-textarea"
+              placeholder="请输入备注"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeAddModal">取消</button>
-          <button class="confirm-btn" @click="handleSubmit" :disabled="submitting">
+          <button class="confirm-btn" :disabled="submitting" @click="handleSubmit">
             {{ submitting ? '提交中...' : '确认' }}
           </button>
         </div>
@@ -195,16 +240,26 @@
           </div>
           <div class="form-item">
             <label class="form-label">入库数量<span class="required">*</span></label>
-            <input v-model.number="restockData.quantity" type="number" :min="1" class="form-input" placeholder="请输入入库数量" />
+            <input
+              v-model.number="restockData.quantity"
+              type="number"
+              :min="1"
+              class="form-input"
+              placeholder="请输入入库数量"
+            />
           </div>
           <div class="form-item">
             <label class="form-label">备注</label>
-            <textarea v-model="restockData.remark" class="form-textarea" placeholder="请输入备注"></textarea>
+            <textarea
+              v-model="restockData.remark"
+              class="form-textarea"
+              placeholder="请输入备注"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeRestockModal">取消</button>
-          <button class="confirm-btn" @click="handleRestockSubmit" :disabled="submitting">
+          <button class="confirm-btn" :disabled="submitting" @click="handleRestockSubmit">
             {{ submitting ? '提交中...' : '确认入库' }}
           </button>
         </div>
@@ -236,7 +291,7 @@ interface RepairToolsStockItem {
 export default defineComponent({
   name: 'RepairToolsInbound',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
@@ -250,7 +305,7 @@ export default defineComponent({
     const isEdit = ref(false)
 
     const filters = ref({
-      toolName: ''
+      toolName: '',
     })
 
     const formData = ref({
@@ -262,7 +317,7 @@ export default defineComponent({
       stock: 0,
       min_stock: 0,
       location: '',
-      remark: ''
+      remark: '',
     })
 
     const restockData = ref({
@@ -270,7 +325,7 @@ export default defineComponent({
       tool_name: '',
       current_stock: 0,
       quantity: 1,
-      remark: ''
+      remark: '',
     })
 
     const categoryList = ref(['电动工具', '手动工具', '测量工具', '焊接工具', '起重工具', '其他'])
@@ -293,15 +348,15 @@ export default defineComponent({
       try {
         const params: Record<string, any> = {
           page: currentPage.value - 1,
-          size: pageSize.value
+          size: pageSize.value,
         }
         if (filters.value.toolName) params.tool_name = filters.value.toolName
 
-        const response = await apiClient.get('/repair-tools/stock', { 
-          params, 
-          signal: abortController.signal 
-        }) as unknown as PaginatedResponse<RepairToolsStockItem>
-        
+        const response = (await apiClient.get('/repair-tools/stock', {
+          params,
+          signal: abortController.signal,
+        })) as unknown as PaginatedResponse<RepairToolsStockItem>
+
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
           total.value = response.data.total || response.data.totalElements || 0
@@ -330,7 +385,7 @@ export default defineComponent({
         stock: 0,
         min_stock: 0,
         location: '',
-        remark: ''
+        remark: '',
       }
       showAddModal.value = true
     }
@@ -346,7 +401,7 @@ export default defineComponent({
         stock: item.stock,
         min_stock: item.min_stock,
         location: item.location,
-        remark: ''
+        remark: '',
       }
       showAddModal.value = true
     }
@@ -365,11 +420,17 @@ export default defineComponent({
       try {
         let response
         if (isEdit.value) {
-          response = await apiClient.put(`/repair-tools/stock/${formData.value.id}`, formData.value) as unknown as ApiResponse<any>
+          response = (await apiClient.put(
+            `/repair-tools/stock/${formData.value.id}`,
+            formData.value
+          )) as unknown as ApiResponse<any>
         } else {
-          response = await apiClient.post('/repair-tools/stock', formData.value) as unknown as ApiResponse<any>
+          response = (await apiClient.post(
+            '/repair-tools/stock',
+            formData.value
+          )) as unknown as ApiResponse<any>
         }
-        
+
         if (response && response.code === 200) {
           alert(isEdit.value ? '编辑成功' : '新增成功')
           closeAddModal()
@@ -391,7 +452,7 @@ export default defineComponent({
         tool_name: item.tool_name,
         current_stock: item.stock,
         quantity: 1,
-        remark: ''
+        remark: '',
       }
       showRestockModal.value = true
     }
@@ -408,11 +469,14 @@ export default defineComponent({
 
       submitting.value = true
       try {
-        const response = await apiClient.post(`/repair-tools/stock/${restockData.value.id}/restock`, {
-          quantity: restockData.value.quantity,
-          remark: restockData.value.remark
-        }) as unknown as ApiResponse<any>
-        
+        const response = (await apiClient.post(
+          `/repair-tools/stock/${restockData.value.id}/restock`,
+          {
+            quantity: restockData.value.quantity,
+            remark: restockData.value.remark,
+          }
+        )) as unknown as ApiResponse<any>
+
         if (response && response.code === 200) {
           alert('入库成功')
           closeRestockModal()
@@ -479,9 +543,9 @@ export default defineComponent({
       closeRestockModal,
       handleRestockSubmit,
       handlePageChange,
-      handlePageSizeChange
+      handlePageSizeChange,
     }
-  }
+  },
 })
 </script>
 
@@ -664,8 +728,12 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .stock-badge {

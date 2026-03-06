@@ -26,11 +26,13 @@ export const useNavigation = () => {
    * 返回工单列表页
    * @param workOrderType 工单类型
    */
-  const goBackToWorkList = (workOrderType: 'periodic_inspection' | 'temporary_repair' | 'spot_work') => {
+  const goBackToWorkList = (
+    workOrderType: 'periodic_inspection' | 'temporary_repair' | 'spot_work'
+  ) => {
     const paths: Record<string, string> = {
-      'periodic_inspection': '/periodic-inspection',
-      'temporary_repair': '/temporary-repair',
-      'spot_work': '/spot-work'
+      periodic_inspection: '/periodic-inspection',
+      temporary_repair: '/temporary-repair',
+      spot_work: '/spot-work',
     }
     router.push(paths[workOrderType] || '/')
   }
@@ -45,8 +47,8 @@ export const useNavigation = () => {
       path: '/signature',
       query: {
         from: fromPath,
-        type
-      }
+        type,
+      },
     })
   }
 
@@ -62,11 +64,11 @@ export const useNavigation = () => {
     options?: { tab?: number; mode?: string }
   ) => {
     const paths: Record<string, string> = {
-      'periodic_inspection': '/periodic-inspection',
-      'temporary_repair': '/temporary-repair',
-      'spot_work': '/spot-work'
+      periodic_inspection: '/periodic-inspection',
+      temporary_repair: '/temporary-repair',
+      spot_work: '/spot-work',
     }
-    
+
     const query: Record<string, any> = {}
     if (options?.tab !== undefined) {
       query.tab = options.tab
@@ -77,7 +79,7 @@ export const useNavigation = () => {
 
     router.push({
       path: `${paths[workOrderType]}/${id}`,
-      query
+      query,
     })
   }
 
@@ -93,6 +95,6 @@ export const useNavigation = () => {
     goBackToWorkList,
     goToSignature,
     goToWorkDetail,
-    goToHome
+    goToHome,
   }
 }

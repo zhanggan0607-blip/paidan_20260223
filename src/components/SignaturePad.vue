@@ -12,13 +12,11 @@
         @touchmove="handleTouchMove"
         @touchend="stopDrawing"
       ></canvas>
-      <div v-if="!hasDrawn" class="signature-placeholder">
-        请在此处签名
-      </div>
+      <div v-if="!hasDrawn" class="signature-placeholder">请在此处签名</div>
     </div>
     <div class="signature-actions">
       <button class="btn btn-clear" @click="clearSignature">清除</button>
-      <button class="btn btn-confirm" @click="confirmSignature" :disabled="!hasDrawn">确认</button>
+      <button class="btn btn-confirm" :disabled="!hasDrawn" @click="confirmSignature">确认</button>
     </div>
   </div>
 </template>
@@ -29,7 +27,7 @@ import { defineComponent, ref, onMounted, onUnmounted, nextTick } from 'vue'
 export default defineComponent({
   name: 'SignaturePad',
   emits: ['confirm', 'cancel'],
-  setup(props, { emit }) {
+  setup(_props, { emit }) {
     const canvasRef = ref<HTMLCanvasElement | null>(null)
     const isDrawing = ref(false)
     const hasDrawn = ref(false)
@@ -75,7 +73,7 @@ export default defineComponent({
 
       return {
         x: clientX - rect.left,
-        y: clientY - rect.top
+        y: clientY - rect.top,
       }
     }
 
@@ -171,9 +169,9 @@ export default defineComponent({
       handleTouchStart,
       handleTouchMove,
       clearSignature,
-      confirmSignature
+      confirmSignature,
     }
-  }
+  },
 })
 </script>
 

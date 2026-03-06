@@ -26,7 +26,7 @@ class WorkPlanRepository:
     ) -> tuple[List[WorkPlan], int]:
         try:
             query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
-                WorkPlan.is_deleted == 0
+                WorkPlan.is_deleted == False
             )
 
             if plan_type:
@@ -56,7 +56,7 @@ class WorkPlanRepository:
         try:
             return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
                 WorkPlan.id == id,
-                WorkPlan.is_deleted == 0
+                WorkPlan.is_deleted == False
             ).first()
         except Exception as e:
             logger.error(f"查询工作计划失败 (id={id}): {str(e)}")
@@ -66,7 +66,7 @@ class WorkPlanRepository:
         try:
             return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
                 WorkPlan.plan_id == plan_id,
-                WorkPlan.is_deleted == 0
+                WorkPlan.is_deleted == False
             ).first()
         except Exception as e:
             logger.error(f"查询工作计划失败 (plan_id={plan_id}): {str(e)}")
@@ -76,7 +76,7 @@ class WorkPlanRepository:
         try:
             return self.db.query(WorkPlan).filter(
                 WorkPlan.plan_id == plan_id,
-                WorkPlan.is_deleted == 0
+                WorkPlan.is_deleted == False
             ).first() is not None
         except Exception as e:
             logger.error(f"检查工作计划是否存在失败 (plan_id={plan_id}): {str(e)}")
@@ -134,7 +134,7 @@ class WorkPlanRepository:
     def find_all_unpaginated(self, plan_type: Optional[str] = None) -> List[WorkPlan]:
         try:
             query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
-                WorkPlan.is_deleted == 0
+                WorkPlan.is_deleted == False
             )
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)

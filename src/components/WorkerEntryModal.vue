@@ -8,11 +8,13 @@
       <div class="info-bar">
         <span>项目：{{ projectName }}</span>
         <span>用工周期：{{ workDateStart }} 至 {{ workDateEnd }}</span>
-        <span>已录入：<strong>{{ workers.length }}</strong> 人</span>
+        <span
+          >已录入：<strong>{{ workers.length }}</strong> 人</span
+        >
       </div>
 
       <div class="workers-section">
-        <table class="workers-table" v-if="workers.length > 0">
+        <table v-if="workers.length > 0" class="workers-table">
           <thead>
             <tr>
               <th>序号</th>
@@ -33,11 +35,21 @@
               <td>{{ worker.idCardNumber || '-' }}</td>
               <td>{{ worker.address || '-' }}</td>
               <td>
-                <img v-if="worker.idCardFront" :src="worker.idCardFront" class="id-card-thumb" @click="previewImage(worker.idCardFront)" />
+                <img
+                  v-if="worker.idCardFront"
+                  :src="worker.idCardFront"
+                  class="id-card-thumb"
+                  @click="previewImage(worker.idCardFront)"
+                />
                 <span v-else class="no-photo">未上传</span>
               </td>
               <td>
-                <img v-if="worker.idCardBack" :src="worker.idCardBack" class="id-card-thumb" @click="previewImage(worker.idCardBack)" />
+                <img
+                  v-if="worker.idCardBack"
+                  :src="worker.idCardBack"
+                  class="id-card-thumb"
+                  @click="previewImage(worker.idCardBack)"
+                />
                 <span v-else class="no-photo">未上传</span>
               </td>
               <td>
@@ -59,7 +71,11 @@
       <button class="btn btn-save" @click="handleConfirm">确认（{{ workers.length }}人）</button>
     </div>
 
-    <div v-if="showAddWorkerForm" class="worker-form-overlay" @click.self="showAddWorkerForm = false">
+    <div
+      v-if="showAddWorkerForm"
+      class="worker-form-overlay"
+      @click.self="showAddWorkerForm = false"
+    >
       <div class="worker-form-container">
         <div class="modal-header">
           <h3 class="modal-title">{{ editingIndex >= 0 ? '编辑施工人员' : '添加施工人员' }}</h3>
@@ -69,11 +85,16 @@
           <div class="form-row">
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 姓名</label>
-              <input type="text" class="form-input" v-model="currentWorker.name" placeholder="请输入姓名" />
+              <input
+                v-model="currentWorker.name"
+                type="text"
+                class="form-input"
+                placeholder="请输入姓名"
+              />
             </div>
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 性别</label>
-              <select class="form-input" v-model="currentWorker.gender">
+              <select v-model="currentWorker.gender" class="form-input">
                 <option value="">请选择</option>
                 <option value="男">男</option>
                 <option value="女">女</option>
@@ -83,58 +104,120 @@
           <div class="form-row">
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 身份证号码</label>
-              <input type="text" class="form-input" v-model="currentWorker.idCardNumber" placeholder="请输入18位身份证号码" maxlength="18" @input="handleIdCardChange" />
+              <input
+                v-model="currentWorker.idCardNumber"
+                type="text"
+                class="form-input"
+                placeholder="请输入18位身份证号码"
+                maxlength="18"
+                @input="handleIdCardChange"
+              />
               <span v-if="idCardError" class="error-msg">{{ idCardError }}</span>
             </div>
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 出生日期</label>
-              <input type="date" class="form-input" v-model="currentWorker.birthDate" />
+              <input v-model="currentWorker.birthDate" type="date" class="form-input" />
             </div>
           </div>
           <div class="form-row">
             <div class="form-item full-width">
               <label class="form-label"><span class="required">*</span> 住址</label>
-              <input type="text" class="form-input" v-model="currentWorker.address" placeholder="请输入住址" />
+              <input
+                v-model="currentWorker.address"
+                type="text"
+                class="form-input"
+                placeholder="请输入住址"
+              />
             </div>
           </div>
           <div class="form-row">
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 签发机关</label>
-              <input type="text" class="form-input" v-model="currentWorker.issuingAuthority" placeholder="请输入签发机关" />
+              <input
+                v-model="currentWorker.issuingAuthority"
+                type="text"
+                class="form-input"
+                placeholder="请输入签发机关"
+              />
             </div>
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 有效期限</label>
-              <input type="text" class="form-input" v-model="currentWorker.validPeriod" placeholder="请输入有效期限" />
+              <input
+                v-model="currentWorker.validPeriod"
+                type="text"
+                class="form-input"
+                placeholder="请输入有效期限"
+              />
             </div>
           </div>
           <div class="form-row id-card-photos">
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 身份证正面</label>
               <div class="photo-upload-area">
-                <input type="file" ref="frontInputRef" accept="image/*" @change="handleIdCardUpload('front', $event)" style="display: none" :disabled="ocrLoading" />
+                <input
+                  ref="frontInputRef"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  :disabled="ocrLoading"
+                  @change="handleIdCardUpload('front', $event)"
+                />
                 <div v-if="currentWorker.idCardFront" class="photo-preview">
-                  <img :src="currentWorker.idCardFront" @click="previewImage(currentWorker.idCardFront)" />
+                  <img
+                    :src="currentWorker.idCardFront"
+                    @click="previewImage(currentWorker.idCardFront)"
+                  />
                   <button class="remove-btn" @click="currentWorker.idCardFront = ''">×</button>
                 </div>
-                <button v-else class="upload-btn" @click="triggerUpload('front')" :disabled="ocrLoading">
-                  <span v-if="ocrLoading && ocrLoadingSide === 'front'" class="loading-spinner"></span>
+                <button
+                  v-else
+                  class="upload-btn"
+                  :disabled="ocrLoading"
+                  @click="triggerUpload('front')"
+                >
+                  <span
+                    v-if="ocrLoading && ocrLoadingSide === 'front'"
+                    class="loading-spinner"
+                  ></span>
                   <span v-else>+</span>
-                  <span>{{ ocrLoading && ocrLoadingSide === 'front' ? '识别中...' : '上传正面' }}</span>
+                  <span>{{
+                    ocrLoading && ocrLoadingSide === 'front' ? '识别中...' : '上传正面'
+                  }}</span>
                 </button>
               </div>
             </div>
             <div class="form-item">
               <label class="form-label"><span class="required">*</span> 身份证反面</label>
               <div class="photo-upload-area">
-                <input type="file" ref="backInputRef" accept="image/*" @change="handleIdCardUpload('back', $event)" style="display: none" :disabled="ocrLoading" />
+                <input
+                  ref="backInputRef"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  :disabled="ocrLoading"
+                  @change="handleIdCardUpload('back', $event)"
+                />
                 <div v-if="currentWorker.idCardBack" class="photo-preview">
-                  <img :src="currentWorker.idCardBack" @click="previewImage(currentWorker.idCardBack)" />
+                  <img
+                    :src="currentWorker.idCardBack"
+                    @click="previewImage(currentWorker.idCardBack)"
+                  />
                   <button class="remove-btn" @click="currentWorker.idCardBack = ''">×</button>
                 </div>
-                <button v-else class="upload-btn" @click="triggerUpload('back')" :disabled="ocrLoading">
-                  <span v-if="ocrLoading && ocrLoadingSide === 'back'" class="loading-spinner"></span>
+                <button
+                  v-else
+                  class="upload-btn"
+                  :disabled="ocrLoading"
+                  @click="triggerUpload('back')"
+                >
+                  <span
+                    v-if="ocrLoading && ocrLoadingSide === 'back'"
+                    class="loading-spinner"
+                  ></span>
                   <span v-else>+</span>
-                  <span>{{ ocrLoading && ocrLoadingSide === 'back' ? '识别中...' : '上传反面' }}</span>
+                  <span>{{
+                    ocrLoading && ocrLoadingSide === 'back' ? '识别中...' : '上传反面'
+                  }}</span>
                 </button>
               </div>
             </div>
@@ -150,7 +233,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, watch, onMounted } from 'vue'
+import { defineComponent, ref, watch } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse } from '@/types/api'
 
@@ -172,24 +255,24 @@ export default defineComponent({
   props: {
     projectId: {
       type: String,
-      required: true
+      required: true,
     },
     projectName: {
       type: String,
-      required: true
+      required: true,
     },
     workDateStart: {
       type: String,
-      required: true
+      required: true,
     },
     workDateEnd: {
       type: String,
-      required: true
+      required: true,
     },
     initialWorkers: {
       type: Array as () => WorkerInfo[],
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   emits: ['close', 'confirm'],
   setup(props, { emit }) {
@@ -211,12 +294,15 @@ export default defineComponent({
       issuingAuthority: '',
       validPeriod: '',
       idCardFront: '',
-      idCardBack: ''
+      idCardBack: '',
     })
 
-    watch(() => props.initialWorkers, (newVal) => {
-      workers.value = [...newVal]
-    })
+    watch(
+      () => props.initialWorkers,
+      (newVal) => {
+        workers.value = [...newVal]
+      }
+    )
 
     const handleIdCardChange = () => {
       const idCard = currentWorker.value.idCardNumber
@@ -235,7 +321,10 @@ export default defineComponent({
         currentWorker.value.gender = genderCode % 2 === 1 ? '男' : '女'
         idCardError.value = ''
       } else if (idCard.length > 0) {
-        idCardError.value = idCard.length < 18 ? `已输入${idCard.length}位，还需${18 - idCard.length}位` : '身份证号码超出18位'
+        idCardError.value =
+          idCard.length < 18
+            ? `已输入${idCard.length}位，还需${18 - idCard.length}位`
+            : '身份证号码超出18位'
       }
     }
 
@@ -259,15 +348,15 @@ export default defineComponent({
       const file = target.files[0]
       ocrLoading.value = true
       ocrLoadingSide.value = side
-      
+
       try {
         const originalBase64 = await fileToBase64(file)
-        
+
         try {
-          const ocrResponse = await apiClient.post('/ocr/idcard', {
+          const ocrResponse = (await apiClient.post('/ocr/idcard', {
             imageBase64: originalBase64,
-            side: side === 'front' ? 'face' : 'back'
-          }) as unknown as ApiResponse<{
+            side: side === 'front' ? 'face' : 'back',
+          })) as unknown as ApiResponse<{
             name?: string
             gender?: string
             birthDate?: string
@@ -290,7 +379,8 @@ export default defineComponent({
                 handleIdCardChange()
               }
             } else {
-              if (ocrData.issuingAuthority) currentWorker.value.issuingAuthority = ocrData.issuingAuthority
+              if (ocrData.issuingAuthority)
+                currentWorker.value.issuingAuthority = ocrData.issuingAuthority
               if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
             }
 
@@ -310,9 +400,9 @@ export default defineComponent({
         const formData = new FormData()
         formData.append('file', file)
 
-        const response = await apiClient.post('/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        }) as unknown as ApiResponse<{ url: string }>
+        const response = (await apiClient.post('/upload', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })) as unknown as ApiResponse<{ url: string }>
 
         if (response.code === 200 && response.data) {
           if (side === 'front') {
@@ -368,7 +458,7 @@ export default defineComponent({
         issuingAuthority: '',
         validPeriod: '',
         idCardFront: '',
-        idCardBack: ''
+        idCardBack: '',
       }
       idCardError.value = ''
     }
@@ -442,9 +532,9 @@ export default defineComponent({
       deleteWorker,
       closeWorkerForm,
       saveWorker,
-      handleConfirm
+      handleConfirm,
     }
-  }
+  },
 })
 </script>
 
@@ -672,7 +762,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 
@@ -762,7 +852,11 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 </style>

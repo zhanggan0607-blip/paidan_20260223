@@ -2,80 +2,70 @@
   <!-- TODO: Layout组件 - 考虑加入主题切换功能 -->
   <!-- FIXME: 全屏模式下ESC键退出功能在某些浏览器不生效 -->
   <div class="layout" :class="{ 'fullscreen-mode': isFullscreenMode }">
-    <aside class="sidebar" v-show="!isFullscreenMode">
-        <div class="sidebar-header">
-          <h1 class="system-title">SSTCP维保系统</h1>
+    <aside v-show="!isFullscreenMode" class="sidebar">
+      <div class="sidebar-header">
+        <h1 class="system-title">SSTCP维保系统</h1>
+      </div>
+      <nav class="sidebar-nav">
+        <div v-for="menu in filteredMenuItems" :key="menu.id" class="menu-group">
+          <div class="menu-title" @click="toggleMenu(menu.id)">
+            <span class="menu-label">{{ menu.label }}</span>
+            <span
+              v-if="menu.children"
+              class="menu-arrow"
+              :class="{ expanded: expandedMenus.includes(menu.id) }"
+            >
+              ▶
+            </span>
+          </div>
+          <div v-if="menu.children && expandedMenus.includes(menu.id)" class="submenu">
+            <div
+              v-for="submenu in menu.children"
+              :key="submenu.id"
+              class="submenu-item"
+              :class="{ active: activeMenu === submenu.id }"
+              @click="handleMenuClick(submenu)"
+            >
+              {{ submenu.label }}
+            </div>
+          </div>
+          <div
+            v-if="!menu.children"
+            class="submenu-item"
+            :class="{ active: activeMenu === menu.id }"
+            @click="handleMenuClick(menu)"
+          >
+            {{ menu.label }}
+          </div>
         </div>
-       <nav class="sidebar-nav">
-         <div
-           v-for="menu in filteredMenuItems"
-           :key="menu.id"
-           class="menu-group"
-         >
-           <div
-             class="menu-title"
-             @click="toggleMenu(menu.id)"
-           >
-             <span class="menu-label">{{ menu.label }}</span>
-             <span
-               v-if="menu.children"
-               class="menu-arrow"
-               :class="{ expanded: expandedMenus.includes(menu.id) }"
-             >
-               ▶
-             </span>
-           </div>
-           <div
-             v-if="menu.children && expandedMenus.includes(menu.id)"
-             class="submenu"
-           >
-             <div
-               v-for="submenu in menu.children"
-               :key="submenu.id"
-               class="submenu-item"
-               :class="{ active: activeMenu === submenu.id }"
-               @click="handleMenuClick(submenu)"
-             >
-               {{ submenu.label }}
-             </div>
-           </div>
-           <div
-             v-if="!menu.children"
-             class="submenu-item"
-             :class="{ active: activeMenu === menu.id }"
-             @click="handleMenuClick(menu)"
-           >
-             {{ menu.label }}
-           </div>
-         </div>
-       </nav>
+      </nav>
     </aside>
 
     <section class="center-content">
       <div class="main-content">
-        <div class="top-bar" v-show="!isFullscreenMode">
-        <div class="breadcrumb">
-          <span class="breadcrumb-level1">{{ currentBreadcrumb.level1 }}</span>
-          <span class="breadcrumb-separator" v-if="currentBreadcrumb.level2">/</span>
-          <span class="breadcrumb-level2">{{ currentBreadcrumb.level2 }}</span>
-        </div>
-        <div class="user-info" @click="showUserMenu = !showUserMenu">
-          <div class="user-avatar">{{ userInitials }}</div>
-          <span class="user-name">{{ userDisplayName }}</span>
-          <span class="dropdown-arrow">▼</span>
-          <div v-if="showUserMenu" class="user-dropdown">
-            <div 
-              v-for="user in userList" 
-              :key="user.id" 
-              class="dropdown-item" 
-              :class="{ 'active': currentUser?.id === user.id }"
-              @click.stop="selectUser(user)"
-            >
-              {{ user.name }} ({{ user.role }})
+        <div v-show="!isFullscreenMode" class="top-bar">
+          <div class="breadcrumb">
+            <span class="breadcrumb-level1">{{ currentBreadcrumb.level1 }}</span>
+            <span v-if="currentBreadcrumb.level2" class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-level2">{{ currentBreadcrumb.level2 }}</span>
+          </div>
+          <div class="user-info" @click="showUserMenu = !showUserMenu">
+            <div class="user-avatar">{{ userInitials }}</div>
+            <span class="user-name">{{ userDisplayName }}</span>
+            <span class="dropdown-arrow">▼</span>
+            <div v-if="showUserMenu" class="user-dropdown">
+              <div
+                v-for="user in userList"
+                :key="user.id"
+                class="dropdown-item"
+                :class="{ active: currentUser?.id === user.id }"
+                @click.stop="selectUser(user)"
+              >
+                {{ user.name }} ({{ user.role }})
+              </div>
             </div>
           </div>
         </div>
-      </div>
         <div class="content-wrapper">
           <router-view />
         </div>
@@ -90,8 +80,6 @@ import { useRouter, useRoute } from 'vue-router'
 import type { MenuItem } from '@/types'
 import { userStore, type User } from '@/stores/userStore'
 import { personnelService } from '@/services/personnel'
-import { USER_ROLES } from '@/config/constants'
-import { canShowMenu as checkMenuPermission } from '@/config/permission'
 import onlineUserService from '@/services/onlineUser'
 import api from '@/utils/api'
 
@@ -121,29 +109,6 @@ export default defineComponent({
       return userStore.getUser()?.name || '未登录'
     })
 
-    const userRoleDisplay = computed(() => {
-      return userStore.getUser()?.role || ''
-    })
-
-    const getRoleClass = (role: string) => {
-      switch (role) {
-        case USER_ROLES.ADMIN:
-          return 'role-admin'
-        case USER_ROLES.DEPARTMENT_MANAGER:
-          return 'role-manager'
-        case USER_ROLES.MATERIAL_MANAGER:
-          return 'role-material'
-        case USER_ROLES.EMPLOYEE:
-          return 'role-employee'
-        default:
-          return ''
-      }
-    }
-
-    const handleLogout = () => {
-      userStore.clearUser()
-    }
-
     const canShowMenu = (menuId: string): boolean => {
       if (!userStore.getUser()) return false
       return userStore.canShowMenu(menuId)
@@ -153,7 +118,7 @@ export default defineComponent({
       {
         id: 'statistics',
         label: '统计分析',
-        path: '/statistics'
+        path: '/statistics',
       },
       {
         id: 'maintenance',
@@ -162,8 +127,8 @@ export default defineComponent({
           { id: 'project-info', label: '项目信息管理', path: '/project-info' },
           { id: 'maintenance-plan', label: '维保计划管理', path: '/maintenance-plan' },
           { id: 'overdue-alert', label: '项目超期提醒', path: '/overdue-alert' },
-          { id: 'near-expiry-alert', label: '项目临期提醒', path: '/near-expiry-alert' }
-        ]
+          { id: 'near-expiry-alert', label: '项目临期提醒', path: '/near-expiry-alert' },
+        ],
       },
       {
         id: 'work-order',
@@ -171,8 +136,8 @@ export default defineComponent({
         children: [
           { id: 'work-plan', label: '定期巡检单查询', path: '/work-plan' },
           { id: 'temporary-repair', label: '临时维修单查询', path: '/work-order/temporary-repair' },
-          { id: 'spot-work', label: '零星用工单查询', path: '/work-order/spot-work' }
-        ]
+          { id: 'spot-work', label: '零星用工单查询', path: '/work-order/spot-work' },
+        ],
       },
       {
         id: 'spare-parts',
@@ -180,8 +145,8 @@ export default defineComponent({
         children: [
           { id: 'spare-parts-issue', label: '备品备件领用', path: '/spare-parts/issue' },
           { id: 'spare-parts-return', label: '备品备件归还', path: '/spare-parts/return' },
-          { id: 'spare-parts-stock', label: '备品备件库存', path: '/spare-parts/stock' }
-        ]
+          { id: 'spare-parts-stock', label: '备品备件库存', path: '/spare-parts/stock' },
+        ],
       },
       {
         id: 'repair-tools',
@@ -189,8 +154,8 @@ export default defineComponent({
         children: [
           { id: 'repair-tools-issue', label: '维修工具领用', path: '/repair-tools/issue' },
           { id: 'repair-tools-return', label: '维修工具归还', path: '/repair-tools/return' },
-          { id: 'repair-tools-inbound', label: '维修工具库存', path: '/repair-tools/inbound' }
-        ]
+          { id: 'repair-tools-inbound', label: '维修工具库存', path: '/repair-tools/inbound' },
+        ],
       },
       {
         id: 'maintenance-log',
@@ -199,8 +164,8 @@ export default defineComponent({
           { id: 'maintenance-log-fill', label: '新报维保日志', path: '/maintenance-log/fill' },
           { id: 'maintenance-log-list', label: '维保日志查询', path: '/maintenance-log/list' },
           { id: 'weekly-report-fill', label: '新报部门周报', path: '/weekly-report/fill' },
-          { id: 'weekly-report-list', label: '部门周报查询', path: '/weekly-report/list' }
-        ]
+          { id: 'weekly-report-list', label: '部门周报查询', path: '/weekly-report/list' },
+        ],
       },
       {
         id: 'system',
@@ -208,27 +173,29 @@ export default defineComponent({
         children: [
           { id: 'personnel', label: '人员管理', path: '/personnel' },
           { id: 'customer', label: '客户管理', path: '/customer' },
-          { id: 'inspection-item', label: '巡检事项管理', path: '/inspection-item' }
-        ]
-      }
+          { id: 'inspection-item', label: '巡检事项管理', path: '/inspection-item' },
+        ],
+      },
     ]
 
     const filteredMenuItems = computed(() => {
-      return menuItems.filter(menu => {
-        if (menu.children) {
-          const filteredChildren = menu.children.filter(child => canShowMenu(child.id))
-          return filteredChildren.length > 0
-        }
-        return canShowMenu(menu.id)
-      }).map(menu => {
-        if (menu.children) {
-          return {
-            ...menu,
-            children: menu.children.filter(child => canShowMenu(child.id))
+      return menuItems
+        .filter((menu) => {
+          if (menu.children) {
+            const filteredChildren = menu.children.filter((child) => canShowMenu(child.id))
+            return filteredChildren.length > 0
           }
-        }
-        return menu
-      })
+          return canShowMenu(menu.id)
+        })
+        .map((menu) => {
+          if (menu.children) {
+            return {
+              ...menu,
+              children: menu.children.filter((child) => canShowMenu(child.id)),
+            }
+          }
+          return menu
+        })
     })
 
     const currentBreadcrumb = computed(() => {
@@ -237,17 +204,17 @@ export default defineComponent({
         return {
           level1: '统计分析',
           level2: '数据看板',
-          full: '统计分析 / 数据看板'
+          full: '统计分析 / 数据看板',
         }
       }
       for (const menu of menuItems) {
         if (menu.children) {
-          const child = menu.children.find(c => c.path === path)
+          const child = menu.children.find((c) => c.path === path)
           if (child) {
             return {
               level1: menu.label,
               level2: child.label,
-              full: `${menu.label} / ${child.label}`
+              full: `${menu.label} / ${child.label}`,
             }
           }
         }
@@ -256,110 +223,110 @@ export default defineComponent({
         return {
           level1: '工单管理',
           level2: '临时维修单查询',
-          full: '工单管理 / 临时维修单查询'
+          full: '工单管理 / 临时维修单查询',
         }
       }
       if (path === '/work-order/spot-work') {
         return {
           level1: '工单管理',
           level2: '零星用工单查询',
-          full: '工单管理 / 零星用工单查询'
+          full: '工单管理 / 零星用工单查询',
         }
       }
       if (path === '/work-plan') {
         return {
           level1: '工单管理',
           level2: '定期巡检单查询',
-          full: '工单管理 / 定期巡检单查询'
+          full: '工单管理 / 定期巡检单查询',
         }
       }
       if (path === '/spare-parts/issue') {
         return {
           level1: '备品备件管理',
           level2: '备品备件领用',
-          full: '备品备件管理 / 备品备件领用'
+          full: '备品备件管理 / 备品备件领用',
         }
       }
       if (path === '/spare-parts/return') {
         return {
           level1: '备品备件管理',
           level2: '备品备件归还',
-          full: '备品备件管理 / 备品备件归还'
+          full: '备品备件管理 / 备品备件归还',
         }
       }
       if (path === '/spare-parts/stock') {
         return {
           level1: '备品备件管理',
           level2: '',
-          full: '备品备件管理'
+          full: '备品备件管理',
         }
       }
       if (path === '/spare-parts') {
         return {
           level1: '备品备件管理',
           level2: '备品备件管理',
-          full: '备品备件管理'
+          full: '备品备件管理',
         }
       }
       if (path === '/repair-tools/issue') {
         return {
           level1: '维修工具管理',
           level2: '维修工具领用',
-          full: '维修工具管理 / 维修工具领用'
+          full: '维修工具管理 / 维修工具领用',
         }
       }
       if (path === '/repair-tools/return') {
         return {
           level1: '维修工具管理',
           level2: '维修工具归还',
-          full: '维修工具管理 / 维修工具归还'
+          full: '维修工具管理 / 维修工具归还',
         }
       }
       if (path === '/repair-tools/inbound') {
         return {
           level1: '维修工具管理',
           level2: '维修工具库存',
-          full: '维修工具管理 / 维修工具库存'
+          full: '维修工具管理 / 维修工具库存',
         }
       }
       if (path === '/maintenance-log/fill') {
         return {
           level1: '维保日志',
           level2: '新报维保日志',
-          full: '维保日志 / 新报维保日志'
+          full: '维保日志 / 新报维保日志',
         }
       }
       if (path === '/maintenance-log/list') {
         return {
           level1: '维保日志',
           level2: '维保日志查询',
-          full: '维保日志 / 维保日志查询'
+          full: '维保日志 / 维保日志查询',
         }
       }
       if (path === '/weekly-report/fill') {
         return {
           level1: '维保日志',
           level2: '新报部门周报',
-          full: '维保日志 / 新报部门周报'
+          full: '维保日志 / 新报部门周报',
         }
       }
       if (path === '/weekly-report/list') {
         return {
           level1: '维保日志',
           level2: '部门周报查询',
-          full: '维保日志 / 部门周报查询'
+          full: '维保日志 / 部门周报查询',
         }
       }
       return {
         level1: '维保项目管理',
         level2: '项目信息管理',
-        full: '维保项目管理 / 项目信息管理'
+        full: '维保项目管理 / 项目信息管理',
       }
     })
 
     const toggleMenu = (menuId: string) => {
       if (expandedMenus.value.includes(menuId)) {
-        expandedMenus.value = expandedMenus.value.filter(id => id !== menuId)
+        expandedMenus.value = expandedMenus.value.filter((id) => id !== menuId)
       } else {
         expandedMenus.value = [...expandedMenus.value, menuId]
       }
@@ -367,7 +334,9 @@ export default defineComponent({
 
     const handleMenuClick = (item: MenuItem) => {
       activeMenu.value = item.id
-      const parentMenu = menuItems.find(menu => menu.children && menu.children.some(child => child.id === item.id))
+      const parentMenu = menuItems.find(
+        (menu) => menu.children && menu.children.some((child) => child.id === item.id)
+      )
       if (parentMenu && parentMenu.id) {
         if (!expandedMenus.value.includes(parentMenu.id)) {
           expandedMenus.value = [...expandedMenus.value, parentMenu.id]
@@ -393,7 +362,7 @@ export default defineComponent({
             name: p.name,
             role: p.role,
             department: p.department || '',
-            phone: p.phone || ''
+            phone: p.phone || '',
           }))
         }
       } catch (error) {
@@ -408,19 +377,19 @@ export default defineComponent({
     const loginUser = async (user: User): Promise<boolean> => {
       try {
         const defaultPassword = user.phone ? user.phone.slice(-6) : '123456'
-        
+
         const response = await api.post('/auth/login-json', {
           username: user.name,
           password: defaultPassword,
-          device_type: 'pc'
+          device_type: 'pc',
         })
-        
+
         if ((response as any).code === 200 && (response as any).data?.access_token) {
           userStore.setToken((response as any).data.access_token)
           onlineUserService.recordLogin('pc', user.id, user.name).catch(() => {})
           return true
         }
-        
+
         return false
       } catch (error) {
         console.error('登录失败:', error)
@@ -433,7 +402,7 @@ export default defineComponent({
       if (loginSuccess) {
         userStore.setUser(user)
         showUserMenu.value = false
-        
+
         const currentPath = route.path
         const menuId = getRouteMenuId(currentPath)
         if (menuId && !canShowMenu(menuId)) {
@@ -448,7 +417,7 @@ export default defineComponent({
           return menu.id
         }
         if (menu.children) {
-          const child = menu.children.find(c => c.path === path)
+          const child = menu.children.find((c) => c.path === path)
           if (child) {
             return child.id
           }
@@ -477,7 +446,7 @@ export default defineComponent({
 
     onMounted(async () => {
       await loadUserList()
-      
+
       const storedUser = userStore.getUser()
       if (storedUser) {
         const loginSuccess = await loginUser(storedUser)
@@ -506,9 +475,9 @@ export default defineComponent({
       userDisplayName,
       showUserMenu,
       userList,
-      selectUser
+      selectUser,
     }
-  }
+  },
 })
 </script>
 
@@ -530,7 +499,7 @@ export default defineComponent({
 
 .sidebar {
   width: 240px;
-  background: #001F3F;
+  background: #001f3f;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -648,7 +617,7 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background: #F5F7FA;
+  background: #f5f7fa;
   border-bottom: 1px solid #e0e0e0;
 }
 

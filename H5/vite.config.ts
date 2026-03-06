@@ -45,8 +45,11 @@ export default defineConfig(({ mode }) => ({
       '@sstcp/shared/utils/format': resolve(__dirname, '../packages/shared/src/utils/format.ts'),
       '@sstcp/shared/api/endpoints': resolve(__dirname, '../packages/shared/src/api/endpoints.ts'),
       '@sstcp/shared/types/api': resolve(__dirname, '../packages/shared/src/types/api.ts'),
-      '@sstcp/shared/types/permission': resolve(__dirname, '../packages/shared/src/types/permission.ts')
-    }
+      '@sstcp/shared/types/permission': resolve(
+        __dirname,
+        '../packages/shared/src/types/permission.ts'
+      ),
+    },
   },
   base: mode === 'production' ? '/h5/' : '/',
   server: {
@@ -70,8 +73,8 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         timeout: 60000,
         proxyTimeout: 60000,
-      }
-    }
+      },
+    },
   },
   build: {
     minify: 'terser',
@@ -79,8 +82,8 @@ export default defineConfig(({ mode }) => ({
       compress: {
         drop_console: mode === 'production',
         drop_debugger: mode === 'production',
-        pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : []
-      }
+        pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : [],
+      },
     },
     sourcemap: mode !== 'production',
     chunkSizeWarningLimit: 500,
@@ -89,15 +92,15 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
           'vant-vendor': ['vant'],
-          'axios-vendor': ['axios']
+          'axios-vendor': ['axios'],
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
-      }
-    }
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+      },
+    },
   },
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia', 'vant', 'axios']
-  }
+    include: ['vue', 'vue-router', 'pinia', 'vant', 'axios'],
+  },
 }))

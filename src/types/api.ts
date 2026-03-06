@@ -34,7 +34,8 @@ export type {
   SparePartsUsage,
   SparePartsInbound,
   InspectionItem,
-  MaintenancePlan
+  MaintenancePlan,
+  OperationLog,
 } from '@sstcp/shared'
 
 export interface SparePartsIssueQueryParams {

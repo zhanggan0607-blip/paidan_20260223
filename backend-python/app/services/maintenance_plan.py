@@ -423,7 +423,7 @@ class MaintenancePlanService:
         try:
             periodic_inspections = self._db.query(PeriodicInspection).filter(
                 PeriodicInspection.plan_id == plan_id,
-                PeriodicInspection.is_deleted == 0
+                PeriodicInspection.is_deleted == False
             ).all()
             for insp in periodic_inspections:
                 insp.soft_delete(user_id)
@@ -431,7 +431,7 @@ class MaintenancePlanService:
             
             temporary_repairs = self._db.query(TemporaryRepair).filter(
                 TemporaryRepair.plan_id == plan_id,
-                TemporaryRepair.is_deleted == 0
+                TemporaryRepair.is_deleted == False
             ).all()
             for repair in temporary_repairs:
                 repair.soft_delete(user_id)
@@ -439,7 +439,7 @@ class MaintenancePlanService:
             
             spot_works = self._db.query(SpotWork).filter(
                 SpotWork.plan_id == plan_id,
-                SpotWork.is_deleted == 0
+                SpotWork.is_deleted == False
             ).all()
             for work in spot_works:
                 work.soft_delete(user_id)

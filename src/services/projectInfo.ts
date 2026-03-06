@@ -119,5 +119,5 @@ export const projectInfoService = {
    */
   async getAll(): Promise<ApiResponse<ProjectInfo[]>> {
     return await request.get(API_ENDPOINTS.PROJECT_INFO.ALL)
-  }
+  },
 }

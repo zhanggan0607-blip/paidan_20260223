@@ -24,7 +24,7 @@ const addForm = ref({
   stock: 0,
   min_stock: 0,
   location: '',
-  remark: ''
+  remark: '',
 })
 
 const restockForm = ref({
@@ -32,7 +32,7 @@ const restockForm = ref({
   tool_name: '',
   current_stock: 0,
   quantity: 1,
-  remark: ''
+  remark: '',
 })
 
 const categoryList = ['电动工具', '手动工具', '测量工具', '焊接工具', '起重工具', '其他']
@@ -70,7 +70,7 @@ const handleAdd = () => {
     stock: 0,
     min_stock: 0,
     location: '',
-    remark: ''
+    remark: '',
   }
   showAddPopup.value = true
 }
@@ -89,7 +89,7 @@ const handleEdit = (item: RepairToolsStock) => {
     stock: item.stock || 0,
     min_stock: item.min_stock || 0,
     location: item.location || '',
-    remark: ''
+    remark: '',
   }
   showAddPopup.value = true
 }
@@ -105,7 +105,7 @@ const handleSubmitAdd = async () => {
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     let response
     if (isEdit.value) {
@@ -113,7 +113,7 @@ const handleSubmitAdd = async () => {
     } else {
       response = await repairToolsService.createStock(addForm.value)
     }
-    
+
     if (response.code === 200) {
       showSuccessToast(isEdit.value ? '编辑成功' : '新增成功')
       showAddPopup.value = false
@@ -139,7 +139,7 @@ const handleRestock = (item: RepairToolsStock) => {
     tool_name: item.tool_name,
     current_stock: item.stock || 0,
     quantity: 1,
-    remark: ''
+    remark: '',
   }
   showRestockPopup.value = true
 }
@@ -155,13 +155,13 @@ const handleSubmitRestock = async () => {
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await repairToolsService.restock(restockForm.value.id, {
       quantity: restockForm.value.quantity,
-      remark: restockForm.value.remark
+      remark: restockForm.value.remark,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('入库成功')
       showRestockPopup.value = false
@@ -200,12 +200,7 @@ onMounted(() => {
 
 <template>
   <div class="repair-tools-stock-page">
-    <van-nav-bar 
-      title="维修工具库存" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="维修工具库存" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -213,29 +208,21 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <div class="action-bar">
-      <van-button type="primary" size="small" @click="handleAdd">
-        新增入库
-      </van-button>
+      <van-button type="primary" size="small" @click="handleAdd"> 新增入库 </van-button>
     </div>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchStockList">
       <van-list :loading="loading" :finished="true">
         <div class="stock-list">
-          <div 
-            v-for="item in stockList" 
-            :key="item.id"
-            class="stock-card"
-          >
+          <div v-for="item in stockList" :key="item.id" class="stock-card">
             <div class="card-header">
               <span class="tool-name">{{ item.tool_name }}</span>
-              <span :class="['stock-badge', getStockClass(item)]">
-                库存: {{ item.stock }}
-              </span>
+              <span :class="['stock-badge', getStockClass(item)]"> 库存: {{ item.stock }} </span>
             </div>
             <div class="card-body">
               <div class="info-row">
@@ -284,18 +271,13 @@ onMounted(() => {
           <van-icon name="cross" @click="showAddPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field 
+          <van-field
             v-model="addForm.tool_name"
             label="工具名称"
             placeholder="请输入工具名称"
             required
           />
-          <van-field 
-            v-model="addForm.category"
-            label="工具分类"
-            placeholder="请选择分类"
-            required
-          >
+          <van-field v-model="addForm.category" label="工具分类" placeholder="请选择分类" required>
             <template #input>
               <select v-model="addForm.category" class="category-select">
                 <option value="">请选择分类</option>
@@ -303,36 +285,27 @@ onMounted(() => {
               </select>
             </template>
           </van-field>
-          <van-field 
+          <van-field
             v-model="addForm.specification"
             label="规格型号"
             placeholder="请输入规格型号"
           />
-          <van-field 
-            v-model="addForm.unit"
-            label="单位"
-            placeholder="如：个、把、台"
-            required
-          />
-          <van-field 
+          <van-field v-model="addForm.unit" label="单位" placeholder="如：个、把、台" required />
+          <van-field
             v-model="addForm.stock"
             type="number"
             label="库存数量"
             placeholder="请输入数量"
             required
           />
-          <van-field 
+          <van-field
             v-model="addForm.min_stock"
             type="number"
             label="最低库存"
             placeholder="预警阈值"
           />
-          <van-field 
-            v-model="addForm.location"
-            label="存放位置"
-            placeholder="如：A区1号柜"
-          />
-          <van-field 
+          <van-field v-model="addForm.location" label="存放位置" placeholder="如：A区1号柜" />
+          <van-field
             v-model="addForm.remark"
             label="备注"
             placeholder="请输入备注"
@@ -355,24 +328,16 @@ onMounted(() => {
           <van-icon name="cross" @click="showRestockPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field 
-            :model-value="restockForm.tool_name"
-            label="工具名称"
-            disabled
-          />
-          <van-field 
-            :model-value="restockForm.current_stock"
-            label="当前库存"
-            disabled
-          />
-          <van-field 
+          <van-field :model-value="restockForm.tool_name" label="工具名称" disabled />
+          <van-field :model-value="restockForm.current_stock" label="当前库存" disabled />
+          <van-field
             v-model="restockForm.quantity"
             type="number"
             label="入库数量"
             placeholder="请输入入库数量"
             required
           />
-          <van-field 
+          <van-field
             v-model="restockForm.remark"
             label="备注"
             placeholder="请输入备注"

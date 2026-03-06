@@ -9,14 +9,16 @@ import type {
   RepairToolsStock,
   RepairToolsUsage,
   RepairToolsIssueRequest,
-  RepairToolsStockQueryParams
+  RepairToolsStockQueryParams,
 } from '../types/models'
 
 export const repairToolsService = {
   /**
    * 获取维修工具库存列表
    */
-  async getStockList(params?: RepairToolsStockQueryParams): Promise<ApiResponse<{ items: RepairToolsStock[]; total: number }>> {
+  async getStockList(
+    params?: RepairToolsStockQueryParams
+  ): Promise<ApiResponse<{ items: RepairToolsStock[]; total: number }>> {
     return request.get(API_ENDPOINTS.REPAIR_TOOLS_STOCK.LIST, { params })
   },
 
@@ -51,14 +53,19 @@ export const repairToolsService = {
   /**
    * 工具入库（增加库存）
    */
-  async restock(id: number, data: { quantity: number; remark?: string }): Promise<ApiResponse<null>> {
+  async restock(
+    id: number,
+    data: { quantity: number; remark?: string }
+  ): Promise<ApiResponse<null>> {
     return request.post(API_ENDPOINTS.REPAIR_TOOLS_STOCK.RESTOCK(id), data)
   },
 
   /**
    * 获取领用记录列表
    */
-  async getIssueList(params?: RepairToolsStockQueryParams): Promise<ApiResponse<{ items: RepairToolsUsage[]; total: number }>> {
+  async getIssueList(
+    params?: RepairToolsStockQueryParams
+  ): Promise<ApiResponse<{ items: RepairToolsUsage[]; total: number }>> {
     return request.get(API_ENDPOINTS.REPAIR_TOOLS_USAGE.LIST, { params })
   },
 

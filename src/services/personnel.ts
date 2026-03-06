@@ -108,5 +108,5 @@ export const personnelService = {
    */
   async getAll(): Promise<ApiResponse<Personnel[]>> {
     return await request.get(API_ENDPOINTS.PERSONNEL.ALL)
-  }
+  },
 }

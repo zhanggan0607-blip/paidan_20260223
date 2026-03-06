@@ -25,8 +25,7 @@
             </div>
           </div>
         </div>
-        <div class="action-buttons">
-        </div>
+        <div class="action-buttons"></div>
       </div>
 
       <div class="table-section">
@@ -48,16 +47,23 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="11" style="text-align: center; padding: 20px;">加载中...</td>
+              <td colspan="11" style="text-align: center; padding: 20px">加载中...</td>
             </tr>
             <tr v-else-if="planData.length === 0">
-              <td colspan="11" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td colspan="11" style="text-align: center; padding: 20px">暂无数据</td>
             </tr>
-            <tr v-else v-for="(item, index) in planData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <tr
+              v-for="(item, index) in planData"
+              v-else
+              :key="item.id"
+              :class="{ 'even-row': index % 2 === 0 }"
+            >
               <td>{{ currentPage * pageSize + index + 1 }}</td>
               <td>{{ item.plan_id }}</td>
               <td>
-                <span :class="getOrderTypeClass(item.order_type_code)" class="type-badge">{{ item.plan_type }}</span>
+                <span :class="getOrderTypeClass(item.order_type_code)" class="type-badge">{{
+                  item.plan_type
+                }}</span>
               </td>
               <td>{{ item.project_name }}</td>
               <td>{{ item.project_id }}</td>
@@ -66,11 +72,21 @@
               <td>{{ item.client_name || '-' }}</td>
               <td>{{ item.maintenance_personnel || '-' }}</td>
               <td>
-                <span :class="getStatusClass(item.status)" class="status-badge">{{ item.status }}</span>
+                <span :class="getStatusClass(item.status)" class="status-badge">{{
+                  item.status
+                }}</span>
               </td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" v-if="item.status === WORK_STATUS.COMPLETED" class="action-link action-export" @click.prevent="handleExport(item)">导出</a>
+                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
+                  >查看</a
+                >
+                <a
+                  v-if="item.status === WORK_STATUS.COMPLETED"
+                  href="#"
+                  class="action-link action-export"
+                  @click.prevent="handleExport(item)"
+                  >导出</a
+                >
               </td>
             </tr>
           </tbody>
@@ -78,9 +94,7 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">
-          共 {{ totalElements }} 条记录
-        </div>
+        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
         <div class="pagination-controls">
           <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
             &lt;
@@ -94,17 +108,21 @@
           >
             {{ page }}
           </button>
-          <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage >= totalPages - 1"
+            @click="currentPage++"
+          >
             &gt;
           </button>
-          <select class="page-select" v-model="pageSize">
+          <select v-model="pageSize" class="page-select">
             <option value="10">10 条 / 页</option>
             <option value="20">20 条 / 页</option>
             <option value="50">50 条 / 页</option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
             <span>页</span>
             <button class="page-btn page-go" @click="handleJump">Go</button>
           </div>
@@ -131,7 +149,9 @@
               </div>
               <div class="detail-item">
                 <label class="detail-label">合同剩余时间</label>
-                <div class="detail-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
+                <div class="detail-value" :class="getRemainingTimeClass()">
+                  {{ viewData.remainingTime || '-' }}
+                </div>
               </div>
               <div class="detail-item">
                 <label class="detail-label">客户单位</label>
@@ -165,11 +185,11 @@
             <table class="inspection-table">
               <thead>
                 <tr>
-                  <th style="width: 60px;">序号</th>
-                  <th style="width: 150px;">巡查项</th>
-                  <th style="width: 200px;">巡查内容</th>
-                  <th style="width: 200px;">检查要求</th>
-                  <th style="width: 200px;">简要说明</th>
+                  <th style="width: 60px">序号</th>
+                  <th style="width: 150px">巡查项</th>
+                  <th style="width: 200px">巡查内容</th>
+                  <th style="width: 200px">检查要求</th>
+                  <th style="width: 200px">简要说明</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,7 +201,9 @@
                   <td>{{ item.brief_description || '-' }}</td>
                 </tr>
                 <tr v-if="viewInspectionItems.length === 0">
-                  <td colspan="5" style="text-align: center; padding: 20px; color: #999;">暂无巡检内容</td>
+                  <td colspan="5" style="text-align: center; padding: 20px; color: #999">
+                    暂无巡检内容
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -192,9 +214,9 @@
             <table class="inspection-table">
               <thead>
                 <tr>
-                  <th style="width: 300px;">实际现场故障情况</th>
-                  <th style="width: 300px;">故障解决方案</th>
-                  <th style="width: 80px;">是否解决</th>
+                  <th style="width: 300px">实际现场故障情况</th>
+                  <th style="width: 300px">故障解决方案</th>
+                  <th style="width: 80px">是否解决</th>
                 </tr>
               </thead>
               <tbody>
@@ -208,7 +230,9 @@
                   </td>
                 </tr>
                 <tr v-if="viewFieldHandling.length === 0">
-                  <td colspan="3" style="text-align: center; padding: 20px; color: #999;">暂无现场处理内容</td>
+                  <td colspan="3" style="text-align: center; padding: 20px; color: #999">
+                    暂无现场处理内容
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -220,7 +244,11 @@
               <div class="image-group">
                 <label class="image-label">巡检组相关图片</label>
                 <div class="image-list">
-                  <div v-for="(img, index) in viewInspectionImages" :key="'insp-' + index" class="image-item">
+                  <div
+                    v-for="(img, index) in viewInspectionImages"
+                    :key="'insp-' + index"
+                    class="image-item"
+                  >
                     <img :src="img" alt="巡检图片" loading="lazy" @click="previewImage(img)" />
                   </div>
                   <div v-if="viewInspectionImages.length === 0" class="no-image">暂无图片</div>
@@ -242,15 +270,30 @@
           <div class="detail-section">
             <h4 class="section-title">内部确认</h4>
             <div class="confirmation-list">
-              <div v-for="(record, index) in viewConfirmationRecords" :key="index" class="confirmation-item">
+              <div
+                v-for="(record, index) in viewConfirmationRecords"
+                :key="index"
+                class="confirmation-item"
+              >
                 <span class="confirmation-time">{{ record.time }}</span>
                 <span class="confirmation-user">{{ record.user }}</span>
-                <span :class="['confirmation-status', record.status === '已完成' ? 'status-confirmed' : record.status === '已退回' ? 'status-returned' : 'status-submitted']">
+                <span
+                  :class="[
+                    'confirmation-status',
+                    record.status === '已完成'
+                      ? 'status-confirmed'
+                      : record.status === '已退回'
+                        ? 'status-returned'
+                        : 'status-submitted',
+                  ]"
+                >
                   {{ record.status }}
                 </span>
                 <span v-if="record.reason" class="confirmation-reason">{{ record.reason }}</span>
               </div>
-              <div v-if="viewConfirmationRecords.length === 0" class="no-confirmation">暂无确认记录</div>
+              <div v-if="viewConfirmationRecords.length === 0" class="no-confirmation">
+                暂无确认记录
+              </div>
             </div>
           </div>
         </div>
@@ -264,13 +307,19 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, reactive, watch, computed } from 'vue'
-import { ElMessageBox } from 'element-plus'
 import { periodicInspectionService, type PeriodicInspection } from '@/services/periodicInspection'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { maintenancePlanService } from '@/services/maintenancePlan'
+import { operationLogService } from '@/services/operationLog'
+import type { OperationLog } from '@/types/api'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
-import { PLAN_TYPES, WORK_STATUS, formatDate as formatDateUtil, formatDateTime as formatDateTimeUtil } from '@/config/constants'
+import {
+  PLAN_TYPES,
+  WORK_STATUS,
+  formatDate as formatDateUtil,
+  formatDateTime as formatDateTimeUtil,
+} from '@/config/constants'
 
 // TODO: 工单管理页面 - 考虑加入批量操作功能
 // FIXME: 导出功能目前只支持单个工单，需要支持批量导出
@@ -296,10 +345,14 @@ export default defineComponent({
   name: 'WorkPlanManagement',
   components: {
     Toast,
-    SearchInput
+    SearchInput,
   },
   setup() {
-    const planTypes = [PLAN_TYPES.PERIODIC_MAINTENANCE, PLAN_TYPES.TEMPORARY_REPAIR, PLAN_TYPES.SPOT_WORK]
+    const planTypes = [
+      PLAN_TYPES.PERIODIC_MAINTENANCE,
+      PLAN_TYPES.TEMPORARY_REPAIR,
+      PLAN_TYPES.SPOT_WORK,
+    ]
     const currentPage = ref(0)
     const pageSize = ref(10)
     const jumpPage = ref(1)
@@ -311,12 +364,12 @@ export default defineComponent({
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const searchForm = ref({
       project_name: '',
-      order_id: ''
+      order_id: '',
     })
 
     const viewData = reactive({
@@ -340,31 +393,37 @@ export default defineComponent({
       maintenance_cycle: '',
       project_start_date: '',
       project_end_date: '',
-      remainingTime: ''
+      remainingTime: '',
     })
 
-    const viewInspectionItems = ref<Array<{
-      inspection_item: string
-      inspection_content: string
-      check_requirement: string
-      brief_description: string
-      is_normal: boolean
-    }>>([])
+    const viewInspectionItems = ref<
+      Array<{
+        inspection_item: string
+        inspection_content: string
+        check_requirement: string
+        brief_description: string
+        is_normal: boolean
+      }>
+    >([])
 
-    const viewFieldHandling = ref<Array<{
-      fault_situation: string
-      solution: string
-      is_resolved: boolean
-    }>>([])
+    const viewFieldHandling = ref<
+      Array<{
+        fault_situation: string
+        solution: string
+        is_resolved: boolean
+      }>
+    >([])
 
     const viewInspectionImages = ref<string[]>([])
     const viewSignature = ref('')
-    const viewConfirmationRecords = ref<Array<{
-      time: string
-      user: string
-      status: string
-      reason?: string
-    }>>([])
+    const viewConfirmationRecords = ref<
+      Array<{
+        time: string
+        user: string
+        status: string
+        reason?: string
+      }>
+    >([])
 
     const planData = ref<PlanItem[]>([])
 
@@ -378,7 +437,10 @@ export default defineComponent({
       return pages
     })
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -394,30 +456,30 @@ export default defineComponent({
 
     const calculateRemainingTime = (endDate: string): string => {
       if (!endDate) return '-'
-      
+
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      
+
       const end = new Date(endDate)
       end.setHours(0, 0, 0, 0)
-      
+
       const diffTime = end.getTime() - today.getTime()
-      
+
       if (diffTime < 0) {
         return '已过期'
       }
-      
+
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
+
       const years = Math.floor(diffDays / 365)
       const months = Math.floor((diffDays % 365) / 30)
       const days = diffDays % 30
-      
+
       const parts: string[] = []
       if (years > 0) parts.push(`${years}年`)
       if (months > 0) parts.push(`${months}月`)
       if (days > 0 || parts.length === 0) parts.push(`${days}日`)
-      
+
       return parts.join('')
     }
 
@@ -477,9 +539,9 @@ export default defineComponent({
           page: currentPage.value,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
-          inspection_id: searchForm.value.order_id || undefined
+          inspection_id: searchForm.value.order_id || undefined,
         })
-        
+
         if (response.code === 200) {
           planData.value = response.data.content.map((item: PeriodicInspection) => ({
             id: item.id,
@@ -495,7 +557,7 @@ export default defineComponent({
             status: item.status || '执行中',
             remarks: item.remarks || '',
             execution_result: item.execution_result || '',
-            signature: item.signature || ''
+            signature: item.signature || '',
           }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
@@ -517,7 +579,7 @@ export default defineComponent({
     const handleReset = () => {
       searchForm.value = {
         project_name: '',
-        order_id: ''
+        order_id: '',
       }
       currentPage.value = 0
       loadData()
@@ -558,25 +620,27 @@ export default defineComponent({
       viewData.project_end_date = item.plan_end_date
       viewData.maintenance_cycle = ''
       viewData.remainingTime = '-'
-      
+
       viewInspectionItems.value = []
       viewFieldHandling.value = []
       viewInspectionImages.value = []
       viewSignature.value = item.signature || ''
       viewConfirmationRecords.value = []
-      
+
       if (item.execution_result || item.remarks) {
         viewFieldHandling.value.push({
           fault_situation: item.execution_result || '',
           solution: item.remarks || '',
-          is_resolved: true
+          is_resolved: true,
         })
       }
-      
+
       try {
         const projectResponse = await projectInfoService.getAll()
         if (projectResponse.code === 200 && projectResponse.data) {
-          const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
+          const project = projectResponse.data.find(
+            (p: ProjectInfo) => p.project_id === item.project_id
+          )
           if (project) {
             viewData.project_name = project.project_name || viewData.project_name
             viewData.client_name = project.client_name || viewData.client_name
@@ -590,7 +654,7 @@ export default defineComponent({
       } catch (error) {
         console.error('获取项目信息失败:', error)
       }
-      
+
       try {
         const response = await maintenancePlanService.getByProjectId(item.project_id)
         if (response.code === 200 && response.data) {
@@ -598,7 +662,7 @@ export default defineComponent({
           const orderEndDate = item.plan_end_date ? new Date(item.plan_end_date) : null
           if (orderStartDate) orderStartDate.setHours(0, 0, 0, 0)
           if (orderEndDate) orderEndDate.setHours(0, 0, 0, 0)
-          
+
           const filteredPlans = response.data.filter((plan: any) => {
             if (!plan.plan_start_date || !plan.plan_end_date) return false
             const planStartDate = new Date(plan.plan_start_date)
@@ -610,7 +674,7 @@ export default defineComponent({
             }
             return false
           })
-          
+
           const allItems: any[] = []
           filteredPlans.forEach((plan: any) => {
             if (plan.inspection_items) {
@@ -622,7 +686,7 @@ export default defineComponent({
                     inspection_content: item.inspection_content || '',
                     check_requirement: item.check_requirements || '',
                     brief_description: item.brief_description || '',
-                    is_normal: plan.execution_status === WORK_STATUS.COMPLETED
+                    is_normal: plan.execution_status === WORK_STATUS.COMPLETED,
                   })
                 })
               } catch (e) {
@@ -630,13 +694,30 @@ export default defineComponent({
               }
             }
           })
-          
+
           viewInspectionItems.value = allItems
         }
       } catch (error) {
         console.error('获取巡检内容失败:', error)
       }
-      
+
+      try {
+        const logResponse = await operationLogService.getByWorkOrder({
+          work_order_type: 'periodic_inspection',
+          work_order_id: item.id,
+        })
+        if (logResponse.code === 200 && logResponse.data) {
+          viewConfirmationRecords.value = logResponse.data.map((log: OperationLog) => ({
+            time: formatDateTime(log.created_at),
+            user: log.operator_name || '-',
+            status: log.operation_type_name || '-',
+            reason: log.operation_remark || undefined,
+          }))
+        }
+      } catch (error) {
+        console.error('获取操作日志失败:', error)
+      }
+
       isViewModalOpen.value = true
     }
 
@@ -644,7 +725,7 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
-    const handleExport = (item: PlanItem) => {
+    const handleExport = (_item: PlanItem) => {
       showToast('导出功能开发中', 'info')
     }
 
@@ -693,9 +774,9 @@ export default defineComponent({
       handleExport,
       handleJump,
       showToast,
-      previewImage
+      previewImage,
     }
-  }
+  },
 })
 </script>
 
@@ -962,12 +1043,12 @@ export default defineComponent({
 }
 
 .remaining-normal {
-  color: #388E3C;
+  color: #388e3c;
   font-weight: 500;
 }
 
 .remaining-expired {
-  color: #D32F2F;
+  color: #d32f2f;
   font-weight: 600;
 }
 
@@ -1152,7 +1233,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 
@@ -1378,7 +1459,9 @@ export default defineComponent({
   object-fit: cover;
 }
 
-.no-image, .no-signature, .no-confirmation {
+.no-image,
+.no-signature,
+.no-confirmation {
   color: #999;
   font-size: 14px;
   padding: 20px;

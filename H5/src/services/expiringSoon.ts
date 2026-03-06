@@ -28,7 +28,7 @@ export const expiringSoonService = {
     const queryParams = {
       page: 0,
       size: 1000,
-      ...params
+      ...params,
     }
     return request.get(API_ENDPOINTS.EXPIRING_SOON.LIST, { params: queryParams })
   },

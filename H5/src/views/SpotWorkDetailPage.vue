@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+} from 'vant'
 import { spotWorkService, uploadService, operationLogService } from '../services'
 import { formatDate, getWorkIdFontSize, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
@@ -23,7 +29,7 @@ const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(nu
 const formData = ref({
   work_content: '',
   remarks: '',
-  signature: ''
+  signature: '',
 })
 
 const currentPhotos = ref<string[]>([])
@@ -33,8 +39,7 @@ const currentWorker = ref<SpotWorkWorker | null>(null)
 
 const isEditable = computed(() => {
   const status = detail.value?.status
-  return status === WORK_STATUS.IN_PROGRESS || 
-         status === WORK_STATUS.RETURNED
+  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
 })
 
 const canSubmit = computed(() => {
@@ -80,10 +85,10 @@ const getStatusClass = (status: string) => {
 const fetchDetail = async () => {
   const id = route.params.id
   if (!id) return
-  
+
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
-  
+
   try {
     const response = await spotWorkService.getById(Number(id))
     if (response.code === 200) {
@@ -94,9 +99,10 @@ const fetchDetail = async () => {
         formData.value.signature = response.data.signature || ''
         if (response.data.photos) {
           try {
-            currentPhotos.value = typeof response.data.photos === 'string' 
-              ? JSON.parse(response.data.photos) 
-              : response.data.photos
+            currentPhotos.value =
+              typeof response.data.photos === 'string'
+                ? JSON.parse(response.data.photos)
+                : response.data.photos
           } catch {
             currentPhotos.value = []
           }
@@ -131,14 +137,14 @@ const handlePhotoCapture = () => {
   input.type = 'file'
   input.accept = 'image/*'
   input.capture = 'environment'
-  
+
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
     if (!file) return
-    
+
     showLoadingToast({ message: '处理中...', forbidClick: true })
-    
+
     try {
       const userName = userStore.getUser()?.name || '未知用户'
       const location = await getCurrentLocation()
@@ -146,14 +152,14 @@ const handlePhotoCapture = () => {
         userName,
         includeLocation: true,
         latitude: location?.latitude,
-        longitude: location?.longitude
+        longitude: location?.longitude,
       })
-      
+
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
-      
+
       const response = await uploadService.uploadFile(processedFile)
-      
+
       if (response.code === 200 && response.data) {
         currentPhotos.value.push(response.data.url)
         showSuccessToast('上传成功')
@@ -165,7 +171,7 @@ const handlePhotoCapture = () => {
       closeToast()
     }
   }
-  
+
   input.click()
 }
 
@@ -173,11 +179,10 @@ const handleRemovePhoto = async (index: number) => {
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '是否要删除，新增的图片会重新打水印'
+      message: '是否要删除，新增的图片会重新打水印',
     })
     currentPhotos.value.splice(index, 1)
-  } catch {
-  }
+  } catch {}
 }
 
 const handlePhotoSave = () => {
@@ -188,10 +193,10 @@ const handlePhotoSave = () => {
 const handleSignature = () => {
   router.push({
     path: '/signature',
-    query: { 
+    query: {
       from: route.fullPath,
-      type: 'spot-work'
-    }
+      type: 'spot-work',
+    },
   })
 }
 
@@ -204,21 +209,21 @@ const handleSubmit = async () => {
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '确认提交工单吗？'
+      message: '确认提交工单吗？',
     })
-    
+
     showLoadingToast({ message: '提交中...', forbidClick: true })
-    
+
     const submitData = {
       work_content: formData.value.work_content,
       photos: JSON.stringify(currentPhotos.value),
       signature: formData.value.signature,
       status: WORK_STATUS.PENDING_CONFIRM,
-      remarks: formData.value.remarks
+      remarks: formData.value.remarks,
     }
-    
+
     const response = await spotWorkService.patch(detail.value?.id!, submitData)
-    
+
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('spot_work_signature')
@@ -237,17 +242,17 @@ const handleSubmit = async () => {
 
 const handleSave = async () => {
   showLoadingToast({ message: '保存中...', forbidClick: true })
-  
+
   try {
     const saveData = {
       work_content: formData.value.work_content,
       photos: JSON.stringify(currentPhotos.value),
       signature: formData.value.signature,
-      remarks: formData.value.remarks
+      remarks: formData.value.remarks,
     }
-    
+
     const response = await spotWorkService.patch(detail.value?.id!, saveData)
-    
+
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
       showSuccessToast('保存成功')
@@ -265,21 +270,21 @@ const handleSave = async () => {
  */
 const handleApprovePass = async () => {
   if (!detail.value?.id) return
-  
+
   try {
     await showConfirmDialog({
       title: '审批确认',
-      message: '确认审批通过该工单吗？'
+      message: '确认审批通过该工单吗？',
     })
-    
+
     showLoadingToast({ message: '处理中...', forbidClick: true })
-    
+
     const submitData = {
-      status: '已完成'
+      status: '已完成',
     }
-    
+
     const response = await spotWorkService.patch(detail.value?.id!, submitData)
-    
+
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
@@ -300,23 +305,23 @@ const handleApprovePass = async () => {
  */
 const handleApproveReject = async () => {
   if (!detail.value?.id) return
-  
+
   try {
     await showConfirmDialog({
       title: '退回确认',
       message: '确认退回该工单吗？退回后员工需重新填写。',
       confirmButtonText: '确认退回',
-      confirmButtonColor: '#ee0a24'
+      confirmButtonColor: '#ee0a24',
     })
-    
+
     showLoadingToast({ message: '处理中...', forbidClick: true })
-    
+
     const submitData = {
-      status: '已退回'
+      status: '已退回',
     }
-    
+
     const response = await spotWorkService.patch(detail.value?.id!, submitData)
-    
+
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
@@ -344,10 +349,10 @@ onMounted(() => {
  */
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
   if (!detail.value?.id) return
-  
+
   const user = userStore.getUser()
   if (!user) return
-  
+
   try {
     await operationLogService.create({
       work_order_type: 'spot_work',
@@ -356,9 +361,9 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
       operator_name: user.name,
       operator_id: user.id,
       operation_type_code: operationTypeCode,
-      operation_remark: operationRemark
+      operation_remark: operationRemark,
     })
-    
+
     if (operationLogRef.value) {
       operationLogRef.value.refresh()
     }
@@ -370,11 +375,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 
 <template>
   <div class="spot-work-detail">
-    <van-nav-bar 
-      title="零星用工单" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar title="零星用工单" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBackToList">
           <van-icon name="arrow-left" />
@@ -385,27 +386,39 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         <UserSelector />
       </template>
     </van-nav-bar>
-    
-    <div class="content" v-if="detail">
+
+    <div v-if="detail" class="content">
       <van-cell-group inset title="基本资料">
         <van-cell title="项目名称" :value="detail.project_name" />
         <van-cell title="项目编号" :value="detail.project_id" />
         <van-cell title="工单编号">
           <template #value>
             <div class="order-id-cell">
-              <div class="order-id-text" :style="{ fontSize: getWorkIdFontSize(detail.work_id) + 'px' }">{{ detail.work_id }}</div>
-              <van-button size="mini" type="primary" plain @click.stop="copyOrderId(detail.work_id)">复制单号</van-button>
+              <div
+                class="order-id-text"
+                :style="{ fontSize: getWorkIdFontSize(detail.work_id) + 'px' }"
+              >
+                {{ detail.work_id }}
+              </div>
+              <van-button size="mini" type="primary" plain @click.stop="copyOrderId(detail.work_id)"
+                >复制单号</van-button
+              >
             </div>
           </template>
         </van-cell>
-        <van-cell title="用工周期" :value="`${formatDate(detail.plan_start_date)} 至 ${formatDate(detail.plan_end_date)}`" />
+        <van-cell
+          title="用工周期"
+          :value="`${formatDate(detail.plan_start_date)} 至 ${formatDate(detail.plan_end_date)}`"
+        />
         <van-cell v-if="detail.work_days" title="用工天数" :value="detail.work_days + ' 天'" />
         <van-cell title="客户单位" :value="detail.client_name || '-'" />
         <van-cell title="客户联系人" :value="detail.client_contact || '-'" />
         <van-cell title="客户联系电话" :value="detail.client_contact_info || '-'" />
         <van-cell title="状态">
           <template #value>
-            <span class="status-tag" :class="getStatusClass(detail.status)">{{ detail.status }}</span>
+            <span class="status-tag" :class="getStatusClass(detail.status)">{{
+              detail.status
+            }}</span>
           </template>
         </van-cell>
       </van-cell-group>
@@ -432,8 +445,8 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
             </div>
           </template>
         </van-cell>
-        <van-cell 
-          v-for="(worker, index) in detail.workers" 
+        <van-cell
+          v-for="(worker, index) in detail.workers"
           :key="worker.id || index"
           :title="worker.name"
           :label="worker.id_card_number"
@@ -449,11 +462,15 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
             </div>
           </template>
         </van-cell>
-        <van-empty v-if="!detail.workers || detail.workers.length === 0" description="暂无工人信息" image-size="60" />
+        <van-empty
+          v-if="!detail.workers || detail.workers.length === 0"
+          description="暂无工人信息"
+          image-size="60"
+        />
       </van-cell-group>
 
       <van-cell-group inset title="图片上传">
-        <van-cell is-link @click="handlePhotoUpload" :disabled="!isEditable">
+        <van-cell is-link :disabled="!isEditable" @click="handlePhotoUpload">
           <template #title>
             <span>现场图片</span>
           </template>
@@ -466,43 +483,45 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
       </van-cell-group>
 
       <van-cell-group inset title="班组签字">
-        <van-cell is-link @click="handleSignature" :disabled="!isEditable">
+        <van-cell is-link :disabled="!isEditable" @click="handleSignature">
           <template #title>
             <span>班组签字</span>
           </template>
           <template #value>
-            <img v-if="formData.signature" :src="formData.signature" class="signature-preview" loading="lazy" />
+            <img
+              v-if="formData.signature"
+              :src="formData.signature"
+              class="signature-preview"
+              loading="lazy"
+            />
             <span v-else class="status-pending">待签字</span>
           </template>
         </van-cell>
       </van-cell-group>
 
-      <OperationLogTimeline 
-        v-if="detail?.id" 
-        work-order-type="spot_work" 
-        :work-order-id="detail.id"
+      <OperationLogTimeline
+        v-if="detail?.id"
         ref="operationLogRef"
+        work-order-type="spot_work"
+        :work-order-id="detail.id"
       />
 
-      <div class="action-buttons" v-if="isEditable">
+      <div v-if="isEditable" class="action-buttons">
         <van-button type="default" size="large" @click="handleSave">保存</van-button>
-        <van-button type="primary" size="large" @click="handleSubmit" :disabled="!canSubmit">提交</van-button>
+        <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
+          >提交</van-button
+        >
       </div>
 
-      <div class="action-buttons" v-if="isApproveMode">
+      <div v-if="isApproveMode" class="action-buttons">
         <van-button type="danger" size="large" @click="handleApproveReject">退回</van-button>
         <van-button type="success" size="large" @click="handleApprovePass">审批通过</van-button>
       </div>
     </div>
-    
+
     <van-empty v-else-if="!loading" description="暂无数据" />
 
-    <van-popup 
-      v-model:show="showPhotoPopup" 
-      position="bottom" 
-      round 
-      :style="{ height: '60%' }"
-    >
+    <van-popup v-model:show="showPhotoPopup" position="bottom" round :style="{ height: '60%' }">
       <div class="popup-content">
         <div class="popup-header">
           <span class="popup-title">现场图片</span>
@@ -511,15 +530,15 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         <div class="popup-body">
           <div class="photo-section">
             <div class="photo-grid">
-              <div 
-                v-for="(photo, index) in currentPhotos" 
-                :key="index" 
-                class="photo-item"
-              >
+              <div v-for="(photo, index) in currentPhotos" :key="index" class="photo-item">
                 <img :src="photo" alt="现场照片" loading="lazy" />
-                <van-icon name="delete" class="delete-icon" @click.stop="handleRemovePhoto(index)" />
+                <van-icon
+                  name="delete"
+                  class="delete-icon"
+                  @click.stop="handleRemovePhoto(index)"
+                />
               </div>
-              <div class="photo-add" @click="handlePhotoCapture" v-if="currentPhotos.length < 9">
+              <div v-if="currentPhotos.length < 9" class="photo-add" @click="handlePhotoCapture">
                 <van-icon name="photograph" size="24" />
                 <span>拍照</span>
               </div>
@@ -533,13 +552,8 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
       </div>
     </van-popup>
 
-    <van-popup 
-      v-model:show="showWorkerPopup" 
-      position="bottom" 
-      round 
-      :style="{ height: '70%' }"
-    >
-      <div class="popup-content" v-if="currentWorker">
+    <van-popup v-model:show="showWorkerPopup" position="bottom" round :style="{ height: '70%' }">
+      <div v-if="currentWorker" class="popup-content">
         <div class="popup-header">
           <span class="popup-title">工人详情</span>
           <van-icon name="cross" @click="showWorkerPopup = false" />
@@ -558,14 +572,24 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
             <div class="id-card-item">
               <div class="id-card-label">身份证正面</div>
               <div class="id-card-preview-large">
-                <img v-if="currentWorker.id_card_front" :src="currentWorker.id_card_front" alt="身份证正面" loading="lazy" />
+                <img
+                  v-if="currentWorker.id_card_front"
+                  :src="currentWorker.id_card_front"
+                  alt="身份证正面"
+                  loading="lazy"
+                />
                 <div v-else class="no-photo">暂无照片</div>
               </div>
             </div>
             <div class="id-card-item">
               <div class="id-card-label">身份证反面</div>
               <div class="id-card-preview-large">
-                <img v-if="currentWorker.id_card_back" :src="currentWorker.id_card_back" alt="身份证反面" loading="lazy" />
+                <img
+                  v-if="currentWorker.id_card_back"
+                  :src="currentWorker.id_card_back"
+                  alt="身份证反面"
+                  loading="lazy"
+                />
                 <div v-else class="no-photo">暂无照片</div>
               </div>
             </div>
@@ -895,6 +919,4 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   background: #f5f5f5;
   color: #757575;
 }
-
-
 </style>

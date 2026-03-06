@@ -1,8 +1,22 @@
 <script setup lang="ts">
 import { ref, onMounted, onActivated, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog, showToast, showImagePreview } from 'vant'
-import { periodicInspectionService, maintenancePlanService, inspectionItemService, uploadService, operationLogService } from '../services'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+  showToast,
+  showImagePreview,
+} from 'vant'
+import {
+  periodicInspectionService,
+  maintenancePlanService,
+  inspectionItemService,
+  uploadService,
+  operationLogService,
+} from '../services'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
@@ -79,7 +93,7 @@ const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(nu
 const formData = ref({
   execution_result: '',
   remarks: '',
-  signature: ''
+  signature: '',
 })
 
 const currentInspectionSystem = ref<InspectionSystem | null>(null)
@@ -96,16 +110,15 @@ const canApprove = computed(() => {
 const isEditable = computed(() => {
   if (isApproveMode.value) return false
   const status = detail.value?.status
-  return status === WORK_STATUS.IN_PROGRESS || 
-         status === WORK_STATUS.RETURNED
+  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
 })
 
 const allInspected = computed(() => {
-  return inspectionSystems.value.every(sys => sys.inspected)
+  return inspectionSystems.value.every((sys) => sys.inspected)
 })
 
 const allPhotosUploaded = computed(() => {
-  return inspectionSystems.value.every(sys => sys.photos_uploaded)
+  return inspectionSystems.value.every((sys) => sys.photos_uploaded)
 })
 
 const canSign = computed(() => {
@@ -121,7 +134,7 @@ const totalCount = computed(() => {
 })
 
 const filledCount = computed(() => {
-  return inspectionSystems.value.filter(sys => sys.inspected).length || 0
+  return inspectionSystems.value.filter((sys) => sys.inspected).length || 0
 })
 
 const handleBackToList = () => {
@@ -169,17 +182,17 @@ const previewPhoto = (photos: string[], startIndex: number) => {
     images: photos,
     startPosition: startIndex,
     closeable: true,
-    showIndex: true
+    showIndex: true,
   })
 }
 
 const fetchDetail = async () => {
   const id = route.params.id
   if (!id) return
-  
+
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
-  
+
   try {
     const response = await periodicInspectionService.getById(Number(id))
     if (response.code === 200) {
@@ -209,9 +222,9 @@ const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
     if (response.code === 200 && response.data) {
       const allItems: InspectionSystem[] = []
       let itemIndex = 0
-      
+
       const processTreeItems = (items: InspectionItemTree[]) => {
-        items.forEach(item => {
+        items.forEach((item) => {
           if (item.level === 3) {
             allItems.push({
               id: item.id,
@@ -226,7 +239,7 @@ const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
               equipment_name: '',
               equipment_location: '',
               inspection_item: item.item_name,
-              brief_description: ''
+              brief_description: '',
             })
             itemIndex++
           }
@@ -235,7 +248,7 @@ const fetchDefaultInspectionItems = async (): Promise<InspectionSystem[]> => {
           }
         })
       }
-      
+
       processTreeItems(response.data as any)
       return allItems
     }
@@ -254,11 +267,11 @@ const fetchInspectionItems = async () => {
   if (!detail.value) {
     return
   }
-  
+
   inspectionItemsLoading.value = true
   try {
     const allItems: InspectionSystem[] = []
-    
+
     if (detail.value.plan_id) {
       const response = await maintenancePlanService.getByPlanId(detail.value.plan_id)
       if (response.code === 200 && response.data) {
@@ -280,7 +293,7 @@ const fetchInspectionItems = async () => {
                 equipment_name: plan.equipment_name || '',
                 equipment_location: plan.equipment_location || '',
                 inspection_item: item.inspection_item || '',
-                brief_description: item.brief_description || ''
+                brief_description: item.brief_description || '',
               })
             })
           } catch (e) {
@@ -289,14 +302,14 @@ const fetchInspectionItems = async () => {
         }
       }
     }
-    
+
     if (allItems.length === 0) {
       const defaultItems = await fetchDefaultInspectionItems()
       inspectionSystems.value = defaultItems
     } else {
       inspectionSystems.value = allItems
     }
-    
+
     await loadSavedRecords()
   } catch (error) {
     console.error('Failed to fetch maintenance plan:', error)
@@ -310,17 +323,22 @@ const fetchInspectionItems = async () => {
  */
 const loadSavedRecords = async () => {
   if (!detail.value?.inspection_id) return
-  
+
   try {
-    const response = await periodicInspectionService.getRecordsByInspectionId(detail.value.inspection_id)
+    const response = await periodicInspectionService.getRecordsByInspectionId(
+      detail.value.inspection_id
+    )
     if (response.code === 200 && response.data) {
       response.data.forEach((savedRecord: any) => {
-        const index = inspectionSystems.value.findIndex(item => String(item.id) === String(savedRecord.item_id))
+        const index = inspectionSystems.value.findIndex(
+          (item) => String(item.id) === String(savedRecord.item_id)
+        )
         if (index !== -1) {
           const sysItem = inspectionSystems.value[index]!
           sysItem.inspected = savedRecord.inspected
           sysItem.photos = savedRecord.photos || []
-          sysItem.photos_uploaded = savedRecord.photos_uploaded || (savedRecord.photos && savedRecord.photos.length > 0)
+          sysItem.photos_uploaded =
+            savedRecord.photos_uploaded || (savedRecord.photos && savedRecord.photos.length > 0)
           sysItem.inspection_result = savedRecord.inspection_result || ''
         }
       })
@@ -336,7 +354,7 @@ const loadSavedRecords = async () => {
  */
 const saveRecordToBackend = async (system: InspectionSystem) => {
   if (!detail.value?.inspection_id) return
-  
+
   try {
     const recordData = {
       inspection_id: detail.value.inspection_id,
@@ -350,9 +368,9 @@ const saveRecordToBackend = async (system: InspectionSystem) => {
       equipment_location: system.equipment_location,
       inspected: system.inspected,
       photos: system.photos,
-      inspection_result: system.inspection_result
+      inspection_result: system.inspection_result,
     }
-    
+
     await periodicInspectionService.createRecord(recordData)
   } catch (error) {
     console.error('Failed to save record:', error)
@@ -376,38 +394,36 @@ const handleInspection = async (system: InspectionSystem) => {
     showToast('当前工单状态不可编辑')
     return
   }
-  
+
   if (system.inspected) {
     currentInspectionSystem.value = { ...system }
     showInspectionPopup.value = true
     return
   }
-  
+
   try {
     await showConfirmDialog({
       title: '确认巡检',
       message: '是否已完成该巡检项？确认后将进行拍照记录。',
       confirmButtonText: '确认完成',
-      cancelButtonText: '取消'
+      cancelButtonText: '取消',
     })
-    
+
     await showConfirmDialog({
       title: '拍照记录',
       message: '请拍摄现场照片作为巡检记录',
       confirmButtonText: '开始拍照',
-      cancelButtonText: '稍后拍照'
+      cancelButtonText: '稍后拍照',
     })
-    
+
     handlePhotoCaptureForItem(system, true)
-    
-  } catch {
-  }
+  } catch {}
 }
 
 const handleInspectionSave = async () => {
   if (!currentInspectionSystem.value) return
-  
-  const index = inspectionSystems.value.findIndex(s => s.id === currentInspectionSystem.value!.id)
+
+  const index = inspectionSystems.value.findIndex((s) => s.id === currentInspectionSystem.value!.id)
   if (index !== -1) {
     currentInspectionSystem.value.inspected = true
     inspectionSystems.value[index] = { ...currentInspectionSystem.value }
@@ -424,19 +440,19 @@ const handleInspectionSave = async () => {
  */
 const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: boolean = false) => {
   if (!isEditable.value) return
-  
+
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
   input.capture = 'environment'
-  
+
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
     if (!file) return
-    
+
     showLoadingToast({ message: '处理中...', forbidClick: true })
-    
+
     try {
       const userName = userStore.getUser()?.name || '未知用户'
       const location = await getCurrentLocation()
@@ -444,16 +460,16 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
         userName,
         includeLocation: true,
         latitude: location?.latitude,
-        longitude: location?.longitude
+        longitude: location?.longitude,
       })
-      
+
       const formDataObj = new FormData()
       formDataObj.append('file', processedFile)
-      
+
       const response = await uploadService.uploadFile(processedFile)
-      
+
       if (response.code === 200 && response.data) {
-        const index = inspectionSystems.value.findIndex(s => s.id === system.id)
+        const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
         if (index !== -1) {
           const item = inspectionSystems.value[index]!
           item.photos.push(response.data.url)
@@ -472,7 +488,7 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
       closeToast()
     }
   }
-  
+
   input.click()
 }
 
@@ -485,17 +501,16 @@ const handleRemovePhotoForItem = async (system: InspectionSystem, photoIndex: nu
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '是否要删除，新增的图片会重新打水印'
+      message: '是否要删除，新增的图片会重新打水印',
     })
-    const index = inspectionSystems.value.findIndex(s => s.id === system.id)
+    const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
     if (index !== -1) {
       const item = inspectionSystems.value[index]!
       item.photos.splice(photoIndex, 1)
       item.photos_uploaded = item.photos.length > 0
       await saveRecordToBackend(item)
     }
-  } catch {
-  }
+  } catch {}
 }
 
 const handleSignature = () => {
@@ -505,11 +520,11 @@ const handleSignature = () => {
   }
   router.push({
     path: '/signature',
-    query: { 
+    query: {
       from: route.fullPath,
       type: 'periodic-inspection',
-      inspectionId: detail.value?.id
-    }
+      inspectionId: detail.value?.id,
+    },
   })
 }
 
@@ -522,22 +537,22 @@ const handleSubmit = async () => {
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '确认提交工单吗？'
+      message: '确认提交工单吗？',
     })
-    
+
     showLoadingToast({ message: '提交中...', forbidClick: true })
-    
+
     const submitData = {
       status: '待确认',
       execution_result: formData.value.execution_result,
       remarks: formData.value.remarks,
       signature: formData.value.signature,
       total_count: totalCount.value,
-      filled_count: filledCount.value
+      filled_count: filledCount.value,
     }
-    
+
     const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
-    
+
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
@@ -556,18 +571,18 @@ const handleSubmit = async () => {
 
 const handleSave = async () => {
   showLoadingToast({ message: '保存中...', forbidClick: true })
-  
+
   try {
     const saveData = {
       execution_result: formData.value.execution_result,
       remarks: formData.value.remarks,
       signature: formData.value.signature,
       total_count: totalCount.value,
-      filled_count: filledCount.value
+      filled_count: filledCount.value,
     }
-    
+
     const response = await periodicInspectionService.patch(detail.value?.id!, saveData)
-    
+
     if (response.code === 200) {
       await addOperationLog('save', '员工保存工单')
       showSuccessToast('保存成功')
@@ -585,21 +600,21 @@ const handleSave = async () => {
  */
 const handleApprovePass = async () => {
   if (!detail.value?.id) return
-  
+
   try {
     await showConfirmDialog({
       title: '审批确认',
-      message: '确认审批通过该工单吗？'
+      message: '确认审批通过该工单吗？',
     })
-    
+
     showLoadingToast({ message: '处理中...', forbidClick: true })
-    
+
     const submitData = {
-      status: '已完成'
+      status: '已完成',
     }
-    
+
     const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
-    
+
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
@@ -620,23 +635,23 @@ const handleApprovePass = async () => {
  */
 const handleApproveReject = async () => {
   if (!detail.value?.id) return
-  
+
   try {
     await showConfirmDialog({
       title: '退回确认',
       message: '确认退回该工单吗？退回后员工需重新填写。',
       confirmButtonText: '确认退回',
-      confirmButtonColor: '#ee0a24'
+      confirmButtonColor: '#ee0a24',
     })
-    
+
     showLoadingToast({ message: '处理中...', forbidClick: true })
-    
+
     const submitData = {
-      status: '已退回'
+      status: '已退回',
     }
-    
+
     const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
-    
+
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
@@ -660,11 +675,11 @@ let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
  */
 const autoSaveFieldContent = async () => {
   if (!detail.value?.id || !isEditable.value) return
-  
+
   if (autoSaveTimer) {
     clearTimeout(autoSaveTimer)
   }
-  
+
   autoSaveTimer = setTimeout(async () => {
     try {
       const saveData = {
@@ -680,9 +695,9 @@ const autoSaveFieldContent = async () => {
         remarks: formData.value.remarks,
         signature: formData.value.signature,
         total_count: totalCount.value,
-        filled_count: filledCount.value
+        filled_count: filledCount.value,
       }
-      
+
       await periodicInspectionService.update(detail.value?.id!, saveData)
     } catch (error) {
       console.error('Auto save failed:', error)
@@ -690,13 +705,19 @@ const autoSaveFieldContent = async () => {
   }, 1000)
 }
 
-watch(() => formData.value.execution_result, () => {
-  autoSaveFieldContent()
-})
+watch(
+  () => formData.value.execution_result,
+  () => {
+    autoSaveFieldContent()
+  }
+)
 
-watch(() => formData.value.remarks, () => {
-  autoSaveFieldContent()
-})
+watch(
+  () => formData.value.remarks,
+  () => {
+    autoSaveFieldContent()
+  }
+)
 
 /**
  * 记录操作日志
@@ -705,10 +726,10 @@ watch(() => formData.value.remarks, () => {
  */
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
   if (!detail.value?.id) return
-  
+
   const user = userStore.getUser()
   if (!user) return
-  
+
   try {
     await operationLogService.create({
       work_order_type: 'periodic_inspection',
@@ -717,9 +738,9 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
       operator_name: user.name,
       operator_id: user.id,
       operation_type_code: operationTypeCode,
-      operation_remark: operationRemark
+      operation_remark: operationRemark,
     })
-    
+
     if (operationLogRef.value) {
       operationLogRef.value.refresh()
     }
@@ -745,11 +766,7 @@ onActivated(() => {
 
 <template>
   <div class="periodic-inspection-detail">
-    <van-nav-bar 
-      title="定期巡检单" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar title="定期巡检单" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBackToList">
           <van-icon name="arrow-left" />
@@ -760,15 +777,26 @@ onActivated(() => {
         <UserSelector @ready="handleUserReady" />
       </template>
     </van-nav-bar>
-    
-    <div class="content" v-if="detail">
+
+    <div v-if="detail" class="content">
       <van-cell-group inset title="基本资料">
         <van-cell title="项目名称" :value="detail.project_name" />
         <van-cell title="工单编号">
           <template #value>
             <div class="order-id-cell">
-              <div class="order-id-text" :style="{ fontSize: getWorkIdFontSize(detail.inspection_id) + 'px' }">{{ detail.inspection_id }}</div>
-              <van-button size="mini" type="primary" plain @click.stop="copyOrderId(detail.inspection_id)">复制单号</van-button>
+              <div
+                class="order-id-text"
+                :style="{ fontSize: getWorkIdFontSize(detail.inspection_id) + 'px' }"
+              >
+                {{ detail.inspection_id }}
+              </div>
+              <van-button
+                size="mini"
+                type="primary"
+                plain
+                @click.stop="copyOrderId(detail.inspection_id)"
+                >复制单号</van-button
+              >
             </div>
           </template>
         </van-cell>
@@ -787,10 +815,13 @@ onActivated(() => {
         <div v-if="inspectionItemsLoading" class="loading-container">
           <van-loading size="24px">加载巡检事项...</van-loading>
         </div>
-        <van-empty v-else-if="inspectionSystems.length === 0" description="暂无巡检事项，请在PC管理端配置项目维保计划" />
+        <van-empty
+          v-else-if="inspectionSystems.length === 0"
+          description="暂无巡检事项，请在PC管理端配置项目维保计划"
+        />
         <div v-else class="inspection-list">
-          <div 
-            v-for="(system, index) in inspectionSystems" 
+          <div
+            v-for="(system, index) in inspectionSystems"
             :key="system.id"
             class="inspection-item-card"
           >
@@ -806,40 +837,43 @@ onActivated(() => {
                 <van-icon name="arrow" />
               </div>
             </div>
-            <div class="inspection-detail" v-if="system.inspection_content || system.check_content || system.brief_description">
-              <div class="detail-row" v-if="system.inspection_content">
+            <div
+              v-if="system.inspection_content || system.check_content || system.brief_description"
+              class="inspection-detail"
+            >
+              <div v-if="system.inspection_content" class="detail-row">
                 <span class="detail-label">巡查内容:</span>
                 <span class="detail-value">{{ system.inspection_content }}</span>
               </div>
-              <div class="detail-row" v-if="system.check_content">
+              <div v-if="system.check_content" class="detail-row">
                 <span class="detail-label">检查要求:</span>
                 <span class="detail-value">{{ system.check_content }}</span>
               </div>
-              <div class="detail-row" v-if="system.brief_description">
+              <div v-if="system.brief_description" class="detail-row">
                 <span class="detail-label">简要说明:</span>
                 <span class="detail-value">{{ system.brief_description }}</span>
               </div>
             </div>
-            
+
             <div class="photo-section-inline">
               <div class="photo-grid-inline">
-                <div 
-                  v-for="(photo, photoIdx) in system.photos" 
-                  :key="photoIdx" 
+                <div
+                  v-for="(photo, photoIdx) in system.photos"
+                  :key="photoIdx"
                   class="photo-item-inline"
                   @click="previewPhoto(system.photos, photoIdx)"
                 >
                   <img :src="photo" alt="现场照片" loading="lazy" />
-                  <van-icon 
+                  <van-icon
                     v-if="isEditable"
-                    name="delete" 
-                    class="delete-icon-inline" 
-                    @click.stop="handleRemovePhotoForItem(system, photoIdx)" 
+                    name="delete"
+                    class="delete-icon-inline"
+                    @click.stop="handleRemovePhotoForItem(system, photoIdx)"
                   />
                 </div>
-                <div 
-                  v-if="isEditable && system.inspected && system.photos.length < 9" 
-                  class="photo-add-inline" 
+                <div
+                  v-if="isEditable && system.inspected && system.photos.length < 9"
+                  class="photo-add-inline"
                   @click="handlePhotoCaptureForItem(system)"
                 >
                   <van-icon name="photograph" size="24" />
@@ -867,7 +901,7 @@ onActivated(() => {
           show-word-limit
           maxlength="500"
         />
-        
+
         <van-field
           v-model="formData.remarks"
           rows="2"
@@ -880,51 +914,61 @@ onActivated(() => {
         />
       </van-cell-group>
 
-      <van-cell-group inset v-if="canSign">
+      <van-cell-group v-if="canSign" inset>
         <template #title>
           <span class="required-label"><span class="required-star">*</span>用户签字</span>
         </template>
         <van-cell is-link @click="handleSignature">
           <template #value>
-            <img v-if="formData.signature" :src="formData.signature" class="signature-preview" loading="lazy" />
+            <img
+              v-if="formData.signature"
+              :src="formData.signature"
+              class="signature-preview"
+              loading="lazy"
+            />
             <span v-else class="status-pending">待签字</span>
           </template>
         </van-cell>
       </van-cell-group>
 
-      <OperationLogTimeline 
-        v-if="detail?.id" 
-        work-order-type="periodic_inspection" 
-        :work-order-id="detail.id"
+      <OperationLogTimeline
+        v-if="detail?.id"
         ref="operationLogRef"
+        work-order-type="periodic_inspection"
+        :work-order-id="detail.id"
       />
 
-      <div class="action-buttons" v-if="isEditable">
+      <div v-if="isEditable" class="action-buttons">
         <van-button type="default" size="large" @click="handleSave">保存</van-button>
-        <van-button type="primary" size="large" @click="handleSubmit" :disabled="!canSubmit">提交</van-button>
+        <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
+          >提交</van-button
+        >
       </div>
 
-      <div class="action-buttons" v-if="isApproveMode && canApprove">
+      <div v-if="isApproveMode && canApprove" class="action-buttons">
         <van-button type="danger" size="large" @click="handleApproveReject">退回</van-button>
         <van-button type="success" size="large" @click="handleApprovePass">通过</van-button>
       </div>
     </div>
-    
+
     <van-empty v-else-if="!loading" description="暂无数据" />
 
-    <van-popup 
-      v-model:show="showInspectionPopup" 
-      position="bottom" 
-      round 
+    <van-popup
+      v-model:show="showInspectionPopup"
+      position="bottom"
+      round
       :style="{ height: '70%' }"
     >
-      <div class="popup-content" v-if="currentInspectionSystem">
+      <div v-if="currentInspectionSystem" class="popup-content">
         <div class="popup-header">
           <span class="popup-title">{{ currentInspectionSystem.name }} - 巡检记录</span>
           <van-icon name="cross" @click="showInspectionPopup = false" />
         </div>
         <div class="popup-body">
-          <div v-if="currentInspectionSystem.check_content || currentInspectionSystem.check_standard" class="check-reference">
+          <div
+            v-if="currentInspectionSystem.check_content || currentInspectionSystem.check_standard"
+            class="check-reference"
+          >
             <div v-if="currentInspectionSystem.check_content" class="check-item">
               <div class="check-label">检查内容参考：</div>
               <div class="check-value">{{ currentInspectionSystem.check_content }}</div>
@@ -1288,6 +1332,4 @@ onActivated(() => {
   color: #ee0a24;
   margin-right: 2px;
 }
-
-
 </style>

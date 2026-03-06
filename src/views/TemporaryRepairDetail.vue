@@ -54,9 +54,9 @@
         </div>
         <div class="form-item-full">
           <label class="form-label">报修内容</label>
-          <textarea 
-            class="form-textarea" 
-            v-model="repairData.remarks" 
+          <textarea
+            v-model="repairData.remarks"
+            class="form-textarea"
             placeholder="请输入报修内容"
             maxlength="500"
           ></textarea>
@@ -64,35 +64,35 @@
 
         <div class="form-item-full">
           <label class="form-label">现场图片</label>
-          <div class="photo-grid" v-if="repairData.photos && repairData.photos.length > 0">
-            <div 
-              v-for="(photo, index) in repairData.photos" 
-              :key="index" 
+          <div v-if="repairData.photos && repairData.photos.length > 0" class="photo-grid">
+            <div
+              v-for="(photo, index) in repairData.photos"
+              :key="index"
               class="photo-item"
               @click="previewPhoto(photo)"
             >
               <img :src="photo" alt="现场图片" loading="lazy" />
             </div>
           </div>
-          <div class="form-value" v-else>暂无现场图片</div>
+          <div v-else class="form-value">暂无现场图片</div>
         </div>
 
         <div class="form-item-full">
           <label class="form-label">用户签字</label>
-          <div class="signature-container" v-if="repairData.signature">
+          <div v-if="repairData.signature" class="signature-container">
             <img :src="repairData.signature" alt="用户签字" class="signature-image" />
           </div>
-          <div class="form-value" v-else>暂无用户签字</div>
+          <div v-else class="form-value">暂无用户签字</div>
         </div>
 
         <div class="operation-log-section">
           <div class="section-title">内部确认区</div>
-          <div class="timeline" v-if="operationLogs.length > 0">
-            <div 
-              v-for="(log, index) in operationLogs" 
-              :key="log.id" 
+          <div v-if="operationLogs.length > 0" class="timeline">
+            <div
+              v-for="(log, index) in operationLogs"
+              :key="log.id"
               class="timeline-item"
-              :class="{ 'last': index === operationLogs.length - 1 }"
+              :class="{ last: index === operationLogs.length - 1 }"
             >
               <div class="timeline-dot"></div>
               <div class="timeline-content">
@@ -102,12 +102,14 @@
               </div>
             </div>
           </div>
-          <div class="no-logs" v-else>暂无操作记录</div>
+          <div v-else class="no-logs">暂无操作记录</div>
         </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-cancel" @click="goBack">关闭</button>
-        <button class="btn btn-save" @click="handleSave" :disabled="saving">{{ saving ? '保存中...' : '保存' }}</button>
+        <button class="btn btn-save" :disabled="saving" @click="handleSave">
+          {{ saving ? '保存中...' : '保存' }}
+        </button>
       </div>
     </div>
   </div>
@@ -173,7 +175,7 @@ export default defineComponent({
       status: '',
       remarks: '',
       photos: [],
-      signature: ''
+      signature: '',
     })
 
     const operationLogs = ref<OperationLogItem[]>([])
@@ -207,7 +209,9 @@ export default defineComponent({
       if (!workOrderId) return
       loadingLogs.value = true
       try {
-        const response = await apiClient.get(`/work-order-operation-log?work_order_type=temporary_repair&work_order_id=${workOrderId}`) as unknown as ApiResponse<OperationLogItem[]>
+        const response = (await apiClient.get(
+          `/work-order-operation-log?work_order_type=temporary_repair&work_order_id=${workOrderId}`
+        )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
           operationLogs.value = response.data || []
         }
@@ -235,11 +239,11 @@ export default defineComponent({
      */
     const handleSave = async () => {
       if (!repairData.value.id) return
-      
+
       saving.value = true
       try {
         const response = await temporaryRepairService.update(repairData.value.id, {
-          remarks: repairData.value.remarks || ''
+          remarks: repairData.value.remarks || '',
         })
         if (response.code === 200) {
           alert('保存成功')
@@ -277,7 +281,7 @@ export default defineComponent({
               status: item.status,
               remarks: item.remarks || '',
               photos: item.photos || [],
-              signature: item.signature || ''
+              signature: item.signature || '',
             }
             fetchOperationLogs(item.id)
           }
@@ -300,9 +304,9 @@ export default defineComponent({
       formatOperationTime,
       goBack,
       previewPhoto,
-      handleSave
+      handleSave,
     }
-  }
+  },
 })
 </script>
 
@@ -588,7 +592,9 @@ export default defineComponent({
   overflow: hidden;
   cursor: pointer;
   border: 1px solid #e0e0e0;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .photo-item:hover {

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+} from 'vant'
 import { sparePartsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import UserSelector from '../components/UserSelector.vue'
@@ -14,7 +20,7 @@ const usageList = ref<SparePartsUsage[]>([])
 const showReturnPopup = ref(false)
 const selectedItem = ref<SparePartsUsage | null>(null)
 const returnForm = ref({
-  returnQuantity: 1 as number
+  returnQuantity: 1 as number,
 })
 
 const maxReturnQuantity = computed(() => {
@@ -29,7 +35,11 @@ const fetchUsageList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await sparePartsService.getUsageList({ page: 0, pageSize: 100, status: '待归还' })
+    const response = await sparePartsService.getUsageList({
+      page: 0,
+      pageSize: 100,
+      status: '待归还',
+    })
     if (response.code === 200) {
       usageList.value = response.data?.items || []
     }
@@ -70,7 +80,7 @@ const handleSubmitReturn = async () => {
   try {
     await showConfirmDialog({
       title: '确认归还',
-      message: `确认归还 ${selectedItem.value.productName} ${returnForm.value.returnQuantity}${selectedItem.value.unit}?`
+      message: `确认归还 ${selectedItem.value.productName} ${returnForm.value.returnQuantity}${selectedItem.value.unit}?`,
     })
   } catch {
     return
@@ -78,18 +88,18 @@ const handleSubmitReturn = async () => {
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await sparePartsService.returnSpare(selectedItem.value.id, {
-      return_quantity: returnForm.value.returnQuantity
+      return_quantity: returnForm.value.returnQuantity,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('归还成功')
       showReturnPopup.value = false
       selectedItem.value = null
       returnForm.value = {
-        returnQuantity: 1
+        returnQuantity: 1,
       }
       fetchUsageList()
     } else {
@@ -127,12 +137,7 @@ onMounted(() => {
 
 <template>
   <div class="spare-parts-return-page">
-    <van-nav-bar 
-      title="备品备件归还" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="备品备件归还" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -140,28 +145,14 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
-    <div class="tips-bar">
-      <van-notice-bar 
-        left-icon="info-o" 
-        background="#fff7cc" 
-        color="#ed6a0c"
-      >
-        以下为待归还的备品备件，点击"归还"按钮进行归还操作
-      </van-notice-bar>
-    </div>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchUsageList">
       <van-list :loading="loading" :finished="true">
         <div class="usage-list">
-          <div 
-            v-for="item in usageList" 
-            :key="item.id"
-            class="usage-card"
-          >
+          <div v-for="item in usageList" :key="item.id" class="usage-card">
             <div class="card-header">
               <span class="product-name">{{ item.productName }}</span>
               <span class="status-badge status-pending">
@@ -203,11 +194,7 @@ onMounted(() => {
               </div>
             </div>
             <div class="card-footer">
-              <van-button 
-                type="primary" 
-                size="small"
-                @click="handleOpenReturn(item)"
-              >
+              <van-button type="primary" size="small" @click="handleOpenReturn(item)">
                 归还
               </van-button>
             </div>
@@ -223,61 +210,33 @@ onMounted(() => {
           <span class="popup-title">归还备品备件</span>
           <van-icon name="cross" @click="showReturnPopup = false" />
         </div>
-        
+
         <div class="popup-body">
           <van-cell-group inset>
-            <van-field 
-              :model-value="selectedItem?.productName || ''"
-              label="产品名称"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedItem?.brand || '-'"
-              label="品牌"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedItem?.model || '-'"
-              label="产品型号"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedItem?.projectName || '-'"
-              label="所属项目"
-              readonly
-            />
-            <van-field 
-              :model-value="selectedItem?.quantity || 0"
-              label="领用数量"
-              readonly
-            >
+            <van-field :model-value="selectedItem?.productName || ''" label="产品名称" readonly />
+            <van-field :model-value="selectedItem?.brand || '-'" label="品牌" readonly />
+            <van-field :model-value="selectedItem?.model || '-'" label="产品型号" readonly />
+            <van-field :model-value="selectedItem?.projectName || '-'" label="所属项目" readonly />
+            <van-field :model-value="selectedItem?.quantity || 0" label="领用数量" readonly>
               <template #extra>
                 <span class="unit-text">{{ selectedItem?.unit }}</span>
               </template>
             </van-field>
-            <van-field 
-              :model-value="selectedItem?.return_quantity || 0"
-              label="已归还"
-              readonly
-            >
+            <van-field :model-value="selectedItem?.return_quantity || 0" label="已归还" readonly>
               <template #extra>
                 <span class="unit-text">{{ selectedItem?.unit }}</span>
               </template>
             </van-field>
-            <van-field 
-              :model-value="getPendingReturn(selectedItem)"
-              label="待归还"
-              readonly
-            >
+            <van-field :model-value="getPendingReturn(selectedItem)" label="待归还" readonly>
               <template #extra>
                 <span class="unit-text">{{ selectedItem?.unit }}</span>
               </template>
             </van-field>
             <van-field label="归还数量" required>
               <template #input>
-                <van-stepper 
-                  v-model="returnForm.returnQuantity" 
-                  :min="1" 
+                <van-stepper
+                  v-model="returnForm.returnQuantity"
+                  :min="1"
                   :max="maxReturnQuantity"
                   theme="round"
                   button-size="22"
@@ -289,7 +248,7 @@ onMounted(() => {
             </van-field>
           </van-cell-group>
         </div>
-        
+
         <div class="popup-footer">
           <van-button type="primary" block :loading="loading" @click="handleSubmitReturn">
             确认归还
@@ -304,10 +263,6 @@ onMounted(() => {
 .spare-parts-return-page {
   min-height: 100vh;
   background-color: #f5f7fa;
-}
-
-.tips-bar {
-  background: #fff;
 }
 
 .usage-list {
@@ -437,7 +392,7 @@ onMounted(() => {
 }
 
 :deep(.van-pull-refresh) {
-  min-height: calc(100vh - 46px - 40px);
+  min-height: calc(100vh - 46px);
 }
 
 :deep(.van-cell-group--inset) {

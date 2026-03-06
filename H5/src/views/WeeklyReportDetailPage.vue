@@ -22,10 +22,10 @@ const loadingLogs = ref(false)
  */
 const getStatusName = (status: string) => {
   const statusMap: Record<string, string> = {
-    'draft': '草稿',
-    'submitted': '已提交',
-    'approved': '已审核',
-    'rejected': '已退回'
+    draft: '草稿',
+    submitted: '已提交',
+    approved: '已审核',
+    rejected: '已退回',
   }
   return statusMap[status] || status
 }
@@ -35,10 +35,10 @@ const getStatusName = (status: string) => {
  */
 const getStatusColor = (status: string) => {
   const colorMap: Record<string, string> = {
-    'draft': '#969799',
-    'submitted': '#1989fa',
-    'approved': '#07c160',
-    'rejected': '#ee0a24'
+    draft: '#969799',
+    submitted: '#1989fa',
+    approved: '#07c160',
+    rejected: '#ee0a24',
   }
   return colorMap[status] || '#969799'
 }
@@ -82,27 +82,28 @@ const fetchOperationLogs = async (reportId: number) => {
 const fetchReportDetail = async () => {
   const id = route.params.id
   if (!id) return
-  
+
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
-  
+
   try {
     const response = await weeklyReportService.getById(Number(id))
-    
+
     if (response.code === 200 && response.data) {
       reportDetail.value = response.data
-      
+
       if (response.data.images) {
         try {
-          const imgs = typeof response.data.images === 'string' 
-            ? JSON.parse(response.data.images) 
-            : response.data.images
+          const imgs =
+            typeof response.data.images === 'string'
+              ? JSON.parse(response.data.images)
+              : response.data.images
           imageList.value = Array.isArray(imgs) ? imgs : []
         } catch {
           imageList.value = []
         }
       }
-      
+
       fetchOperationLogs(response.data.id)
     }
   } catch (error) {
@@ -119,7 +120,7 @@ const fetchReportDetail = async () => {
 const handlePreviewImage = (index: number) => {
   showImagePreview({
     images: imageList.value,
-    startPosition: index
+    startPosition: index,
   })
 }
 
@@ -153,12 +154,7 @@ onMounted(() => {
 
 <template>
   <div class="weekly-report-detail-page">
-    <van-nav-bar 
-      title="部门周报详情" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="部门周报详情" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -169,13 +165,16 @@ onMounted(() => {
         <UserSelector />
       </template>
     </van-nav-bar>
-    
-    <div class="detail-content" v-if="reportDetail">
+
+    <div v-if="reportDetail" class="detail-content">
       <van-cell-group inset title="基本信息">
         <van-cell title="部门周报编号" :value="reportDetail.report_id" />
         <van-cell title="项目名称" :value="reportDetail.project_name" />
         <van-cell title="项目编号" :value="reportDetail.project_id" />
-        <van-cell title="部门周报周期" :value="`${formatDate(reportDetail.week_start_date)} ~ ${formatDate(reportDetail.week_end_date)}`" />
+        <van-cell
+          title="部门周报周期"
+          :value="`${formatDate(reportDetail.week_start_date)} ~ ${formatDate(reportDetail.week_end_date)}`"
+        />
         <van-cell title="填报日期" :value="formatDate(reportDetail.report_date)" />
         <van-cell title="提交人" :value="reportDetail.created_by || '-'" />
         <van-cell title="提交时间" :value="formatDateTime(reportDetail.created_at)" />
@@ -190,20 +189,36 @@ onMounted(() => {
 
       <van-cell-group inset title="工作内容">
         <van-cell title="本周工作总结" :label="reportDetail.work_summary" />
-        <van-cell v-if="reportDetail.work_content" title="具体工作内容" :label="reportDetail.work_content" />
-        <van-cell v-if="reportDetail.next_week_plan" title="下周工作计划" :label="reportDetail.next_week_plan" />
+        <van-cell
+          v-if="reportDetail.work_content"
+          title="具体工作内容"
+          :label="reportDetail.work_content"
+        />
+        <van-cell
+          v-if="reportDetail.next_week_plan"
+          title="下周工作计划"
+          :label="reportDetail.next_week_plan"
+        />
       </van-cell-group>
 
-      <van-cell-group inset title="问题与建议" v-if="reportDetail.issues || reportDetail.suggestions">
+      <van-cell-group
+        v-if="reportDetail.issues || reportDetail.suggestions"
+        inset
+        title="问题与建议"
+      >
         <van-cell v-if="reportDetail.issues" title="存在问题" :label="reportDetail.issues" />
-        <van-cell v-if="reportDetail.suggestions" title="建议措施" :label="reportDetail.suggestions" />
+        <van-cell
+          v-if="reportDetail.suggestions"
+          title="建议措施"
+          :label="reportDetail.suggestions"
+        />
       </van-cell-group>
 
-      <van-cell-group inset title="现场照片" v-if="imageList.length > 0">
+      <van-cell-group v-if="imageList.length > 0" inset title="现场照片">
         <div class="image-section">
           <div class="image-list">
-            <div 
-              v-for="(img, index) in imageList" 
+            <div
+              v-for="(img, index) in imageList"
               :key="index"
               class="image-item"
               @click="handlePreviewImage(index)"
@@ -214,35 +229,53 @@ onMounted(() => {
         </div>
       </van-cell-group>
 
-      <van-cell-group inset title="签字信息" v-if="reportDetail.manager_signature">
+      <van-cell-group v-if="reportDetail.manager_signature" inset title="签字信息">
         <van-cell title="部门经理签字">
           <template #value>
             <img :src="reportDetail.manager_signature" class="signature-img" loading="lazy" />
           </template>
         </van-cell>
-        <van-cell v-if="reportDetail.manager_sign_time" title="签字时间" :value="formatDateTime(reportDetail.manager_sign_time)" />
+        <van-cell
+          v-if="reportDetail.manager_sign_time"
+          title="签字时间"
+          :value="formatDateTime(reportDetail.manager_sign_time)"
+        />
       </van-cell-group>
 
-      <van-cell-group inset title="审核信息" v-if="reportDetail.approved_by || reportDetail.reject_reason">
-        <van-cell v-if="reportDetail.approved_by" title="审核人" :value="reportDetail.approved_by" />
-        <van-cell v-if="reportDetail.approved_at" title="审核时间" :value="formatDateTime(reportDetail.approved_at)" />
-        <van-cell v-if="reportDetail.reject_reason" title="退回原因" :value="reportDetail.reject_reason" />
+      <van-cell-group
+        v-if="reportDetail.approved_by || reportDetail.reject_reason"
+        inset
+        title="审核信息"
+      >
+        <van-cell
+          v-if="reportDetail.approved_by"
+          title="审核人"
+          :value="reportDetail.approved_by"
+        />
+        <van-cell
+          v-if="reportDetail.approved_at"
+          title="审核时间"
+          :value="formatDateTime(reportDetail.approved_at)"
+        />
+        <van-cell
+          v-if="reportDetail.reject_reason"
+          title="退回原因"
+          :value="reportDetail.reject_reason"
+        />
       </van-cell-group>
 
-      <van-cell-group inset title="内部确认区" v-if="operationLogs.length > 0 || !loadingLogs">
+      <van-cell-group v-if="operationLogs.length > 0 || !loadingLogs" inset title="内部确认区">
         <div class="operation-log-section">
           <div v-if="loadingLogs" class="loading-container">
             <van-loading size="20px">加载中...</van-loading>
           </div>
-          <div v-else-if="operationLogs.length === 0" class="empty-container">
-            暂无操作记录
-          </div>
+          <div v-else-if="operationLogs.length === 0" class="empty-container">暂无操作记录</div>
           <div v-else class="timeline">
-            <div 
-              v-for="(log, index) in operationLogs" 
-              :key="log.id" 
+            <div
+              v-for="(log, index) in operationLogs"
+              :key="log.id"
               class="timeline-item"
-              :class="{ 'last': index === operationLogs.length - 1 }"
+              :class="{ last: index === operationLogs.length - 1 }"
             >
               <div class="timeline-dot"></div>
               <div class="timeline-content">
@@ -255,7 +288,7 @@ onMounted(() => {
         </div>
       </van-cell-group>
     </div>
-    
+
     <van-empty v-if="!loading && !reportDetail" description="暂无数据" />
   </div>
 </template>

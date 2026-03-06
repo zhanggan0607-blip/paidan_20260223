@@ -45,7 +45,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in inspectionData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+          <tr
+            v-for="(item, index) in inspectionData"
+            :key="item.id"
+            :class="{ 'even-row': index % 2 === 0 }"
+          >
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.project_id }}</td>
             <td>{{ item.project_name }}</td>
@@ -55,11 +59,19 @@
             <td>{{ item.client_name || '-' }}</td>
             <td>{{ item.maintenance_personnel || '-' }}</td>
             <td>
-              <span :class="getStatusClass(item.status)" class="status-badge">{{ item.status }}</span>
+              <span :class="getStatusClass(item.status)" class="status-badge">{{
+                item.status
+              }}</span>
             </td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-export" @click.prevent="handleExport(item)" v-if="item.status === WORK_STATUS.COMPLETED">导出</a>
+              <a
+                v-if="item.status === WORK_STATUS.COMPLETED"
+                href="#"
+                class="action-link action-export"
+                @click.prevent="handleExport(item)"
+                >导出</a
+              >
             </td>
           </tr>
         </tbody>
@@ -67,9 +79,7 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">
-        共 {{ totalElements }} 条记录
-      </div>
+      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
       <div class="pagination-controls">
         <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
           &lt;
@@ -83,17 +93,21 @@
         >
           {{ page }}
         </button>
-        <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage >= totalPages - 1"
+          @click="currentPage++"
+        >
           &gt;
         </button>
-        <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
           <option value="10">10 条 / 页</option>
           <option value="20">20 条 / 页</option>
           <option value="50">50 条 / 页</option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
           <span>页</span>
           <button class="page-btn page-go" @click="handleJump">Go</button>
         </div>
@@ -157,11 +171,15 @@
               </div>
               <div class="form-item">
                 <label class="form-label">合同剩余时间</label>
-                <div class="form-value" :class="getRemainingTimeClass()">{{ viewData.remainingTime || '-' }}</div>
+                <div class="form-value" :class="getRemainingTimeClass()">
+                  {{ viewData.remainingTime || '-' }}
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">状态</label>
-                <div class="form-value" :class="getStatusClass(viewData.status)">{{ viewData.status || '-' }}</div>
+                <div class="form-value" :class="getStatusClass(viewData.status)">
+                  {{ viewData.status || '-' }}
+                </div>
               </div>
               <div class="form-item">
                 <label class="form-label">创建时间</label>
@@ -179,21 +197,17 @@
           </div>
           <div class="form-item-full">
             <label class="form-label">用户签字</label>
-            <div class="form-value signature-container" v-if="viewData.signature">
+            <div v-if="viewData.signature" class="form-value signature-container">
               <img :src="viewData.signature" alt="用户签字" class="signature-image" />
             </div>
-            <div class="form-value" v-else>暂无用户签字</div>
+            <div v-else class="form-value">暂无用户签字</div>
           </div>
           <div class="form-item-full">
             <label class="form-label">现场照片</label>
-            <div class="photos-container" v-if="inspectionRecords.length > 0">
-              <div 
-                v-for="record in inspectionRecords" 
-                :key="record.id"
-                class="record-photos"
-              >
-                <div 
-                  v-for="(photo, photoIndex) in record.photos" 
+            <div v-if="inspectionRecords.length > 0" class="photos-container">
+              <div v-for="record in inspectionRecords" :key="record.id" class="record-photos">
+                <div
+                  v-for="(photo, photoIndex) in record.photos"
                   :key="photoIndex"
                   class="photo-item"
                   @click="previewPhoto(record.photos, photoIndex)"
@@ -202,17 +216,17 @@
                 </div>
               </div>
             </div>
-            <div class="form-value" v-else>暂无现场照片</div>
+            <div v-else class="form-value">暂无现场照片</div>
           </div>
 
           <div class="operation-log-section">
             <div class="section-title">内部确认区</div>
-            <div class="timeline" v-if="operationLogs.length > 0">
-              <div 
-                v-for="(log, index) in operationLogs" 
-                :key="log.id" 
+            <div v-if="operationLogs.length > 0" class="timeline">
+              <div
+                v-for="(log, index) in operationLogs"
+                :key="log.id"
                 class="timeline-item"
-                :class="{ 'last': index === operationLogs.length - 1 }"
+                :class="{ last: index === operationLogs.length - 1 }"
               >
                 <div class="timeline-dot"></div>
                 <div class="timeline-content">
@@ -222,7 +236,7 @@
                 </div>
               </div>
             </div>
-            <div class="no-logs" v-else>暂无操作记录</div>
+            <div v-else class="no-logs">暂无操作记录</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -234,10 +248,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
+import {
+  defineComponent,
+  reactive,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  watchEffect,
+} from 'vue'
 import { useRoute } from 'vue-router'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
-import { workPlanService, type WorkPlan } from '../services/workPlan'
+import { workPlanService } from '../services/workPlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import apiClient from '../utils/api'
 import type { ApiResponse } from '../types/api'
@@ -296,13 +319,13 @@ export default defineComponent({
   components: {
     LoadingSpinner,
     Toast,
-    SearchInput
+    SearchInput,
   },
   setup() {
     const route = useRoute()
     const searchForm = reactive({
       projectName: '',
-      clientName: ''
+      clientName: '',
     })
 
     const currentPage = ref(0)
@@ -310,7 +333,7 @@ export default defineComponent({
     const jumpPage = ref(1)
     const loading = ref(false)
     const isViewModalOpen = ref(false)
-    
+
     const inspectionData = ref<InspectionItem[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
@@ -318,7 +341,7 @@ export default defineComponent({
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const viewData = reactive({
@@ -340,7 +363,7 @@ export default defineComponent({
       signature: '',
       created_at: '',
       updated_at: '',
-      remainingTime: ''
+      remainingTime: '',
     })
 
     const inspectionRecords = ref<InspectionRecord[]>([])
@@ -353,7 +376,10 @@ export default defineComponent({
 
     let abortController: AbortController | null = null
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -371,7 +397,7 @@ export default defineComponent({
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
       })
     }
 
@@ -396,7 +422,9 @@ export default defineComponent({
       if (!workOrderId) return
       loadingLogs.value = true
       try {
-        const response = await apiClient.get(`/work-order-operation-log?work_order_type=periodic_inspection&work_order_id=${workOrderId}`) as unknown as ApiResponse<OperationLogItem[]>
+        const response = (await apiClient.get(
+          `/work-order-operation-log?work_order_type=periodic_inspection&work_order_id=${workOrderId}`
+        )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
           operationLogs.value = response.data || []
         }
@@ -415,7 +443,9 @@ export default defineComponent({
       if (!inspectionId) return
       loadingRecords.value = true
       try {
-        const response = await apiClient.get(`/periodic-inspection-record/inspection/${inspectionId}`) as unknown as ApiResponse<InspectionRecord[]>
+        const response = (await apiClient.get(
+          `/periodic-inspection-record/inspection/${inspectionId}`
+        )) as unknown as ApiResponse<InspectionRecord[]>
         if (response.code === 200) {
           inspectionRecords.value = response.data || []
         }
@@ -429,30 +459,30 @@ export default defineComponent({
 
     const calculateRemainingTime = (endDate: string): string => {
       if (!endDate) return '-'
-      
+
       const today = new Date()
       today.setHours(0, 0, 0, 0)
-      
+
       const end = new Date(endDate)
       end.setHours(0, 0, 0, 0)
-      
+
       const diffTime = end.getTime() - today.getTime()
-      
+
       if (diffTime < 0) {
         return '已过期'
       }
-      
+
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-      
+
       const years = Math.floor(diffDays / 365)
       const months = Math.floor((diffDays % 365) / 30)
       const days = diffDays % 30
-      
+
       const parts: string[] = []
       if (years > 0) parts.push(`${years}年`)
       if (months > 0) parts.push(`${months}月`)
       if (days > 0 || parts.length === 0) parts.push(`${days}日`)
-      
+
       return parts.join('')
     }
 
@@ -481,7 +511,7 @@ export default defineComponent({
     /**
      * 预览照片
      */
-    const previewPhoto = (photos: string[], startIndex: number) => {
+    const previewPhoto = (photos: string[], _startIndex: number) => {
       if (!photos || photos.length === 0) return
       const previewWindow = window.open('', '_blank')
       if (previewWindow) {
@@ -517,9 +547,9 @@ export default defineComponent({
           page: currentPage.value,
           size: pageSize.value,
           project_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined
+          client_name: searchForm.clientName || undefined,
         })
-        
+
         if (response.code === 200) {
           inspectionData.value = response.data.content.map((item: PeriodicInspection) => ({
             id: item.id,
@@ -539,7 +569,7 @@ export default defineComponent({
             remarks: item.remarks || '',
             signature: item.signature || '',
             created_at: item.created_at,
-            updated_at: item.updated_at
+            updated_at: item.updated_at,
           }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages
@@ -586,7 +616,9 @@ export default defineComponent({
       try {
         const projectResponse = await projectInfoService.getAll()
         if (projectResponse.code === 200 && projectResponse.data) {
-          const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
+          const project = projectResponse.data.find(
+            (p: ProjectInfo) => p.project_id === item.project_id
+          )
           if (project) {
             viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
           }
@@ -606,7 +638,7 @@ export default defineComponent({
       inspectionRecords.value = []
     }
 
-    const handleExport = (item: InspectionItem) => {
+    const handleExport = (_item: InspectionItem) => {
       showToast('导出功能开发中', 'info')
     }
 
@@ -654,7 +686,9 @@ export default defineComponent({
           try {
             const projectResponse = await projectInfoService.getAll()
             if (projectResponse.code === 200 && projectResponse.data) {
-              const project = projectResponse.data.find((p: ProjectInfo) => p.project_id === item.project_id)
+              const project = projectResponse.data.find(
+                (p: ProjectInfo) => p.project_id === item.project_id
+              )
               if (project) {
                 viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
               }
@@ -723,9 +757,9 @@ export default defineComponent({
       getStatusClass,
       getRemainingTimeClass,
       previewPhoto,
-      WORK_STATUS
+      WORK_STATUS,
     }
-  }
+  },
 })
 </script>
 
@@ -824,12 +858,12 @@ export default defineComponent({
 }
 
 .btn-search {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-search:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .table-section {
@@ -846,7 +880,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #E0E0E0;
+  background: #e0e0e0;
 }
 
 .data-table th {
@@ -896,11 +930,11 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .action-export {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .status-badge {
@@ -912,42 +946,42 @@ export default defineComponent({
 }
 
 .status-pending {
-  background: #FFF3E0;
-  color: #FF9800;
+  background: #fff3e0;
+  color: #ff9800;
 }
 
 .status-confirmed {
-  background: #E8F5E9;
-  color: #2E7D32;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-in-progress {
-  background: #E8F5E9;
-  color: #2E7D32;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-completed {
-  background: #E8F5E9;
-  color: #2E7D32;
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .status-cancelled {
-  background: #FFEBEE;
-  color: #D32F2F;
+  background: #ffebee;
+  color: #d32f2f;
 }
 
 .status-returned {
-  background: #FFF8E1;
-  color: #F57C00;
+  background: #fff8e1;
+  color: #f57c00;
 }
 
 .remaining-normal {
-  color: #388E3C;
+  color: #388e3c;
   font-weight: 500;
 }
 
 .remaining-expired {
-  color: #D32F2F;
+  color: #d32f2f;
   font-weight: 600;
 }
 
@@ -990,8 +1024,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196F3;
-  color: #2196F3;
+  border-color: #2196f3;
+  color: #2196f3;
 }
 
 .page-btn:disabled {
@@ -1000,9 +1034,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-nav {
@@ -1040,14 +1074,14 @@ export default defineComponent({
 
 .page-input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -1057,7 +1091,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .modal-overlay {

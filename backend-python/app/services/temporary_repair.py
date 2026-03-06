@@ -175,11 +175,12 @@ class TemporaryRepairService:
             DuplicateException: 维修单编号已存在
             ValidationException: 运维人员不存在
         """
-        if dto.maintenance_personnel:
-            self._validate_maintenance_personnel(dto.maintenance_personnel)
+        maintenance_personnel = dto.maintenance_personnel or operator_name
+        if maintenance_personnel:
+            self._validate_maintenance_personnel(maintenance_personnel)
         
         repair_id = dto.repair_id
-        if repair_id and self.repository.exists_by_repair_id(repair_id):
+        if repair_id and self.repository.exists_by_repair_id(repair_id, include_deleted=True):
             raise DuplicateException("维修单编号已存在")
         
         if not repair_id:
@@ -194,7 +195,9 @@ class TemporaryRepairService:
             plan_start_date=self._parse_date(dto.plan_start_date),
             plan_end_date=self._parse_date(dto.plan_end_date),
             client_name=dto.client_name,
-            maintenance_personnel=dto.maintenance_personnel,
+            client_contact=dto.client_contact if hasattr(dto, 'client_contact') else None,
+            client_contact_info=dto.client_contact_info if hasattr(dto, 'client_contact_info') else None,
+            maintenance_personnel=maintenance_personnel,
             status=dto.status or default_status,
             remarks=dto.remarks
         )
@@ -253,6 +256,8 @@ class TemporaryRepairService:
         existing_repair.plan_start_date = self._parse_date(dto.plan_start_date)
         existing_repair.plan_end_date = self._parse_date(dto.plan_end_date)
         existing_repair.client_name = dto.client_name
+        existing_repair.client_contact = dto.client_contact if hasattr(dto, 'client_contact') else existing_repair.client_contact
+        existing_repair.client_contact_info = dto.client_contact_info if hasattr(dto, 'client_contact_info') else existing_repair.client_contact_info
         existing_repair.maintenance_personnel = dto.maintenance_personnel
         existing_repair.status = dto.status
         existing_repair.remarks = dto.remarks
@@ -322,6 +327,10 @@ class TemporaryRepairService:
             existing_repair.plan_end_date = self._parse_date(dto.plan_end_date)
         if dto.client_name is not None:
             existing_repair.client_name = dto.client_name
+        if hasattr(dto, 'client_contact') and dto.client_contact is not None:
+            existing_repair.client_contact = dto.client_contact
+        if hasattr(dto, 'client_contact_info') and dto.client_contact_info is not None:
+            existing_repair.client_contact_info = dto.client_contact_info
         if dto.maintenance_personnel is not None:
             existing_repair.maintenance_personnel = dto.maintenance_personnel
         if dto.status is not None:

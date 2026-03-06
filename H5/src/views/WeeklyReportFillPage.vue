@@ -14,7 +14,7 @@ const formData = ref({
   workSummary: '',
   nextWeekPlan: '',
   issues: '',
-  suggestions: ''
+  suggestions: '',
 })
 
 const showReportDatePicker = ref(false)
@@ -25,7 +25,7 @@ const today = new Date()
 const currentReportDate = ref<string[]>([
   today.getFullYear().toString(),
   (today.getMonth() + 1).toString().padStart(2, '0'),
-  today.getDate().toString().padStart(2, '0')
+  today.getDate().toString().padStart(2, '0'),
 ])
 
 /**
@@ -33,8 +33,10 @@ const currentReportDate = ref<string[]>([
  */
 const generateReportId = async () => {
   try {
-    const response = await weeklyReportService.generateId({ report_date: formData.value.reportDate })
-    
+    const response = await weeklyReportService.generateId({
+      report_date: formData.value.reportDate,
+    })
+
     if (response.code === 200 && response.data) {
       formData.value.reportId = response.data.report_id
     }
@@ -67,10 +69,10 @@ const handleSubmit = async () => {
     showFailToast('请输入本周工作总结')
     return
   }
-  
+
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await weeklyReportService.create({
       report_id: formData.value.reportId,
@@ -78,9 +80,9 @@ const handleSubmit = async () => {
       work_summary: formData.value.workSummary,
       next_week_plan: formData.value.nextWeekPlan,
       issues: formData.value.issues,
-      suggestions: formData.value.suggestions
+      suggestions: formData.value.suggestions,
     })
-    
+
     if (response.code === 200) {
       showSuccessToast('提交成功')
       goBack()
@@ -107,11 +109,7 @@ onMounted(() => {
 
 <template>
   <div class="weekly-report-fill-page">
-    <van-nav-bar 
-      title="部门周报填报" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar title="部门周报填报" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
@@ -122,9 +120,9 @@ onMounted(() => {
         <UserSelector />
       </template>
     </van-nav-bar>
-    
+
     <van-cell-group inset title="基本信息">
-      <van-field 
+      <van-field
         v-model="formData.reportDate"
         label="填报日期"
         placeholder="选择填报日期"
@@ -133,7 +131,7 @@ onMounted(() => {
         readonly
         @click="showReportDatePicker = true"
       />
-      <van-field 
+      <van-field
         v-model="formData.reportId"
         label="周报编号"
         placeholder="自动生成"
@@ -143,9 +141,9 @@ onMounted(() => {
     </van-cell-group>
 
     <van-cell-group inset title="工作内容">
-      <van-field 
-        v-model="formData.workSummary" 
-        label="本周工作总结" 
+      <van-field
+        v-model="formData.workSummary"
+        label="本周工作总结"
         placeholder="请输入本周工作总结"
         type="textarea"
         rows="4"
@@ -153,27 +151,27 @@ onMounted(() => {
         show-word-limit
         required
       />
-      <van-field 
-        v-model="formData.nextWeekPlan" 
-        label="下周工作计划" 
+      <van-field
+        v-model="formData.nextWeekPlan"
+        label="下周工作计划"
         placeholder="请输入下周工作计划"
         type="textarea"
         rows="3"
         maxlength="1000"
         show-word-limit
       />
-      <van-field 
-        v-model="formData.issues" 
-        label="存在问题" 
+      <van-field
+        v-model="formData.issues"
+        label="存在问题"
         placeholder="请输入存在问题"
         type="textarea"
         rows="3"
         maxlength="500"
         show-word-limit
       />
-      <van-field 
-        v-model="formData.suggestions" 
-        label="建议措施" 
+      <van-field
+        v-model="formData.suggestions"
+        label="建议措施"
         placeholder="请输入建议措施"
         type="textarea"
         rows="3"
@@ -183,15 +181,13 @@ onMounted(() => {
     </van-cell-group>
 
     <div class="submit-btn">
-      <van-button type="primary" block :loading="loading" @click="handleSubmit">
-        提交
-      </van-button>
+      <van-button type="primary" block :loading="loading" @click="handleSubmit"> 提交 </van-button>
     </div>
 
     <van-popup v-model:show="showReportDatePicker" position="bottom" round>
       <van-date-picker
-        title="选择填报日期"
         v-model="currentReportDate"
+        title="选择填报日期"
         :min-date="minDate"
         :max-date="maxDate"
         @confirm="handleReportDateConfirm"

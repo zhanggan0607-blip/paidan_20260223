@@ -27,9 +27,7 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">
-          + 新增客户
-        </button>
+        <button class="btn btn-add" @click="openModal">+ 新增客户</button>
       </div>
     </div>
 
@@ -47,7 +45,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in customerData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+          <tr
+            v-for="(item, index) in customerData"
+            :key="item.id"
+            :class="{ 'even-row': index % 2 === 0 }"
+          >
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.name }}</td>
             <td>{{ item.address || '-' }}</td>
@@ -57,7 +59,9 @@
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
               <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
+                >删除</a
+              >
             </td>
           </tr>
         </tbody>
@@ -65,9 +69,7 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">
-        共 {{ totalElements }} 条记录
-      </div>
+      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
       <div class="pagination-controls">
         <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
           &lt;
@@ -81,17 +83,21 @@
         >
           {{ page }}
         </button>
-        <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage >= totalPages - 1"
+          @click="currentPage++"
+        >
           &gt;
         </button>
-        <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
           <option value="10">10 条 / 页</option>
           <option value="20">20 条 / 页</option>
           <option value="50">50 条 / 页</option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
           <span>页</span>
           <button class="page-btn page-go" @click="handleJump">Go</button>
         </div>
@@ -108,43 +114,73 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.name" maxlength="100" />
+                <label class="form-label"> <span class="required">*</span> 客户单位 </label>
+                <input
+                  v-model="formData.name"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="100"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系人
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.contact_person" maxlength="50" />
+                <label class="form-label"> <span class="required">*</span> 客户联系人 </label>
+                <input
+                  v-model="formData.contact_person"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.contact_position" maxlength="50" />
+                <input
+                  v-model="formData.contact_position"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="50"
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
                 <label class="form-label">客户地址</label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.address" maxlength="200" />
+                <input
+                  v-model="formData.address"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="200"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系方式
-                </label>
-                <input type="text" class="form-input" placeholder="请输入手机号码" v-model="formData.phone" maxlength="11" />
+                <label class="form-label"> <span class="required">*</span> 客户联系方式 </label>
+                <input
+                  v-model="formData.phone"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入手机号码"
+                  maxlength="11"
+                />
               </div>
             </div>
           </div>
           <div class="form-item-full">
             <label class="form-label">备注</label>
-            <textarea class="form-textarea" placeholder="请输入" v-model="formData.remarks" rows="3" maxlength="500"></textarea>
+            <textarea
+              v-model="formData.remarks"
+              class="form-textarea"
+              placeholder="请输入"
+              rows="3"
+              maxlength="500"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleSave">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -198,9 +234,23 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
+import {
+  defineComponent,
+  reactive,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  watchEffect,
+} from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { customerService, type Customer, type CustomerCreate, type CustomerUpdate } from '../services/customer'
+import {
+  customerService,
+  type Customer,
+  type CustomerCreate,
+  type CustomerUpdate,
+} from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
@@ -213,12 +263,12 @@ export default defineComponent({
   components: {
     LoadingSpinner,
     Toast,
-    SearchInput
+    SearchInput,
   },
   setup() {
     const searchForm = reactive({
       name: '',
-      contact_person: ''
+      contact_person: '',
     })
 
     const currentPage = ref(0)
@@ -230,7 +280,7 @@ export default defineComponent({
     const isViewModalOpen = ref(false)
     const isEditMode = ref(false)
     const editingId = ref<number | null>(null)
-    
+
     const customerData = ref<Customer[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
@@ -238,7 +288,7 @@ export default defineComponent({
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const formData = reactive({
@@ -247,7 +297,7 @@ export default defineComponent({
       contact_person: '',
       phone: '',
       contact_position: '',
-      remarks: ''
+      remarks: '',
     })
 
     let abortController: AbortController | null = null
@@ -262,7 +312,7 @@ export default defineComponent({
         if (data.phone) formData.phone = data.phone
         if (data.contact_position) formData.contact_position = data.contact_position
         if (data.remarks) formData.remarks = data.remarks
-      }
+      },
     })
 
     const viewData = reactive({
@@ -272,7 +322,7 @@ export default defineComponent({
       contact_person: '',
       phone: '',
       contact_position: '',
-      remarks: ''
+      remarks: '',
     })
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
@@ -282,7 +332,10 @@ export default defineComponent({
      * @param message 提示消息内容
      * @param type 提示类型：success/error/warning/info
      */
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -305,9 +358,9 @@ export default defineComponent({
           page: currentPage.value,
           size: pageSize.value,
           name: searchForm.name || undefined,
-          contact_person: searchForm.contact_person || undefined
+          contact_person: searchForm.contact_person || undefined,
         })
-        
+
         if (response.code === 200) {
           customerData.value = response.data.content
           totalElements.value = response.data.totalElements
@@ -412,7 +465,7 @@ export default defineComponent({
             contact_person: formData.contact_person?.trim() || undefined,
             phone: formData.phone?.trim() || undefined,
             contact_position: formData.contact_position?.trim() || undefined,
-            remarks: formData.remarks?.trim() || undefined
+            remarks: formData.remarks?.trim() || undefined,
           }
 
           const response = await customerService.update(editingId.value, updateData)
@@ -431,7 +484,7 @@ export default defineComponent({
             contact_person: formData.contact_person?.trim() || '',
             phone: formData.phone?.trim() || '',
             contact_position: formData.contact_position?.trim() || undefined,
-            remarks: formData.remarks?.trim() || undefined
+            remarks: formData.remarks?.trim() || undefined,
           }
 
           const response = await customerService.create(createData)
@@ -502,7 +555,7 @@ export default defineComponent({
         await ElMessageBox.confirm('确定要删除该客户吗？', '提示', {
           confirmButtonText: '确定',
           cancelButtonText: '取消',
-          type: 'warning'
+          type: 'warning',
         })
       } catch {
         return
@@ -511,7 +564,7 @@ export default defineComponent({
       loading.value = true
       try {
         const response = await customerService.delete(item.id)
-        
+
         if (response.code === 200) {
           showToast(response.message || '删除成功', 'success')
           await loadData()
@@ -524,26 +577,28 @@ export default defineComponent({
           ElMessageBox.confirm(error.message + '\n\n是否确认删除客户及其所有关联数据？', '提示', {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
-            type: 'warning'
-          }).then(async () => {
-            loading.value = true
-            try {
-              const cascadeResponse = await customerService.delete(item.id, true)
-              if (cascadeResponse.code === 200) {
-                showToast(cascadeResponse.message || '删除成功', 'success')
-                await loadData()
-              } else {
-                showToast(cascadeResponse.message || '删除失败', 'error')
-              }
-            } catch (cascadeError: any) {
-              console.error('级联删除失败:', cascadeError)
-              showToast(cascadeError.message || '删除失败', 'error')
-            } finally {
-              loading.value = false
-            }
-          }).catch(() => {
-            loading.value = false
+            type: 'warning',
           })
+            .then(async () => {
+              loading.value = true
+              try {
+                const cascadeResponse = await customerService.delete(item.id, true)
+                if (cascadeResponse.code === 200) {
+                  showToast(cascadeResponse.message || '删除成功', 'success')
+                  await loadData()
+                } else {
+                  showToast(cascadeResponse.message || '删除失败', 'error')
+                }
+              } catch (cascadeError: any) {
+                console.error('级联删除失败:', cascadeError)
+                showToast(cascadeError.message || '删除失败', 'error')
+              } finally {
+                loading.value = false
+              }
+            })
+            .catch(() => {
+              loading.value = false
+            })
         } else if (error.status === 400 && error.message) {
           showToast(error.message, 'warning')
         } else {
@@ -628,9 +683,9 @@ export default defineComponent({
       handleJump,
       handlePageSizeChange,
       closeViewModal,
-      handleSearch
+      handleSearch,
     }
-  }
+  },
 })
 </script>
 
@@ -729,21 +784,21 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #2E7D32;
+  background: #2e7d32;
   color: #fff;
 }
 
 .btn-add:hover:not(:disabled) {
-  background: #1B5E20;
+  background: #1b5e20;
 }
 
 .btn-search {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-search:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .table-section {
@@ -760,7 +815,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #E0E0E0;
+  background: #e0e0e0;
 }
 
 .data-table th {
@@ -810,15 +865,15 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .action-edit {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .action-delete {
-  color: #D32F2F;
+  color: #d32f2f;
 }
 
 .pagination-section {
@@ -860,8 +915,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196F3;
-  color: #2196F3;
+  border-color: #2196f3;
+  color: #2196f3;
 }
 
 .page-btn:disabled {
@@ -870,9 +925,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-nav {
@@ -910,14 +965,14 @@ export default defineComponent({
 
 .page-input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -927,7 +982,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .modal-overlay {
@@ -1024,7 +1079,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 
@@ -1108,11 +1163,11 @@ export default defineComponent({
 }
 
 .btn-save {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1976D2;
+  background: #1976d2;
 }
 </style>

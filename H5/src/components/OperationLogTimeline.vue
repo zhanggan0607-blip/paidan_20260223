@@ -40,12 +40,12 @@ const getOperationTypeColor = (log: OperationLog): string => {
 
 const fetchLogs = async () => {
   if (!props.workOrderId) return
-  
+
   loading.value = true
   try {
     const response = await operationLogService.getByWorkOrder({
       work_order_type: props.workOrderType,
-      work_order_id: props.workOrderId
+      work_order_id: props.workOrderId,
     })
     if (response.code === 200) {
       logs.value = response.data || []
@@ -57,11 +57,15 @@ const fetchLogs = async () => {
   }
 }
 
-watch(() => props.workOrderId, () => {
-  if (props.workOrderId) {
-    fetchLogs()
-  }
-}, { immediate: true })
+watch(
+  () => props.workOrderId,
+  () => {
+    if (props.workOrderId) {
+      fetchLogs()
+    }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
   if (props.workOrderId) {
@@ -70,7 +74,7 @@ onMounted(() => {
 })
 
 defineExpose({
-  refresh: fetchLogs
+  refresh: fetchLogs,
 })
 </script>
 
@@ -80,26 +84,14 @@ defineExpose({
       <div v-if="loading" class="loading-container">
         <van-loading size="20px">加载中...</van-loading>
       </div>
-      <div v-else-if="logs.length === 0" class="empty-container">
-        暂无操作记录
-      </div>
+      <div v-else-if="logs.length === 0" class="empty-container">暂无操作记录</div>
       <div v-else class="timeline">
-        <div 
-          v-for="log in logs" 
-          :key="log.id" 
-          class="timeline-item"
-        >
-          <div 
-            class="timeline-dot" 
-            :style="{ background: getOperationTypeColor(log) }"
-          ></div>
+        <div v-for="log in logs" :key="log.id" class="timeline-item">
+          <div class="timeline-dot" :style="{ background: getOperationTypeColor(log) }"></div>
           <div class="timeline-content">
             <div class="timeline-header">
               <span class="operator-name">{{ log.operator_name }}</span>
-              <span 
-                class="operation-type" 
-                :style="{ background: getOperationTypeColor(log) }"
-              >
+              <span class="operation-type" :style="{ background: getOperationTypeColor(log) }">
                 {{ log.operation_type_name }}
               </span>
             </div>

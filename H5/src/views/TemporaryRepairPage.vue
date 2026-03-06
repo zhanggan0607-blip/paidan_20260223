@@ -1,9 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { temporaryRepairService } from '../services'
-import { formatDate, formatDateTime, getWorkIdFontSize, getStatusType, getDisplayStatus, BASE_WORK_TABS, APPROVAL_TAB } from '@sstcp/shared'
+import {
+  formatDate,
+  formatDateTime,
+  getWorkIdFontSize,
+  getStatusType,
+  getDisplayStatus,
+  BASE_WORK_TABS,
+  APPROVAL_TAB,
+} from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
@@ -24,7 +32,7 @@ const CREATE_TAB = {
   key: '新增工单',
   title: '新增工单',
   isCreate: true,
-  color: '#07c160'
+  color: '#07c160',
 }
 
 const tabs = computed(() => {
@@ -40,16 +48,20 @@ const fetchWorkList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await temporaryRepairService.getList({ 
+    const response = await temporaryRepairService.getList({
       page: 0,
-      size: 100
+      size: 100,
     })
     if (response.code === 200) {
       const allItems = response.data?.content || []
-      const tab = currentTab.value as { key: string; title: string; statuses?: string[]; isCreate?: boolean; color: string }
-      const filteredItems = allItems.filter((item: any) => 
-        tab?.statuses?.includes(item.status)
-      )
+      const tab = currentTab.value as {
+        key: string
+        title: string
+        statuses?: string[]
+        isCreate?: boolean
+        color: string
+      }
+      const filteredItems = allItems.filter((item: any) => tab?.statuses?.includes(item.status))
       workList.value = filteredItems.sort((a: any, b: any) => {
         const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
         const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
@@ -83,7 +95,13 @@ const handleCreate = () => {
  * 处理标签页切换
  */
 const handleTabChange = () => {
-  const tab = currentTab.value as { key: string; title: string; statuses?: string[]; isCreate?: boolean; color: string }
+  const tab = currentTab.value as {
+    key: string
+    title: string
+    statuses?: string[]
+    isCreate?: boolean
+    color: string
+  }
   if (tab?.isCreate) {
     handleCreate()
     return
@@ -117,16 +135,17 @@ onMounted(() => {
     }
   }
 })
+
+onActivated(() => {
+  if (userReady.value) {
+    fetchWorkList()
+  }
+})
 </script>
 
 <template>
   <div class="temporary-repair-page">
-    <van-nav-bar 
-      title="临时维修" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="临时维修" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -135,28 +154,35 @@ onMounted(() => {
       </template>
       <template #right>
         <div class="nav-right">
-          <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
+          <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
         </div>
       </template>
     </van-nav-bar>
-    
-    <van-tabs v-model:active="activeTab" sticky @change="handleTabChange" :color="currentTabColor">
+
+    <van-tabs v-model:active="activeTab" sticky :color="currentTabColor" @change="handleTabChange">
       <van-tab v-for="tab in tabs" :key="tab.key" :title="tab.title">
         <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
           <van-list :loading="loading" :finished="true">
             <div class="work-list">
-              <div 
-                v-for="item in workList" 
-                :key="item.id"
-                class="work-card"
-              >
+              <div v-for="item in workList" :key="item.id" class="work-card">
                 <div class="card-header">
                   <van-tag :type="getStatusType(item.status)" size="medium">
                     {{ getDisplayStatus(item.status) }}
                   </van-tag>
                   <div class="work-id-wrapper">
-                    <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.repair_id) + 'px' }">{{ item.repair_id }}</span>
-                    <van-button size="mini" type="primary" plain class="copy-btn" @click.stop="copyOrderId(item.repair_id)">复制单号</van-button>
+                    <span
+                      class="work-id"
+                      :style="{ fontSize: getWorkIdFontSize(item.repair_id) + 'px' }"
+                      >{{ item.repair_id }}</span
+                    >
+                    <van-button
+                      size="mini"
+                      type="primary"
+                      plain
+                      class="copy-btn"
+                      @click.stop="copyOrderId(item.repair_id)"
+                      >复制单号</van-button
+                    >
                   </div>
                 </div>
                 <div class="card-body">
@@ -170,31 +196,33 @@ onMounted(() => {
                   </div>
                   <div class="info-row">
                     <span class="label">运维时间</span>
-                    <span class="value">{{ formatDate(item.plan_start_date) }} -- {{ formatDate(item.plan_end_date) }}</span>
+                    <span class="value"
+                      >{{ formatDate(item.plan_start_date) }} --
+                      {{ formatDate(item.plan_end_date) }}</span
+                    >
                   </div>
                   <div class="info-row">
                     <span class="label">备注</span>
                     <span class="value">{{ item.remarks || '-' }}</span>
                   </div>
-                  <div class="info-row" v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'">
+                  <div
+                    v-if="currentTab?.key === '待确认' || currentTab?.key === '审批'"
+                    class="info-row"
+                  >
                     <span class="label">提交时间</span>
                     <span class="value">{{ formatDateTime(item.updated_at) }}</span>
                   </div>
                 </div>
                 <div class="card-footer">
-                  <van-button 
+                  <van-button
                     v-if="currentTab?.key === '审批'"
-                    type="success" 
+                    type="success"
                     size="small"
                     @click="handleApprove(item)"
                   >
                     审批
                   </van-button>
-                  <van-button 
-                    type="primary" 
-                    size="small"
-                    @click="handleView(item)"
-                  >
+                  <van-button type="primary" size="small" @click="handleView(item)">
                     查看
                   </van-button>
                 </div>

@@ -16,7 +16,7 @@ export type {
   TokenPayload,
   LoginRequest,
   LoginResponse,
-  RefreshTokenResponse
+  RefreshTokenResponse,
 } from '@sstcp/shared'
 
 export type {
@@ -85,7 +85,7 @@ export type {
   RepairToolsIssueRequest,
   RepairToolsReturnRequest,
   RepairToolsStockQueryParams,
-  RepairToolsUsageQueryParams
+  RepairToolsUsageQueryParams,
 } from '@sstcp/shared'
 
 export {
@@ -119,5 +119,5 @@ export {
   canViewSignature,
   getRoleLevel,
   hasPermission,
-  getAllowedPermissions
+  getAllowedPermissions,
 } from '@sstcp/shared'

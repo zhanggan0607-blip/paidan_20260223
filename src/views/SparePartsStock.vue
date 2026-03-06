@@ -18,7 +18,13 @@
               </div>
             </div>
             <div class="action-buttons">
-              <a v-if="isMaterialManager" href="#" class="action-link action-add" @click.prevent="showAddModal = true">新增入库</a>
+              <a
+                v-if="isMaterialManager"
+                href="#"
+                class="action-link action-add"
+                @click.prevent="showAddModal = true"
+                >新增入库</a
+              >
             </div>
           </div>
 
@@ -48,7 +54,7 @@
                 <tr v-else-if="recordList.length === 0">
                   <td colspan="10" class="empty-cell">暂无数据</td>
                 </tr>
-                <tr v-else v-for="(item, index) in recordList" :key="item.id">
+                <tr v-for="(item, index) in recordList" v-else :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.inboundNo }}</td>
                   <td>{{ item.productName }}</td>
@@ -68,35 +74,35 @@
                 共 {{ total }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
               </div>
               <div class="pagination-controls">
-                <button 
-                  @click="handlePageChange(currentPage - 1)" 
+                <button
                   :disabled="currentPage === 1"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage - 1)"
                 >
                   上一页
                 </button>
                 <span class="pagination-pages">
-                  <input 
-                    v-model.number="currentPage" 
-                    type="number" 
-                    :min="1" 
+                  <input
+                    v-model.number="currentPage"
+                    type="number"
+                    :min="1"
                     :max="totalPages"
                     class="pagination-input"
                   />
                   <span class="pagination-slash">/</span>
                   <span>{{ totalPages }}</span>
                 </span>
-                <button 
-                  @click="handlePageChange(currentPage + 1)" 
+                <button
                   :disabled="currentPage === totalPages"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage + 1)"
                 >
                   下一页
                 </button>
               </div>
               <div class="page-size-selector">
                 <span>每页</span>
-                <select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
+                <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
                   <option :value="10">10</option>
                   <option :value="20">20</option>
                   <option :value="50">50</option>
@@ -114,53 +120,53 @@
       <div class="modal-content" @click.stop>
         <div class="modal-header">
           <h3>新增备品备件库存</h3>
-          <button @click="showAddModal = false" class="modal-close">&times;</button>
+          <button class="modal-close" @click="showAddModal = false">&times;</button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-item">
               <label class="form-label">产品名称 <span class="required">*</span></label>
-              <input 
-                v-model="inboundForm.productName" 
-                type="text" 
-                class="form-input" 
+              <input
+                v-model="inboundForm.productName"
+                type="text"
+                class="form-input"
                 placeholder="请输入产品名称"
               />
             </div>
             <div class="form-item">
               <label class="form-label">品牌</label>
-              <input 
-                v-model="inboundForm.brand" 
-                type="text" 
-                class="form-input" 
+              <input
+                v-model="inboundForm.brand"
+                type="text"
+                class="form-input"
                 placeholder="请输入品牌"
               />
             </div>
             <div class="form-item">
               <label class="form-label">产品型号</label>
-              <input 
-                v-model="inboundForm.model" 
-                type="text" 
-                class="form-input" 
+              <input
+                v-model="inboundForm.model"
+                type="text"
+                class="form-input"
                 placeholder="请输入产品型号"
               />
             </div>
             <div class="form-item">
               <label class="form-label">入库数量 <span class="required">*</span></label>
-              <input 
-                v-model.number="inboundForm.quantity" 
-                type="number" 
-                class="form-input" 
+              <input
+                v-model.number="inboundForm.quantity"
+                type="number"
+                class="form-input"
                 placeholder="请输入入库数量"
                 min="1"
               />
             </div>
             <div class="form-item">
               <label class="form-label">供应商</label>
-              <input 
-                v-model="inboundForm.supplier" 
-                type="text" 
-                class="form-input" 
+              <input
+                v-model="inboundForm.supplier"
+                type="text"
+                class="form-input"
                 placeholder="请输入供应商"
               />
             </div>
@@ -185,9 +191,9 @@
             </div>
             <div class="form-item full-width">
               <label class="form-label">备注</label>
-              <textarea 
-                v-model="inboundForm.remarks" 
-                class="form-textarea" 
+              <textarea
+                v-model="inboundForm.remarks"
+                class="form-textarea"
                 placeholder="请输入备注（可选）"
                 rows="3"
               ></textarea>
@@ -195,10 +201,10 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button @click="handleInboundSubmit" class="submit-button" :disabled="submitting">
+          <button class="submit-button" :disabled="submitting" @click="handleInboundSubmit">
             {{ submitting ? '提交中...' : '提交入库单' }}
           </button>
-          <button @click="handleResetForm" class="reset-button">重置</button>
+          <button class="reset-button" @click="handleResetForm">重置</button>
         </div>
       </div>
     </div>
@@ -245,7 +251,7 @@ export default defineComponent({
   name: 'SparePartsStock',
   components: {
     Toast,
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
@@ -263,10 +269,10 @@ export default defineComponent({
       supplier: '',
       unit: '件',
       userName: '',
-      remarks: ''
+      remarks: '',
     })
     const filters = ref({
-      product: ''
+      product: '',
     })
     const userList = ref<User[]>([])
     const isMaterialManager = ref(false)
@@ -275,7 +281,7 @@ export default defineComponent({
     const toast = ref({
       visible: false,
       message: '',
-      type: 'info' as 'success' | 'error' | 'warning' | 'info'
+      type: 'info' as 'success' | 'error' | 'warning' | 'info',
     })
 
     // AbortController for request cancellation
@@ -285,7 +291,10 @@ export default defineComponent({
       return Math.ceil(total.value / pageSize.value)
     })
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'info'
+    ) => {
       toast.value = { visible: true, message, type }
     }
 
@@ -302,15 +311,15 @@ export default defineComponent({
       try {
         const params: SparePartsStockQueryParams = {
           page: currentPage.value - 1,
-          pageSize: pageSize.value
+          pageSize: pageSize.value,
         }
         if (filters.value.product) {
           params.product = filters.value.product
         }
-        const response = await apiClient.get<PaginatedResponse<InboundRecord>>(
+        const response = (await apiClient.get<PaginatedResponse<InboundRecord>>(
           '/spare-parts-stock/inbound-records',
           { params, signal: abortController.signal }
-        ) as unknown as PaginatedResponse<InboundRecord>
+        )) as unknown as PaginatedResponse<InboundRecord>
         if (response && response.code === 200 && response.data) {
           recordList.value = response.data.items || []
           total.value = response.data.total || 0
@@ -329,9 +338,11 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list') as ApiResponse<User[]>
+        const response = (await apiClient.get('/personnel/all/list')) as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
-          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.role === USER_ROLES.MATERIAL_MANAGER)
+          userList.value = (Array.isArray(response.data) ? response.data : []).filter(
+            (user: User) => user && user.role === USER_ROLES.MATERIAL_MANAGER
+          )
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)
@@ -361,9 +372,12 @@ export default defineComponent({
           supplier: inboundForm.value.supplier || null,
           unit: inboundForm.value.unit,
           user_name: inboundForm.value.userName || null,
-          remarks: inboundForm.value.remarks || null
+          remarks: inboundForm.value.remarks || null,
         }
-        const response = await apiClient.post('/spare-parts-stock/inbound', requestData) as ApiResponse<any>
+        const response = (await apiClient.post(
+          '/spare-parts-stock/inbound',
+          requestData
+        )) as ApiResponse<any>
         if (response && response.code === 200) {
           showToast('入库单提交成功！', 'success')
           handleResetForm()
@@ -389,7 +403,7 @@ export default defineComponent({
         supplier: '',
         unit: '件',
         userName: '',
-        remarks: ''
+        remarks: '',
       }
     }
 
@@ -447,9 +461,9 @@ export default defineComponent({
       handleResetForm,
       handleSearch,
       handlePageChange,
-      handlePageSizeChange
+      handlePageSizeChange,
     }
-  }
+  },
 })
 </script>
 
@@ -489,7 +503,9 @@ export default defineComponent({
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   height: 38px;
 }
 
@@ -580,7 +596,9 @@ export default defineComponent({
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -651,8 +669,12 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .pagination-section {
@@ -844,7 +866,9 @@ export default defineComponent({
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .submit-button:hover:not(:disabled) {

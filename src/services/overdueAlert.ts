@@ -43,8 +43,8 @@ export const overdueAlertService = {
     const queryParams = {
       page: 0,
       size: 1000,
-      ...params
+      ...params,
     }
     return await request.get(API_ENDPOINTS.OVERDUE_ALERT.LIST, { params: queryParams })
-  }
+  },
 }

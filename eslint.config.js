@@ -1,20 +1,30 @@
 import js from '@eslint/js'
 import pluginVue from 'eslint-plugin-vue'
-import * as parserVue from 'vue-eslint-parser'
+import vueParser from 'vue-eslint-parser'
 import configPrettier from 'eslint-config-prettier'
 import pluginPrettier from 'eslint-plugin-prettier'
-import * as parserTypeScript from '@typescript-eslint/parser'
+import tsParser from '@typescript-eslint/parser'
 
 export default [
   {
     ignores: [
       'node_modules/',
       'dist/',
+      'dist-ssr/',
       '*.local',
       '*.log*',
       '.vscode/',
       '.idea/',
       'coverage/',
+      '.venv/',
+      'venv/',
+      'H5/',
+      'packages/',
+      'backend-python/',
+      'scripts/',
+      'deploy/',
+      'docker/',
+      '培训手册/',
     ],
   },
   js.configs.recommended,
@@ -22,15 +32,11 @@ export default [
   {
     files: ['**/*.vue', '**/*.ts', '**/*.tsx'],
     languageOptions: {
-      parser: parserVue,
+      parser: vueParser,
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        parser: {
-          ts: parserTypeScript,
-          js: parserTypeScript,
-          '<template>': parserTypeScript,
-        },
+        parser: tsParser,
         extraFileExtensions: ['.vue'],
         ecmaFeatures: {
           jsx: true,
@@ -47,7 +53,8 @@ export default [
         module: 'readonly',
         require: 'readonly',
         __dirname: 'readonly',
-        import.meta: 'readonly',
+        import: 'readonly',
+        import_meta: 'readonly',
       },
     },
     plugins: {
@@ -59,8 +66,10 @@ export default [
       'vue/require-default-prop': 'off',
       'vue/require-explicit-emits': 'warn',
       'vue/component-api-style': 'off',
-      'no-console': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
-      'no-debugger': process.env.NODE_ENV === 'production' ? 'warn' : 'off',
+      'no-console': 'off',
+      'no-debugger': 'warn',
+      'no-unused-vars': 'off',
+      'no-undef': 'off',
       'prettier/prettier': [
         'warn',
         {

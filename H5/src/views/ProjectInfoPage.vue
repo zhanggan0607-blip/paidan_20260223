@@ -27,7 +27,7 @@ const formData = ref<Partial<ProjectInfo>>({
   project_manager: '',
   client_contact: '',
   client_contact_position: '',
-  client_contact_info: ''
+  client_contact_info: '',
 })
 
 const showClientPicker = ref(false)
@@ -45,14 +45,14 @@ const periodOptions = [
   { text: '每周', value: '每周' },
   { text: '每月', value: '每月' },
   { text: '每季度', value: '每季度' },
-  { text: '每半年', value: '每半年' }
+  { text: '每半年', value: '每半年' },
 ]
 
 const filteredCustomers = computed(() => {
   if (!searchKeyword.value) {
     return customerList.value
   }
-  return customerList.value.filter(c => 
+  return customerList.value.filter((c) =>
     (c.name || c.customer_name || '').toLowerCase().includes(searchKeyword.value.toLowerCase())
   )
 })
@@ -79,12 +79,16 @@ const fetchProjectInfo = async (id: number) => {
   try {
     const response = await projectInfoService.getById(id)
     if (response.code === 200 && response.data) {
-      const completionDate = response.data.completion_date ? response.data.completion_date.split('T')[0] ?? '' : ''
-      const maintenanceEndDate = response.data.maintenance_end_date ? response.data.maintenance_end_date.split('T')[0] ?? '' : ''
+      const completionDate = response.data.completion_date
+        ? (response.data.completion_date.split('T')[0] ?? '')
+        : ''
+      const maintenanceEndDate = response.data.maintenance_end_date
+        ? (response.data.maintenance_end_date.split('T')[0] ?? '')
+        : ''
       formData.value = {
         ...response.data,
         completion_date: completionDate,
-        maintenance_end_date: maintenanceEndDate
+        maintenance_end_date: maintenanceEndDate,
       }
       if (completionDate) {
         const parts = completionDate.split('-')
@@ -183,7 +187,7 @@ const handleSubmit = async () => {
       project_manager: formData.value.project_manager,
       client_contact: formData.value.client_contact,
       client_contact_position: formData.value.client_contact_position,
-      client_contact_info: formData.value.client_contact_info
+      client_contact_info: formData.value.client_contact_info,
     }
 
     let response
@@ -213,7 +217,7 @@ const handleDelete = async () => {
   try {
     await showConfirmDialog({
       title: '确认删除',
-      message: '请确认是否要删除该项目？'
+      message: '请确认是否要删除该项目？',
     })
 
     const response = await projectInfoService.delete(projectId.value)
@@ -235,7 +239,7 @@ const handleBack = () => {
 
 onMounted(() => {
   fetchCustomers()
-  
+
   const id = route.query.id
   if (id) {
     isEdit.value = true
@@ -247,11 +251,7 @@ onMounted(() => {
 
 <template>
   <div class="project-info-page">
-    <van-nav-bar 
-      :title="isEdit ? '编辑项目信息' : '新增项目信息'" 
-      fixed 
-      placeholder
-    >
+    <van-nav-bar :title="isEdit ? '编辑项目信息' : '新增项目信息'" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
@@ -260,7 +260,7 @@ onMounted(() => {
       </template>
       <template #right>
         <UserSelector />
-        <van-icon v-if="isEdit" name="delete-o" @click="handleDelete" style="margin-left: 12px;" />
+        <van-icon v-if="isEdit" name="delete-o" style="margin-left: 12px" @click="handleDelete" />
       </template>
     </van-nav-bar>
 
@@ -275,7 +275,7 @@ onMounted(() => {
           required
           :rules="[{ required: true, message: '请输入项目编号' }]"
         />
-        
+
         <van-field
           v-model="formData.project_name"
           label="项目名称"
@@ -284,11 +284,7 @@ onMounted(() => {
           :rules="[{ required: true, message: '请输入项目名称' }]"
         />
 
-        <van-field
-          v-model="formData.project_abbr"
-          label="项目简称"
-          placeholder="请输入项目简称"
-        />
+        <van-field v-model="formData.project_abbr" label="项目简称" placeholder="请输入项目简称" />
 
         <van-field
           v-model="formData.completion_date"
@@ -369,18 +365,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <van-popup 
-      v-model:show="showClientPicker" 
-      position="bottom" 
-      round
-      :style="{ height: '60%' }"
-    >
+    <van-popup v-model:show="showClientPicker" position="bottom" round :style="{ height: '60%' }">
       <div class="client-picker">
         <div class="picker-header">
           <span class="picker-title">选择客户单位</span>
           <van-icon name="cross" @click="showClientPicker = false" />
         </div>
-        
+
         <SearchInput
           v-model="searchKeyword"
           field-key="ProjectInfoPage_customer"
@@ -389,17 +380,17 @@ onMounted(() => {
         />
 
         <van-loading v-if="customerLoading" class="picker-loading" />
-        
-        <div class="client-list" v-else>
-          <van-cell 
-            v-for="customer in filteredCustomers" 
+
+        <div v-else class="client-list">
+          <van-cell
+            v-for="customer in filteredCustomers"
             :key="customer.id"
             :title="customer.name"
             :label="customer.address || '暂无地址'"
             is-link
             @click="onClientSelect(customer)"
           />
-          
+
           <van-empty v-if="filteredCustomers.length === 0" description="暂无客户数据" />
         </div>
       </div>

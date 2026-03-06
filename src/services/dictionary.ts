@@ -87,14 +87,17 @@ export const dictionaryService = {
   /**
    * 更新字典
    */
-  async update(id: number, data: {
-    dict_type?: string
-    dict_key?: string
-    dict_value?: string
-    dict_label?: string
-    sort_order?: number
-    is_active?: boolean
-  }): Promise<ApiResponse<Dictionary>> {
+  async update(
+    id: number,
+    data: {
+      dict_type?: string
+      dict_key?: string
+      dict_value?: string
+      dict_label?: string
+      sort_order?: number
+      is_active?: boolean
+    }
+  ): Promise<ApiResponse<Dictionary>> {
     return await request.put(API_ENDPOINTS.DICTIONARY.DETAIL(id), data)
   },
 
@@ -103,7 +106,7 @@ export const dictionaryService = {
    */
   async delete(id: number): Promise<ApiResponse<null>> {
     return await request.delete(API_ENDPOINTS.DICTIONARY.DETAIL(id))
-  }
+  },
 }
 
 export const dictionaryTypes = {
@@ -113,5 +116,5 @@ export const dictionaryTypes = {
   MAINTENANCE_PLAN_STATUS: 'maintenance_plan_status',
   MAINTENANCE_EXECUTION_STATUS: 'maintenance_execution_status',
   MAINTENANCE_PLAN_TYPE: 'maintenance_plan_type',
-  SPARE_PARTS_STATUS: 'spare_parts_status'
+  SPARE_PARTS_STATUS: 'spare_parts_status',
 } as const

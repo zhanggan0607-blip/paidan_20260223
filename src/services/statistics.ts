@@ -77,7 +77,9 @@ export const statisticsService = {
    * 获取完成率统计
    */
   async getCompletionRate(year: number): Promise<CompletionRate> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.COMPLETION_RATE, { params: { year } })
+    const response = await request.get(API_ENDPOINTS.STATISTICS.COMPLETION_RATE, {
+      params: { year },
+    })
     return response.data
   },
 
@@ -85,7 +87,9 @@ export const statisticsService = {
    * 获取项目排行
    */
   async getTopProjects(year: number, limit: number = 5): Promise<TopProject[]> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.TOP_PROJECTS, { params: { year, limit } })
+    const response = await request.get(API_ENDPOINTS.STATISTICS.TOP_PROJECTS, {
+      params: { year, limit },
+    })
     return response.data
   },
 
@@ -101,7 +105,9 @@ export const statisticsService = {
    * 获取员工统计
    */
   async getEmployeeStats(year: number): Promise<EmployeeStats> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.WORK_BY_PERSON, { params: { year } })
+    const response = await request.get(API_ENDPOINTS.STATISTICS.WORK_BY_PERSON, {
+      params: { year },
+    })
     return response.data
   },
 
@@ -133,8 +139,10 @@ export const statisticsService = {
    * 获取统计详情
    */
   async getStatisticsDetail(params: DetailParams): Promise<DetailResponse> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.DETAIL, { params }) as unknown as { data: DetailResponse }
+    const response = (await request.get(API_ENDPOINTS.STATISTICS.DETAIL, {
+      params,
+    })) as unknown as { data: DetailResponse }
     console.log('getStatisticsDetail raw response:', response)
     return response.data as DetailResponse
-  }
+  },
 }

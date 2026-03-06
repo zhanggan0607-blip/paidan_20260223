@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { showLoadingToast, closeToast, showSuccessToast, showFailToast, showConfirmDialog } from 'vant'
+import {
+  showLoadingToast,
+  closeToast,
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+} from 'vant'
 import { spotWorkService, ocrService, uploadService } from '../services'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
@@ -43,22 +49,33 @@ const currentWorker = ref<WorkerInfo>({
   issuingAuthority: '',
   validPeriod: '',
   idCardFront: '',
-  idCardBack: ''
+  idCardBack: '',
 })
 
 const editingIndex = ref(-1)
 
 const fetchWorkerList = async () => {
   if (!projectId.value) return
-  
+
   try {
     const response = await spotWorkService.getWorkers({
       project_id: projectId.value,
       start_date: workDateStart.value,
-      end_date: workDateEnd.value
+      end_date: workDateEnd.value,
     })
-    if (response.code === 200) {
-      workerList.value = response.data || []
+    if (response.code === 200 && response.data) {
+      workerList.value = response.data.map((w: any) => ({
+        id: w.id,
+        name: w.name,
+        gender: w.gender,
+        birthDate: w.birth_date,
+        address: w.address,
+        idCardNumber: w.id_card_number,
+        issuingAuthority: w.issuing_authority,
+        validPeriod: w.valid_period,
+        idCardFront: w.id_card_front,
+        idCardBack: w.id_card_back,
+      }))
     }
   } catch (error) {
     console.error('Failed to fetch worker list:', error)
@@ -76,7 +93,7 @@ const handleAddWorker = () => {
     issuingAuthority: '',
     validPeriod: '',
     idCardFront: '',
-    idCardBack: ''
+    idCardBack: '',
   }
   showAddPopup.value = true
 }
@@ -91,13 +108,12 @@ const handleDeleteWorker = async (index: number) => {
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '请确认是否要删除该施工人员？'
+      message: '请确认是否要删除该施工人员？',
     })
-    
+
     workerList.value.splice(index, 1)
     showSuccessToast('删除成功')
-  } catch {
-  }
+  } catch {}
 }
 
 const handleUploadIdCard = (side: 'front' | 'back') => {
@@ -105,34 +121,35 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
   input.type = 'file'
   input.accept = 'image/*'
   input.capture = 'environment'
-  
+
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
     const file = target.files?.[0]
     if (!file) return
-    
+
     showLoadingToast({ message: '正在识别身份证...', forbidClick: true })
-    
+
     try {
       const originalBase64 = await fileToBase64(file)
-      
+
       try {
         const ocrResponse = await ocrService.recognizeIDCard({
           imageBase64: originalBase64,
-          side: side === 'front' ? 'face' : 'back'
+          side: side === 'front' ? 'face' : 'back',
         })
-        
+
         if (ocrResponse.code === 200 && ocrResponse.data) {
           const ocrData = ocrResponse.data
-          
+
           if (side === 'front') {
             if (ocrData.name) currentWorker.value.name = ocrData.name
             if (ocrData.gender) currentWorker.value.gender = ocrData.gender
             if (ocrData.birth_date) currentWorker.value.birthDate = ocrData.birth_date
             if (ocrData.address) currentWorker.value.address = ocrData.address
-            if (ocrData.id_card_number) {
-              currentWorker.value.idCardNumber = ocrData.id_card_number
-              const validation = validateIdCard(ocrData.id_card_number)
+            const idCardNum = ocrData.id_card_number
+            if (idCardNum) {
+              currentWorker.value.idCardNumber = idCardNum
+              const validation = validateIdCard(idCardNum)
               if (!validation.valid) {
                 idCardError.value = validation.message
               } else {
@@ -140,10 +157,12 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
               }
             }
           } else {
-            if (ocrData.issuing_authority) currentWorker.value.issuingAuthority = ocrData.issuing_authority
-            if (ocrData.valid_period) currentWorker.value.validPeriod = ocrData.valid_period
+            const issuingAuth = ocrData.issuing_authority
+            const validPeriod = ocrData.valid_period
+            if (issuingAuth) currentWorker.value.issuingAuthority = issuingAuth
+            if (validPeriod) currentWorker.value.validPeriod = validPeriod
           }
-          
+
           if (side === 'front' && !ocrData.name && !ocrData.id_card_number) {
             showFailToast('身份证识别失败，请确保图片清晰')
           } else if (side === 'back' && !ocrData.issuing_authority && !ocrData.valid_period) {
@@ -156,22 +175,22 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
         console.error('OCR识别失败:', ocrError)
         showFailToast('OCR识别失败，请手动填写信息')
       }
-      
+
       showLoadingToast({ message: '处理图片...', forbidClick: true })
-      
+
       const userName = userStore.getUser()?.name || '未知用户'
       const location = await getCurrentLocation()
       const processedFile = await processPhoto(file, {
         userName,
         includeLocation: true,
         latitude: location?.latitude,
-        longitude: location?.longitude
+        longitude: location?.longitude,
       })
-      
+
       showLoadingToast({ message: '上传图片...', forbidClick: true })
-      
+
       const response = await uploadService.uploadFile(processedFile)
-      
+
       if (response.code === 200 && response.data) {
         const imageUrl = response.data.url
         if (side === 'front') {
@@ -179,7 +198,7 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
         } else {
           currentWorker.value.idCardBack = imageUrl
         }
-        
+
         showSuccessToast('上传成功')
       } else {
         showFailToast(response.message || '上传失败')
@@ -192,7 +211,7 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
       closeToast()
     }
   }
-  
+
   input.click()
 }
 
@@ -217,7 +236,7 @@ const handleIdCardChange = () => {
     idCardError.value = ''
     return
   }
-  
+
   if (idCard.length === 18) {
     const validation = validateIdCard(idCard)
     if (validation.valid) {
@@ -232,7 +251,10 @@ const handleIdCardChange = () => {
       idCardError.value = validation.message
     }
   } else if (idCard.length > 0) {
-    idCardError.value = idCard.length < 18 ? `已输入${idCard.length}位，还需${18 - idCard.length}位` : '身份证号码超出18位'
+    idCardError.value =
+      idCard.length < 18
+        ? `已输入${idCard.length}位，还需${18 - idCard.length}位`
+        : '身份证号码超出18位'
   } else {
     idCardError.value = ''
   }
@@ -259,23 +281,23 @@ const handleSaveWorker = () => {
     showFailToast('请输入身份证号码')
     return
   }
-  
+
   const idCardValidation = validateIdCard(currentWorker.value.idCardNumber)
   if (!idCardValidation.valid) {
     showFailToast(idCardValidation.message)
     return
   }
-  
+
   if (idCardValidation.birthDate && currentWorker.value.birthDate !== idCardValidation.birthDate) {
     showFailToast(`身份证号码与出生日期不匹配，根据身份证应为${idCardValidation.birthDate}`)
     return
   }
-  
+
   if (idCardValidation.gender && currentWorker.value.gender !== idCardValidation.gender) {
     showFailToast(`身份证号码与性别不匹配，根据身份证应为${idCardValidation.gender}`)
     return
   }
-  
+
   if (!currentWorker.value.issuingAuthority) {
     showFailToast('请输入签发机关')
     return
@@ -292,13 +314,13 @@ const handleSaveWorker = () => {
     showFailToast('请上传身份证反面照片')
     return
   }
-  
+
   if (editingIndex.value >= 0) {
     workerList.value[editingIndex.value] = { ...currentWorker.value }
   } else {
     workerList.value.push({ ...currentWorker.value })
   }
-  
+
   showAddPopup.value = false
   showSuccessToast('保存成功')
 }
@@ -311,17 +333,42 @@ const handleSubmit = async () => {
     showFailToast('请至少添加一名施工人员')
     return
   }
-  
+
+  for (let i = 0; i < workerList.value.length; i++) {
+    const worker = workerList.value[i]
+    if (!worker.name || !worker.idCardNumber || !worker.idCardFront || !worker.idCardBack) {
+      showFailToast(`第${i + 1}个施工人员信息不完整，请检查`)
+      return
+    }
+  }
+
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
+    const workersData = workerList.value.map((worker) => {
+      const data: any = {
+        name: worker.name,
+        idCardNumber: worker.idCardNumber,
+        idCardFront: worker.idCardFront,
+        idCardBack: worker.idCardBack,
+      }
+      if (worker.gender) data.gender = worker.gender
+      if (worker.birthDate) data.birthDate = worker.birthDate
+      if (worker.address) data.address = worker.address
+      if (worker.issuingAuthority) data.issuingAuthority = worker.issuingAuthority
+      if (worker.validPeriod) data.validPeriod = worker.validPeriod
+      return data
+    })
+
+    console.log('提交的工人数据:', workersData)
+
     const response = await spotWorkService.saveWorkers({
       project_id: projectId.value,
       project_name: projectName.value,
       start_date: workDateStart.value,
       end_date: workDateEnd.value,
-      workers: workerList.value
+      workers: workersData,
     })
     if (response.code === 200) {
       const personCount = workerList.value.length
@@ -333,7 +380,9 @@ const handleSubmit = async () => {
         dayCount = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1
       }
       const workDays = personCount * dayCount
-      showSuccessToast(`提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`)
+      showSuccessToast(
+        `提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`
+      )
       goBack()
     } else {
       showFailToast(response.message || '提交失败')
@@ -348,11 +397,11 @@ const handleSubmit = async () => {
 }
 
 onMounted(() => {
-  projectId.value = route.query.projectId as string || ''
-  projectName.value = route.query.projectName as string || ''
-  workDateStart.value = route.query.workDateStart as string || ''
-  workDateEnd.value = route.query.workDateEnd as string || ''
-  
+  projectId.value = (route.query.projectId as string) || ''
+  projectName.value = (route.query.projectName as string) || ''
+  workDateStart.value = (route.query.workDateStart as string) || ''
+  workDateEnd.value = (route.query.workDateEnd as string) || ''
+
   if (projectId.value) {
     fetchWorkerList()
   }
@@ -361,11 +410,7 @@ onMounted(() => {
 
 <template>
   <div class="worker-entry-page">
-    <van-nav-bar 
-      title="施工人员录入" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar title="施工人员录入" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="goBack()">
           <van-icon name="arrow-left" />
@@ -376,19 +421,24 @@ onMounted(() => {
         <UserSelector />
       </template>
     </van-nav-bar>
-    
-    <div class="page-info" v-if="projectName">
+
+    <div v-if="projectName" class="page-info">
       <van-cell-group inset>
         <van-cell title="项目名称" :value="projectName" />
-        <van-cell title="用工周期" :value="workDateStart === workDateEnd ? workDateStart : `${workDateStart} 至 ${workDateEnd}`" />
+        <van-cell
+          title="用工周期"
+          :value="
+            workDateStart === workDateEnd ? workDateStart : `${workDateStart} 至 ${workDateEnd}`
+          "
+        />
       </van-cell-group>
     </div>
 
     <van-cell-group inset title="施工人员列表">
-      <van-cell 
-        v-if="workerList.length > 0" 
-        :title="workerList.length + ' 人'" 
-        label="施工人数" 
+      <van-cell
+        v-if="workerList.length > 0"
+        :title="workerList.length + ' 人'"
+        label="施工人数"
         title-class="worker-count-title"
       />
       <van-empty v-if="workerList.length === 0" description="暂无施工人员" />
@@ -413,7 +463,7 @@ onMounted(() => {
           <van-button square type="danger" text="删除" @click="handleDeleteWorker(index)" />
         </template>
       </van-swipe-cell>
-      
+
       <div class="add-btn">
         <van-button type="primary" block icon="plus" @click="handleAddWorker">
           添加施工人员
@@ -421,18 +471,13 @@ onMounted(() => {
       </div>
     </van-cell-group>
 
-    <div class="submit-btn" v-if="workerList.length > 0">
+    <div v-if="workerList.length > 0" class="submit-btn">
       <van-button type="primary" block :loading="loading" @click="handleSubmit">
         提交（{{ workerList.length }}人）
       </van-button>
     </div>
 
-    <van-popup 
-      v-model:show="showAddPopup" 
-      position="bottom" 
-      round 
-      :style="{ height: '90%' }"
-    >
+    <van-popup v-model:show="showAddPopup" position="bottom" round :style="{ height: '90%' }">
       <div class="popup-content">
         <div class="popup-header">
           <span class="popup-title">{{ editingIndex >= 0 ? '编辑施工人员' : '添加施工人员' }}</span>
@@ -443,7 +488,12 @@ onMounted(() => {
             <van-cell title="身份证正面" is-link @click="handleUploadIdCard('front')">
               <template #value>
                 <div class="id-card-preview">
-                  <img v-if="currentWorker.idCardFront" :src="currentWorker.idCardFront" alt="正面" loading="lazy" />
+                  <img
+                    v-if="currentWorker.idCardFront"
+                    :src="currentWorker.idCardFront"
+                    alt="正面"
+                    loading="lazy"
+                  />
                   <div v-else class="id-card-placeholder">
                     <van-icon name="photograph" size="24" />
                     <span>点击拍照</span>
@@ -454,7 +504,12 @@ onMounted(() => {
             <van-cell title="身份证反面" is-link @click="handleUploadIdCard('back')">
               <template #value>
                 <div class="id-card-preview">
-                  <img v-if="currentWorker.idCardBack" :src="currentWorker.idCardBack" alt="反面" loading="lazy" />
+                  <img
+                    v-if="currentWorker.idCardBack"
+                    :src="currentWorker.idCardBack"
+                    alt="反面"
+                    loading="lazy"
+                  />
                   <div v-else class="id-card-placeholder">
                     <van-icon name="photograph" size="24" />
                     <span>点击拍照</span>
@@ -465,38 +520,38 @@ onMounted(() => {
           </van-cell-group>
 
           <van-cell-group inset title="身份信息">
-            <van-field 
-              v-model="currentWorker.name" 
-              label="姓名" 
+            <van-field
+              v-model="currentWorker.name"
+              label="姓名"
               placeholder="请输入姓名"
               required
             />
-            <van-field 
-              v-model="currentWorker.idCardNumber" 
-              label="身份证号" 
+            <van-field
+              v-model="currentWorker.idCardNumber"
+              label="身份证号"
               placeholder="请输入18位身份证号码"
               required
               maxlength="18"
-              @input="handleIdCardChange"
               :error-message="idCardError"
+              @input="handleIdCardChange"
             />
-            <van-field 
-              v-model="currentWorker.gender" 
-              label="性别" 
+            <van-field
+              v-model="currentWorker.gender"
+              label="性别"
               placeholder="输入身份证后自动填充"
               readonly
               required
             />
-            <van-field 
-              v-model="currentWorker.birthDate" 
-              label="出生日期" 
+            <van-field
+              v-model="currentWorker.birthDate"
+              label="出生日期"
               placeholder="输入身份证后自动填充"
               readonly
               required
             />
-            <van-field 
-              v-model="currentWorker.address" 
-              label="住址" 
+            <van-field
+              v-model="currentWorker.address"
+              label="住址"
               placeholder="请输入住址"
               type="textarea"
               rows="2"
@@ -506,24 +561,22 @@ onMounted(() => {
           </van-cell-group>
 
           <van-cell-group inset title="证件信息">
-            <van-field 
-              v-model="currentWorker.issuingAuthority" 
-              label="签发机关" 
+            <van-field
+              v-model="currentWorker.issuingAuthority"
+              label="签发机关"
               placeholder="请输入签发机关"
               required
             />
-            <van-field 
-              v-model="currentWorker.validPeriod" 
-              label="有效期限" 
+            <van-field
+              v-model="currentWorker.validPeriod"
+              label="有效期限"
               placeholder="请输入有效期限"
               required
             />
           </van-cell-group>
         </div>
         <div class="popup-footer">
-          <van-button type="primary" block @click="handleSaveWorker">
-            保存
-          </van-button>
+          <van-button type="primary" block @click="handleSaveWorker"> 保存 </van-button>
         </div>
       </div>
     </van-popup>

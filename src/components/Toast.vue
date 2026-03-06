@@ -1,5 +1,9 @@
 <template>
-  <div v-if="visible" :class="['toast', `toast-${type}`, { 'toast-show': show }]" @click="handleClick">
+  <div
+    v-if="visible"
+    :class="['toast', `toast-${type}`, { 'toast-show': show }]"
+    @click="handleClick"
+  >
     <div class="toast-icon">
       <span v-if="type === 'success'">✓</span>
       <span v-else-if="type === 'error'">✕</span>
@@ -18,20 +22,20 @@ export default defineComponent({
   props: {
     visible: {
       type: Boolean,
-      default: false
+      default: false,
     },
     message: {
       type: String,
-      required: true
+      required: true,
     },
     type: {
       type: String as () => 'success' | 'error' | 'warning' | 'info',
-      default: 'info'
+      default: 'info',
     },
     duration: {
       type: Number,
-      default: 3000
-    }
+      default: 3000,
+    },
   },
   setup(props) {
     const show = ref(false)
@@ -41,32 +45,35 @@ export default defineComponent({
       show.value = false
     }
 
-    watch(() => props.visible, (newVal) => {
-      if (newVal) {
-        setTimeout(() => {
-          show.value = true
-        }, 10)
-        
-        if (timer) {
-          clearTimeout(timer)
-        }
-        
-        timer = setTimeout(() => {
+    watch(
+      () => props.visible,
+      (newVal) => {
+        if (newVal) {
+          setTimeout(() => {
+            show.value = true
+          }, 10)
+
+          if (timer) {
+            clearTimeout(timer)
+          }
+
+          timer = setTimeout(() => {
+            show.value = false
+          }, props.duration)
+        } else {
           show.value = false
-        }, props.duration)
-      } else {
-        show.value = false
-        if (timer) {
-          clearTimeout(timer)
+          if (timer) {
+            clearTimeout(timer)
+          }
         }
       }
-    })
+    )
 
     return {
       show,
-      handleClick
+      handleClick,
     }
-  }
+  },
 })
 </script>
 
@@ -100,17 +107,17 @@ export default defineComponent({
 }
 
 .toast-error {
-  background: #D32F2F;
+  background: #d32f2f;
   color: #fff;
 }
 
 .toast-warning {
-  background: #FFA000;
+  background: #ffa000;
   color: #fff;
 }
 
 .toast-info {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 

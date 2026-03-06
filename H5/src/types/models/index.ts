@@ -69,5 +69,5 @@ export type {
   RepairToolsIssueRequest,
   RepairToolsReturnRequest,
   RepairToolsStockQueryParams,
-  RepairToolsUsageQueryParams
+  RepairToolsUsageQueryParams,
 } from '@sstcp/shared'

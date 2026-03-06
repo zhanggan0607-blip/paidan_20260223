@@ -9,7 +9,7 @@ import {
   hasPermission,
   isManagerRole,
   isAdminRole,
-  isMaterialManager
+  isMaterialManager,
 } from '../config/permission'
 import { onlineUserService } from '../services/onlineUser'
 
@@ -29,12 +29,15 @@ let heartbeatInterval: number | null = null
 const startHeartbeat = () => {
   stopHeartbeat()
   onlineUserService.sendHeartbeat('h5').catch(() => {})
-  heartbeatInterval = window.setInterval(() => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (token) {
-      onlineUserService.sendHeartbeat('h5').catch(() => {})
-    }
-  }, 1 * 60 * 1000)
+  heartbeatInterval = window.setInterval(
+    () => {
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+      if (token) {
+        onlineUserService.sendHeartbeat('h5').catch(() => {})
+      }
+    },
+    1 * 60 * 1000
+  )
 }
 
 const stopHeartbeat = () => {
@@ -60,11 +63,15 @@ export const useUserStore = defineStore('user', () => {
   const user = ref<User | null>(loadUserFromStorage())
   const token = ref<string | null>(localStorage.getItem(TOKEN_STORAGE_KEY))
 
-  watch(user, (newUser) => {
-    if (newUser) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
-    }
-  }, { deep: true })
+  watch(
+    user,
+    (newUser) => {
+      if (newUser) {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
+      }
+    },
+    { deep: true }
+  )
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => isAdminRole(user.value?.role))

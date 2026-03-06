@@ -26,9 +26,7 @@
           </div>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-add" @click="handleAdd">
-            新增临时工单
-          </button>
+          <button class="btn btn-add" @click="handleAdd">新增临时工单</button>
         </div>
       </div>
 
@@ -50,12 +48,17 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="10" style="text-align: center; padding: 20px;">加载中...</td>
+              <td colspan="10" style="text-align: center; padding: 20px">加载中...</td>
             </tr>
             <tr v-else-if="repairData.length === 0">
-              <td colspan="10" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td colspan="10" style="text-align: center; padding: 20px">暂无数据</td>
             </tr>
-            <tr v-else v-for="(item, index) in repairData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <tr
+              v-for="(item, index) in repairData"
+              v-else
+              :key="item.id"
+              :class="{ 'even-row': index % 2 === 0 }"
+            >
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td>{{ item.project_id }}</td>
               <td>{{ item.project_name }}</td>
@@ -66,8 +69,12 @@
               <td>{{ item.maintenance_personnel || '-' }}</td>
               <td>{{ item.remarks || '-' }}</td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a href="#" class="action-link action-export" @click.prevent="handleExport(item)">导出</a>
+                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
+                  >查看</a
+                >
+                <a href="#" class="action-link action-export" @click.prevent="handleExport(item)"
+                  >导出</a
+                >
               </td>
             </tr>
           </tbody>
@@ -75,9 +82,7 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">
-          共 {{ totalElements }} 条记录
-        </div>
+        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
         <div class="pagination-controls">
           <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
             &lt;
@@ -91,17 +96,21 @@
           >
             {{ page }}
           </button>
-          <button class="page-btn page-nav" :disabled="currentPage === totalPages" @click="currentPage++">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+          >
             &gt;
           </button>
-          <select class="page-select" v-model="pageSize">
+          <select v-model="pageSize" class="page-select">
             <option value="10">10 条 / 页</option>
             <option value="20">20 条 / 页</option>
             <option value="50">50 条 / 页</option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
             <span>页</span>
             <button class="page-btn page-go" @click="handleJump">Go</button>
           </div>
@@ -119,35 +128,41 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <select class="form-input" v-model="formData.project_name" @change="handleProjectChange">
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <select
+                  v-model="formData.project_name"
+                  class="form-input"
+                  @change="handleProjectChange"
+                >
                   <option value="">请选择项目</option>
-                  <option v-for="project in projectList" :key="project.id" :value="project.project_name">
+                  <option
+                    v-for="project in projectList"
+                    :key="project.id"
+                    :value="project.project_name"
+                  >
                     {{ project.project_name }}
                   </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划开始日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.plan_start_date" />
+                <label class="form-label"> <span class="required">*</span> 计划开始日期 </label>
+                <input v-model="formData.plan_start_date" type="date" class="form-input" />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系人
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户联系人" v-model="formData.client_contact" readonly />
+                <label class="form-label"> <span class="required">*</span> 客户联系人 </label>
+                <input
+                  v-model="formData.client_contact"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  placeholder="请输入客户联系人"
+                  readonly
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 运维人员
-                </label>
-                <select class="form-input" v-model="formData.maintenance_personnel">
+                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select v-model="formData.maintenance_personnel" class="form-input">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person.id" :value="person.name">
                     {{ person.name }}
@@ -155,29 +170,34 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 计划结束日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.plan_end_date" />
+                <label class="form-label"> <span class="required">*</span> 计划结束日期 </label>
+                <input v-model="formData.plan_end_date" type="date" class="form-input" />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系方式
-                </label>
-                <input type="text" class="form-input form-input-readonly" placeholder="请输入客户联系方式" v-model="formData.client_contact_info" readonly />
+                <label class="form-label"> <span class="required">*</span> 客户联系方式 </label>
+                <input
+                  v-model="formData.client_contact_info"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  placeholder="请输入客户联系方式"
+                  readonly
+                />
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">
-              <span class="required">*</span> 报修内容
-            </label>
-            <textarea class="form-input form-textarea" placeholder="请输入报修内容" v-model="formData.remarks" maxlength="500"></textarea>
+            <label class="form-label"> <span class="required">*</span> 报修内容 </label>
+            <textarea
+              v-model="formData.remarks"
+              class="form-input form-textarea"
+              placeholder="请输入报修内容"
+              maxlength="500"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeAddModal">取消</button>
-          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleSave">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -213,7 +233,7 @@ export default defineComponent({
   name: 'TemporaryRepairQuery',
   components: {
     Toast,
-    SearchInput
+    SearchInput,
   },
   setup() {
     const router = useRouter()
@@ -229,14 +249,14 @@ export default defineComponent({
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const searchForm = ref({
       project_name: '',
       repair_id: '',
       plan_start_date: '',
-      plan_end_date: ''
+      plan_end_date: '',
     })
 
     const projectList = ref<ProjectInfo[]>([])
@@ -253,12 +273,15 @@ export default defineComponent({
       plan_end_date: '',
       maintenance_personnel: '',
       status: WORK_STATUS.IN_PROGRESS,
-      remarks: ''
+      remarks: '',
     })
 
     const repairData = ref<RepairItem[]>([])
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -271,9 +294,9 @@ export default defineComponent({
           page: currentPage.value - 1,
           size: pageSize.value,
           project_name: searchForm.value.project_name || undefined,
-          repair_id: searchForm.value.repair_id || undefined
+          repair_id: searchForm.value.repair_id || undefined,
         })
-        
+
         if (response.code === 200) {
           repairData.value = response.data.content.map((item: TemporaryRepair) => ({
             id: item.id,
@@ -285,7 +308,7 @@ export default defineComponent({
             client_name: item.client_name || '',
             maintenance_personnel: item.maintenance_personnel || '',
             status: item.status || '执行中',
-            remarks: item.remarks || ''
+            remarks: item.remarks || '',
           }))
           totalElements.value = response.data.totalElements
           totalPages.value = response.data.totalPages || 1
@@ -314,7 +337,7 @@ export default defineComponent({
         project_name: '',
         repair_id: '',
         plan_start_date: '',
-        plan_end_date: ''
+        plan_end_date: '',
       }
       currentPage.value = 1
       loadData()
@@ -343,7 +366,9 @@ export default defineComponent({
     }
 
     const handleProjectChange = async () => {
-      const selectedProject = projectList.value.find(p => p.project_name === formData.value.project_name)
+      const selectedProject = projectList.value.find(
+        (p) => p.project_name === formData.value.project_name
+      )
       if (selectedProject) {
         formData.value.project_id = selectedProject.project_id
         formData.value.client_name = selectedProject.client_name
@@ -356,7 +381,7 @@ export default defineComponent({
 
     const generateRepairId = async () => {
       if (!formData.value.project_id) return
-      
+
       try {
         const today = new Date()
         const year = today.getFullYear()
@@ -364,12 +389,12 @@ export default defineComponent({
         const day = String(today.getDate()).padStart(2, '0')
         const dateStr = `${year}${month}${day}`
         const prefix = `WX-${formData.value.project_id}-${dateStr}`
-        
+
         const response = await temporaryRepairService.getAll()
-        
+
         if (response.code === 200) {
           const existingRepairs = response.data.filter(
-            item => item.repair_id && item.repair_id.startsWith(prefix)
+            (item) => item.repair_id && item.repair_id.startsWith(prefix)
           )
           const nextNumber = existingRepairs.length + 1
           formData.value.repair_id = `${prefix}-${String(nextNumber).padStart(2, '0')}`
@@ -440,13 +465,13 @@ export default defineComponent({
         plan_end_date: today,
         maintenance_personnel: '',
         status: WORK_STATUS.IN_PROGRESS,
-        remarks: ''
+        remarks: '',
       }
     }
 
     const handleSave = async () => {
       console.log('Save:', formData.value)
-      
+
       if (!formData.value.project_name) {
         showToast('请选择项目名称', 'error')
         return
@@ -467,9 +492,9 @@ export default defineComponent({
         showToast('请输入报修内容', 'error')
         return
       }
-      
+
       saving.value = true
-      
+
       try {
         const response = await temporaryRepairService.create({
           repair_id: formData.value.repair_id,
@@ -480,9 +505,9 @@ export default defineComponent({
           client_name: formData.value.client_name,
           maintenance_personnel: formData.value.maintenance_personnel,
           status: '执行中',
-          remarks: formData.value.remarks || ''
+          remarks: formData.value.remarks || '',
         })
-        
+
         if (response.code === 200) {
           showToast('保存成功', 'success')
           await loadData()
@@ -501,7 +526,7 @@ export default defineComponent({
     const handleView = (item: RepairItem) => {
       router.push({
         name: 'TemporaryRepairDetail',
-        query: { id: item.id }
+        query: { id: item.id },
       })
     }
 
@@ -547,9 +572,9 @@ export default defineComponent({
       handleExport,
       handleJump,
       toggleSidebar,
-      showToast
+      showToast,
     }
-  }
+  },
 })
 </script>
 
@@ -564,7 +589,7 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 12px 20px;
-  background: #F5F7FA;
+  background: #f5f7fa;
   border-bottom: 1px solid #e0e0e0;
 }
 
@@ -1016,7 +1041,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 

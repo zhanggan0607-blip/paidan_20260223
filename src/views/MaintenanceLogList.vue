@@ -15,9 +15,14 @@
             </div>
             <div class="search-item">
               <label class="search-label">日志日期：</label>
-              <input v-model="filters.logDate" type="date" class="search-input" @change="handleSearch" />
+              <input
+                v-model="filters.logDate"
+                type="date"
+                class="search-input"
+                @change="handleSearch"
+              />
             </div>
-            <div class="search-item" v-if="canViewAll">
+            <div v-if="canViewAll" class="search-item">
               <label class="search-label">提交人：</label>
               <SearchInput
                 v-model="filters.createdBy"
@@ -48,12 +53,21 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px;">加载中...</td>
+              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px">
+                加载中...
+              </td>
             </tr>
             <tr v-else-if="dataList.length === 0">
-              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px">
+                暂无数据
+              </td>
             </tr>
-            <tr v-else v-for="(item, index) in dataList" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <tr
+              v-for="(item, index) in dataList"
+              v-else
+              :key="item.id"
+              :class="{ 'even-row': index % 2 === 0 }"
+            >
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td class="log-id-cell">{{ item.log_id }}</td>
               <td>{{ item.project_name }}</td>
@@ -72,13 +86,16 @@
               <td v-if="canViewAll">{{ item.created_by || '-' }}</td>
               <td>{{ formatDateTime(item.created_at) }}</td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                <a 
-                  href="#" 
-                  v-if="canViewAll && (!item.status || item.status === 'submitted')" 
-                  class="action-link action-reject" 
+                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
+                  >查看</a
+                >
+                <a
+                  v-if="canViewAll && (!item.status || item.status === 'submitted')"
+                  href="#"
+                  class="action-link action-reject"
                   @click.prevent="handleReject(item)"
-                >退回</a>
+                  >退回</a
+                >
               </td>
             </tr>
           </tbody>
@@ -86,11 +103,13 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">
-          共 {{ total }} 条记录
-        </div>
+        <div class="pagination-info">共 {{ total }} 条记录</div>
         <div class="pagination-controls">
-          <button class="page-btn page-nav" :disabled="currentPage === 1" @click="handlePageChange(currentPage - 1)">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === 1"
+            @click="handlePageChange(currentPage - 1)"
+          >
             &lt;
           </button>
           <button
@@ -102,17 +121,21 @@
           >
             {{ page }}
           </button>
-          <button class="page-btn page-nav" :disabled="currentPage >= totalPages" @click="handlePageChange(currentPage + 1)">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage >= totalPages"
+            @click="handlePageChange(currentPage + 1)"
+          >
             &gt;
           </button>
-          <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+          <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
             <option value="10">10 条 / 页</option>
             <option value="20">20 条 / 页</option>
             <option value="50">50 条 / 页</option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
             <span>页</span>
             <button class="page-btn page-go" @click="handleJump">Go</button>
           </div>
@@ -126,7 +149,7 @@
           <h3>日志详情</h3>
           <button class="close-btn" @click="closeDetailModal">&times;</button>
         </div>
-        <div class="modal-body" v-if="detailData">
+        <div v-if="detailData" class="modal-body">
           <div class="detail-section">
             <div class="detail-row">
               <div class="detail-item">
@@ -174,7 +197,10 @@
                 <div class="detail-value content-full">{{ detailData.remark || '-' }}</div>
               </div>
             </div>
-            <div class="detail-row full-width" v-if="detailData.images && detailData.images.length > 0">
+            <div
+              v-if="detailData.images && detailData.images.length > 0"
+              class="detail-row full-width"
+            >
               <div class="detail-item">
                 <label class="detail-label">现场照片</label>
                 <div class="detail-images">
@@ -192,14 +218,14 @@
             </div>
           </div>
 
-          <div class="operation-log-section" v-if="operationLogs.length > 0">
+          <div v-if="operationLogs.length > 0" class="operation-log-section">
             <div class="section-title">内部确认区</div>
             <div class="timeline">
               <div
                 v-for="(log, index) in operationLogs"
                 :key="log.id"
                 class="timeline-item"
-                :class="{ 'last': index === operationLogs.length - 1 }"
+                :class="{ last: index === operationLogs.length - 1 }"
               >
                 <div class="timeline-dot"></div>
                 <div class="timeline-content">
@@ -210,7 +236,7 @@
               </div>
             </div>
           </div>
-          <div class="operation-log-section" v-else-if="!loadingLogs">
+          <div v-else-if="!loadingLogs" class="operation-log-section">
             <div class="section-title">内部确认区</div>
             <div class="no-logs">暂无操作记录</div>
           </div>
@@ -234,9 +260,9 @@
         <div class="modal-body">
           <div class="form-group">
             <label class="form-label">退回原因 <span class="required">*</span></label>
-            <textarea 
-              v-model="rejectReason" 
-              class="form-textarea" 
+            <textarea
+              v-model="rejectReason"
+              class="form-textarea"
               placeholder="请输入退回原因"
               rows="4"
             ></textarea>
@@ -244,7 +270,7 @@
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeRejectModal">取消</button>
-          <button class="confirm-btn reject" @click="confirmReject" :disabled="submitting">
+          <button class="confirm-btn reject" :disabled="submitting" @click="confirmReject">
             {{ submitting ? '处理中...' : '确认退回' }}
           </button>
         </div>
@@ -300,7 +326,7 @@ interface OperationLogItem {
 export default defineComponent({
   name: 'MaintenanceLogList',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
@@ -323,7 +349,7 @@ export default defineComponent({
     const filters = ref({
       project: '',
       logDate: '',
-      createdBy: ''
+      createdBy: '',
     })
 
     const isAdmin = computed(() => {
@@ -360,9 +386,9 @@ export default defineComponent({
      */
     const getLogTypeName = (logType: string) => {
       const typeMap: Record<string, string> = {
-        'maintenance': '维修日志',
-        'spot': '维修日志',
-        'repair': '维修日志'
+        maintenance: '维修日志',
+        spot: '维修日志',
+        repair: '维修日志',
       }
       return typeMap[logType] || '维修日志'
     }
@@ -399,7 +425,7 @@ export default defineComponent({
       try {
         const params: Record<string, any> = {
           page: currentPage.value - 1,
-          size: pageSize.value
+          size: pageSize.value,
         }
         if (filters.value.project) params.project_name = filters.value.project
         if (filters.value.logDate) params.log_date = filters.value.logDate
@@ -415,7 +441,9 @@ export default defineComponent({
           }
         }
 
-        const response = await apiClient.get('/maintenance-log', { params }) as unknown as PaginatedResponse<MaintenanceLogItem>
+        const response = (await apiClient.get('/maintenance-log', {
+          params,
+        })) as unknown as PaginatedResponse<MaintenanceLogItem>
 
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
@@ -452,7 +480,9 @@ export default defineComponent({
     const fetchOperationLogs = async (logId: number) => {
       loadingLogs.value = true
       try {
-        const response = await apiClient.get(`/maintenance-log/${logId}/operation-logs`) as unknown as ApiResponse<OperationLogItem[]>
+        const response = (await apiClient.get(
+          `/maintenance-log/${logId}/operation-logs`
+        )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
           operationLogs.value = response.data || []
         }
@@ -524,10 +554,13 @@ export default defineComponent({
 
       submitting.value = true
       try {
-        const response = await apiClient.post(`/maintenance-log/${pendingRejectItem.value.id}/reject`, {
-          reject_reason: rejectReason.value
-        }) as unknown as ApiResponse<null>
-        
+        const response = (await apiClient.post(
+          `/maintenance-log/${pendingRejectItem.value.id}/reject`,
+          {
+            reject_reason: rejectReason.value,
+          }
+        )) as unknown as ApiResponse<null>
+
         if (response.code === 200) {
           alert('已退回')
           closeRejectModal()
@@ -632,9 +665,9 @@ export default defineComponent({
       closeRejectModal,
       handlePageChange,
       handlePageSizeChange,
-      handleJump
+      handleJump,
     }
-  }
+  },
 })
 </script>
 

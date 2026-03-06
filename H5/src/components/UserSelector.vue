@@ -26,25 +26,25 @@ const loginUser = async (user: User): Promise<boolean> => {
     showLoadingToast({
       message: '登录中...',
       forbidClick: true,
-      duration: 0
+      duration: 0,
     })
-    
+
     const defaultPassword = user.phone ? user.phone.slice(-6) : '123456'
-    
+
     const response = await authService.login({
       username: user.name,
       password: defaultPassword,
-      device_type: 'h5'
+      device_type: 'h5',
     })
-    
+
     closeToast()
-    
+
     if (response.code === 200 && response.data?.access_token) {
       userStore.setToken(response.data.access_token)
       onlineUserService.recordLogin('h5', user.id, user.name).catch(() => {})
       return true
     }
-    
+
     return false
   } catch (error) {
     closeToast()
@@ -58,12 +58,12 @@ const loadUserList = async () => {
     const response = await personnelService.getAll()
     if (response.code === 200 && response.data) {
       const data = Array.isArray(response.data) ? response.data : []
-      userList.value = data.map(p => ({
+      userList.value = data.map((p) => ({
         id: p.id,
         name: p.name,
         role: p.role || '',
         department: p.department || '',
-        phone: p.phone || ''
+        phone: p.phone || '',
       }))
       const savedUser = userStore.getUser()
       if (savedUser) {
@@ -107,9 +107,9 @@ const selectUser = async (user: User) => {
 }
 
 const userOptions = computed(() => {
-  return userList.value.map(user => ({
+  return userList.value.map((user) => ({
     text: `${user.name} (${user.role})`,
-    disabled: currentUser.value?.id === user.id
+    disabled: currentUser.value?.id === user.id,
   }))
 })
 
@@ -126,7 +126,7 @@ onMounted(() => {
 
 defineExpose({
   currentUser,
-  isReady
+  isReady,
 })
 </script>
 
@@ -140,9 +140,9 @@ defineExpose({
     @select="onSelectUser"
   >
     <template #reference>
-      <div class="user-selector" v-if="currentUser">
+      <div v-if="currentUser" class="user-selector">
         <span class="user-name">{{ currentUser.name }}</span>
-        <span class="user-role" v-if="currentUser.role">({{ currentUser.role }})</span>
+        <span v-if="currentUser.role" class="user-role">({{ currentUser.role }})</span>
         <van-icon name="arrow-down" />
       </div>
     </template>

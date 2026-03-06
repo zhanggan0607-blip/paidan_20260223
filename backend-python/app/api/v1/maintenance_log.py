@@ -98,7 +98,7 @@ def get_maintenance_logs(
     """
     获取维保日志列表
     """
-    query = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == 0)
+    query = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == False)
     
     if project_name:
         query = query.filter(MaintenanceLog.project_name.ilike(f"%{project_name}%"))
@@ -140,7 +140,7 @@ def get_all_maintenance_logs(
     """
     获取所有维保日志列表(不分页)
     """
-    items = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == 0).order_by(MaintenanceLog.created_at.desc()).all()
+    items = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == False).order_by(MaintenanceLog.created_at.desc()).all()
     
     return ApiResponse(
         code=200,
@@ -169,7 +169,7 @@ def get_my_maintenance_logs(
     if user_info:
         user_name = user_info.get('sub') or user_info.get('name')
     
-    query = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == 0)
+    query = db.query(MaintenanceLog).filter(MaintenanceLog.is_deleted == False)
     
     if user_name:
         query = query.filter(MaintenanceLog.created_by == user_name)
@@ -209,7 +209,7 @@ def get_maintenance_log_by_id(
     """
     获取维保日志详情
     """
-    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == False).first()
     if not log:
         return ApiResponse(
             code=404,
@@ -287,7 +287,7 @@ def update_maintenance_log(
     """
     更新维保日志
     """
-    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == False).first()
     if not log:
         return ApiResponse(
             code=404,
@@ -321,7 +321,7 @@ def delete_maintenance_log(
     """
     删除维保日志(软删除)
     """
-    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == False).first()
     if not log:
         return ApiResponse(
             code=404,
@@ -329,7 +329,7 @@ def delete_maintenance_log(
             data=None
         )
     
-    log.is_deleted = 1
+    log.is_deleted = True
     db.commit()
     
     return ApiResponse(
@@ -347,7 +347,7 @@ def get_maintenance_log_operation_logs(
     """
     获取维保日志操作日志
     """
-    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == False).first()
     if not log:
         return ApiResponse(
             code=404,
@@ -382,7 +382,7 @@ def reject_maintenance_log(
     """
     退回维保日志
     """
-    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == 0).first()
+    log = db.query(MaintenanceLog).filter(MaintenanceLog.id == id, MaintenanceLog.is_deleted == False).first()
     if not log:
         return ApiResponse(
             code=404,

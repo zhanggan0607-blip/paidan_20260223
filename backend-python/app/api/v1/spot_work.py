@@ -182,6 +182,8 @@ def save_workers(
     包含身份证号码强认证
     """
     logger.info(f"收到施工人员保存请求: project_id={dto.project_id}, workers_count={len(dto.workers)}")
+    for i, w in enumerate(dto.workers):
+        logger.info(f"工人{i+1}: name={w.name}, idCardNumber={w.idCardNumber}, idCardFront={bool(w.idCardFront)}, idCardBack={bool(w.idCardBack)}")
     
     service = SpotWorkService(db)
     

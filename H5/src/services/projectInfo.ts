@@ -9,7 +9,7 @@ import type {
   ProjectInfo,
   ProjectInfoCreate,
   ProjectInfoUpdate,
-  ProjectInfoQueryParams
+  ProjectInfoQueryParams,
 } from '../types/models'
 
 export const projectInfoService = {

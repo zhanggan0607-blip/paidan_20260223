@@ -12,7 +12,7 @@ import type {
   SpotWorkUpdate,
   SpotWorkQueryParams,
   QuickFillRequest,
-  WorkersSaveRequest
+  WorkersSaveRequest,
 } from '../types/models'
 
 export const spotWorkService = {
@@ -82,20 +82,27 @@ export const spotWorkService = {
   /**
    * 根据项目ID获取工人列表
    */
-  async getWorkersByProject(projectId: string, startDate: string, endDate: string): Promise<ApiResponse<SpotWorkWorker[]>> {
+  async getWorkersByProject(
+    projectId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<ApiResponse<SpotWorkWorker[]>> {
     return request.get(API_ENDPOINTS.SPOT_WORK.WORKERS_BY_PROJECT, {
       params: {
         project_id: projectId,
         start_date: startDate,
-        end_date: endDate
-      }
+        end_date: endDate,
+      },
     })
   },
 
   /**
    * 更新工人信息
    */
-  async updateWorker(id: number, data: Partial<SpotWorkWorker>): Promise<ApiResponse<SpotWorkWorker>> {
+  async updateWorker(
+    id: number,
+    data: Partial<SpotWorkWorker>
+  ): Promise<ApiResponse<SpotWorkWorker>> {
     return request.put(API_ENDPOINTS.SPOT_WORK.WORKER_DETAIL(id), data)
   },
 
@@ -130,7 +137,11 @@ export const spotWorkService = {
   /**
    * 获取工人列表
    */
-  async getWorkers(params: { project_id: string; start_date: string; end_date: string }): Promise<ApiResponse<SpotWorkWorker[]>> {
+  async getWorkers(params: {
+    project_id: string
+    start_date: string
+    end_date: string
+  }): Promise<ApiResponse<SpotWorkWorker[]>> {
     return request.get(API_ENDPOINTS.SPOT_WORK.WORKERS, { params })
   },
 }

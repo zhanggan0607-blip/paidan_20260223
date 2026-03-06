@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { showSuccessToast, showFailToast, showConfirmDialog, showLoadingToast, closeToast } from 'vant'
+import {
+  showSuccessToast,
+  showFailToast,
+  showConfirmDialog,
+  showLoadingToast,
+  closeToast,
+} from 'vant'
 import { periodicInspectionService } from '../services'
 import { useNavigation } from '../composables'
 
@@ -29,7 +35,7 @@ const lockOrientation = async () => {
 const unlockOrientation = () => {
   try {
     if (screen.orientation && 'unlock' in screen.orientation) {
-      (screen.orientation as any).unlock()
+      ;(screen.orientation as any).unlock()
     }
   } catch (e) {
     console.log('Orientation unlock not supported')
@@ -38,13 +44,13 @@ const unlockOrientation = () => {
 
 const initCanvas = () => {
   if (!canvas.value) return
-  
+
   const container = canvas.value.parentElement
   if (!container) return
-  
+
   canvas.value.width = container.clientWidth
   canvas.value.height = container.clientHeight
-  
+
   ctx.value = canvas.value.getContext('2d', { willReadFrequently: true })
   if (ctx.value) {
     ctx.value.strokeStyle = '#000'
@@ -58,20 +64,20 @@ const initCanvas = () => {
 
 const getCoordinates = (e: TouchEvent | MouseEvent) => {
   if (!canvas.value) return { x: 0, y: 0 }
-  
+
   const rect = canvas.value.getBoundingClientRect()
-  
+
   if (e.type.startsWith('touch')) {
     const touch = (e as TouchEvent).touches[0] ?? (e as TouchEvent).changedTouches[0]
     if (!touch) return { x: 0, y: 0 }
     return {
       x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top
+      y: touch.clientY - rect.top,
     }
   } else {
     return {
       x: (e as MouseEvent).clientX - rect.left,
-      y: (e as MouseEvent).clientY - rect.top
+      y: (e as MouseEvent).clientY - rect.top,
     }
   }
 }
@@ -87,14 +93,14 @@ const startDrawing = (e: TouchEvent | MouseEvent) => {
 const draw = (e: TouchEvent | MouseEvent) => {
   e.preventDefault()
   if (!isDrawing.value || !ctx.value) return
-  
+
   const coords = getCoordinates(e)
-  
+
   ctx.value.beginPath()
   ctx.value.moveTo(lastX.value, lastY.value)
   ctx.value.lineTo(coords.x, coords.y)
   ctx.value.stroke()
-  
+
   lastX.value = coords.x
   lastY.value = coords.y
 }
@@ -107,37 +113,36 @@ const handleClear = async () => {
   try {
     await showConfirmDialog({
       title: '提示',
-      message: '确认清除签名吗？'
+      message: '确认清除签名吗？',
     })
-    
+
     if (ctx.value && canvas.value) {
       ctx.value.fillStyle = '#fff'
       ctx.value.fillRect(0, 0, canvas.value.width, canvas.value.height)
     }
-  } catch {
-  }
+  } catch {}
 }
 
 const handleConfirm = async () => {
   if (!canvas.value) return
-  
+
   const isEmpty = isCanvasEmpty()
   if (isEmpty) {
     showFailToast('请先签名')
     return
   }
-  
+
   signatureData.value = canvas.value.toDataURL('image/png')
-  
+
   const from = route.query.from as string
   const type = route.query.type as string
   const inspectionId = route.query.inspectionId as string
-  
+
   if (type === 'periodic-inspection' && inspectionId) {
     showLoadingToast({ message: '保存签名...', forbidClick: true })
     try {
-      const response = await periodicInspectionService.update(Number(inspectionId), {
-        signature: signatureData.value
+      const response = await periodicInspectionService.patch(Number(inspectionId), {
+        signature: signatureData.value,
       } as any)
       if (response.code === 200) {
         localStorage.setItem('periodic_inspection_signature', signatureData.value)
@@ -165,7 +170,7 @@ const handleConfirm = async () => {
     } else if (type === 'spot-work-apply') {
       localStorage.setItem('spot_work_apply_signature', signatureData.value)
     }
-    
+
     showSuccessToast('签名成功')
     unlockOrientation()
     router.replace(from)
@@ -182,7 +187,7 @@ const handleBack = () => {
 
 const isCanvasEmpty = () => {
   if (!canvas.value || !ctx.value) return true
-  
+
   const pixelData = ctx.value.getImageData(0, 0, canvas.value.width, canvas.value.height).data
   for (let i = 0; i < pixelData.length; i += 4) {
     const r = pixelData[i]
@@ -216,10 +221,10 @@ onUnmounted(() => {
       <span class="title">签字确认</span>
       <div class="placeholder"></div>
     </div>
-    
+
     <div class="signature-container">
       <div class="canvas-wrapper">
-        <canvas 
+        <canvas
           ref="canvas"
           class="signature-canvas"
           @mousedown="startDrawing"
@@ -231,10 +236,10 @@ onUnmounted(() => {
           @touchend="stopDrawing"
         />
       </div>
-      
+
       <div class="signature-tip">请在上方区域横向签名</div>
     </div>
-    
+
     <div class="action-buttons">
       <van-button type="default" size="small" @click="handleClear">清除</van-button>
       <van-button type="primary" size="small" @click="handleConfirm">确认</van-button>

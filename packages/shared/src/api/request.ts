@@ -2,8 +2,17 @@
  * 统一请求封装工厂
  * 提供创建Axios实例的工厂函数，支持自定义配置
  */
-import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig, type AxiosError } from 'axios'
+import axios, {
+  type AxiosInstance,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+  type AxiosError,
+} from 'axios'
 import type { ApiResponse, ApiError, User } from '../types/api'
+
+interface AxiosRequestConfigWithMetadata extends InternalAxiosRequestConfig {
+  metadata?: { startTime: number }
+}
 
 export interface RequestConfig {
   baseURL: string
@@ -35,7 +44,7 @@ function subscribeTokenRefresh(callback: (token: string) => void) {
 }
 
 function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach(callback => callback(token))
+  refreshSubscribers.forEach((callback) => callback(token))
   refreshSubscribers = []
 }
 
@@ -46,14 +55,18 @@ async function refreshToken(
   try {
     const token = config.getToken()
     if (!token) return null
-    
+
     const refreshEndpoint = config.refreshEndpoint || '/auth/refresh'
-    const response = await axiosInstance.post(refreshEndpoint, {}, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    const response = await axiosInstance.post(
+      refreshEndpoint,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       }
-    })
-    
+    )
+
     if (response.data?.code === 200 && response.data?.data?.access_token) {
       const newToken = response.data.data.access_token
       if (config.setToken) {
@@ -70,21 +83,23 @@ async function refreshToken(
 function createApiError(error: AxiosError | Error, status?: number): ApiError {
   if (axios.isAxiosError(error)) {
     const response = error.response
-    const data = response?.data as { detail?: string; message?: string; data?: { errors?: string[] } } | undefined
-    
+    const data = response?.data as
+      | { detail?: string; message?: string; data?: { errors?: string[] } }
+      | undefined
+
     return {
       status: response?.status || 0,
       message: data?.detail || data?.message || error.message,
       errors: data?.data?.errors || [],
-      data: data?.data || null
+      data: data?.data || null,
     }
   }
-  
+
   return {
     status: status || -1,
     message: error.message,
     errors: [],
-    data: null
+    data: null,
   }
 }
 
@@ -93,7 +108,13 @@ function logRequest(config: RequestConfig, method: string, url: string, data?: u
   console.log(`[API Request] ${method.toUpperCase()} ${url}`, data || '')
 }
 
-function logResponse(config: RequestConfig, method: string, url: string, response: unknown, duration: number) {
+function logResponse(
+  config: RequestConfig,
+  method: string,
+  url: string,
+  response: unknown,
+  duration: number
+) {
   if (!config.enableLogger) return
   console.log(`[API Response] ${method.toUpperCase()} ${url} (${duration}ms)`, response)
 }
@@ -124,9 +145,9 @@ export function createRequest(config: RequestConfig): RequestInstance {
         axiosConfig.headers['X-User-Name'] = encodeURIComponent(user.name || '')
         axiosConfig.headers['X-User-Role'] = encodeURIComponent(user.role || '')
       }
-      
-      axiosConfig.metadata = { startTime: Date.now() }
-      
+
+      ;(axiosConfig as AxiosRequestConfigWithMetadata).metadata = { startTime: Date.now() }
+
       return axiosConfig
     },
     (error) => Promise.reject(error)
@@ -134,33 +155,40 @@ export function createRequest(config: RequestConfig): RequestInstance {
 
   instance.interceptors.response.use(
     (response: AxiosResponse) => {
-      const duration = Date.now() - ((response.config.metadata as { startTime: number })?.startTime || 0)
-      logResponse(config, response.config.method || 'get', response.config.url || '', response.data, duration)
+      const metadata = (response.config as AxiosRequestConfigWithMetadata).metadata
+      const duration = Date.now() - (metadata?.startTime || 0)
+      logResponse(
+        config,
+        response.config.method || 'get',
+        response.config.url || '',
+        response.data,
+        duration
+      )
       return response.data
     },
     async (error: AxiosError) => {
       const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
       const apiError = createApiError(error)
-      
+
       logError(config, originalRequest?.method || 'get', originalRequest?.url || '', apiError)
-      
+
       if (!error.response) {
         config.onNetworkError?.(apiError)
         return Promise.reject(apiError)
       }
-      
+
       if (error.response.status >= 500) {
         config.onServerError?.(apiError)
       }
-      
+
       if (error.response?.status === 401 && !originalRequest._retry) {
         const token = config.getToken()
-        
+
         if (!token) {
           config.onUnauthorized?.()
           return Promise.reject(createApiError(error, 401))
         }
-        
+
         if (isRefreshing) {
           return new Promise((resolve) => {
             subscribeTokenRefresh((newToken: string) => {
@@ -169,28 +197,28 @@ export function createRequest(config: RequestConfig): RequestInstance {
             })
           })
         }
-        
+
         originalRequest._retry = true
         isRefreshing = true
-        
+
         const newToken = await refreshToken(instance, config)
         isRefreshing = false
-        
+
         if (newToken) {
           onTokenRefreshed(newToken)
           originalRequest.headers.Authorization = `Bearer ${newToken}`
           return instance(originalRequest)
         }
-        
+
         config.onUnauthorized?.()
         return Promise.reject({
           status: 401,
           message: '登录已过期',
           errors: [],
-          data: null
+          data: null,
         } as ApiError)
       }
-      
+
       return Promise.reject(createApiError(error))
     }
   )
@@ -199,7 +227,7 @@ export function createRequest(config: RequestConfig): RequestInstance {
     const token = config.getToken()
     const user = config.getUser()
     const headers: Record<string, string> = {}
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -207,13 +235,13 @@ export function createRequest(config: RequestConfig): RequestInstance {
       headers['X-User-Name'] = encodeURIComponent(user.name || '')
       headers['X-User-Role'] = encodeURIComponent(user.role || '')
     }
-    
+
     return {
       ...requestConfig,
       headers: {
         ...headers,
-        ...('headers' in requestConfig ? requestConfig.headers : {})
-      }
+        ...('headers' in requestConfig ? requestConfig.headers : {}),
+      },
     }
   }
 
@@ -225,7 +253,9 @@ export function createRequest(config: RequestConfig): RequestInstance {
     },
     post: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => {
       logRequest(config, 'post', url, data)
-      return instance.post(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+      return instance.post(url, data, addAuthHeaders(requestConfig || {})) as Promise<
+        ApiResponse<T>
+      >
     },
     put: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => {
       logRequest(config, 'put', url, data)
@@ -233,7 +263,9 @@ export function createRequest(config: RequestConfig): RequestInstance {
     },
     patch: <T = unknown>(url: string, data?: unknown, requestConfig?: object) => {
       logRequest(config, 'patch', url, data)
-      return instance.patch(url, data, addAuthHeaders(requestConfig || {})) as Promise<ApiResponse<T>>
+      return instance.patch(url, data, addAuthHeaders(requestConfig || {})) as Promise<
+        ApiResponse<T>
+      >
     },
     delete: <T = unknown>(url: string, requestConfig?: object) => {
       logRequest(config, 'delete', url)
@@ -250,10 +282,7 @@ export const handleApiError = (error: unknown, defaultMessage: string = '操作�
 }
 
 export const isApiError = (error: unknown): error is ApiError => {
-  return error !== null && 
-         typeof error === 'object' && 
-         'status' in error && 
-         'message' in error
+  return error !== null && typeof error === 'object' && 'status' in error && 'message' in error
 }
 
 export default createRequest

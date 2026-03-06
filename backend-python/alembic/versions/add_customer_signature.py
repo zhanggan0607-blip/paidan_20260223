@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = 'add_customer_signature'
-down_revision = 'add_work_content_column'
+down_revision = 'add_photos_signature'
 branch_labels = None
 depends_on = None
 

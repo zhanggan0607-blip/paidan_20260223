@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onActivated } from 'vue'
 import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'vant'
 import { maintenanceLogService } from '../services'
@@ -21,9 +21,9 @@ const operationLogs = ref<OperationLog[]>([])
  */
 const getLogTypeName = (logType: string) => {
   const typeMap: Record<string, string> = {
-    'maintenance': '维修日志',
-    'spot': '维修日志',
-    'repair': '维修日志'
+    maintenance: '维修日志',
+    spot: '维修日志',
+    repair: '维修日志',
   }
   return typeMap[logType] || '维修日志'
 }
@@ -52,18 +52,23 @@ const fetchLogDetail = async () => {
     showFailToast('日志ID不存在')
     return
   }
-  
+
+  // 重置数据
+  logDetail.value = null
+  imageList.value = []
+  operationLogs.value = []
+
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
-  
+
   try {
     console.log('Fetching detail from:', id)
     const response = await maintenanceLogService.getById(Number(id))
     console.log('Detail response:', response)
-    
+
     if (response.code === 200 && response.data) {
       logDetail.value = response.data
-      
+
       if (response.data.images) {
         try {
           imageList.value = JSON.parse(response.data.images)
@@ -71,7 +76,7 @@ const fetchLogDetail = async () => {
           imageList.value = []
         }
       }
-      
+
       // 获取操作日志
       fetchOperationLogs(Number(id))
     } else {
@@ -116,12 +121,12 @@ const getFullImageUrl = (url: string): string => {
  */
 const handlePreviewImage = (index: number) => {
   if (imageList.value.length > 0) {
-    const fullUrls = imageList.value.map(img => getFullImageUrl(img))
+    const fullUrls = imageList.value.map((img) => getFullImageUrl(img))
     showImagePreview({
       images: fullUrls,
       startPosition: index,
       closeable: true,
-      showIndex: true
+      showIndex: true,
     })
   }
 }
@@ -133,16 +138,15 @@ const handleBack = () => {
 onMounted(() => {
   fetchLogDetail()
 })
+
+onActivated(() => {
+  fetchLogDetail()
+})
 </script>
 
 <template>
   <div class="maintenance-log-detail-page">
-    <van-nav-bar 
-      title="维保日志详情" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="维保日志详情" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -153,7 +157,7 @@ onMounted(() => {
         <UserSelector />
       </template>
     </van-nav-bar>
-    
+
     <div v-if="logDetail" class="detail-content">
       <van-cell-group inset title="基本信息">
         <van-cell title="日志编号" :value="logDetail.log_id" />
@@ -164,24 +168,24 @@ onMounted(() => {
         <van-cell title="提交人" :value="logDetail.created_by || '-'" />
         <van-cell title="提交时间" :value="formatDateTime(logDetail.created_at)" />
       </van-cell-group>
-      
-      <van-cell-group inset title="工作内容" v-if="logDetail.work_content">
+
+      <van-cell-group v-if="logDetail.work_content" inset title="工作内容">
         <div class="content-box">
           {{ logDetail.work_content }}
         </div>
       </van-cell-group>
-      
-      <van-cell-group inset title="备注" v-if="logDetail.remark">
+
+      <van-cell-group v-if="logDetail.remark" inset title="备注">
         <div class="content-box">
           {{ logDetail.remark }}
         </div>
       </van-cell-group>
-      
-      <van-cell-group inset title="现场照片" v-if="imageList.length > 0">
+
+      <van-cell-group v-if="imageList.length > 0" inset title="现场照片">
         <div class="image-section">
           <div class="image-list">
-            <div 
-              v-for="(img, index) in imageList" 
+            <div
+              v-for="(img, index) in imageList"
               :key="index"
               class="image-item"
               @click="handlePreviewImage(index)"
@@ -191,28 +195,30 @@ onMounted(() => {
           </div>
         </div>
       </van-cell-group>
-      
-      <van-cell-group inset title="内部确认区" v-if="operationLogs.length > 0">
+
+      <van-cell-group v-if="operationLogs.length > 0" inset title="内部确认区">
         <div class="operation-log-section">
           <div class="timeline">
-            <div 
-              v-for="(log, index) in operationLogs" 
-              :key="log.id" 
+            <div
+              v-for="(log, index) in operationLogs"
+              :key="log.id"
               class="timeline-item"
-              :class="{ 'last': index === operationLogs.length - 1 }"
+              :class="{ last: index === operationLogs.length - 1 }"
             >
               <div class="timeline-dot"></div>
               <div class="timeline-content">
                 <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
                 <span class="timeline-operator">{{ log.operator_name || '-' }}</span>
-                <span class="timeline-action">{{ log.operation_type_name || log.operation_type }}</span>
+                <span class="timeline-action">{{
+                  log.operation_type_name || log.operation_type
+                }}</span>
               </div>
             </div>
           </div>
         </div>
       </van-cell-group>
     </div>
-    
+
     <van-empty v-else-if="!loading" description="暂无数据" />
   </div>
 </template>

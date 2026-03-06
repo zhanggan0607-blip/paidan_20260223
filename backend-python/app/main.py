@@ -7,33 +7,19 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import text
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.config import get_settings
-from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log, weekly_report, work_order_operation_log, operation_type, ocr, online_user, migration
+from app.api.v1 import project_info, maintenance_plan, personnel, periodic_inspection, periodic_inspection_record, inspection_item, overdue_alert, expiring_soon, temporary_repair, spot_work, spare_parts, spare_parts_stock, statistics, dictionary, user_dashboard_config, work_plan, customer, repair_tools, upload, auth, work_order, maintenance_log, weekly_report, work_order_operation_log, operation_type, ocr, online_user, migration, dingtalk_auth
 from app.database import Base, engine
 from app.exceptions import BusinessException
 from app.middleware.rate_limit import RateLimitMiddleware
-import logging
+from app.utils.logging_config import setup_logging, get_logger
 import time
 import uuid
 import os
 from datetime import datetime
 
-LOG_DIR = os.path.join(os.path.dirname(__file__), "..", "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
+setup_logging(level="DEBUG" if get_settings().debug else "INFO")
 
-LOG_FILE = os.path.join(LOG_DIR, f"app_{datetime.now().strftime('%Y%m%d')}.log")
-
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding='utf-8'),
-        logging.StreamHandler()
-    ]
-)
-
-logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
-
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 settings = get_settings()
 
 app = FastAPI(
@@ -44,9 +30,11 @@ app = FastAPI(
     openapi_url=settings.openapi_url,
 )
 
+Instrumentator().instrument(app).expose(app)
+
 @app.on_event("startup")
 async def startup_event():
-    """应用启动时创建数据库表"""
+    """应用启动时创建数据库表和序列"""
     logger.info("正在创建数据库表...")
     try:
         Base.metadata.create_all(bind=engine, checkfirst=True)
@@ -57,7 +45,14 @@ async def startup_event():
         else:
             logger.info(f"数据库表或索引已存在，跳过创建")
     
-    Instrumentator().instrument(app).expose(app)
+    logger.info("正在创建工单编号序列...")
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("CREATE SEQUENCE IF NOT EXISTS work_order_seq START 1"))
+            conn.commit()
+        logger.info("工单编号序列创建成功")
+    except Exception as e:
+        logger.warning(f"创建工单编号序列失败（可能已存在）: {str(e)}")
 
 app.add_middleware(
     CORSMiddleware,
@@ -134,6 +129,7 @@ app.include_router(operation_type.router, prefix=settings.api_prefix)
 app.include_router(ocr.router, prefix=settings.api_prefix)
 app.include_router(online_user.router, prefix=settings.api_prefix)
 app.include_router(migration.router, prefix=settings.api_prefix)
+app.include_router(dingtalk_auth.router, prefix=settings.api_prefix)
 
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -418,6 +414,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             "message": error["msg"],
             "type": error["type"],
         })
+    logger.error(f"参数验证失败: {errors}")
     return JSONResponse(
         status_code=422,
         content={"code": 422, "message": "参数验证失败", "data": {"errors": errors}},
@@ -426,8 +423,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
+    import traceback
+    error_trace = traceback.format_exc()
+    logger.error(f"Unhandled exception: {str(exc)}\n{error_trace}")
     return JSONResponse(
         status_code=500,
-        content={"code": 500, "message": "Internal server error", "data": None},
+        content={"code": 500, "message": f"Internal server error: {str(exc)}", "data": None},
     )

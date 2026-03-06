@@ -19,7 +19,7 @@ function subscribeTokenRefresh(callback: (token: string) => void) {
  * Token刷新完成后通知所有订阅者
  */
 function onTokenRefreshed(token: string) {
-  refreshSubscribers.forEach(callback => callback(token))
+  refreshSubscribers.forEach((callback) => callback(token))
   refreshSubscribers = []
 }
 
@@ -28,11 +28,15 @@ function onTokenRefreshed(token: string) {
  */
 async function refreshToken(): Promise<string | null> {
   try {
-    const response = await axios.post('/api/v1/auth/refresh', {}, {
-      headers: {
-        'Authorization': `Bearer ${userStore.getToken()}`
+    const response = await axios.post(
+      '/api/v1/auth/refresh',
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${userStore.getToken()}`,
+        },
       }
-    })
+    )
 
     if (response.data?.code === 200 && response.data?.data?.access_token) {
       const newToken = response.data.data.access_token
@@ -91,7 +95,7 @@ request.interceptors.response.use(
         return Promise.reject({
           status: 401,
           message: '未登录',
-          data: null
+          data: null,
         })
       }
 
@@ -119,15 +123,16 @@ request.interceptors.response.use(
       return Promise.reject({
         status: 401,
         message: '登录已过期',
-        data: null
+        data: null,
       })
     }
 
-    const errorMessage = error.response?.data?.detail || error.response?.data?.message || error.message
+    const errorMessage =
+      error.response?.data?.detail || error.response?.data?.message || error.message
     return Promise.reject({
       status: error.response?.status,
       message: errorMessage,
-      data: error.response?.data
+      data: error.response?.data,
     })
   }
 )

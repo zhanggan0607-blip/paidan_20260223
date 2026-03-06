@@ -2,12 +2,12 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
-import { 
-  overdueAlertService, 
+import {
+  overdueAlertService,
   expiringSoonService,
-  periodicInspectionService, 
-  temporaryRepairService, 
-  spotWorkService 
+  periodicInspectionService,
+  temporaryRepairService,
+  spotWorkService,
 } from '../services'
 import { formatDate, getWorkIdFontSize, getStatusType, getDisplayStatus } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
@@ -25,7 +25,7 @@ const workList = ref<any[]>([])
 const overdueList = ref<OverdueAlertItem[]>([])
 const expiringList = ref<OverdueAlertItem[]>([])
 
-const type = computed(() => route.query.type as string || 'expiring')
+const type = computed(() => (route.query.type as string) || 'expiring')
 
 const tabs = [
   { key: 'expiring', title: '临期工单', status: null, planType: null },
@@ -33,12 +33,12 @@ const tabs = [
   { key: 'completed', title: '本年完成', status: '已完成', planType: null },
   { key: 'periodic', title: '定期巡检', status: null, planType: '定期巡检' },
   { key: 'repair', title: '临时维修', status: null, planType: '临时维修' },
-  { key: 'spot', title: '零星用工', status: null, planType: '零星用工' }
+  { key: 'spot', title: '零星用工', status: null, planType: '零星用工' },
 ]
 
 const currentTab = computed(() => {
   const tabKey = type.value
-  const found = tabs.find(t => t.key === tabKey)
+  const found = tabs.find((t) => t.key === tabKey)
   return found ?? tabs[0]!
 })
 
@@ -47,7 +47,7 @@ const pageTitle = computed(() => currentTab.value?.title || '工单列表')
 const displayList = computed(() => {
   const tabKey = currentTab.value?.key
   if (tabKey === 'overdue') {
-    return overdueList.value.map(item => ({
+    return overdueList.value.map((item) => ({
       id: parseInt(item.id),
       uniqueKey: `overdue-${item.id}`,
       projectName: item.projectName,
@@ -60,11 +60,11 @@ const displayList = computed(() => {
       daysRemaining: item.daysRemaining,
       clientName: item.customerName,
       totalCount: undefined,
-      filledCount: undefined
+      filledCount: undefined,
     }))
   }
   if (tabKey === 'expiring') {
-    return expiringList.value.map(item => ({
+    return expiringList.value.map((item) => ({
       id: parseInt(item.id),
       uniqueKey: `expiring-${item.id}`,
       projectName: item.projectName,
@@ -77,7 +77,7 @@ const displayList = computed(() => {
       daysRemaining: item.daysRemaining,
       clientName: item.customerName,
       totalCount: undefined,
-      filledCount: undefined
+      filledCount: undefined,
     }))
   }
   return workList.value
@@ -117,33 +117,33 @@ const fetchExpiringList = async () => {
 
 const fetchWorkList = async () => {
   const tabKey = currentTab.value?.key
-  
+
   if (tabKey === 'overdue') {
     await fetchOverdueList()
     return
   }
-  
+
   if (tabKey === 'expiring') {
     await fetchExpiringList()
     return
   }
-  
+
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
     let items: any[] = []
-    
+
     switch (tabKey) {
       case 'completed': {
         const completedStatuses = ['已完成']
         const currentYear = new Date().getFullYear()
-        
+
         const [inspectionRes, repairRes, spotRes] = await Promise.all([
           periodicInspectionService.getList({ page: 0, size: 1000 }),
           temporaryRepairService.getList({ page: 0, size: 1000 }),
-          spotWorkService.getList({ page: 0, size: 1000 })
+          spotWorkService.getList({ page: 0, size: 1000 }),
         ])
-        
+
         if (inspectionRes.code === 200) {
           const inspectionItems = inspectionRes.data?.items || inspectionRes.data?.content || []
           const completedInspections = inspectionItems
@@ -153,9 +153,11 @@ const fetchWorkList = async () => {
               if (!completionDate) return false
               return new Date(completionDate).getFullYear() === currentYear
             })
-          items = items.concat(completedInspections.map((item: any) => ({ ...item, planType: '定期巡检' })))
+          items = items.concat(
+            completedInspections.map((item: any) => ({ ...item, planType: '定期巡检' }))
+          )
         }
-        
+
         if (repairRes.code === 200) {
           const repairItems = repairRes.data?.items || repairRes.data?.content || []
           const completedRepairs = repairItems
@@ -165,9 +167,11 @@ const fetchWorkList = async () => {
               if (!completionDate) return false
               return new Date(completionDate).getFullYear() === currentYear
             })
-          items = items.concat(completedRepairs.map((item: any) => ({ ...item, planType: '临时维修' })))
+          items = items.concat(
+            completedRepairs.map((item: any) => ({ ...item, planType: '临时维修' }))
+          )
         }
-        
+
         if (spotRes.code === 200) {
           const spotItems = spotRes.data?.items || spotRes.data?.content || []
           const completedSpotWorks = spotItems
@@ -177,36 +181,47 @@ const fetchWorkList = async () => {
               if (!completionDate) return false
               return new Date(completionDate).getFullYear() === currentYear
             })
-          items = items.concat(completedSpotWorks.map((item: any) => ({ ...item, planType: '零星用工' })))
+          items = items.concat(
+            completedSpotWorks.map((item: any) => ({ ...item, planType: '零星用工' }))
+          )
         }
         break
       }
-        
+
       case 'periodic': {
         const response = await periodicInspectionService.getList({ page: 0, size: 1000 })
         if (response.code === 200) {
-          items = (response.data?.items || response.data?.content || []).map((item: any) => ({ ...item, planType: '定期巡检' }))
+          items = (response.data?.items || response.data?.content || []).map((item: any) => ({
+            ...item,
+            planType: '定期巡检',
+          }))
         }
         break
       }
-        
+
       case 'repair': {
         const response = await temporaryRepairService.getList({ page: 0, size: 1000 })
         if (response.code === 200) {
-          items = (response.data?.items || response.data?.content || []).map((item: any) => ({ ...item, planType: '临时维修' }))
+          items = (response.data?.items || response.data?.content || []).map((item: any) => ({
+            ...item,
+            planType: '临时维修',
+          }))
         }
         break
       }
-        
+
       case 'spot': {
         const response = await spotWorkService.getList({ page: 0, size: 1000 })
         if (response.code === 200) {
-          items = (response.data?.items || response.data?.content || []).map((item: any) => ({ ...item, planType: '零星用工' }))
+          items = (response.data?.items || response.data?.content || []).map((item: any) => ({
+            ...item,
+            planType: '零星用工',
+          }))
         }
         break
       }
     }
-    
+
     workList.value = items.map((item: any) => ({
       id: item.id,
       uniqueKey: `${item.planType}-${item.id}`,
@@ -219,7 +234,7 @@ const fetchWorkList = async () => {
       clientName: item.client_name || item.clientName,
       totalCount: item.total_count,
       filledCount: item.filled_count,
-      updatedAt: item.updated_at
+      updatedAt: item.updated_at,
     }))
   } catch (error) {
     console.error('Failed to fetch work list:', error)
@@ -231,7 +246,9 @@ const fetchWorkList = async () => {
 
 const getAlertItem = (id: number): OverdueAlertItem | undefined => {
   const idStr = String(id)
-  return overdueList.value.find(o => o.id === idStr) || expiringList.value.find(e => e.id === idStr)
+  return (
+    overdueList.value.find((o) => o.id === idStr) || expiringList.value.find((e) => e.id === idStr)
+  )
 }
 
 const handleItemClick = (item: any) => {
@@ -280,11 +297,7 @@ watch(type, () => {
 
 <template>
   <div class="work-list-page">
-    <van-nav-bar 
-      :title="pageTitle" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar :title="pageTitle" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
@@ -292,15 +305,15 @@ watch(type, () => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
       <van-list :loading="loading" :finished="true">
         <div class="work-list">
-          <div 
-            v-for="item in displayList" 
+          <div
+            v-for="item in displayList"
             :key="item.uniqueKey"
             class="work-card"
             @click="handleItemClick(item)"
@@ -310,8 +323,19 @@ watch(type, () => {
                 {{ getDisplayStatus(item.status) }}
               </van-tag>
               <div class="work-id-wrapper">
-                <span class="work-id" :style="{ fontSize: getWorkIdFontSize(item.workOrderNo || '') + 'px' }">{{ item.workOrderNo }}</span>
-                <van-button size="mini" type="primary" plain class="copy-btn" @click.stop="copyOrderId(item.workOrderNo || '')">复制单号</van-button>
+                <span
+                  class="work-id"
+                  :style="{ fontSize: getWorkIdFontSize(item.workOrderNo || '') + 'px' }"
+                  >{{ item.workOrderNo }}</span
+                >
+                <van-button
+                  size="mini"
+                  type="primary"
+                  plain
+                  class="copy-btn"
+                  @click.stop="copyOrderId(item.workOrderNo || '')"
+                  >复制单号</van-button
+                >
               </div>
             </div>
             <div class="card-body">
@@ -325,36 +349,41 @@ watch(type, () => {
               </div>
               <div class="info-row">
                 <span class="label">运维时间</span>
-                <span class="value">{{ formatDate(item.planStartDate) }} -- {{ formatDate(item.planEndDate) }}</span>
+                <span class="value"
+                  >{{ formatDate(item.planStartDate) }} -- {{ formatDate(item.planEndDate) }}</span
+                >
               </div>
-              <div class="info-row" v-if="currentTab.key === 'periodic'">
+              <div v-if="currentTab.key === 'periodic'" class="info-row">
                 <span class="label">填写内容</span>
-                <span class="value highlight">共{{ item.totalCount || 5 }}项（已填写 {{ item.filledCount || 0 }} 项）</span>
+                <span class="value highlight"
+                  >共{{ item.totalCount || 5 }}项（已填写 {{ item.filledCount || 0 }} 项）</span
+                >
               </div>
-              <div class="info-row" v-if="currentTab.key === 'completed'">
+              <div v-if="currentTab.key === 'completed'" class="info-row">
                 <span class="label">工单类型</span>
                 <span class="value">{{ item.planType }}</span>
               </div>
-              <div class="info-row" v-if="currentTab.key === 'overdue' && item.overdueDays">
+              <div v-if="currentTab.key === 'overdue' && item.overdueDays" class="info-row">
                 <span class="label">超期天数</span>
                 <span class="value error">超{{ item.overdueDays }}天</span>
               </div>
-              <div class="info-row" v-if="currentTab.key === 'expiring' && item.daysRemaining !== undefined">
+              <div
+                v-if="currentTab.key === 'expiring' && item.daysRemaining !== undefined"
+                class="info-row"
+              >
                 <span class="label">剩余天数</span>
                 <span class="value warning">{{ item.daysRemaining }}天后开始</span>
               </div>
-              <div class="info-row" v-if="currentTab.key === 'overdue' || currentTab.key === 'expiring'">
+              <div
+                v-if="currentTab.key === 'overdue' || currentTab.key === 'expiring'"
+                class="info-row"
+              >
                 <span class="label">工单类型</span>
                 <span class="value">{{ item.planType }}</span>
               </div>
             </div>
             <div class="card-footer">
-              <van-button 
-                type="primary" 
-                size="small"
-              >
-                查看
-              </van-button>
+              <van-button type="primary" size="small"> 查看 </van-button>
             </div>
           </div>
         </div>

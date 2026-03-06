@@ -105,5 +105,5 @@ export const temporaryRepairService = {
    */
   async delete(id: number): Promise<ApiResponse<null>> {
     return await request.delete(API_ENDPOINTS.TEMPORARY_REPAIR.DETAIL(id))
-  }
+  },
 }

@@ -12,14 +12,16 @@ import type {
   SparePartsIssueRequest,
   SparePartsInboundRequest,
   SparePartsStockQueryParams,
-  SparePartsUsageQueryParams
+  SparePartsUsageQueryParams,
 } from '../types/models'
 
 export const sparePartsService = {
   /**
    * 获取备件库存列表
    */
-  async getStockList(params?: SparePartsStockQueryParams): Promise<ApiResponse<{ items: SparePartsStock[]; total: number }>> {
+  async getStockList(
+    params?: SparePartsStockQueryParams
+  ): Promise<ApiResponse<{ items: SparePartsStock[]; total: number }>> {
     return request.get(API_ENDPOINTS.SPARE_PARTS_STOCK.LIST, { params })
   },
 
@@ -40,7 +42,13 @@ export const sparePartsService = {
   /**
    * 获取入库记录列表
    */
-  async getInboundRecords(params?: { page?: number; size?: number; pageSize?: number; tool_name?: string; user_name?: string }): Promise<ApiResponse<{ items: SparePartsInbound[]; total: number }>> {
+  async getInboundRecords(params?: {
+    page?: number
+    size?: number
+    pageSize?: number
+    tool_name?: string
+    user_name?: string
+  }): Promise<ApiResponse<{ items: SparePartsInbound[]; total: number }>> {
     return request.get(API_ENDPOINTS.SPARE_PARTS_STOCK.INBOUND_RECORDS, { params })
   },
 
@@ -54,7 +62,9 @@ export const sparePartsService = {
   /**
    * 获取备件使用记录列表
    */
-  async getUsageList(params?: SparePartsUsageQueryParams): Promise<ApiResponse<{ items: SparePartsUsage[]; total: number }>> {
+  async getUsageList(
+    params?: SparePartsUsageQueryParams
+  ): Promise<ApiResponse<{ items: SparePartsUsage[]; total: number }>> {
     return request.get(API_ENDPOINTS.SPARE_PARTS_USAGE.LIST, { params })
   },
 
@@ -75,7 +85,10 @@ export const sparePartsService = {
   /**
    * 归还备件
    */
-  async returnSpare(id: number, data: { return_quantity: number; remark?: string }): Promise<ApiResponse<null>> {
+  async returnSpare(
+    id: number,
+    data: { return_quantity: number; remark?: string }
+  ): Promise<ApiResponse<null>> {
     return request.put(API_ENDPOINTS.SPARE_PARTS_USAGE.RETURN(id), data)
   },
 }

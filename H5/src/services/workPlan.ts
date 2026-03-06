@@ -5,7 +5,13 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse, PaginatedResponse } from '../types/api'
-import type { WorkPlan, WorkPlanQueryParams, WorkPlanCreate, WorkPlanUpdate, WorkPlanStatistics } from '../types/models'
+import type {
+  WorkPlan,
+  WorkPlanQueryParams,
+  WorkPlanCreate,
+  WorkPlanUpdate,
+  WorkPlanStatistics,
+} from '../types/models'
 
 export const workPlanService = {
   /**

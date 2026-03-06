@@ -17,7 +17,7 @@ const formData = ref({
   workDateStart: formatDate(new Date()),
   workDateEnd: formatDate(new Date()),
   workContent: '',
-  remark: ''
+  remark: '',
 })
 
 const projectList = ref<ProjectInfo[]>([])
@@ -48,10 +48,16 @@ const fetchProjectList = async () => {
   }
 }
 
-const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOptions: Array<{ text: string; value: string }>, selectedValues: string[] }) => {
+const handleProjectConfirm = ({
+  selectedOptions,
+  selectedValues,
+}: {
+  selectedOptions: Array<{ text: string; value: string }>
+  selectedValues: string[]
+}) => {
   const selectedValue = selectedValues && selectedValues.length > 0 ? selectedValues[0] : null
   if (selectedValue) {
-    const project = projectList.value.find(p => p.id.toString() === selectedValue)
+    const project = projectList.value.find((p) => p.id.toString() === selectedValue)
     if (project) {
       formData.value.projectId = project.project_id
       formData.value.projectName = project.project_name
@@ -60,7 +66,7 @@ const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOpt
   } else if (selectedOptions && selectedOptions.length > 0) {
     const selected = selectedOptions[0]
     if (selected) {
-      const project = projectList.value.find(p => p.id.toString() === selected.value)
+      const project = projectList.value.find((p) => p.id.toString() === selected.value)
       if (project) {
         formData.value.projectId = project.project_id
         formData.value.projectName = project.project_name
@@ -86,8 +92,8 @@ const handleWorkerEntry = () => {
       projectId: formData.value.projectId,
       projectName: formData.value.projectName,
       workDateStart: formData.value.workDateStart,
-      workDateEnd: formData.value.workDateEnd
-    }
+      workDateEnd: formData.value.workDateEnd,
+    },
   })
 }
 
@@ -100,10 +106,10 @@ const handleSubmit = async () => {
     showFailToast('请输入工作内容')
     return
   }
-  
+
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
     const response = await spotWorkService.quickFill({
       project_id: formData.value.projectId,
@@ -111,7 +117,7 @@ const handleSubmit = async () => {
       plan_start_date: formData.value.workDateStart,
       plan_end_date: formData.value.workDateEnd,
       work_content: formData.value.workContent,
-      remark: formData.value.remark
+      remark: formData.value.remark,
     } as any)
     if (response.code === 200) {
       showSuccessToast('提交成功')
@@ -133,11 +139,11 @@ const handleBack = () => {
 }
 
 const projectColumns = computed(() => {
-  return projectList.value.map(p => ({
+  return projectList.value.map((p) => ({
     text: p.project_name,
     value: p.id.toString(),
     project_id: p.project_id,
-    client_name: p.client_name
+    client_name: p.client_name,
   }))
 })
 
@@ -148,11 +154,7 @@ onMounted(() => {
 
 <template>
   <div class="quick-fill-page">
-    <van-nav-bar 
-      title="申报用工" 
-      fixed 
-      placeholder 
-    >
+    <van-nav-bar title="申报用工" fixed placeholder>
       <template #left>
         <div class="nav-left" @click="handleBack">
           <van-icon name="arrow-left" />
@@ -163,25 +165,25 @@ onMounted(() => {
         <UserSelector />
       </template>
     </van-nav-bar>
-    
+
     <van-cell-group inset title="基本信息">
-      <van-cell 
+      <van-cell
         :title="selectedProjectName || '请选择项目'"
         label="项目名称"
         is-link
         required
         @click="showProjectPicker = true"
       />
-      <van-cell 
+      <van-cell
         :title="dateDisplayText"
         label="用工日期"
         is-link
         required
         @click="showDateRangePicker = true"
       />
-      <van-field 
-        v-model="formData.workContent" 
-        label="工作内容" 
+      <van-field
+        v-model="formData.workContent"
+        label="工作内容"
         placeholder="请输入工作内容"
         type="textarea"
         rows="3"
@@ -189,17 +191,14 @@ onMounted(() => {
         show-word-limit
         required
       />
-      <van-cell 
-        is-link 
-        @click="handleWorkerEntry"
-      >
+      <van-cell is-link @click="handleWorkerEntry">
         <template #title>
           <van-button type="primary" size="small">施工人员录入</van-button>
         </template>
       </van-cell>
-      <van-field 
-        v-model="formData.remark" 
-        label="备注" 
+      <van-field
+        v-model="formData.remark"
+        label="备注"
         placeholder="请输入备注"
         type="textarea"
         rows="2"
@@ -207,9 +206,7 @@ onMounted(() => {
     </van-cell-group>
 
     <div class="submit-btn">
-      <van-button type="primary" block :loading="loading" @click="handleSubmit">
-        提交
-      </van-button>
+      <van-button type="primary" block :loading="loading" @click="handleSubmit"> 提交 </van-button>
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
@@ -221,16 +218,16 @@ onMounted(() => {
       />
     </van-popup>
 
-    <van-calendar 
-      v-model:show="showDateRangePicker" 
+    <van-calendar
+      v-model:show="showDateRangePicker"
       type="range"
       title="选择用工日期"
       :min-date="minDate"
       :max-date="maxDate"
       :poppable="true"
       :show-confirm="true"
-      @confirm="handleDateRangeConfirm"
       color="#1989fa"
+      @confirm="handleDateRangeConfirm"
     />
   </div>
 </template>

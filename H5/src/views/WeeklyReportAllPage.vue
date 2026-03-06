@@ -21,10 +21,10 @@ const reportList = ref<WeeklyReport[]>([])
  */
 const getStatusName = (status: string) => {
   const statusMap: Record<string, string> = {
-    'draft': '草稿',
-    'submitted': '已提交',
-    'approved': '已审核',
-    'rejected': '已退回'
+    draft: '草稿',
+    submitted: '已提交',
+    approved: '已审核',
+    rejected: '已退回',
   }
   return statusMap[status] || status
 }
@@ -34,10 +34,10 @@ const getStatusName = (status: string) => {
  */
 const getStatusColor = (status: string) => {
   const colorMap: Record<string, string> = {
-    'draft': '#969799',
-    'submitted': '#1989fa',
-    'approved': '#07c160',
-    'rejected': '#ee0a24'
+    draft: '#969799',
+    submitted: '#1989fa',
+    approved: '#07c160',
+    rejected: '#ee0a24',
   }
   return colorMap[status] || '#969799'
 }
@@ -48,15 +48,15 @@ const getStatusColor = (status: string) => {
 const fetchReportList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
-  
+
   try {
-    const params: Record<string, any> = { 
+    const params: Record<string, any> = {
       page: 0,
-      size: 100
+      size: 100,
     }
-    
+
     const response = await weeklyReportService.getList(params)
-    
+
     if (response.code === 200) {
       reportList.value = response.data?.content || []
     }
@@ -90,12 +90,7 @@ onMounted(() => {
 
 <template>
   <div class="weekly-report-all-page">
-    <van-nav-bar 
-      title="查看部门周报" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="查看部门周报" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -103,18 +98,14 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchReportList">
       <van-list :loading="loading" :finished="true">
         <div class="report-list">
-          <div 
-            v-for="item in reportList" 
-            :key="item.id"
-            class="report-card"
-          >
+          <div v-for="item in reportList" :key="item.id" class="report-card">
             <div class="card-header">
               <van-tag :color="getStatusColor(item.status)" size="medium">
                 {{ getStatusName(item.status) }}
@@ -132,13 +123,16 @@ onMounted(() => {
               </div>
               <div class="info-row">
                 <span class="label">部门周报周期</span>
-                <span class="value">{{ formatDate(item.week_start_date) }} ~ {{ formatDate(item.week_end_date) }}</span>
+                <span class="value"
+                  >{{ formatDate(item.week_start_date) }} ~
+                  {{ formatDate(item.week_end_date) }}</span
+                >
               </div>
               <div class="info-row">
                 <span class="label">提交人</span>
                 <span class="value">{{ item.created_by || '-' }}</span>
               </div>
-              <div class="info-row" v-if="item.work_summary">
+              <div v-if="item.work_summary" class="info-row">
                 <span class="label">工作总结</span>
                 <span class="value">{{ item.work_summary }}</span>
               </div>
@@ -148,11 +142,7 @@ onMounted(() => {
               </div>
             </div>
             <div class="card-footer">
-              <van-button 
-                type="primary" 
-                size="small"
-                @click="handleView(item)"
-              >
+              <van-button type="primary" size="small" @click="handleView(item)">
                 查看详情
               </van-button>
             </div>

@@ -4,7 +4,13 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse, LoginRequest, LoginResponse, RefreshTokenResponse, UserInfo } from '../types'
+import type {
+  ApiResponse,
+  LoginRequest,
+  LoginResponse,
+  RefreshTokenResponse,
+  UserInfo,
+} from '../types'
 
 export const authService = {
   /**

@@ -24,8 +24,7 @@
             </div>
           </div>
         </div>
-        <div class="action-buttons">
-        </div>
+        <div class="action-buttons"></div>
       </div>
 
       <div class="table-section">
@@ -46,12 +45,17 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="10" style="text-align: center; padding: 20px;">加载中...</td>
+              <td colspan="10" style="text-align: center; padding: 20px">加载中...</td>
             </tr>
             <tr v-else-if="partsData.length === 0">
-              <td colspan="10" style="text-align: center; padding: 20px;">暂无数据</td>
+              <td colspan="10" style="text-align: center; padding: 20px">暂无数据</td>
             </tr>
-            <tr v-else v-for="(item, index) in partsData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+            <tr
+              v-for="(item, index) in partsData"
+              v-else
+              :key="item.id"
+              :class="{ 'even-row': index % 2 === 0 }"
+            >
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
               <td>{{ item.project_id || '-' }}</td>
               <td>{{ item.project_name || '-' }}</td>
@@ -68,9 +72,7 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">
-          共 {{ totalElements }} 条记录
-        </div>
+        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
         <div class="pagination-controls">
           <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
             &lt;
@@ -84,17 +86,21 @@
           >
             {{ page }}
           </button>
-          <button class="page-btn page-nav" :disabled="currentPage === totalPages" @click="currentPage++">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === totalPages"
+            @click="currentPage++"
+          >
             &gt;
           </button>
-          <select class="page-select" v-model="pageSize">
+          <select v-model="pageSize" class="page-select">
             <option value="10">10 条 / 页</option>
             <option value="20">20 条 / 页</option>
             <option value="50">50 条 / 页</option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
             <span>页</span>
             <button class="page-btn page-go" @click="handleJump">Go</button>
           </div>
@@ -114,7 +120,7 @@ import SearchInput from '../components/SearchInput.vue'
 export default defineComponent({
   name: 'SparePartsManagement',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const currentPage = ref(1)
@@ -127,7 +133,7 @@ export default defineComponent({
     const searchForm = ref({
       personnel: '',
       productName: '',
-      projectName: ''
+      projectName: '',
     })
 
     const personnelList = ref<string[]>([])
@@ -163,14 +169,14 @@ export default defineComponent({
           pageSize: Number(pageSize.value),
           user: searchForm.value.personnel || undefined,
           product: searchForm.value.productName || undefined,
-          project: searchForm.value.projectName || undefined
+          project: searchForm.value.projectName || undefined,
         })
 
         if (response.code === 200 && response.data) {
           partsData.value = response.data.items || []
           totalElements.value = response.data.total || 0
           totalPages.value = Math.ceil(totalElements.value / Number(pageSize.value)) || 1
-          
+
           const personnelSet = new Set<string>()
           const projectSet = new Set<string>()
           partsData.value.forEach((item: SparePartsUsage) => {
@@ -224,9 +230,9 @@ export default defineComponent({
       displayedPages,
       formatDate,
       handleSearch,
-      handleJump
+      handleJump,
     }
-  }
+  },
 })
 </script>
 

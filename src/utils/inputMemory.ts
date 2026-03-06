@@ -70,7 +70,7 @@ export function clearInputMemory(pageName: string) {
 export function clearAllInputMemory() {
   try {
     const keys = Object.keys(localStorage)
-    keys.forEach(key => {
+    keys.forEach((key) => {
       if (key.startsWith(STORAGE_PREFIX)) {
         localStorage.removeItem(key)
       }
@@ -95,7 +95,7 @@ export function useInputMemory(config: MemoryConfig) {
    */
   const saveMemory = (formData: Record<string, any>) => {
     const dataToSave: Record<string, any> = {}
-    fields.forEach(field => {
+    fields.forEach((field) => {
       if (formData[field] !== undefined) {
         dataToSave[field] = formData[field]
       }
@@ -125,6 +125,6 @@ export function useInputMemory(config: MemoryConfig) {
   return {
     saveMemory,
     loadMemory,
-    clearMemory
+    clearMemory,
   }
 }

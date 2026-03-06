@@ -15,24 +15,34 @@
               <div class="form-card-body">
                 <div class="form-grid">
                   <div class="form-item">
-                    <label class="form-label">
-                      <span class="required">*</span> 项目名称
-                    </label>
-                    <select v-model="formData.projectId" class="form-select" @change="handleProjectChange">
+                    <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                    <select
+                      v-model="formData.projectId"
+                      class="form-select"
+                      @change="handleProjectChange"
+                    >
                       <option value="">请选择项目</option>
-                      <option v-for="project in projectList" :key="project.project_id" :value="project.project_id">
+                      <option
+                        v-for="project in projectList"
+                        :key="project.project_id"
+                        :value="project.project_id"
+                      >
                         {{ project.project_name }}
                       </option>
                     </select>
                   </div>
                   <div class="form-item">
                     <label class="form-label">项目编号</label>
-                    <input v-model="formData.projectId" type="text" class="form-input" readonly disabled />
+                    <input
+                      v-model="formData.projectId"
+                      type="text"
+                      class="form-input"
+                      readonly
+                      disabled
+                    />
                   </div>
                   <div class="form-item">
-                    <label class="form-label">
-                      <span class="required">*</span> 填报日期
-                    </label>
+                    <label class="form-label"> <span class="required">*</span> 填报日期 </label>
                     <input v-model="formData.logDate" type="date" class="form-input" />
                   </div>
                 </div>
@@ -45,12 +55,10 @@
               </div>
               <div class="form-card-body">
                 <div class="form-item full-width">
-                  <label class="form-label">
-                    <span class="required">*</span> 工作内容
-                  </label>
-                  <textarea 
-                    v-model="formData.workContent" 
-                    class="form-textarea" 
+                  <label class="form-label"> <span class="required">*</span> 工作内容 </label>
+                  <textarea
+                    v-model="formData.workContent"
+                    class="form-textarea"
                     placeholder="请输入工作内容"
                     rows="5"
                     maxlength="800"
@@ -60,9 +68,9 @@
                 </div>
                 <div class="form-item full-width">
                   <label class="form-label">备注</label>
-                  <textarea 
-                    v-model="formData.remark" 
-                    class="form-textarea" 
+                  <textarea
+                    v-model="formData.remark"
+                    class="form-textarea"
                     placeholder="请输入备注"
                     rows="3"
                   ></textarea>
@@ -72,7 +80,7 @@
 
             <div class="form-actions">
               <button class="btn btn-cancel" @click="handleCancel">取消</button>
-              <button class="btn btn-submit" @click="handleSubmit" :disabled="submitting">
+              <button class="btn btn-submit" :disabled="submitting" @click="handleSubmit">
                 {{ submitting ? '提交中...' : '提交' }}
               </button>
             </div>
@@ -80,7 +88,6 @@
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
@@ -123,7 +130,7 @@ export default defineComponent({
       logType: 'maintenance',
       logDate: formatDate(new Date()),
       workContent: '',
-      remark: ''
+      remark: '',
     })
 
     /**
@@ -131,7 +138,9 @@ export default defineComponent({
      */
     const fetchProjectList = async () => {
       try {
-        const response = await apiClient.get('/project-info/all/list') as unknown as ApiResponse<ProjectInfo[]>
+        const response = (await apiClient.get('/project-info/all/list')) as unknown as ApiResponse<
+          ProjectInfo[]
+        >
         if (response.code === 200) {
           projectList.value = response.data || []
         }
@@ -144,7 +153,7 @@ export default defineComponent({
      * 项目选择变更
      */
     const handleProjectChange = () => {
-      const project = projectList.value.find(p => p.project_id === formData.value.projectId)
+      const project = projectList.value.find((p) => p.project_id === formData.value.projectId)
       if (project) {
         formData.value.projectName = project.project_name
       }
@@ -162,20 +171,20 @@ export default defineComponent({
         alert('请输入工作内容')
         return
       }
-      
+
       submitting.value = true
-      
+
       try {
-        const response = await apiClient.post('/maintenance-log', {
+        const response = (await apiClient.post('/maintenance-log', {
           project_id: formData.value.projectId,
           project_name: formData.value.projectName,
           log_type: formData.value.logType,
           log_date: formData.value.logDate,
           work_content: formData.value.workContent,
           remark: formData.value.remark,
-          images: []
-        }) as unknown as ApiResponse<null>
-        
+          images: [],
+        })) as unknown as ApiResponse<null>
+
         if (response.code === 200) {
           alert('提交成功')
           router.back()
@@ -219,9 +228,9 @@ export default defineComponent({
       submitting,
       handleProjectChange,
       handleSubmit,
-      handleCancel
+      handleCancel,
     }
-  }
+  },
 })
 </script>
 

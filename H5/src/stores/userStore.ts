@@ -10,7 +10,7 @@ import {
   hasPermission,
   isManagerRole,
   isAdminRole,
-  isMaterialManager
+  isMaterialManager,
 } from '../config/permission'
 import { onlineUserService } from '../services/onlineUser'
 
@@ -43,12 +43,15 @@ const loadUserFromStorage = (): User | null => {
 const startHeartbeat = () => {
   stopHeartbeat()
   onlineUserService.sendHeartbeat('h5').catch(() => {})
-  heartbeatInterval = window.setInterval(() => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-    if (token) {
-      onlineUserService.sendHeartbeat('h5').catch(() => {})
-    }
-  }, 1 * 60 * 1000)
+  heartbeatInterval = window.setInterval(
+    () => {
+      const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+      if (token) {
+        onlineUserService.sendHeartbeat('h5').catch(() => {})
+      }
+    },
+    1 * 60 * 1000
+  )
 }
 
 const stopHeartbeat = () => {
@@ -60,11 +63,22 @@ const stopHeartbeat = () => {
 
 currentUser.value = loadUserFromStorage()
 
-watch(currentUser, (newUser) => {
-  if (newUser) {
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
-  }
-}, { deep: true })
+// 监听 user-changed 事件，同步用户状态
+if (typeof window !== 'undefined') {
+  window.addEventListener('user-changed', ((event: CustomEvent<User | null>) => {
+    currentUser.value = event.detail
+  }) as EventListener)
+}
+
+watch(
+  currentUser,
+  (newUser) => {
+    if (newUser) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
+    }
+  },
+  { deep: true }
+)
 
 export const userStore = {
   readonlyCurrentUser: readonly(currentUser),
@@ -268,5 +282,5 @@ export const userStore = {
 
   hasPermission(permissionId: string): boolean {
     return hasPermission(currentUser.value?.role, permissionId)
-  }
+  },
 }

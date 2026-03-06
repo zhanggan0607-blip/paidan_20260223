@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     aliyun_access_key_secret: str = os.getenv("ALIYUN_ACCESS_KEY_SECRET", "")
     aliyun_ocr_region_id: str = os.getenv("ALIYUN_OCR_REGION_ID", "cn-shanghai")
     
+    dingtalk_agent_id: str = os.getenv("DINGTALK_AGENT_ID", "")
+    dingtalk_app_key: str = os.getenv("DINGTALK_APP_KEY", "")
+    dingtalk_app_secret: str = os.getenv("DINGTALK_APP_SECRET", "")
+    
     api_prefix: str = "/api/v1"
     docs_url: str = "/api/docs"
     redoc_url: str = "/api/redoc"

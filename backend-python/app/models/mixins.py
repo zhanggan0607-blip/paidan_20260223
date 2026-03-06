@@ -5,7 +5,7 @@
 """
 
 from datetime import datetime
-from sqlalchemy import Column, Boolean, DateTime, BigInteger, Integer
+from sqlalchemy import Column, Boolean, DateTime, BigInteger
 from sqlalchemy.sql import func
 
 
@@ -14,11 +14,11 @@ class SoftDeleteMixin:
     软删除Mixin
     
     为模型提供软删除功能，包括：
-    - is_deleted: 是否已删除 (0=未删除, 1=已删除)
+    - is_deleted: 是否已删除 (False=未删除, True=已删除)
     - deleted_at: 删除时间
     - deleted_by: 删除人ID
     """
-    is_deleted = Column(Integer, default=0, comment="是否已删除(0否1是)")
+    is_deleted = Column(Boolean, default=False, comment="是否已删除")
     deleted_at = Column(DateTime, comment="删除时间")
     deleted_by = Column(BigInteger, comment="删除人ID")
     
@@ -29,7 +29,7 @@ class SoftDeleteMixin:
         Args:
             user_id: 执行删除的用户ID
         """
-        self.is_deleted = 1
+        self.is_deleted = True
         self.deleted_at = datetime.now()
         self.deleted_by = user_id
     
@@ -37,7 +37,7 @@ class SoftDeleteMixin:
         """
         恢复已删除的记录
         """
-        self.is_deleted = 0
+        self.is_deleted = False
         self.deleted_at = None
         self.deleted_by = None
     
@@ -52,4 +52,4 @@ class SoftDeleteMixin:
         Returns:
             过滤后的查询对象
         """
-        return query.filter(cls.is_deleted == 0)
+        return query.filter(cls.is_deleted == False)

@@ -7,12 +7,8 @@
             <span>巡检事项分类</span>
           </div>
           <div class="section-actions">
-            <el-button size="small" @click="handleExpandAll">
-              全部展开
-            </el-button>
-            <el-button size="small" @click="handleCollapseAll">
-              全部收起
-            </el-button>
+            <el-button size="small" @click="handleExpandAll"> 全部展开 </el-button>
+            <el-button size="small" @click="handleCollapseAll"> 全部收起 </el-button>
           </div>
         </div>
 
@@ -23,14 +19,14 @@
             placeholder="搜索分类..."
             @input="handleSearchInput"
           />
-          
+
           <div class="toolbar-actions">
             <el-checkbox v-model="showCheckbox" @change="handleCheckboxChange">
               多选模式
             </el-checkbox>
-            <el-button 
+            <el-button
               v-if="showCheckbox && checkedNodes.length > 0"
-              size="small" 
+              size="small"
               type="danger"
               @click="handleBatchDelete"
             >
@@ -72,9 +68,9 @@
                     <component :is="getNodeIcon(data.level)" />
                   </el-icon>
                   <span class="node-label" :title="node.label">{{ node.label }}</span>
-                  <el-tag 
-                    v-if="data.level === 3 && data.check_content" 
-                    size="small" 
+                  <el-tag
+                    v-if="data.level === 3 && data.check_content"
+                    size="small"
                     type="success"
                     class="node-tag"
                   >
@@ -91,12 +87,7 @@
                   >
                     新增
                   </el-button>
-                  <el-button
-                    type="primary"
-                    size="small"
-                    text
-                    @click.stop="handleEdit(data)"
-                  >
+                  <el-button type="primary" size="small" text @click.stop="handleEdit(data)">
                     编辑
                   </el-button>
                   <el-button
@@ -120,16 +111,20 @@
           :style="{ top: contextMenuY + 'px', left: contextMenuX + 'px' }"
           @click.stop
         >
-          <div class="context-menu-item" v-if="contextMenuNode && contextMenuNode.level < 3" @click="handleAddFromMenu">
+          <div
+            v-if="contextMenuNode && contextMenuNode.level < 3"
+            class="context-menu-item"
+            @click="handleAddFromMenu"
+          >
             新增子节点
           </div>
-          <div class="context-menu-item" @click="handleAddSiblingFromMenu">
-            新增同级节点
-          </div>
-          <div class="context-menu-item" @click="handleEditFromMenu">
-            重命名
-          </div>
-          <div class="context-menu-item" v-if="contextMenuNode && contextMenuNode.level !== 1" @click="handleDeleteFromMenu">
+          <div class="context-menu-item" @click="handleAddSiblingFromMenu">新增同级节点</div>
+          <div class="context-menu-item" @click="handleEditFromMenu">重命名</div>
+          <div
+            v-if="contextMenuNode && contextMenuNode.level !== 1"
+            class="context-menu-item"
+            @click="handleDeleteFromMenu"
+          >
             删除节点
           </div>
         </div>
@@ -143,11 +138,9 @@
             <div class="form-title">
               <span>详细检查要求</span>
             </div>
-            <div class="form-subtitle">
-              当前选中：{{ selectedNode.item_name }}
-            </div>
+            <div class="form-subtitle">当前选中：{{ selectedNode.item_name }}</div>
           </div>
-          
+
           <div class="form-content">
             <el-form :model="formData" label-position="top">
               <el-form-item label="检查内容">
@@ -175,12 +168,10 @@
 
           <div class="form-actions">
             <el-button @click="handleCancel">取消</el-button>
-            <el-button type="primary" @click="handleSave" :loading="saving">
-              保存
-            </el-button>
+            <el-button type="primary" :loading="saving" @click="handleSave"> 保存 </el-button>
           </div>
         </template>
-        
+
         <template v-else>
           <div class="empty-state">
             <el-empty description="请选择三级检查项进行编辑">
@@ -189,11 +180,7 @@
               </template>
             </el-empty>
             <div class="empty-hint">
-              <el-alert
-                title="提示"
-                type="info"
-                :closable="false"
-              >
+              <el-alert title="提示" type="info" :closable="false">
                 一、二级节点仅作为分类使用，无法编辑检查要求
               </el-alert>
             </div>
@@ -218,16 +205,14 @@
           />
         </el-form-item>
         <el-form-item label="事项类型">
-          <el-input
-            v-model="dialogForm.item_type"
-            placeholder="请输入事项类型"
-            maxlength="50"
-          />
+          <el-input v-model="dialogForm.item_type" placeholder="请输入事项类型" maxlength="50" />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleDialogConfirm" :loading="dialogLoading">确定</el-button>
+        <el-button type="primary" :loading="dialogLoading" @click="handleDialogConfirm"
+          >确定</el-button
+        >
       </template>
     </el-dialog>
   </div>
@@ -274,17 +259,17 @@ const dialogForm = reactive({
   item_type: '',
   type: '' as '' | 'add' | 'edit' | 'addSibling',
   parentNode: null as TreeNodeData | null,
-  currentNode: null as TreeNodeData | null
+  currentNode: null as TreeNodeData | null,
 })
 
 const formData = reactive({
   check_content: '',
-  check_standard: ''
+  check_standard: '',
 })
 
 const defaultProps: TreeProps = {
   label: 'label',
-  children: 'children'
+  children: 'children',
 }
 
 const treeData = ref<TreeNodeData[]>([])
@@ -305,10 +290,10 @@ const loadTreeData = async () => {
 }
 
 const transformToTreeData = (items: InspectionItem[]): TreeNodeData[] => {
-  return items.map(item => ({
+  return items.map((item) => ({
     ...item,
     label: item.item_name,
-    children: item.children ? transformToTreeData(item.children) : []
+    children: item.children ? transformToTreeData(item.children) : [],
   }))
 }
 
@@ -320,7 +305,7 @@ const getNodeIcon = (level: number) => {
   const icons: Record<number, string> = {
     1: 'FolderOpened',
     2: 'Folder',
-    3: 'Document'
+    3: 'Document',
   }
   return icons[level] || 'Document'
 }
@@ -328,10 +313,6 @@ const getNodeIcon = (level: number) => {
 const filterNode = (value: string, data: TreeNodeData) => {
   if (!value) return true
   return data.label.toLowerCase().includes(value.toLowerCase())
-}
-
-const handleSearchClear = () => {
-  filterText.value = ''
 }
 
 const handleSearchInput = (value: string) => {
@@ -364,11 +345,11 @@ const handleCheckboxChange = (val: boolean) => {
   }
 }
 
-const handleCheck = (data: TreeNodeData, { checkedNodes: nodes }: any) => {
+const handleCheck = (_data: TreeNodeData, { checkedNodes: nodes }: any) => {
   checkedNodes.value = nodes
 }
 
-const handleNodeClick = (data: TreeNodeData, node: Node) => {
+const handleNodeClick = (data: TreeNodeData, _node: Node) => {
   selectedNode.value = data
   if (data.level === 3) {
     formData.check_content = data.check_content || ''
@@ -376,7 +357,7 @@ const handleNodeClick = (data: TreeNodeData, node: Node) => {
   }
 }
 
-const handleContextMenu = (e: MouseEvent, data: TreeNodeData, node: Node, element: any) => {
+const handleContextMenu = (e: MouseEvent, data: TreeNodeData, _node: Node, _element: any) => {
   e.preventDefault()
   contextMenuNode.value = data
   contextMenuX.value = e.clientX
@@ -441,21 +422,21 @@ const handleEditFromMenu = () => {
 
 const handleDelete = async (data: TreeNodeData) => {
   const hasChildren = data.children && data.children.length > 0
-  const message = hasChildren 
-    ? '删除该节点将同时删除所有子节点，确定要删除吗？' 
+  const message = hasChildren
+    ? '删除该节点将同时删除所有子节点，确定要删除吗？'
     : '确定要删除该节点吗？'
-  
+
   try {
     await ElMessageBox.confirm(message, '确认删除', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
     })
-    
+
     await inspectionItemService.delete(data.id)
     ElMessage.success('删除成功')
     await loadTreeData()
-    
+
     if (selectedNode.value?.id === data.id) {
       selectedNode.value = null
       formData.check_content = ''
@@ -483,16 +464,16 @@ const handleBatchDelete = async () => {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        type: 'warning'
+        type: 'warning',
       }
     )
-    
+
     for (const node of checkedNodes.value) {
       if (node.level !== 1) {
         await inspectionItemService.delete(node.id)
       }
     }
-    
+
     checkedNodes.value = []
     treeRef.value?.setCheckedKeys([])
     ElMessage.success('批量删除成功')
@@ -517,7 +498,7 @@ const handleDialogConfirm = async () => {
     ElMessage.warning('请输入节点名称')
     return
   }
-  
+
   dialogLoading.value = true
   try {
     if (dialogForm.type === 'add' && dialogForm.parentNode) {
@@ -526,7 +507,7 @@ const handleDialogConfirm = async () => {
         item_name: dialogForm.item_name.trim(),
         item_type: dialogForm.item_type || dialogForm.parentNode.item_type,
         level: dialogForm.parentNode.level + 1,
-        parent_id: dialogForm.parentNode.id
+        parent_id: dialogForm.parentNode.id,
       }
       await inspectionItemService.create(newItem)
       ElMessage.success('新增成功')
@@ -536,18 +517,18 @@ const handleDialogConfirm = async () => {
         item_name: dialogForm.item_name.trim(),
         item_type: dialogForm.item_type || dialogForm.currentNode.item_type,
         level: dialogForm.currentNode.level,
-        parent_id: dialogForm.currentNode.parent_id || null
+        parent_id: dialogForm.currentNode.parent_id || null,
       }
       await inspectionItemService.create(newItem)
       ElMessage.success('新增同级节点成功')
     } else if (dialogForm.type === 'edit' && dialogForm.currentNode) {
       await inspectionItemService.update(dialogForm.currentNode.id, {
         item_name: dialogForm.item_name.trim(),
-        item_type: dialogForm.item_type
+        item_type: dialogForm.item_type,
       })
       ElMessage.success('编辑成功')
     }
-    
+
     dialogVisible.value = false
     await loadTreeData()
   } catch (error: any) {
@@ -567,12 +548,12 @@ const handleCancel = () => {
 
 const handleSave = async () => {
   if (!selectedNode.value) return
-  
+
   saving.value = true
   try {
     await inspectionItemService.update(selectedNode.value.id, {
       check_content: formData.check_content,
-      check_standard: formData.check_standard
+      check_standard: formData.check_standard,
     })
     selectedNode.value.check_content = formData.check_content
     selectedNode.value.check_standard = formData.check_standard
@@ -585,7 +566,7 @@ const handleSave = async () => {
   }
 }
 
-const allowDrop = (draggingNode: Node, dropNode: Node, type: 'prev' | 'inner' | 'next') => {
+const allowDrop = (_draggingNode: Node, dropNode: Node, type: 'prev' | 'inner' | 'next') => {
   if (type === 'inner') {
     return dropNode.data.level < 3
   }
@@ -596,21 +577,21 @@ const allowDrag = (draggingNode: Node) => {
   return draggingNode.data.level !== 1
 }
 
-const handleDrop = async (draggingNode: Node, dropNode: Node, dropType: string, ev: DragEvent) => {
+const handleDrop = async (draggingNode: Node, dropNode: Node, dropType: string, _ev: DragEvent) => {
   const draggingData = draggingNode.data as TreeNodeData
   const dropData = dropNode.data as TreeNodeData
-  
+
   let newParentId: number | null = null
-  
+
   if (dropType === 'inner') {
     newParentId = dropData.id
   } else {
     newParentId = dropData.parent_id
   }
-  
+
   try {
     await inspectionItemService.update(draggingData.id, {
-      parent_id: newParentId
+      parent_id: newParentId,
     })
     ElMessage.success(`节点已移动`)
   } catch (error) {

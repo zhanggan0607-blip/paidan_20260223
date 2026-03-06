@@ -10,14 +10,16 @@ import type {
   PeriodicInspectionRecord,
   PeriodicInspectionCreate,
   PeriodicInspectionUpdate,
-  PeriodicInspectionQueryParams
+  PeriodicInspectionQueryParams,
 } from '../types/models'
 
 export const periodicInspectionService = {
   /**
    * 获取定期巡检列表（分页）
    */
-  async getList(params?: PeriodicInspectionQueryParams): Promise<PaginatedResponse<PeriodicInspection>> {
+  async getList(
+    params?: PeriodicInspectionQueryParams
+  ): Promise<PaginatedResponse<PeriodicInspection>> {
     return request.get(API_ENDPOINTS.PERIODIC_INSPECTION.LIST, { params })
   },
 
@@ -45,29 +47,43 @@ export const periodicInspectionService = {
   /**
    * 根据巡检单ID获取巡检记录
    */
-  async getRecordsByInspectionId(inspectionId: string): Promise<ApiResponse<PeriodicInspectionRecord[]>> {
+  async getRecordsByInspectionId(
+    inspectionId: string
+  ): Promise<ApiResponse<PeriodicInspectionRecord[]>> {
     return request.get(API_ENDPOINTS.PERIODIC_INSPECTION.RECORD_BY_INSPECTION(inspectionId))
   },
 
   /**
    * 创建巡检记录
    */
-  async createRecord(data: Partial<PeriodicInspectionRecord>): Promise<ApiResponse<PeriodicInspectionRecord>> {
+  async createRecord(
+    data: Partial<PeriodicInspectionRecord>
+  ): Promise<ApiResponse<PeriodicInspectionRecord>> {
     return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.CREATE_RECORD, data)
   },
 
   /**
    * 获取巡检记录详情
    */
-  async getRecordDetail(inspectionId: number, recordId: number): Promise<ApiResponse<PeriodicInspectionRecord>> {
+  async getRecordDetail(
+    inspectionId: number,
+    recordId: number
+  ): Promise<ApiResponse<PeriodicInspectionRecord>> {
     return request.get(API_ENDPOINTS.PERIODIC_INSPECTION.RECORD_DETAIL(inspectionId, recordId))
   },
 
   /**
    * 更新巡检记录
    */
-  async updateRecord(inspectionId: number, recordId: number, data: Partial<PeriodicInspectionRecord>): Promise<ApiResponse<PeriodicInspectionRecord>> {
-    return request.put(API_ENDPOINTS.PERIODIC_INSPECTION.RECORD_DETAIL(inspectionId, recordId), data)
+  async updateRecord(
+    inspectionId: number,
+    recordId: number,
+    data: Partial<PeriodicInspectionRecord>
+  ): Promise<ApiResponse<PeriodicInspectionRecord>> {
+    return request.put(
+      API_ENDPOINTS.PERIODIC_INSPECTION.RECORD_DETAIL(inspectionId, recordId),
+      data
+    )
   },
 
   /**
@@ -80,14 +96,20 @@ export const periodicInspectionService = {
   /**
    * 更新定期巡检
    */
-  async update(id: number, data: PeriodicInspectionUpdate): Promise<ApiResponse<PeriodicInspection>> {
+  async update(
+    id: number,
+    data: PeriodicInspectionUpdate
+  ): Promise<ApiResponse<PeriodicInspection>> {
     return request.put(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id), data)
   },
 
   /**
    * 部分更新定期巡检
    */
-  async patch(id: number, data: Partial<PeriodicInspectionUpdate>): Promise<ApiResponse<PeriodicInspection>> {
+  async patch(
+    id: number,
+    data: Partial<PeriodicInspectionUpdate>
+  ): Promise<ApiResponse<PeriodicInspection>> {
     return request.patch(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id), data)
   },
 

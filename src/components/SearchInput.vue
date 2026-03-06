@@ -1,5 +1,5 @@
 <template>
-  <div class="search-input-wrapper" ref="wrapperRef">
+  <div ref="wrapperRef" class="search-input-wrapper">
     <input
       type="text"
       class="search-input"
@@ -39,16 +39,16 @@ export default defineComponent({
   props: {
     modelValue: {
       type: String,
-      default: ''
+      default: '',
     },
     placeholder: {
       type: String,
-      default: '请输入'
+      default: '请输入',
     },
     fieldKey: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   emits: ['update:modelValue', 'search', 'input'],
   setup(props, { emit }) {
@@ -56,20 +56,20 @@ export default defineComponent({
     const showDropdown = ref(false)
     const activeIndex = ref(-1)
     const history = ref<string[]>([])
-    
+
     const searchHistory = useSearchHistory({ fieldKey: props.fieldKey })
-    
+
     const filteredHistory = computed(() => {
       if (!props.modelValue) {
         return history.value
       }
       return searchHistory.filter(props.modelValue)
     })
-    
+
     const loadHistory = () => {
       history.value = searchHistory.load()
     }
-    
+
     const handleInput = (event: Event) => {
       const target = event.target as HTMLInputElement
       const value = target.value
@@ -77,26 +77,26 @@ export default defineComponent({
       emit('input', value)
       activeIndex.value = -1
     }
-    
+
     const handleFocus = () => {
       loadHistory()
       showDropdown.value = true
     }
-    
+
     const handleBlur = () => {
       setTimeout(() => {
         showDropdown.value = false
         activeIndex.value = -1
       }, 200)
     }
-    
+
     const selectItem = (item: string) => {
       emit('update:modelValue', item)
       emit('search', item)
       searchHistory.save(item)
       showDropdown.value = false
     }
-    
+
     const handleKeydown = (event: KeyboardEvent) => {
       if (!showDropdown.value || filteredHistory.value.length === 0) {
         if (event.key === 'Enter') {
@@ -107,7 +107,7 @@ export default defineComponent({
         }
         return
       }
-      
+
       switch (event.key) {
         case 'ArrowDown':
           event.preventDefault()
@@ -134,33 +134,36 @@ export default defineComponent({
           break
       }
     }
-    
+
     const handleClearHistory = () => {
       searchHistory.clear()
       history.value = []
       showDropdown.value = false
     }
-    
+
     const handleClickOutside = (event: MouseEvent) => {
       if (wrapperRef.value && !wrapperRef.value.contains(event.target as Node)) {
         showDropdown.value = false
         activeIndex.value = -1
       }
     }
-    
+
     onMounted(() => {
       loadHistory()
       document.addEventListener('click', handleClickOutside)
     })
-    
+
     onUnmounted(() => {
       document.removeEventListener('click', handleClickOutside)
     })
-    
-    watch(() => props.fieldKey, () => {
-      loadHistory()
-    })
-    
+
+    watch(
+      () => props.fieldKey,
+      () => {
+        loadHistory()
+      }
+    )
+
     return {
       wrapperRef,
       showDropdown,
@@ -171,9 +174,9 @@ export default defineComponent({
       handleBlur,
       handleKeydown,
       selectItem,
-      handleClearHistory
+      handleClearHistory,
     }
-  }
+  },
 })
 </script>
 

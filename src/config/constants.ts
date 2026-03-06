@@ -33,11 +33,7 @@ export {
   isRejectedStatus,
   isPendingStatus,
   BASE_WORK_TABS,
-  APPROVAL_TAB
+  APPROVAL_TAB,
 } from '@sstcp/shared'
 
-export {
-  formatDate,
-  formatDateTime,
-  formatDateForInput
-} from '@sstcp/shared'
+export { formatDate, formatDateTime, formatDateForInput } from '@sstcp/shared'

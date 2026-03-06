@@ -3,16 +3,14 @@
     <div class="top-bar">
       <div class="year-selector">
         <label class="year-label">年度选择：</label>
-        <select class="year-select" v-model="selectedYear" @change="handleYearChange">
+        <select v-model="selectedYear" class="year-select" @change="handleYearChange">
           <option v-for="year in availableYears" :key="year" :value="year">
             {{ year }}
           </option>
         </select>
       </div>
       <div class="refresh-controls">
-        <button class="btn btn-refresh" @click="handleYearChange">
-          刷新
-        </button>
+        <button class="btn btn-refresh" @click="handleYearChange">刷新</button>
         <button class="btn btn-fullscreen" @click="toggleFullscreen">
           {{ isFullscreen ? '退出全屏' : '全屏' }}
         </button>
@@ -21,29 +19,47 @@
 
     <OnlineUsersPanel />
 
-    <div class="content" v-if="!loading">
+    <div v-if="!loading" class="content">
       <div class="top-cards-section">
-        <div class="mini-card mini-card-warning clickable" @click="openDetailModal('nearDue', '临期工单')">
+        <div
+          class="mini-card mini-card-warning clickable"
+          @click="openDetailModal('nearDue', '临期工单')"
+        >
           <div class="mini-card-value">{{ overviewData.nearDueCount }}</div>
           <div class="mini-card-label">临期工单</div>
         </div>
-        <div class="mini-card mini-card-danger clickable" @click="openDetailModal('overdue', '超期工单')">
+        <div
+          class="mini-card mini-card-danger clickable"
+          @click="openDetailModal('overdue', '超期工单')"
+        >
           <div class="mini-card-value">{{ overviewData.overdueCount }}</div>
           <div class="mini-card-label">超期工单</div>
         </div>
-        <div class="mini-card mini-card-success clickable" @click="openDetailModal('yearCompleted', '本年完成')">
+        <div
+          class="mini-card mini-card-success clickable"
+          @click="openDetailModal('yearCompleted', '本年完成')"
+        >
           <div class="mini-card-value">{{ overviewData.yearCompletedCount }}</div>
           <div class="mini-card-label">本年完成</div>
         </div>
-        <div class="mini-card mini-card-info clickable" @click="openDetailModal('regularInspection', '定期巡检单')">
+        <div
+          class="mini-card mini-card-info clickable"
+          @click="openDetailModal('regularInspection', '定期巡检单')"
+        >
           <div class="mini-card-value">{{ overviewData.regularInspectionCount }}</div>
           <div class="mini-card-label">定期巡检单</div>
         </div>
-        <div class="mini-card mini-card-purple clickable" @click="openDetailModal('temporaryRepair', '临时维修单')">
+        <div
+          class="mini-card mini-card-purple clickable"
+          @click="openDetailModal('temporaryRepair', '临时维修单')"
+        >
           <div class="mini-card-value">{{ overviewData.temporaryRepairCount }}</div>
           <div class="mini-card-label">临时维修单</div>
         </div>
-        <div class="mini-card mini-card-cyan clickable" @click="openDetailModal('spotWork', '零星用工单')">
+        <div
+          class="mini-card mini-card-cyan clickable"
+          @click="openDetailModal('spotWork', '零星用工单')"
+        >
           <div class="mini-card-value">{{ overviewData.spotWorkCount }}</div>
           <div class="mini-card-label">零星用工单</div>
         </div>
@@ -62,103 +78,153 @@
                   <div v-for="tick in yAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(employee, index) in employeeStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(employee.name)">
+                  <div
+                    v-for="(employee, index) in employeeStats.employees"
+                    :key="index"
+                    class="horizontal-bar-item clickable-bar"
+                    @click="openEmployeeDetail(employee.name)"
+                  >
                     <div class="bar-label">{{ employee.name }}</div>
                     <div class="bar-track">
-                      <div class="bar-fill" :style="{ width: getEmployeeBarWidth(employee.count) + '%' }">
+                      <div
+                        class="bar-fill"
+                        :style="{ width: getEmployeeBarWidth(employee.count) + '%' }"
+                      >
                         <span class="bar-value">{{ employee.count }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="employee-no-data" v-if="employeeStats.employees.length === 0">
+                <div v-if="employeeStats.employees.length === 0" class="employee-no-data">
                   暂无数据
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="stat-card card-inspection inspection-chart-card">
           <div class="employee-chart-container">
             <div class="chart-caption">定期巡检单完成数量（{{ selectedYear }}）</div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in inspectionYAxisTicks" :key="tick" class="y-axis-tick">{{ tick }}</div>
+                <div v-for="tick in inspectionYAxisTicks" :key="tick" class="y-axis-tick">
+                  {{ tick }}
+                </div>
               </div>
               <div class="chart-content">
                 <div class="chart-grid">
-                  <div v-for="tick in inspectionYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
+                  <div
+                    v-for="tick in inspectionYAxisTicks"
+                    :key="'grid-' + tick"
+                    class="grid-line"
+                  ></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(item, index) in inspectionStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(item.name, 'inspection')">
+                  <div
+                    v-for="(item, index) in inspectionStats.employees"
+                    :key="index"
+                    class="horizontal-bar-item clickable-bar"
+                    @click="openEmployeeDetail(item.name, 'inspection')"
+                  >
                     <div class="bar-label">{{ item.name }}</div>
                     <div class="bar-track">
-                      <div class="bar-fill bar-fill-green" :style="{ width: getInspectionBarWidth(item.count) + '%' }">
+                      <div
+                        class="bar-fill bar-fill-green"
+                        :style="{ width: getInspectionBarWidth(item.count) + '%' }"
+                      >
                         <span class="bar-value">{{ item.count }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="employee-no-data" v-if="inspectionStats.employees.length === 0">
+                <div v-if="inspectionStats.employees.length === 0" class="employee-no-data">
                   暂无数据
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="stat-card card-repair repair-chart-card">
           <div class="employee-chart-container">
             <div class="chart-caption">临时维修单完成数量（{{ selectedYear }}）</div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in repairYAxisTicks" :key="tick" class="y-axis-tick">{{ tick }}</div>
+                <div v-for="tick in repairYAxisTicks" :key="tick" class="y-axis-tick">
+                  {{ tick }}
+                </div>
               </div>
               <div class="chart-content">
                 <div class="chart-grid">
-                  <div v-for="tick in repairYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
+                  <div
+                    v-for="tick in repairYAxisTicks"
+                    :key="'grid-' + tick"
+                    class="grid-line"
+                  ></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(item, index) in repairStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(item.name, 'repair')">
+                  <div
+                    v-for="(item, index) in repairStats.employees"
+                    :key="index"
+                    class="horizontal-bar-item clickable-bar"
+                    @click="openEmployeeDetail(item.name, 'repair')"
+                  >
                     <div class="bar-label">{{ item.name }}</div>
                     <div class="bar-track">
-                      <div class="bar-fill bar-fill-red" :style="{ width: getRepairBarWidth(item.count) + '%' }">
+                      <div
+                        class="bar-fill bar-fill-red"
+                        :style="{ width: getRepairBarWidth(item.count) + '%' }"
+                      >
                         <span class="bar-value">{{ item.count }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="employee-no-data" v-if="repairStats.employees.length === 0">
+                <div v-if="repairStats.employees.length === 0" class="employee-no-data">
                   暂无数据
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
+
         <div class="stat-card card-labor spotwork-chart-card">
           <div class="employee-chart-container">
             <div class="chart-caption">零星用工单完成数量（{{ selectedYear }}）</div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in spotworkYAxisTicks" :key="tick" class="y-axis-tick">{{ tick }}</div>
+                <div v-for="tick in spotworkYAxisTicks" :key="tick" class="y-axis-tick">
+                  {{ tick }}
+                </div>
               </div>
               <div class="chart-content">
                 <div class="chart-grid">
-                  <div v-for="tick in spotworkYAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
+                  <div
+                    v-for="tick in spotworkYAxisTicks"
+                    :key="'grid-' + tick"
+                    class="grid-line"
+                  ></div>
                 </div>
                 <div class="horizontal-bars">
-                  <div v-for="(item, index) in spotworkStats.employees" :key="index" class="horizontal-bar-item clickable-bar" @click="openEmployeeDetail(item.name, 'spotwork')">
+                  <div
+                    v-for="(item, index) in spotworkStats.employees"
+                    :key="index"
+                    class="horizontal-bar-item clickable-bar"
+                    @click="openEmployeeDetail(item.name, 'spotwork')"
+                  >
                     <div class="bar-label">{{ item.name }}</div>
                     <div class="bar-track">
-                      <div class="bar-fill" :style="{ width: getSpotworkBarWidth(item.count) + '%' }">
+                      <div
+                        class="bar-fill"
+                        :style="{ width: getSpotworkBarWidth(item.count) + '%' }"
+                      >
                         <span class="bar-value">{{ item.count }}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="employee-no-data" v-if="spotworkStats.employees.length === 0">
+                <div v-if="spotworkStats.employees.length === 0" class="employee-no-data">
                   暂无数据
                 </div>
               </div>
@@ -170,24 +236,53 @@
           <div class="employee-chart-container">
             <div class="chart-caption">准时完成情况分布（{{ selectedYear }}）</div>
             <div class="pie-chart-wrapper">
-              <div class="pie-chart-container clickable" @click="openDetailModal('onTime', '准时完成')">
+              <div
+                class="pie-chart-container clickable"
+                @click="openDetailModal('onTime', '准时完成')"
+              >
                 <svg class="pie-svg" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#ff9800" stroke-width="20" 
-                    :stroke-dasharray="pieDashArray" stroke-dashoffset="0" transform="rotate(-90 50 50)" />
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="#4caf50" stroke-width="20" 
-                    :stroke-dasharray="pieDashArray" :stroke-dashoffset="pieDashOffset" transform="rotate(-90 50 50)" />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#ff9800"
+                    stroke-width="20"
+                    :stroke-dasharray="pieDashArray"
+                    stroke-dashoffset="0"
+                    transform="rotate(-90 50 50)"
+                  />
+                  <circle
+                    cx="50"
+                    cy="50"
+                    r="40"
+                    fill="none"
+                    stroke="#4caf50"
+                    stroke-width="20"
+                    :stroke-dasharray="pieDashArray"
+                    :stroke-dashoffset="pieDashOffset"
+                    transform="rotate(-90 50 50)"
+                  />
                 </svg>
                 <div class="pie-center">
-                  <div class="pie-percentage">{{ Math.round(completionRate.onTimeRate * 100) }}%</div>
+                  <div class="pie-percentage">
+                    {{ Math.round(completionRate.onTimeRate * 100) }}%
+                  </div>
                   <div class="pie-label">准时率</div>
                 </div>
               </div>
               <div class="pie-legend">
-                <div class="legend-item clickable-legend" @click="openDetailModal('onTime', '准时完成')">
+                <div
+                  class="legend-item clickable-legend"
+                  @click="openDetailModal('onTime', '准时完成')"
+                >
                   <div class="legend-color legend-color-ontime"></div>
                   <span>准时完成: {{ completionRate.onTimeCount }}单</span>
                 </div>
-                <div class="legend-item clickable-legend" @click="openDetailModal('delayed', '延期完成')">
+                <div
+                  class="legend-item clickable-legend"
+                  @click="openDetailModal('delayed', '延期完成')"
+                >
                   <div class="legend-color legend-color-delayed"></div>
                   <span>延期完成: {{ completionRate.delayedCount }}单</span>
                 </div>
@@ -195,38 +290,51 @@
             </div>
           </div>
         </div>
-        
+
         <div class="stat-card card-inspection inspection-chart-card">
           <div class="employee-chart-container">
             <div class="chart-caption">临时维修单前五（{{ selectedYear }}）</div>
             <div class="vertical-bar-chart">
               <div class="vertical-chart-wrapper">
                 <div class="vertical-chart-yaxis">
-                  <div v-for="tick in topRepairYAxisTicks" :key="tick" class="v-yaxis-tick">{{ tick }}</div>
+                  <div v-for="tick in topRepairYAxisTicks" :key="tick" class="v-yaxis-tick">
+                    {{ tick }}
+                  </div>
                 </div>
                 <div class="vertical-chart-content">
                   <div class="vertical-chart-grid">
-                    <div v-for="tick in topRepairYAxisTicks" :key="'grid-' + tick" class="v-grid-line"></div>
+                    <div
+                      v-for="tick in topRepairYAxisTicks"
+                      :key="'grid-' + tick"
+                      class="v-grid-line"
+                    ></div>
                   </div>
                   <div class="vertical-bars-container">
-                    <div v-for="(item, index) in topRepairs" :key="index" class="vertical-bar-col clickable-bar" @click="openProjectDetail(item.name, 'repair')">
+                    <div
+                      v-for="(item, index) in topRepairs"
+                      :key="index"
+                      class="vertical-bar-col clickable-bar"
+                      @click="openProjectDetail(item.name, 'repair')"
+                    >
                       <div class="v-bar-track">
-                        <div class="v-bar-fill" :style="{ height: getTopRepairBarHeight(item.value) + '%' }">
+                        <div
+                          class="v-bar-fill"
+                          :style="{ height: getTopRepairBarHeight(item.value) + '%' }"
+                        >
                           <span class="v-bar-value">{{ item.value }}</span>
                         </div>
                       </div>
                       <div class="v-bar-label-wrapper">
-                        <span 
-                          class="v-bar-label-slanted" 
+                        <span
+                          class="v-bar-label-slanted"
                           :style="{ fontSize: getLabelFontSize(item.name) + 'px' }"
                           :title="item.name"
-                        >{{ item.name }}</span>
+                          >{{ item.name }}</span
+                        >
                       </div>
                     </div>
                   </div>
-                  <div class="employee-no-data" v-if="topRepairs.length === 0">
-                    暂无数据
-                  </div>
+                  <div v-if="topRepairs.length === 0" class="employee-no-data">暂无数据</div>
                 </div>
               </div>
             </div>
@@ -235,23 +343,23 @@
       </div>
     </div>
 
-    <div class="loading" v-else>
+    <div v-else class="loading">
       <div class="loading-spinner"></div>
       <p>加载中...</p>
     </div>
 
-    <div class="modal-overlay" v-if="showDetailModal" @click.self="closeDetailModal">
+    <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
       <div class="modal-container">
         <div class="modal-header">
           <h3 class="modal-title">{{ detailModalTitle }}</h3>
           <button class="modal-close" @click="closeDetailModal">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="detail-loading" v-if="detailLoading">
+          <div v-if="detailLoading" class="detail-loading">
             <div class="loading-spinner small"></div>
             <span>加载中...</span>
           </div>
-          <div class="detail-content" v-else>
+          <div v-else class="detail-content">
             <div class="detail-stats">
               <span class="detail-total">共 {{ detailTotal }} 条记录</span>
             </div>
@@ -279,7 +387,9 @@
                     <td>{{ item.planStartDate }}</td>
                     <td>{{ item.planEndDate }}</td>
                     <td>
-                      <span :class="['status-tag', getStatusClass(item.status)]">{{ getDisplayStatus(item.status) }}</span>
+                      <span :class="['status-tag', getStatusClass(item.status)]">{{
+                        getDisplayStatus(item.status)
+                      }}</span>
                     </td>
                   </tr>
                   <tr v-if="detailData.length === 0">
@@ -290,13 +400,37 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer" v-if="detailTotal > 0">
+        <div v-if="detailTotal > 0" class="modal-footer">
           <div class="pagination">
-            <button class="page-btn" @click="handleDetailPageChange(1)" :disabled="detailCurrentPage === 1">首页</button>
-            <button class="page-btn" @click="handleDetailPageChange(detailCurrentPage - 1)" :disabled="detailCurrentPage === 1">上一页</button>
+            <button
+              class="page-btn"
+              :disabled="detailCurrentPage === 1"
+              @click="handleDetailPageChange(1)"
+            >
+              首页
+            </button>
+            <button
+              class="page-btn"
+              :disabled="detailCurrentPage === 1"
+              @click="handleDetailPageChange(detailCurrentPage - 1)"
+            >
+              上一页
+            </button>
             <span class="page-info">第 {{ detailCurrentPage }} / {{ detailTotalPages }} 页</span>
-            <button class="page-btn" @click="handleDetailPageChange(detailCurrentPage + 1)" :disabled="detailCurrentPage >= detailTotalPages">下一页</button>
-            <button class="page-btn" @click="handleDetailPageChange(detailTotalPages)" :disabled="detailCurrentPage >= detailTotalPages">末页</button>
+            <button
+              class="page-btn"
+              :disabled="detailCurrentPage >= detailTotalPages"
+              @click="handleDetailPageChange(detailCurrentPage + 1)"
+            >
+              下一页
+            </button>
+            <button
+              class="page-btn"
+              :disabled="detailCurrentPage >= detailTotalPages"
+              @click="handleDetailPageChange(detailTotalPages)"
+            >
+              末页
+            </button>
           </div>
         </div>
       </div>
@@ -306,7 +440,14 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, onUnmounted, computed, inject } from 'vue'
-import { statisticsService, StatisticsOverview, CompletionRate, TopProject, EmployeeStats, WorkOrderDetail } from '@/services/statistics'
+import {
+  statisticsService,
+  StatisticsOverview,
+  CompletionRate,
+  TopProject,
+  EmployeeStats,
+  WorkOrderDetail,
+} from '@/services/statistics'
 import OnlineUsersPanel from '@/components/OnlineUsersPanel.vue'
 
 // TODO: 统计页面 - 考虑加入数据导出功能(Excel/PDF)
@@ -315,7 +456,7 @@ import OnlineUsersPanel from '@/components/OnlineUsersPanel.vue'
 export default defineComponent({
   name: 'StatisticsPage',
   components: {
-    OnlineUsersPanel
+    OnlineUsersPanel,
   },
   setup() {
     const selectedYear = ref<number>(new Date().getFullYear())
@@ -329,40 +470,40 @@ export default defineComponent({
       spotWorkCount: 0,
       nearDueCount: 0,
       overdueCount: 0,
-      yearCompletedCount: 0
+      yearCompletedCount: 0,
     })
     const completionRate = ref<CompletionRate>({
       year: selectedYear.value,
       onTimeRate: 0,
       onTimeCount: 0,
       delayedCount: 0,
-      totalCount: 0
+      totalCount: 0,
     })
     const topProjects = ref<TopProject[]>([])
     const topRepairs = ref<TopProject[]>([])
     const employeeStats = ref<EmployeeStats>({
       year: selectedYear.value,
       employees: [],
-      total: 0
+      total: 0,
     })
     const inspectionStats = ref<EmployeeStats>({
       year: selectedYear.value,
       employees: [],
-      total: 0
+      total: 0,
     })
     const repairStats = ref<EmployeeStats>({
       year: selectedYear.value,
       employees: [],
-      total: 0
+      total: 0,
     })
     const spotworkStats = ref<EmployeeStats>({
       year: selectedYear.value,
       employees: [],
-      total: 0
+      total: 0,
     })
     const loading = ref<boolean>(false)
     const isFullscreen = ref<boolean>(false)
-    
+
     const showDetailModal = ref<boolean>(false)
     const detailModalTitle = ref<string>('')
     const detailLoading = ref<boolean>(false)
@@ -374,7 +515,7 @@ export default defineComponent({
     const currentEmployeeName = ref<string>('')
     const currentProjectName = ref<string>('')
     const currentOrderType = ref<string>('')
-    
+
     const setFullscreenMode = inject<(value: boolean) => void>('setFullscreenMode')
 
     const detailTotalPages = computed(() => {
@@ -383,32 +524,32 @@ export default defineComponent({
 
     const maxProjectValue = computed(() => {
       if (topRepairs.value.length === 0) return 1
-      return Math.max(...topRepairs.value.map(p => p.value), 1)
+      return Math.max(...topRepairs.value.map((p) => p.value), 1)
     })
 
     const maxEmployeeValue = computed(() => {
       if (employeeStats.value.employees.length === 0) return 10
-      return Math.max(...employeeStats.value.employees.map(e => e.count), 10)
+      return Math.max(...employeeStats.value.employees.map((e) => e.count), 10)
     })
 
     const maxInspectionValue = computed(() => {
       if (inspectionStats.value.employees.length === 0) return 10
-      return Math.max(...inspectionStats.value.employees.map(e => e.count), 10)
+      return Math.max(...inspectionStats.value.employees.map((e) => e.count), 10)
     })
 
     const maxRepairValue = computed(() => {
       if (repairStats.value.employees.length === 0) return 10
-      return Math.max(...repairStats.value.employees.map(e => e.count), 10)
+      return Math.max(...repairStats.value.employees.map((e) => e.count), 10)
     })
 
     const maxSpotworkValue = computed(() => {
       if (spotworkStats.value.employees.length === 0) return 10
-      return Math.max(...spotworkStats.value.employees.map(e => e.count), 10)
+      return Math.max(...spotworkStats.value.employees.map((e) => e.count), 10)
     })
 
     const maxTopRepairValue = computed(() => {
       if (topRepairs.value.length === 0) return 10
-      return Math.max(...topRepairs.value.map(e => e.value), 10)
+      return Math.max(...topRepairs.value.map((e) => e.value), 10)
     })
 
     const yAxisTicks = computed(() => {
@@ -546,7 +687,16 @@ export default defineComponent({
     const handleYearChange = async () => {
       loading.value = true
       try {
-        const [overview, rate, projects, topRepairsData, employees, inspections, repairs, spotworks] = await Promise.all([
+        const [
+          overview,
+          rate,
+          projects,
+          topRepairsData,
+          employees,
+          inspections,
+          repairs,
+          spotworks,
+        ] = await Promise.all([
           statisticsService.getStatisticsOverview(selectedYear.value),
           statisticsService.getCompletionRate(selectedYear.value),
           statisticsService.getTopProjects(selectedYear.value, 5),
@@ -554,9 +704,9 @@ export default defineComponent({
           statisticsService.getEmployeeStats(selectedYear.value),
           statisticsService.getInspectionStats(selectedYear.value),
           statisticsService.getRepairStats(selectedYear.value),
-          statisticsService.getSpotworkStats(selectedYear.value)
+          statisticsService.getSpotworkStats(selectedYear.value),
         ])
-        
+
         overviewData.value = overview
         completionRate.value = rate
         topProjects.value = projects
@@ -643,7 +793,7 @@ export default defineComponent({
           year: selectedYear.value,
           data_type: currentDataType.value,
           page: detailCurrentPage.value,
-          page_size: detailPageSize.value
+          page_size: detailPageSize.value,
         }
         if (currentEmployeeName.value) {
           params.employee_name = currentEmployeeName.value
@@ -729,9 +879,9 @@ export default defineComponent({
       closeDetailModal,
       handleDetailPageChange,
       getStatusClass,
-      getDisplayStatus
+      getDisplayStatus,
     }
-  }
+  },
 })
 </script>
 
@@ -740,7 +890,13 @@ export default defineComponent({
   padding: 20px 0;
   background: #f5f7fa;
   min-height: 100vh;
-  font-family: 'Inter', '思源黑体', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family:
+    'Inter',
+    '思源黑体',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
   box-sizing: border-box;
 }
 
@@ -778,7 +934,7 @@ export default defineComponent({
 }
 
 .year-select:focus {
-  border-color: #4CAF50;
+  border-color: #4caf50;
   box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
 }
 
@@ -802,7 +958,7 @@ export default defineComponent({
 }
 
 .btn-refresh {
-  background: #4CAF50;
+  background: #4caf50;
 }
 
 .btn-refresh:hover {
@@ -810,7 +966,7 @@ export default defineComponent({
 }
 
 .btn-fullscreen {
-  background: #4CAF50;
+  background: #4caf50;
 }
 
 .btn-fullscreen:hover {
@@ -836,7 +992,9 @@ export default defineComponent({
   padding: 16px;
   box-shadow: none;
   text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .mini-card:hover {
@@ -856,51 +1014,51 @@ export default defineComponent({
 }
 
 .mini-card-warning {
-  border-left: 4px solid #FF9800;
+  border-left: 4px solid #ff9800;
 }
 
 .mini-card-warning .mini-card-value {
-  color: #FF9800;
+  color: #ff9800;
 }
 
 .mini-card-danger {
-  border-left: 4px solid #F44336;
+  border-left: 4px solid #f44336;
 }
 
 .mini-card-danger .mini-card-value {
-  color: #F44336;
+  color: #f44336;
 }
 
 .mini-card-success {
-  border-left: 4px solid #4CAF50;
+  border-left: 4px solid #4caf50;
 }
 
 .mini-card-success .mini-card-value {
-  color: #4CAF50;
+  color: #4caf50;
 }
 
 .mini-card-info {
-  border-left: 4px solid #2196F3;
+  border-left: 4px solid #2196f3;
 }
 
 .mini-card-info .mini-card-value {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .mini-card-purple {
-  border-left: 4px solid #9C27B0;
+  border-left: 4px solid #9c27b0;
 }
 
 .mini-card-purple .mini-card-value {
-  color: #9C27B0;
+  color: #9c27b0;
 }
 
 .mini-card-cyan {
-  border-left: 4px solid #00BCD4;
+  border-left: 4px solid #00bcd4;
 }
 
 .mini-card-cyan .mini-card-value {
-  color: #00BCD4;
+  color: #00bcd4;
 }
 
 .cards-section {
@@ -920,7 +1078,9 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   min-height: 0;
 }
 
@@ -1452,7 +1612,7 @@ export default defineComponent({
   width: 40px;
   height: 40px;
   border: 4px solid #e0e0e0;
-  border-top: 4px solid #4CAF50;
+  border-top: 4px solid #4caf50;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1470,11 +1630,11 @@ export default defineComponent({
   .top-cards-section {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .cards-section {
     grid-template-columns: 1fr;
   }
-  
+
   .top-bar {
     flex-direction: column;
     gap: 12px;
@@ -1761,7 +1921,9 @@ export default defineComponent({
 
 .clickable {
   cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .clickable:hover {

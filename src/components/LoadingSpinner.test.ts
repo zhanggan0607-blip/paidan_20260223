@@ -11,8 +11,8 @@ describe('LoadingSpinner', () => {
   it('displays loading text when provided', () => {
     const wrapper = mount(LoadingSpinner, {
       props: {
-        text: '加载中...'
-      }
+        text: '加载中...',
+      },
     })
     expect(wrapper.text()).toContain('加载中')
   })

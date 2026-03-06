@@ -115,21 +115,24 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             logger.error(f"查询临时维修失败 (repair_id={repair_id}): {str(e)}")
             raise
 
-    def exists_by_repair_id(self, repair_id: str) -> bool:
+    def exists_by_repair_id(self, repair_id: str, include_deleted: bool = False) -> bool:
         """
         检查维修单编号是否存在
         
         Args:
             repair_id: 维修单编号
+            include_deleted: 是否包含已删除的记录
             
         Returns:
             是否存在
         """
         try:
-            return self.db.query(TemporaryRepair).filter(
-                TemporaryRepair.repair_id == repair_id,
-                TemporaryRepair.is_deleted == False
-            ).first() is not None
+            query = self.db.query(TemporaryRepair).filter(
+                TemporaryRepair.repair_id == repair_id
+            )
+            if not include_deleted:
+                query = query.filter(TemporaryRepair.is_deleted == False)
+            return query.first() is not None
         except Exception as e:
             logger.error(f"检查临时维修是否存在失败 (repair_id={repair_id}): {str(e)}")
             raise

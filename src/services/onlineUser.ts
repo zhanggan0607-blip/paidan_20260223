@@ -100,7 +100,7 @@ export const onlineUserService = {
       params.device_type = deviceType
     }
     await request.post(API_ENDPOINTS.ONLINE_USER.LOGOUT, params)
-  }
+  },
 }
 
 export default onlineUserService

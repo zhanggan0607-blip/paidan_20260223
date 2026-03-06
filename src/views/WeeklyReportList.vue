@@ -15,7 +15,12 @@
             </div>
             <div class="search-item">
               <label class="search-label">填报时间：</label>
-              <input v-model="filters.reportDate" type="date" class="search-input" @change="handleSearch" />
+              <input
+                v-model="filters.reportDate"
+                type="date"
+                class="search-input"
+                @change="handleSearch"
+              />
             </div>
             <div class="search-item">
               <label class="search-label">周报内容：</label>
@@ -26,7 +31,7 @@
                 @input="handleSearch"
               />
             </div>
-            <div class="search-item" v-if="canViewAll">
+            <div v-if="canViewAll" class="search-item">
               <label class="search-label">提交人：</label>
               <SearchInput
                 v-model="filters.createdBy"
@@ -40,116 +45,120 @@
       </div>
 
       <div class="table-section">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>序号</th>
-                  <th>部门周报编号</th>
-                  <th>项目名称</th>
-                  <th>项目编号</th>
-                  <th>周开始日期</th>
-                  <th>周结束日期</th>
-                  <th>填报日期</th>
-                  <th>本周工作总结</th>
-                  <th>状态</th>
-                  <th>提交人</th>
-                  <th>提交时间</th>
-                  <th>操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-if="loading">
-                  <td colspan="12" class="loading-cell">
-                    <div class="loading-spinner"></div>
-                    <span>加载中...</span>
-                  </td>
-                </tr>
-                <tr v-else-if="dataList.length === 0">
-                  <td colspan="12" class="empty-cell">暂无数据</td>
-                </tr>
-                <tr v-else v-for="(item, index) in dataList" :key="item.id">
-                  <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-                  <td class="report-id-cell">{{ item.report_id }}</td>
-                  <td>{{ item.project_name }}</td>
-                  <td>{{ item.project_id }}</td>
-                  <td>{{ formatDate(item.week_start_date) }}</td>
-                  <td>{{ formatDate(item.week_end_date) }}</td>
-                  <td>{{ formatDate(item.report_date) }}</td>
-                  <td class="content-cell">
-                    <span class="content-text" :title="item.work_summary">
-                      {{ truncateContent(item.work_summary) }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="status-tag" :class="item.status">
-                      {{ getStatusName(item.status) }}
-                    </span>
-                  </td>
-                  <td>{{ item.created_by || '-' }}</td>
-                  <td>{{ formatDateTime(item.created_at) }}</td>
-                  <td class="action-cell">
-                    <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-                    <a 
-                      v-if="canEdit(item)" 
-                      href="#" 
-                      class="action-link action-edit" 
-                      @click.prevent="handleEdit(item)"
-                    >编辑</a>
-                    <a 
-                      v-if="canReject(item)" 
-                      href="#" 
-                      class="action-link action-reject" 
-                      @click.prevent="handleReject(item)"
-                    >退回</a>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <div class="pagination-section">
-              <div class="pagination-info">
-                共 {{ total }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
-              </div>
-              <div class="pagination-controls">
-                <button 
-                  @click="handlePageChange(currentPage - 1)" 
-                  :disabled="currentPage === 1"
-                  class="pagination-button"
-                >
-                  上一页
-                </button>
-                <span class="pagination-pages">
-                  <input 
-                    v-model.number="currentPage" 
-                    type="number" 
-                    :min="1" 
-                    :max="totalPages"
-                    class="pagination-input"
-                  />
-                  <span class="pagination-slash">/</span>
-                  <span>{{ totalPages }}</span>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>序号</th>
+              <th>部门周报编号</th>
+              <th>项目名称</th>
+              <th>项目编号</th>
+              <th>周开始日期</th>
+              <th>周结束日期</th>
+              <th>填报日期</th>
+              <th>本周工作总结</th>
+              <th>状态</th>
+              <th>提交人</th>
+              <th>提交时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="loading">
+              <td colspan="12" class="loading-cell">
+                <div class="loading-spinner"></div>
+                <span>加载中...</span>
+              </td>
+            </tr>
+            <tr v-else-if="dataList.length === 0">
+              <td colspan="12" class="empty-cell">暂无数据</td>
+            </tr>
+            <tr v-for="(item, index) in dataList" v-else :key="item.id">
+              <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
+              <td class="report-id-cell">{{ item.report_id }}</td>
+              <td>{{ item.project_name }}</td>
+              <td>{{ item.project_id }}</td>
+              <td>{{ formatDate(item.week_start_date) }}</td>
+              <td>{{ formatDate(item.week_end_date) }}</td>
+              <td>{{ formatDate(item.report_date) }}</td>
+              <td class="content-cell">
+                <span class="content-text" :title="item.work_summary">
+                  {{ truncateContent(item.work_summary) }}
                 </span>
-                <button 
-                  @click="handlePageChange(currentPage + 1)" 
-                  :disabled="currentPage === totalPages"
-                  class="pagination-button"
+              </td>
+              <td>
+                <span class="status-tag" :class="item.status">
+                  {{ getStatusName(item.status) }}
+                </span>
+              </td>
+              <td>{{ item.created_by || '-' }}</td>
+              <td>{{ formatDateTime(item.created_at) }}</td>
+              <td class="action-cell">
+                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
+                  >查看</a
                 >
-                  下一页
-                </button>
-              </div>
-              <div class="page-size-selector">
-                <span>每页</span>
-                <select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
-                </select>
-                <span>条</span>
-              </div>
-            </div>
+                <a
+                  v-if="canEdit(item)"
+                  href="#"
+                  class="action-link action-edit"
+                  @click.prevent="handleEdit(item)"
+                  >编辑</a
+                >
+                <a
+                  v-if="canReject(item)"
+                  href="#"
+                  class="action-link action-reject"
+                  @click.prevent="handleReject(item)"
+                  >退回</a
+                >
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="pagination-section">
+          <div class="pagination-info">
+            共 {{ total }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
+          </div>
+          <div class="pagination-controls">
+            <button
+              :disabled="currentPage === 1"
+              class="pagination-button"
+              @click="handlePageChange(currentPage - 1)"
+            >
+              上一页
+            </button>
+            <span class="pagination-pages">
+              <input
+                v-model.number="currentPage"
+                type="number"
+                :min="1"
+                :max="totalPages"
+                class="pagination-input"
+              />
+              <span class="pagination-slash">/</span>
+              <span>{{ totalPages }}</span>
+            </span>
+            <button
+              :disabled="currentPage === totalPages"
+              class="pagination-button"
+              @click="handlePageChange(currentPage + 1)"
+            >
+              下一页
+            </button>
+          </div>
+          <div class="page-size-selector">
+            <span>每页</span>
+            <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
+              <option :value="10">10</option>
+              <option :value="20">20</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+            <span>条</span>
           </div>
         </div>
+      </div>
+    </div>
 
     <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
       <div class="modal-content modal-content-large">
@@ -157,7 +166,7 @@
           <h3>部门周报详情</h3>
           <button class="close-btn" @click="closeDetailModal">&times;</button>
         </div>
-        <div class="modal-body" v-if="detailData">
+        <div v-if="detailData" class="modal-body">
           <div class="detail-section">
             <div class="detail-row">
               <div class="detail-item">
@@ -208,7 +217,7 @@
                 <label class="detail-label">提交时间</label>
                 <div class="detail-value">{{ formatDateTime(detailData.created_at) }}</div>
               </div>
-              <div class="detail-item" v-if="detailData.approved_by">
+              <div v-if="detailData.approved_by" class="detail-item">
                 <label class="detail-label">审核人</label>
                 <div class="detail-value">{{ detailData.approved_by }}</div>
               </div>
@@ -237,20 +246,22 @@
                 <div class="detail-value content-full">{{ detailData.suggestions || '-' }}</div>
               </div>
             </div>
-            <div class="detail-row full-width" v-if="detailData.reject_reason">
+            <div v-if="detailData.reject_reason" class="detail-row full-width">
               <div class="detail-item">
                 <label class="detail-label">退回原因</label>
-                <div class="detail-value content-full reject-reason">{{ detailData.reject_reason }}</div>
+                <div class="detail-value content-full reject-reason">
+                  {{ detailData.reject_reason }}
+                </div>
               </div>
             </div>
-            <div class="detail-row full-width" v-if="parseImages(detailData.images).length > 0">
+            <div v-if="parseImages(detailData.images).length > 0" class="detail-row full-width">
               <div class="detail-item">
                 <label class="detail-label">现场照片</label>
                 <div class="detail-images">
-                  <img 
-                    v-for="(img, index) in parseImages(detailData.images)" 
-                    :key="index" 
-                    :src="img" 
+                  <img
+                    v-for="(img, index) in parseImages(detailData.images)"
+                    :key="index"
+                    :src="img"
                     alt="现场照片"
                     class="detail-image"
                     loading="lazy"
@@ -261,14 +272,14 @@
             </div>
           </div>
 
-          <div class="operation-log-section" v-if="operationLogs.length > 0">
+          <div v-if="operationLogs.length > 0" class="operation-log-section">
             <div class="section-title">操作日志</div>
             <div class="timeline">
-              <div 
-                v-for="(log, index) in operationLogs" 
-                :key="log.id" 
+              <div
+                v-for="(log, index) in operationLogs"
+                :key="log.id"
                 class="timeline-item"
-                :class="{ 'last': index === operationLogs.length - 1 }"
+                :class="{ last: index === operationLogs.length - 1 }"
               >
                 <div class="timeline-dot"></div>
                 <div class="timeline-content">
@@ -299,9 +310,9 @@
         <div class="modal-body">
           <div class="form-item">
             <label class="form-label">退回原因</label>
-            <textarea 
-              v-model="rejectReason" 
-              class="form-textarea" 
+            <textarea
+              v-model="rejectReason"
+              class="form-textarea"
               placeholder="请输入退回原因"
               rows="3"
             ></textarea>
@@ -309,7 +320,7 @@
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeRejectModal">取消</button>
-          <button class="confirm-btn" @click="confirmReject" :disabled="submitting">
+          <button class="confirm-btn" :disabled="submitting" @click="confirmReject">
             {{ submitting ? '处理中...' : '确认退回' }}
           </button>
         </div>
@@ -367,7 +378,7 @@ interface OperationLogItem {
 export default defineComponent({
   name: 'WeeklyReportList',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const router = useRouter()
@@ -394,7 +405,7 @@ export default defineComponent({
       reportId: '',
       reportDate: '',
       workSummary: '',
-      createdBy: ''
+      createdBy: '',
     })
 
     const totalPages = computed(() => {
@@ -406,10 +417,10 @@ export default defineComponent({
      */
     const getStatusName = (status: string) => {
       const statusMap: Record<string, string> = {
-        'draft': '草稿',
-        'submitted': '已提交',
-        'approved': '已审核',
-        'rejected': '已退回'
+        draft: '草稿',
+        submitted: '已提交',
+        approved: '已审核',
+        rejected: '已退回',
       }
       return statusMap[status] || status
     }
@@ -479,12 +490,12 @@ export default defineComponent({
       try {
         const params: Record<string, any> = {
           page: currentPage.value - 1,
-          size: pageSize.value
+          size: pageSize.value,
         }
         if (filters.value.reportId) params.report_id = filters.value.reportId
         if (filters.value.reportDate) params.report_date = filters.value.reportDate
         if (filters.value.workSummary) params.work_summary = filters.value.workSummary
-        
+
         if (!canViewAll.value) {
           const user = userStore.getUser()
           if (user && user.name) {
@@ -494,8 +505,10 @@ export default defineComponent({
           params.created_by = filters.value.createdBy
         }
 
-        const response = await apiClient.get('/weekly-report', { params }) as unknown as PaginatedResponse<WeeklyReportItem>
-        
+        const response = (await apiClient.get('/weekly-report', {
+          params,
+        })) as unknown as PaginatedResponse<WeeklyReportItem>
+
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
           total.value = response.data.total || response.data.totalElements || 0
@@ -520,7 +533,9 @@ export default defineComponent({
      */
     const fetchOperationLogs = async (reportId: number) => {
       try {
-        const response = await apiClient.get(`/weekly-report/${reportId}/operation-logs`) as unknown as ApiResponse<OperationLogItem[]>
+        const response = (await apiClient.get(
+          `/weekly-report/${reportId}/operation-logs`
+        )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
           operationLogs.value = response.data || []
         }
@@ -578,11 +593,14 @@ export default defineComponent({
 
       submitting.value = true
       try {
-        const response = await apiClient.post(`/weekly-report/${pendingRejectItem.value.id}/approve`, {
-          approved: false,
-          reject_reason: rejectReason.value
-        }) as unknown as ApiResponse<null>
-        
+        const response = (await apiClient.post(
+          `/weekly-report/${pendingRejectItem.value.id}/approve`,
+          {
+            approved: false,
+            reject_reason: rejectReason.value,
+          }
+        )) as unknown as ApiResponse<null>
+
         if (response.code === 200) {
           alert('已退回')
           closeRejectModal()
@@ -689,9 +707,9 @@ export default defineComponent({
       previewImage,
       closeImagePreview,
       handlePageChange,
-      handlePageSizeChange
+      handlePageSizeChange,
     }
-  }
+  },
 })
 </script>
 
@@ -862,8 +880,12 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .action-cell {

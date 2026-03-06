@@ -70,6 +70,7 @@ class PeriodicInspectionPartialUpdate(BaseModel):
     status: Optional[str] = Field(None, max_length=20, description="状态")
     filled_count: Optional[int] = Field(None, description="已填写检查项数量")
     total_count: Optional[int] = Field(None, description="检查项总数量")
+    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
 
     @field_validator('status')
     @classmethod

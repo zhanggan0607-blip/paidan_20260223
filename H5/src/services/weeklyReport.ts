@@ -5,13 +5,21 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse, PaginatedResponse } from '../types/api'
-import type { WeeklyReport, OperationLog, WeeklyReportQueryParams, WeeklyReportCreate, WeeklyReportUpdate } from '../types/models'
+import type {
+  WeeklyReport,
+  OperationLog,
+  WeeklyReportQueryParams,
+  WeeklyReportCreate,
+  WeeklyReportUpdate,
+} from '../types/models'
 
 export const weeklyReportService = {
   /**
    * 获取周报列表
    */
-  async getList(params?: WeeklyReportQueryParams): Promise<ApiResponse<{ content: WeeklyReport[] }>> {
+  async getList(
+    params?: WeeklyReportQueryParams
+  ): Promise<ApiResponse<{ content: WeeklyReport[] }>> {
     return request.get(API_ENDPOINTS.WEEKLY_REPORT.LIST, { params })
   },
 

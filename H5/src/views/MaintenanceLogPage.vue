@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onActivated, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { maintenanceLogService } from '../services'
@@ -46,9 +46,9 @@ const getLogIdFontSize = (logId: string) => {
  */
 const getLogTypeName = (logType: string) => {
   const typeMap: Record<string, string> = {
-    'maintenance': '维修日志',
-    'spot': '维修日志',
-    'repair': '维修日志'
+    maintenance: '维修日志',
+    spot: '维修日志',
+    repair: '维修日志',
   }
   return typeMap[logType] || '维修日志'
 }
@@ -59,13 +59,13 @@ const getLogTypeName = (logType: string) => {
 const fetchLogList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
-  
+
   try {
-    const params: Record<string, any> = { 
+    const params: Record<string, any> = {
       page: 0,
-      size: 100
+      size: 100,
     }
-    
+
     // 管理员和部门经理能看到所有数据，普通员工只能看到自己的数据
     if (!canViewAll.value) {
       const user = userStore.getUser()
@@ -73,9 +73,9 @@ const fetchLogList = async () => {
         params.created_by = user.name
       }
     }
-    
+
     const response = await maintenanceLogService.getList(params)
-    
+
     if (response.code === 200) {
       logList.value = response.data?.content || []
     }
@@ -105,16 +105,15 @@ const handleUserChanged = () => {
 onMounted(() => {
   fetchLogList()
 })
+
+onActivated(() => {
+  fetchLogList()
+})
 </script>
 
 <template>
   <div class="maintenance-log-page">
-    <van-nav-bar 
-      :title="pageTitle" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar :title="pageTitle" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -122,18 +121,14 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" />
+        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
-    
+
     <van-pull-refresh v-model="loading" @refresh="fetchLogList">
       <van-list :loading="loading" :finished="true">
         <div class="log-list">
-          <div 
-            v-for="item in logList" 
-            :key="item.id"
-            class="log-card"
-          >
+          <div v-for="item in logList" :key="item.id" class="log-card">
             <div class="card-header">
               <van-tag type="success" size="medium">
                 {{ getLogTypeName(item.log_type || '') }}
@@ -155,15 +150,15 @@ onMounted(() => {
                 <span class="label">日志日期</span>
                 <span class="value">{{ formatDate(item.log_date) }}</span>
               </div>
-              <div class="info-row" v-if="canViewAll">
+              <div v-if="canViewAll" class="info-row">
                 <span class="label">提交人</span>
                 <span class="value">{{ item.created_by || '-' }}</span>
               </div>
-              <div class="info-row" v-if="item.work_content">
+              <div v-if="item.work_content" class="info-row">
                 <span class="label">工作内容</span>
                 <span class="value">{{ item.work_content }}</span>
               </div>
-              <div class="info-row" v-if="item.remark">
+              <div v-if="item.remark" class="info-row">
                 <span class="label">备注</span>
                 <span class="value">{{ item.remark }}</span>
               </div>
@@ -173,11 +168,7 @@ onMounted(() => {
               </div>
             </div>
             <div class="card-footer">
-              <van-button 
-                type="primary" 
-                size="small"
-                @click="handleView(item)"
-              >
+              <van-button type="primary" size="small" @click="handleView(item)">
                 查看详情
               </van-button>
             </div>

@@ -23,7 +23,7 @@ const formData = ref({
   clientContactInfo: '',
   planStartDate: formatDate(new Date()),
   planEndDate: formatDate(new Date()),
-  remarks: ''
+  remarks: '',
 })
 
 const projectList = ref<ProjectInfo[]>([])
@@ -60,10 +60,16 @@ const fetchProjectList = async () => {
 /**
  * 处理项目选择确认
  */
-const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOptions: Array<{ text: string; value: string }>, selectedValues: string[] }) => {
+const handleProjectConfirm = ({
+  selectedOptions,
+  selectedValues,
+}: {
+  selectedOptions: Array<{ text: string; value: string }>
+  selectedValues: string[]
+}) => {
   const selectedValue = selectedValues && selectedValues.length > 0 ? selectedValues[0] : null
   if (selectedValue) {
-    const project = projectList.value.find(p => p.id.toString() === selectedValue)
+    const project = projectList.value.find((p) => p.id.toString() === selectedValue)
     if (project) {
       formData.value.projectId = project.project_id
       formData.value.projectIdDisplay = project.project_id
@@ -76,7 +82,7 @@ const handleProjectConfirm = ({ selectedOptions, selectedValues }: { selectedOpt
   } else if (selectedOptions && selectedOptions.length > 0) {
     const selected = selectedOptions[0]
     if (selected) {
-      const project = projectList.value.find(p => p.id.toString() === selected.value)
+      const project = projectList.value.find((p) => p.id.toString() === selected.value)
       if (project) {
         formData.value.projectId = project.project_id
         formData.value.projectIdDisplay = project.project_id
@@ -114,33 +120,12 @@ const handleSubmit = async () => {
     showFailToast('请输入报修内容')
     return
   }
-  
+
   submitLoading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
-  
+
   try {
-    const today = new Date()
-    const todayStr = today.toISOString().slice(0, 10).replace(/-/g, '')
-    const prefix = `WX-${formData.value.projectId}-${todayStr}`
-    
-    const countResponse = await temporaryRepairService.getList({ 
-      page: 0, size: 1, repair_id: prefix 
-    })
-    let sequence = '01'
-    if (countResponse.code === 200) {
-      const items = countResponse.data?.content || []
-      const matchingItems = items.filter((item: any) => item.repair_id && item.repair_id.startsWith(prefix))
-      if (matchingItems.length > 0 && matchingItems[0]) {
-        const lastId = matchingItems[0].repair_id
-        const lastSeq = parseInt(lastId.split('-').pop() || '0')
-        sequence = String(lastSeq + 1).padStart(2, '0')
-      }
-    }
-    
-    const repairId = `${prefix}-${sequence}`
-    
     const response = await temporaryRepairService.create({
-      repair_id: repairId,
       project_id: formData.value.projectId,
       project_name: formData.value.projectName,
       plan_start_date: formData.value.planStartDate,
@@ -149,14 +134,14 @@ const handleSubmit = async () => {
       client_contact: formData.value.clientContact,
       client_contact_info: formData.value.clientContactInfo,
       remarks: formData.value.remarks,
-      status: '待确认'
     } as any)
-    
+
     if (response.code === 200) {
+      const repairId = response.data?.repair_id || '已生成'
       generatedWorkId.value = repairId
       showSuccessToast({
         message: `提交成功\n工单号：${repairId}`,
-        duration: 3000
+        duration: 3000,
       })
       formData.value = {
         projectId: '',
@@ -167,10 +152,10 @@ const handleSubmit = async () => {
         clientContactInfo: '',
         planStartDate: formatDate(new Date()),
         planEndDate: formatDate(new Date()),
-        remarks: ''
+        remarks: '',
       }
       selectedProjectName.value = ''
-      
+
       router.push('/temporary-repair')
     } else {
       showFailToast(response.message || '提交失败')
@@ -198,13 +183,13 @@ const handleUserChanged = (_user: User) => {
 }
 
 const projectColumns = computed(() => {
-  return projectList.value.map(p => ({
+  return projectList.value.map((p) => ({
     text: p.project_name,
     value: p.id.toString(),
     project_id: p.project_id,
     client_name: p.client_name,
     client_contact: p.client_contact,
-    client_contact_info: p.client_contact_info
+    client_contact_info: p.client_contact_info,
   }))
 })
 
@@ -215,12 +200,7 @@ onMounted(() => {
 
 <template>
   <div class="temporary-repair-create-page">
-    <van-nav-bar 
-      title="新增临时维修单" 
-      fixed 
-      placeholder 
-      @click-left="handleBack" 
-    >
+    <van-nav-bar title="新增临时维修单" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -228,49 +208,45 @@ onMounted(() => {
         </div>
       </template>
       <template #right>
-        <UserSelector @userChanged="handleUserChanged" @ready="handleUserReady" />
+        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
       </template>
     </van-nav-bar>
-    
+
     <van-cell-group inset title="基本信息" class="form-group">
-      <van-cell 
+      <van-cell
         :title="selectedProjectName || '选择项目'"
         label="项目名称"
         is-link
         required
         @click="showProjectPicker = true"
       />
-      <van-cell 
+      <van-cell
         v-if="formData.projectIdDisplay"
         :title="formData.projectIdDisplay"
         label="项目编号"
       />
-      <van-cell 
+      <van-cell
         :title="dateDisplayText"
         label="维修周期"
         is-link
         required
         @click="showDateRangePicker = true"
       />
-      <van-cell 
-        v-if="formData.clientName"
-        title="客户单位"
-        :value="formData.clientName"
-      />
-      <van-field 
-        v-model="formData.clientContact" 
-        label="客户联系人" 
+      <van-cell v-if="formData.clientName" title="客户单位" :value="formData.clientName" />
+      <van-field
+        v-model="formData.clientContact"
+        label="客户联系人"
         placeholder="请输入客户联系人"
       />
-      <van-field 
-        v-model="formData.clientContactInfo" 
-        label="客户联系电话" 
+      <van-field
+        v-model="formData.clientContactInfo"
+        label="客户联系电话"
         placeholder="请输入客户联系电话"
         type="tel"
       />
-      <van-field 
-        v-model="formData.remarks" 
-        label="报修内容" 
+      <van-field
+        v-model="formData.remarks"
+        label="报修内容"
         placeholder="请输入报修内容"
         type="textarea"
         rows="3"
@@ -285,7 +261,7 @@ onMounted(() => {
         提交
       </van-button>
     </div>
-    
+
     <div v-if="generatedWorkId" class="work-id-result">
       <van-notice-bar
         :text="'工单已生成，单号：' + generatedWorkId"
@@ -304,16 +280,16 @@ onMounted(() => {
       />
     </van-popup>
 
-    <van-calendar 
-      v-model:show="showDateRangePicker" 
+    <van-calendar
+      v-model:show="showDateRangePicker"
       type="range"
       title="选择维修周期"
       :min-date="minDate"
       :max-date="maxDate"
       :poppable="true"
       :show-confirm="true"
-      @confirm="handleDateRangeConfirm"
       color="#1989fa"
+      @confirm="handleDateRangeConfirm"
     />
   </div>
 </template>

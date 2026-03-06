@@ -20,21 +20,21 @@
       </div>
       <span class="toggle-icon" :class="{ expanded: isExpanded }">▼</span>
     </div>
-    
+
     <transition name="slide">
-      <div class="online-body" v-if="isExpanded">
-        <div class="users-section" v-if="pcUsers.length > 0">
+      <div v-if="isExpanded" class="online-body">
+        <div v-if="pcUsers.length > 0" class="users-section">
           <div class="section-header">
             <span class="section-dot pc-dot"></span>
             PC端用户 ({{ pcUsers.length }})
           </div>
           <div class="users-list">
-            <div class="user-item" v-for="user in pcUsers" :key="user.id">
+            <div v-for="user in pcUsers" :key="user.id" class="user-item">
               <div class="user-avatar">{{ getAvatar(user.user_name) }}</div>
               <div class="user-info">
                 <div class="user-name">{{ user.user_name }}</div>
                 <div class="user-meta">
-                  <span class="user-dept" v-if="user.department">{{ user.department }}</span>
+                  <span v-if="user.department" class="user-dept">{{ user.department }}</span>
                   <span class="user-time">{{ formatTime(user.login_time) }}</span>
                 </div>
               </div>
@@ -42,19 +42,19 @@
             </div>
           </div>
         </div>
-        
-        <div class="users-section" v-if="h5Users.length > 0">
+
+        <div v-if="h5Users.length > 0" class="users-section">
           <div class="section-header">
             <span class="section-dot h5-dot"></span>
             H5端用户 ({{ h5Users.length }})
           </div>
           <div class="users-list">
-            <div class="user-item" v-for="user in h5Users" :key="user.id">
+            <div v-for="user in h5Users" :key="user.id" class="user-item">
               <div class="user-avatar">{{ getAvatar(user.user_name) }}</div>
               <div class="user-info">
                 <div class="user-name">{{ user.user_name }}</div>
                 <div class="user-meta">
-                  <span class="user-dept" v-if="user.department">{{ user.department }}</span>
+                  <span v-if="user.department" class="user-dept">{{ user.department }}</span>
                   <span class="user-time">{{ formatTime(user.login_time) }}</span>
                 </div>
               </div>
@@ -62,8 +62,8 @@
             </div>
           </div>
         </div>
-        
-        <div class="no-users" v-if="totalCount === 0">
+
+        <div v-if="totalCount === 0" class="no-users">
           <span class="no-users-icon">😴</span>
           <span>暂无在线用户</span>
         </div>
@@ -85,25 +85,25 @@ export default defineComponent({
     const totalCount = computed(() => pcUsers.value.length + h5Users.value.length)
     const pcCount = computed(() => pcUsers.value.length)
     const h5Count = computed(() => h5Users.value.length)
-    
+
     let eventSource: EventSource | null = null
     let reconnectTimeout: number | null = null
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1'
-    
+
     const connectSSE = () => {
       if (eventSource) {
         eventSource.close()
       }
-      
+
       const sseUrl = `${API_BASE_URL}/online/stream`
       console.log('连接SSE:', sseUrl)
-      
+
       eventSource = new EventSource(sseUrl)
-      
+
       eventSource.onopen = () => {
         console.log('SSE连接已建立')
       }
-      
+
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
@@ -114,12 +114,12 @@ export default defineComponent({
           console.log('SSE心跳或解析错误')
         }
       }
-      
+
       eventSource.onerror = (error) => {
         console.error('SSE连接错误:', error)
         eventSource?.close()
         eventSource = null
-        
+
         if (reconnectTimeout) {
           clearTimeout(reconnectTimeout)
         }
@@ -129,36 +129,36 @@ export default defineComponent({
         }, 5000)
       }
     }
-    
+
     const togglePanel = () => {
       isExpanded.value = !isExpanded.value
     }
-    
+
     const getAvatar = (name: string) => {
       return name ? name.charAt(0).toUpperCase() : '?'
     }
-    
+
     const formatTime = (timeStr: string) => {
       if (!timeStr) return ''
       const date = new Date(timeStr)
       const now = new Date()
       const diff = now.getTime() - date.getTime()
       const minutes = Math.floor(diff / 60000)
-      
+
       if (minutes < 1) return '刚刚'
       if (minutes < 60) return `${minutes}分钟前`
-      
+
       const hours = Math.floor(minutes / 60)
       if (hours < 24) return `${hours}小时前`
-      
+
       return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
     }
-    
+
     onMounted(() => {
       console.log('OnlineUsersPanel mounted, 开始SSE连接')
       connectSSE()
     })
-    
+
     onUnmounted(() => {
       console.log('OnlineUsersPanel unmounted, 关闭SSE连接')
       if (eventSource) {
@@ -169,7 +169,7 @@ export default defineComponent({
         clearTimeout(reconnectTimeout)
       }
     })
-    
+
     return {
       isExpanded,
       pcUsers,
@@ -179,9 +179,9 @@ export default defineComponent({
       h5Count,
       togglePanel,
       getAvatar,
-      formatTime
+      formatTime,
     }
-  }
+  },
 })
 </script>
 
@@ -233,7 +233,7 @@ export default defineComponent({
 }
 
 .online-badge.has-users {
-  background: #4CAF50;
+  background: #4caf50;
   color: white;
 }
 
@@ -257,11 +257,11 @@ export default defineComponent({
 }
 
 .pc-dot {
-  background: #2196F3;
+  background: #2196f3;
 }
 
 .h5-dot {
-  background: #FF9800;
+  background: #ff9800;
 }
 
 .toggle-icon {
@@ -374,7 +374,7 @@ export default defineComponent({
 
 .user-status.online {
   background: #e8f5e9;
-  color: #4CAF50;
+  color: #4caf50;
 }
 
 .no-users {

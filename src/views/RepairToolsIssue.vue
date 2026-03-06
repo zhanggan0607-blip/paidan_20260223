@@ -36,7 +36,7 @@
               </div>
             </div>
             <div class="action-buttons">
-              <button @click="handleAdd" class="btn btn-add">新增领用</button>
+              <button class="btn btn-add" @click="handleAdd">新增领用</button>
             </div>
           </div>
 
@@ -65,7 +65,7 @@
                 <tr v-else-if="dataList.length === 0">
                   <td colspan="9" class="empty-cell">暂无数据</td>
                 </tr>
-                <tr v-else v-for="(item, index) in dataList" :key="item.id">
+                <tr v-for="(item, index) in dataList" v-else :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.tool_id }}</td>
                   <td>{{ item.tool_name }}</td>
@@ -75,7 +75,12 @@
                   <td>{{ item.issue_time }}</td>
                   <td>{{ item.project_name }}</td>
                   <td>
-                    <span :class="['status-badge', item.status === '已领用' ? 'status-issued' : 'status-returned']">
+                    <span
+                      :class="[
+                        'status-badge',
+                        item.status === '已领用' ? 'status-issued' : 'status-returned',
+                      ]"
+                    >
                       {{ item.status }}
                     </span>
                   </td>
@@ -88,35 +93,35 @@
                 共 {{ total }} 条记录，第 {{ currentPage }} / {{ totalPages }} 页
               </div>
               <div class="pagination-controls">
-                <button 
-                  @click="handlePageChange(currentPage - 1)" 
+                <button
                   :disabled="currentPage === 1"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage - 1)"
                 >
                   上一页
                 </button>
                 <span class="pagination-pages">
-                  <input 
-                    v-model.number="currentPage" 
-                    type="number" 
-                    :min="1" 
+                  <input
+                    v-model.number="currentPage"
+                    type="number"
+                    :min="1"
                     :max="totalPages"
                     class="pagination-input"
                   />
                   <span class="pagination-slash">/</span>
                   <span>{{ totalPages }}</span>
                 </span>
-                <button 
-                  @click="handlePageChange(currentPage + 1)" 
+                <button
                   :disabled="currentPage === totalPages"
                   class="pagination-button"
+                  @click="handlePageChange(currentPage + 1)"
                 >
                   下一页
                 </button>
               </div>
               <div class="page-size-selector">
                 <span>每页</span>
-                <select v-model="pageSize" @change="handlePageSizeChange" class="page-size-select">
+                <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
                   <option :value="10">10</option>
                   <option :value="20">20</option>
                   <option :value="50">50</option>
@@ -140,18 +145,18 @@
           <div class="form-item">
             <label class="form-label">工具名称<span class="required">*</span></label>
             <div class="tool-search-wrapper">
-              <input 
-                v-model="toolSearchKeyword" 
-                type="text" 
-                class="form-input" 
+              <input
+                v-model="toolSearchKeyword"
+                type="text"
+                class="form-input"
                 placeholder="输入关键词搜索工具..."
                 @input="handleToolSearch"
                 @focus="showToolDropdown = true"
               />
               <div v-if="showToolDropdown && filteredToolList.length > 0" class="tool-dropdown">
-                <div 
-                  v-for="tool in filteredToolList" 
-                  :key="tool.id" 
+                <div
+                  v-for="tool in filteredToolList"
+                  :key="tool.id"
                   class="tool-option"
                   @click="selectTool(tool)"
                 >
@@ -160,24 +165,34 @@
                   <span class="tool-stock">库存: {{ tool.stock }}</span>
                 </div>
               </div>
-              <div v-if="showToolDropdown && toolSearchKeyword && filteredToolList.length === 0" class="tool-dropdown">
+              <div
+                v-if="showToolDropdown && toolSearchKeyword && filteredToolList.length === 0"
+                class="tool-dropdown"
+              >
                 <div class="tool-empty">未找到匹配的工具</div>
               </div>
             </div>
             <div v-if="selectedTool" class="selected-tool-info">
-              已选择: {{ selectedTool.tool_name }} ({{ selectedTool.specification || '无规格' }}) - 库存: {{ selectedTool.stock }}
+              已选择: {{ selectedTool.tool_name }} ({{ selectedTool.specification || '无规格' }}) -
+              库存: {{ selectedTool.stock }}
             </div>
           </div>
           <div class="form-item">
             <label class="form-label">领用数量<span class="required">*</span></label>
-            <input v-model.number="formData.quantity" type="number" :min="1" class="form-input" placeholder="请输入领用数量" />
+            <input
+              v-model.number="formData.quantity"
+              type="number"
+              :min="1"
+              class="form-input"
+              placeholder="请输入领用数量"
+            />
           </div>
           <div class="form-item">
             <label class="form-label">运维人员</label>
-            <input 
-              :value="currentUser?.name || ''" 
-              type="text" 
-              class="form-input" 
+            <input
+              :value="currentUser?.name || ''"
+              type="text"
+              class="form-input"
               readonly
               disabled
             />
@@ -186,19 +201,27 @@
             <label class="form-label">所属项目</label>
             <select v-model="formData.project_id" class="form-select" @change="handleProjectChange">
               <option value="">请选择项目</option>
-              <option v-for="project in filteredProjectList" :key="project.project_id" :value="project.project_id">
+              <option
+                v-for="project in filteredProjectList"
+                :key="project.project_id"
+                :value="project.project_id"
+              >
                 {{ project.project_name }}
               </option>
             </select>
           </div>
           <div class="form-item">
             <label class="form-label">备注</label>
-            <textarea v-model="formData.remark" class="form-textarea" placeholder="请输入备注"></textarea>
+            <textarea
+              v-model="formData.remark"
+              class="form-textarea"
+              placeholder="请输入备注"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
           <button class="cancel-btn" @click="closeAddModal">取消</button>
-          <button class="confirm-btn" @click="handleSubmit" :disabled="submitting">
+          <button class="confirm-btn" :disabled="submitting" @click="handleSubmit">
             {{ submitting ? '提交中...' : '确认' }}
           </button>
         </div>
@@ -208,7 +231,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, computed, onUnmounted, watch } from 'vue'
+import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
@@ -255,7 +278,7 @@ interface PersonnelProject {
 export default defineComponent({
   name: 'RepairToolsIssue',
   components: {
-    SearchInput
+    SearchInput,
   },
   setup() {
     const loading = ref(false)
@@ -269,7 +292,7 @@ export default defineComponent({
     const filters = ref({
       user: '',
       toolName: '',
-      project: ''
+      project: '',
     })
 
     const formData = ref({
@@ -277,7 +300,7 @@ export default defineComponent({
       quantity: 1,
       project_id: '',
       remark: '',
-      user_id: ''
+      user_id: '',
     })
 
     const toolList = ref<Tool[]>([])
@@ -298,37 +321,22 @@ export default defineComponent({
 
     const filteredToolList = computed(() => {
       if (!toolSearchKeyword.value) {
-        return toolList.value.filter(t => t.stock > 0)
+        return toolList.value.filter((t) => t.stock > 0)
       }
       const keyword = toolSearchKeyword.value.toLowerCase()
-      return toolList.value.filter(t => 
-        t.stock > 0 && (
-          t.tool_name.toLowerCase().includes(keyword) ||
-          (t.tool_id && t.tool_id.toLowerCase().includes(keyword)) ||
-          (t.specification && t.specification.toLowerCase().includes(keyword))
-        )
+      return toolList.value.filter(
+        (t) =>
+          t.stock > 0 &&
+          (t.tool_name.toLowerCase().includes(keyword) ||
+            (t.tool_id && t.tool_id.toLowerCase().includes(keyword)) ||
+            (t.specification && t.specification.toLowerCase().includes(keyword)))
       )
-    })
-
-    const filteredUserList = computed(() => {
-      if (formData.value.project_id) {
-        const projectPersonnel = personnelProjects.value.find(pp => 
-          pp.projects.some(p => p.project_id === formData.value.project_id)
-        )
-        if (projectPersonnel) {
-          const personnelIds = personnelProjects.value
-            .filter(pp => pp.projects.some(p => p.project_id === formData.value.project_id))
-            .map(pp => pp.personnel_id)
-          return userList.value.filter(u => personnelIds.includes(u.id))
-        }
-      }
-      return userList.value
     })
 
     const filteredProjectList = computed(() => {
       if (formData.value.user_id) {
         const userProjects = personnelProjects.value.find(
-          pp => pp.personnel_id === Number(formData.value.user_id)
+          (pp) => pp.personnel_id === Number(formData.value.user_id)
         )
         if (userProjects) {
           return userProjects.projects
@@ -347,17 +355,17 @@ export default defineComponent({
       try {
         const params: Record<string, any> = {
           page: currentPage.value - 1,
-          size: pageSize.value
+          size: pageSize.value,
         }
         if (filters.value.user) params.user_name = filters.value.user
         if (filters.value.toolName) params.tool_name = filters.value.toolName
         if (filters.value.project) params.project_name = filters.value.project
 
-        const response = await apiClient.get('/repair-tools/issue', { 
-          params, 
-          signal: abortController.signal 
-        }) as unknown as PaginatedResponse<RepairToolsIssueItem>
-        
+        const response = (await apiClient.get('/repair-tools/issue', {
+          params,
+          signal: abortController.signal,
+        })) as unknown as PaginatedResponse<RepairToolsIssueItem>
+
         if (response && response.code === 200 && response.data) {
           dataList.value = response.data.items || response.data.content || []
           total.value = response.data.total || response.data.totalElements || 0
@@ -372,9 +380,9 @@ export default defineComponent({
 
     const loadTools = async () => {
       try {
-        const response = await apiClient.get('/repair-tools/stock', { 
-          params: { page: 0, size: 500 } 
-        }) as unknown as PaginatedResponse<Tool>
+        const response = (await apiClient.get('/repair-tools/stock', {
+          params: { page: 0, size: 500 },
+        })) as unknown as PaginatedResponse<Tool>
         if (response && response.code === 200 && response.data) {
           toolList.value = response.data.items || response.data.content || []
         }
@@ -385,9 +393,13 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = await apiClient.get('/personnel/all/list') as unknown as ApiResponse<User[]>
+        const response = (await apiClient.get('/personnel/all/list')) as unknown as ApiResponse<
+          User[]
+        >
         if (response && response.code === 200 && response.data) {
-          userList.value = (Array.isArray(response.data) ? response.data : []).filter((user: User) => user && user.name && user.role === USER_ROLES.EMPLOYEE)
+          userList.value = (Array.isArray(response.data) ? response.data : []).filter(
+            (user: User) => user && user.name && user.role === USER_ROLES.EMPLOYEE
+          )
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)
@@ -396,7 +408,9 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = await apiClient.get('/project-info/all/list') as unknown as ApiResponse<Project[]>
+        const response = (await apiClient.get('/project-info/all/list')) as unknown as ApiResponse<
+          Project[]
+        >
         if (response && response.code === 200 && response.data) {
           projectList.value = response.data || []
         }
@@ -407,7 +421,9 @@ export default defineComponent({
 
     const loadPersonnelProjects = async () => {
       try {
-        const response = await apiClient.get('/repair-tools/personnel-projects') as unknown as ApiResponse<PersonnelProject[]>
+        const response = (await apiClient.get(
+          '/repair-tools/personnel-projects'
+        )) as unknown as ApiResponse<PersonnelProject[]>
         if (response && response.code === 200 && response.data) {
           personnelProjects.value = response.data || []
         }
@@ -435,33 +451,18 @@ export default defineComponent({
       toolSearchKeyword.value = tool.tool_name
     }
 
-    const handleUserChange = async () => {
-      if (formData.value.user_id) {
-        try {
-          const response = await apiClient.get('/repair-tools/personnel-projects', {
-            params: { personnel_id: formData.value.user_id }
-          }) as unknown as ApiResponse<Project[]>
-          if (response && response.code === 200 && response.data && response.data.length > 0) {
-            const userProjectIds = response.data.map((p: Project) => p.project_id)
-            if (formData.value.project_id && !userProjectIds.includes(formData.value.project_id)) {
-              formData.value.project_id = ''
-            }
-          }
-        } catch (error) {
-          console.error('加载用户关联项目失败:', error)
-        }
-      }
-    }
-
     const handleProjectChange = async () => {
       if (formData.value.project_id) {
         try {
-          const response = await apiClient.get('/repair-tools/personnel-projects', {
-            params: { project_id: formData.value.project_id }
-          }) as unknown as ApiResponse<User[]>
+          const response = (await apiClient.get('/repair-tools/personnel-projects', {
+            params: { project_id: formData.value.project_id },
+          })) as unknown as ApiResponse<User[]>
           if (response && response.code === 200 && response.data && response.data.length > 0) {
             const projectUserIds = response.data.map((u: User) => u.id)
-            if (formData.value.user_id && !projectUserIds.includes(Number(formData.value.user_id))) {
+            if (
+              formData.value.user_id &&
+              !projectUserIds.includes(Number(formData.value.user_id))
+            ) {
               formData.value.user_id = ''
             }
           }
@@ -482,7 +483,7 @@ export default defineComponent({
         quantity: 1,
         project_id: '',
         remark: '',
-        user_id: ''
+        user_id: '',
       }
       toolSearchKeyword.value = ''
       selectedTool.value = null
@@ -503,13 +504,13 @@ export default defineComponent({
 
       submitting.value = true
       try {
-        const project = projectList.value.find(p => p.project_id === formData.value.project_id)
-        
-        const response = await apiClient.post('/repair-tools/issue', {
+        const project = projectList.value.find((p) => p.project_id === formData.value.project_id)
+
+        const response = (await apiClient.post('/repair-tools/issue', {
           ...formData.value,
           user_name: userStore.getUser()?.name,
-          project_name: project?.project_name || null
-        }) as unknown as ApiResponse<any>
+          project_name: project?.project_name || null,
+        })) as unknown as ApiResponse<any>
         if (response && response.code === 200) {
           alert('领用成功')
           closeAddModal()
@@ -601,9 +602,9 @@ export default defineComponent({
       handleProjectChange,
       handleSubmit,
       handlePageChange,
-      handlePageSizeChange
+      handlePageSizeChange,
     }
-  }
+  },
 })
 </script>
 
@@ -785,8 +786,12 @@ export default defineComponent({
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .status-badge {

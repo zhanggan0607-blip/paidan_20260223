@@ -27,9 +27,7 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">
-          + 新增项目信息
-        </button>
+        <button class="btn btn-add" @click="openModal">+ 新增项目信息</button>
       </div>
     </div>
 
@@ -49,7 +47,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(item, index) in projectData" :key="item.id" :class="{ 'even-row': index % 2 === 0 }">
+          <tr
+            v-for="(item, index) in projectData"
+            :key="item.id"
+            :class="{ 'even-row': index % 2 === 0 }"
+          >
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.project_id }}</td>
             <td>{{ item.project_name }}</td>
@@ -61,7 +63,9 @@
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
               <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)">删除</a>
+              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
+                >删除</a
+              >
             </td>
           </tr>
         </tbody>
@@ -69,9 +73,7 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">
-        共 {{ totalElements }} 条记录
-      </div>
+      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
       <div class="pagination-controls">
         <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
           &lt;
@@ -85,17 +87,21 @@
         >
           {{ page }}
         </button>
-        <button class="page-btn page-nav" :disabled="currentPage >= totalPages - 1" @click="currentPage++">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage >= totalPages - 1"
+          @click="currentPage++"
+        >
           &gt;
         </button>
-        <select class="page-select" v-model="pageSize" @change="handlePageSizeChange">
+        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
           <option value="10">10 条 / 页</option>
           <option value="20">20 条 / 页</option>
           <option value="50">50 条 / 页</option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input type="number" class="page-input" v-model="jumpPage" min="1" :max="totalPages" />
+          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
           <span>页</span>
           <button class="page-btn page-go" @click="handleJump">Go</button>
         </div>
@@ -112,22 +118,22 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_name" maxlength="200" />
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <input
+                  v-model="formData.project_name"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="200"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目开始日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.completion_date" />
+                <label class="form-label"> <span class="required">*</span> 项目开始日期 </label>
+                <input v-model="formData.completion_date" type="date" class="form-input" />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 维保频率
-                </label>
-                <select class="form-input" v-model="formData.maintenance_period">
+                <label class="form-label"> <span class="required">*</span> 维保频率 </label>
+                <select v-model="formData.maintenance_period" class="form-input">
                   <option value="">请选择</option>
                   <option value="每天">每天</option>
                   <option value="每周">每周</option>
@@ -137,74 +143,117 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
+                <label class="form-label"> <span class="required">*</span> 客户单位 </label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select class="form-input client-select" v-model="formData.client_source" @change="handleClientSourceChange('formData')">
+                    <select
+                      v-model="formData.client_source"
+                      class="form-input client-select"
+                      @change="handleClientSourceChange('formData')"
+                    >
                       <option value="">选择已有客户</option>
-                      <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
+                      <option
+                        v-for="customer in customerList"
+                        :key="customer.id"
+                        :value="customer.name"
+                      >
+                        {{ customer.name }}
+                      </option>
                     </select>
                     <span class="client-or">或</span>
-                    <input type="text" class="form-input client-input" placeholder="手动输入客户单位" v-model="formData.client_name_manual" @input="handleClientManualInput('formData')" maxlength="100" />
+                    <input
+                      v-model="formData.client_name_manual"
+                      type="text"
+                      class="form-input client-input"
+                      placeholder="手动输入客户单位"
+                      maxlength="100"
+                      @input="handleClientManualInput('formData')"
+                    />
                   </div>
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系人
-                </label>
-                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="formData.client_contact" maxlength="50" />
+                <label class="form-label"> <span class="required">*</span> 客户联系人 </label>
+                <input
+                  v-model="formData.client_contact"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系人"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户地址
-                </label>
-                <input type="text" class="form-input" placeholder="请输入客户地址" v-model="formData.address" maxlength="200" />
+                <label class="form-label"> <span class="required">*</span> 客户地址 </label>
+                <input
+                  v-model="formData.address"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户地址"
+                  maxlength="200"
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目编号
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="formData.project_id" maxlength="50" />
+                <label class="form-label"> <span class="required">*</span> 项目编号 </label>
+                <input
+                  v-model="formData.project_id"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">项目简称</label>
-                <input type="text" class="form-input" placeholder="请输入项目简称" v-model="formData.project_abbr" maxlength="50" />
+                <input
+                  v-model="formData.project_abbr"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入项目简称"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目结束日期
-                </label>
-                <input type="date" class="form-input" v-model="formData.maintenance_end_date" />
+                <label class="form-label"> <span class="required">*</span> 项目结束日期 </label>
+                <input v-model="formData.maintenance_end_date" type="date" class="form-input" />
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
                 <label class="form-label">运维人员</label>
-                <select class="form-input" v-model="formData.project_manager">
+                <select v-model="formData.project_manager" class="form-input">
                   <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
+                  <option v-for="person in personnelList" :key="person" :value="person">
+                    {{ person }}
+                  </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系方式
-                </label>
-                <input type="text" class="form-input" placeholder="请输入客户联系方式" v-model="formData.client_contact_info" maxlength="50" />
+                <label class="form-label"> <span class="required">*</span> 客户联系方式 </label>
+                <input
+                  v-model="formData.client_contact_info"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系方式"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入客户联系人职位" v-model="formData.client_contact_position" maxlength="20" />
+                <input
+                  v-model="formData.client_contact_position"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系人职位"
+                  maxlength="20"
+                />
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" @click="handleSave" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleSave">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -289,22 +338,22 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目名称
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_name" maxlength="200" />
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <input
+                  v-model="editData.project_name"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="200"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目开始日期
-                </label>
-                <input type="date" class="form-input" v-model="editData.completion_date" />
+                <label class="form-label"> <span class="required">*</span> 项目开始日期 </label>
+                <input v-model="editData.completion_date" type="date" class="form-input" />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 维保频率
-                </label>
-                <select class="form-input" v-model="editData.maintenance_period">
+                <label class="form-label"> <span class="required">*</span> 维保频率 </label>
+                <select v-model="editData.maintenance_period" class="form-input">
                   <option value="">请选择</option>
                   <option value="每天">每天</option>
                   <option value="每周">每周</option>
@@ -314,74 +363,118 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户单位
-                </label>
+                <label class="form-label"> <span class="required">*</span> 客户单位 </label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select class="form-input client-select" v-model="editData.client_source" @change="handleClientSourceChange('editData')">
+                    <select
+                      v-model="editData.client_source"
+                      class="form-input client-select"
+                      @change="handleClientSourceChange('editData')"
+                    >
                       <option value="">选择已有客户</option>
-                      <option v-for="customer in customerList" :key="customer.id" :value="customer.name">{{ customer.name }}</option>
+                      <option
+                        v-for="customer in customerList"
+                        :key="customer.id"
+                        :value="customer.name"
+                      >
+                        {{ customer.name }}
+                      </option>
                     </select>
                     <span class="client-or">或</span>
-                    <input type="text" class="form-input client-input" placeholder="手动输入客户单位" v-model="editData.client_name_manual" @input="handleClientManualInput('editData')" maxlength="100" />
+                    <input
+                      v-model="editData.client_name_manual"
+                      type="text"
+                      class="form-input client-input"
+                      placeholder="手动输入客户单位"
+                      maxlength="100"
+                      @input="handleClientManualInput('editData')"
+                    />
                   </div>
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系人
-                </label>
-                <input type="text" class="form-input" placeholder="请输入客户联系人" v-model="editData.client_contact" maxlength="50" />
+                <label class="form-label"> <span class="required">*</span> 客户联系人 </label>
+                <input
+                  v-model="editData.client_contact"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系人"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户地址
-                </label>
-                <input type="text" class="form-input" placeholder="请输入客户地址" v-model="editData.address" maxlength="200" />
+                <label class="form-label"> <span class="required">*</span> 客户地址 </label>
+                <input
+                  v-model="editData.address"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户地址"
+                  maxlength="200"
+                />
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目编号
-                </label>
-                <input type="text" class="form-input" placeholder="请输入" v-model="editData.project_id" maxlength="50" readonly />
+                <label class="form-label"> <span class="required">*</span> 项目编号 </label>
+                <input
+                  v-model="editData.project_id"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入"
+                  maxlength="50"
+                  readonly
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">项目简称</label>
-                <input type="text" class="form-input" placeholder="请输入项目简称" v-model="editData.project_abbr" maxlength="50" />
+                <input
+                  v-model="editData.project_abbr"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入项目简称"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 项目结束日期
-                </label>
-                <input type="date" class="form-input" v-model="editData.maintenance_end_date" />
+                <label class="form-label"> <span class="required">*</span> 项目结束日期 </label>
+                <input v-model="editData.maintenance_end_date" type="date" class="form-input" />
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
                 <label class="form-label">运维人员</label>
-                <select class="form-input" v-model="editData.project_manager">
+                <select v-model="editData.project_manager" class="form-input">
                   <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person" :value="person">{{ person }}</option>
+                  <option v-for="person in personnelList" :key="person" :value="person">
+                    {{ person }}
+                  </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">
-                  <span class="required">*</span> 客户联系方式
-                </label>
-                <input type="text" class="form-input" placeholder="请输入客户联系方式" v-model="editData.client_contact_info" maxlength="50" />
+                <label class="form-label"> <span class="required">*</span> 客户联系方式 </label>
+                <input
+                  v-model="editData.client_contact_info"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系方式"
+                  maxlength="50"
+                />
               </div>
               <div class="form-item">
                 <label class="form-label">客户联系人职位</label>
-                <input type="text" class="form-input" placeholder="请输入客户联系人职位" v-model="editData.client_contact_position" maxlength="20" />
+                <input
+                  v-model="editData.client_contact_position"
+                  type="text"
+                  class="form-input"
+                  placeholder="请输入客户联系人职位"
+                  maxlength="20"
+                />
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" @click="handleUpdate" :disabled="saving">
+          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
@@ -389,9 +482,9 @@
     </div>
 
     <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
-    <ConfirmDialog 
-      :visible="confirmDialog.visible" 
-      :title="confirmDialog.title" 
+    <ConfirmDialog
+      :visible="confirmDialog.visible"
+      :title="confirmDialog.title"
       :message="confirmDialog.message"
       @confirm="handleConfirm"
       @cancel="handleCancelConfirm"
@@ -400,8 +493,22 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted, watchEffect } from 'vue'
-import { projectInfoService, type ProjectInfo, type ProjectInfoCreate, type ProjectInfoUpdate } from '../services/projectInfo'
+import {
+  defineComponent,
+  reactive,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  watchEffect,
+} from 'vue'
+import {
+  projectInfoService,
+  type ProjectInfo,
+  type ProjectInfoCreate,
+  type ProjectInfoUpdate,
+} from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
 import { customerService } from '../services/customer'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
@@ -409,7 +516,10 @@ import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
-import { formatDate as formatDateUtil, formatDateForInput as formatDateForInputUtil } from '../config/constants'
+import {
+  formatDate as formatDateUtil,
+  formatDateForInput as formatDateForInputUtil,
+} from '../config/constants'
 
 // TODO: 后面考虑把表单验证抽成独立的工具函数
 // FIXME: 客户选择逻辑有点绕，需要重构
@@ -419,12 +529,12 @@ export default defineComponent({
     LoadingSpinner,
     Toast,
     ConfirmDialog,
-    SearchInput
+    SearchInput,
   },
   setup() {
     const searchForm = reactive({
       projectName: '',
-      clientName: ''
+      clientName: '',
     })
 
     const currentPage = ref(0)
@@ -436,23 +546,23 @@ export default defineComponent({
     const isViewModalOpen = ref(false)
     const isEditModalOpen = ref(false)
     const editingId = ref<number | null>(null)
-    
+
     const projectData = ref<ProjectInfo[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
     const personnelList = ref<string[]>([])
-    const customerList = ref<{id: number, name: string}[]>([])
+    const customerList = ref<{ id: number; name: string }[]>([])
 
     const toast = reactive({
       visible: false,
       message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info'
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
     })
 
     const confirmDialog = reactive({
       visible: false,
       title: '确认',
-      message: ''
+      message: '',
     })
 
     let pendingConfirmAction: (() => void) | null = null
@@ -489,7 +599,7 @@ export default defineComponent({
       project_manager: '',
       client_contact: '',
       client_contact_position: '',
-      client_contact_info: ''
+      client_contact_info: '',
     })
 
     const editData = reactive({
@@ -507,7 +617,7 @@ export default defineComponent({
       project_manager: '',
       client_contact: '',
       client_contact_position: '',
-      client_contact_info: ''
+      client_contact_info: '',
     })
 
     const formData = reactive({
@@ -524,14 +634,29 @@ export default defineComponent({
       project_manager: '',
       maintenance_end_date: '',
       address: '',
-      client_contact_info: ''
+      client_contact_info: '',
     })
 
     let abortController: AbortController | null = null
 
     const inputMemory = useInputMemory({
       pageName: 'ProjectInfoManagement',
-      fields: ['project_name', 'project_id', 'completion_date', 'client_name', 'client_source', 'client_name_manual', 'client_contact', 'client_contact_position', 'maintenance_period', 'project_abbr', 'project_manager', 'maintenance_end_date', 'address', 'client_contact_info'],
+      fields: [
+        'project_name',
+        'project_id',
+        'completion_date',
+        'client_name',
+        'client_source',
+        'client_name_manual',
+        'client_contact',
+        'client_contact_position',
+        'maintenance_period',
+        'project_abbr',
+        'project_manager',
+        'maintenance_end_date',
+        'address',
+        'client_contact_info',
+      ],
       onRestore: (data) => {
         if (data.project_name) formData.project_name = data.project_name
         if (data.project_id) formData.project_id = data.project_id
@@ -540,19 +665,23 @@ export default defineComponent({
         if (data.client_source) formData.client_source = data.client_source
         if (data.client_name_manual) formData.client_name_manual = data.client_name_manual
         if (data.client_contact) formData.client_contact = data.client_contact
-        if (data.client_contact_position) formData.client_contact_position = data.client_contact_position
+        if (data.client_contact_position)
+          formData.client_contact_position = data.client_contact_position
         if (data.maintenance_period) formData.maintenance_period = data.maintenance_period
         if (data.project_abbr) formData.project_abbr = data.project_abbr
         if (data.project_manager) formData.project_manager = data.project_manager
         if (data.maintenance_end_date) formData.maintenance_end_date = data.maintenance_end_date
         if (data.address) formData.address = data.address
         if (data.client_contact_info) formData.client_contact_info = data.client_contact_info
-      }
+      },
     })
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
-    const showToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'success') => {
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
       toast.message = message
       toast.type = type
       toast.visible = true
@@ -588,9 +717,9 @@ export default defineComponent({
           page: currentPage.value,
           size: pageSize.value,
           project_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined
+          client_name: searchForm.clientName || undefined,
         })
-        
+
         if (response.code === 200) {
           projectData.value = response.data.content
           totalElements.value = response.data.totalElements
@@ -695,16 +824,16 @@ export default defineComponent({
           project_manager: formData.project_manager || undefined,
           client_contact: formData.client_contact || undefined,
           client_contact_position: formData.client_contact_position || undefined,
-          client_contact_info: formData.client_contact_info || undefined
+          client_contact_info: formData.client_contact_info || undefined,
         }
 
         const response = await projectInfoService.create(createData)
-        
+
         if (response.code === 200) {
           showToast('创建成功', 'success')
           closeModal()
           resetForm()
-          
+
           currentPage.value = 0
           await loadData()
           window.dispatchEvent(new CustomEvent('project-info-changed'))
@@ -746,7 +875,7 @@ export default defineComponent({
       editData.client_name = item.client_name
       editData.client_source = ''
       editData.client_name_manual = item.client_name
-      const matchingCustomer = customerList.value.find(c => c.name === item.client_name)
+      const matchingCustomer = customerList.value.find((c) => c.name === item.client_name)
       if (matchingCustomer) {
         editData.client_source = item.client_name
       }
@@ -822,11 +951,11 @@ export default defineComponent({
           project_manager: editData.project_manager || undefined,
           client_contact: editData.client_contact || undefined,
           client_contact_position: editData.client_contact_position || undefined,
-          client_contact_info: editData.client_contact_info || undefined
+          client_contact_info: editData.client_contact_info || undefined,
         }
 
         const response = await projectInfoService.update(editingId.value, updateData)
-        
+
         if (response.code === 200) {
           showToast('更新成功', 'success')
           closeEditModal()
@@ -849,7 +978,7 @@ export default defineComponent({
         loading.value = true
         try {
           const response = await projectInfoService.delete(item.id)
-          
+
           if (response.code === 200) {
             showToast('删除成功', 'success')
             await loadData()
@@ -858,7 +987,11 @@ export default defineComponent({
           }
         } catch (error: any) {
           console.error('删除失败:', error)
-          if (error.status === 400 && error.message && error.message.includes('请确认是否级联删除')) {
+          if (
+            error.status === 400 &&
+            error.message &&
+            error.message.includes('请确认是否级联删除')
+          ) {
             showConfirm(error.message + '\n\n是否确认删除项目及其所有关联数据？', async () => {
               loading.value = true
               try {
@@ -912,7 +1045,7 @@ export default defineComponent({
       try {
         const response = await personnelService.getAll()
         if (response.code === 200 && response.data) {
-          personnelList.value = response.data.map(p => p.name)
+          personnelList.value = response.data.map((p) => p.name)
         }
       } catch (error) {
         console.error('加载人员列表失败:', error)
@@ -923,7 +1056,7 @@ export default defineComponent({
       try {
         const response = await customerService.getList({ page: 0, size: 100 })
         if (response.code === 200 && response.data) {
-          customerList.value = response.data.content.map(c => ({ id: c.id, name: c.name }))
+          customerList.value = response.data.content.map((c) => ({ id: c.id, name: c.name }))
         }
       } catch (error) {
         console.error('加载客户列表失败:', error)
@@ -935,7 +1068,7 @@ export default defineComponent({
         if (formData.client_source) {
           formData.client_name_manual = ''
           formData.client_name = formData.client_source
-          const selectedCustomer = customerList.value.find(c => c.name === formData.client_source)
+          const selectedCustomer = customerList.value.find((c) => c.name === formData.client_source)
           if (selectedCustomer) {
             loadCustomerDetails(selectedCustomer.id, 'formData')
           }
@@ -944,7 +1077,7 @@ export default defineComponent({
         if (editData.client_source) {
           editData.client_name_manual = ''
           editData.client_name = editData.client_source
-          const selectedCustomer = customerList.value.find(c => c.name === editData.client_source)
+          const selectedCustomer = customerList.value.find((c) => c.name === editData.client_source)
           if (selectedCustomer) {
             loadCustomerDetails(selectedCustomer.id, 'editData')
           }
@@ -975,12 +1108,14 @@ export default defineComponent({
             formData.address = customer.address || formData.address
             formData.client_contact = customer.contact_person || formData.client_contact
             formData.client_contact_info = customer.phone || formData.client_contact_info
-            formData.client_contact_position = customer.contact_position || formData.client_contact_position
+            formData.client_contact_position =
+              customer.contact_position || formData.client_contact_position
           } else {
             editData.address = customer.address || editData.address
             editData.client_contact = customer.contact_person || editData.client_contact
             editData.client_contact_info = customer.phone || editData.client_contact_info
-            editData.client_contact_position = customer.contact_position || editData.client_contact_position
+            editData.client_contact_position =
+              customer.contact_position || editData.client_contact_position
           }
         }
       } catch (error) {
@@ -1043,9 +1178,9 @@ export default defineComponent({
       handleConfirm,
       handleCancelConfirm,
       handleClientSourceChange,
-      handleClientManualInput
+      handleClientManualInput,
     }
-  }
+  },
 })
 </script>
 
@@ -1143,21 +1278,21 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #2E7D32;
+  background: #2e7d32;
   color: #fff;
 }
 
 .btn-add:hover:not(:disabled) {
-  background: #1B5E20;
+  background: #1b5e20;
 }
 
 .btn-search {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-search:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .table-section {
@@ -1173,7 +1308,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #E0E0E0;
+  background: #e0e0e0;
 }
 
 .data-table th {
@@ -1222,15 +1357,15 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2E7D32;
+  color: #2e7d32;
 }
 
 .action-edit {
-  color: #2196F3;
+  color: #2196f3;
 }
 
 .action-delete {
-  color: #D32F2F;
+  color: #d32f2f;
 }
 
 .pagination-section {
@@ -1272,8 +1407,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196F3;
-  color: #2196F3;
+  border-color: #2196f3;
+  color: #2196f3;
 }
 
 .page-btn:disabled {
@@ -1282,9 +1417,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-nav {
@@ -1322,14 +1457,14 @@ export default defineComponent({
 
 .page-input:focus {
   outline: none;
-  border-color: #2196F3;
+  border-color: #2196f3;
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
   border: none;
   border-radius: 3px;
@@ -1339,7 +1474,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .modal-overlay {
@@ -1442,7 +1577,7 @@ export default defineComponent({
 }
 
 .required {
-  color: #D32F2F;
+  color: #d32f2f;
   margin-right: 4px;
 }
 
@@ -1514,12 +1649,12 @@ export default defineComponent({
 }
 
 .btn-save {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1976D2;
+  background: #1976d2;
 }
 
 .client-select-wrapper {

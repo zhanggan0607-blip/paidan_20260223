@@ -19,8 +19,7 @@ engine = create_engine(
     max_overflow=30,
     pool_timeout=60,
     connect_args={
-        "connect_timeout": 10,
-        "application_name": "sstcp_maintenance"
+        "connect_timeout": 10
     }
 )
 

@@ -9,7 +9,7 @@ import type {
   TemporaryRepair,
   TemporaryRepairCreate,
   TemporaryRepairUpdate,
-  TemporaryRepairQueryParams
+  TemporaryRepairQueryParams,
 } from '../types/models'
 
 export const temporaryRepairService = {
@@ -51,7 +51,10 @@ export const temporaryRepairService = {
   /**
    * 部分更新临时维修
    */
-  async patch(id: number, data: Partial<TemporaryRepairUpdate>): Promise<ApiResponse<TemporaryRepair>> {
+  async patch(
+    id: number,
+    data: Partial<TemporaryRepairUpdate>
+  ): Promise<ApiResponse<TemporaryRepair>> {
     return request.patch(API_ENDPOINTS.TEMPORARY_REPAIR.DETAIL(id), data)
   },
 

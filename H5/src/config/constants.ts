@@ -29,14 +29,10 @@ export {
   isRejectedStatus,
   isPendingStatus,
   BASE_WORK_TABS,
-  APPROVAL_TAB
+  APPROVAL_TAB,
 } from '@sstcp/shared'
 
-export {
-  formatDate,
-  formatDateTime,
-  formatDateForInput
-} from '@sstcp/shared'
+export { formatDate, formatDateTime, formatDateForInput } from '@sstcp/shared'
 
 /**
  * H5端API配置
@@ -49,5 +45,5 @@ export const API_CONFIG = {
     }
     return import.meta.env.VITE_API_BASE_URL || '/api/v1'
   },
-  TIMEOUT: 60000
+  TIMEOUT: 60000,
 }

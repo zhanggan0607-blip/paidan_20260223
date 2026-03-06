@@ -24,19 +24,19 @@ export default defineComponent({
   props: {
     visible: {
       type: Boolean,
-      default: false
+      default: false,
     },
     title: {
       type: String,
-      default: '确认'
+      default: '确认',
     },
     message: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   emits: ['confirm', 'cancel'],
-  setup(props, { emit }) {
+  setup(_props, { emit }) {
     const handleConfirm = () => {
       emit('confirm')
     }
@@ -47,9 +47,9 @@ export default defineComponent({
 
     return {
       handleConfirm,
-      handleCancel
+      handleCancel,
     }
-  }
+  },
 })
 </script>
 
@@ -148,11 +148,11 @@ export default defineComponent({
 }
 
 .btn-confirm {
-  background: #2196F3;
+  background: #2196f3;
   color: #fff;
 }
 
 .btn-confirm:hover {
-  background: #1976D2;
+  background: #1976d2;
 }
 </style>
