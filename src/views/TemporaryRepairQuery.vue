@@ -297,8 +297,8 @@ export default defineComponent({
           repair_id: searchForm.value.repair_id || undefined,
         })
 
-        if (response.code === 200) {
-          repairData.value = response.data.content.map((item: TemporaryRepair) => ({
+        if (response.code === 200 && response.data) {
+          repairData.value = (response.data.content || []).map((item: TemporaryRepair) => ({
             id: item.id,
             repair_id: item.repair_id,
             project_id: item.project_id,
@@ -310,7 +310,7 @@ export default defineComponent({
             status: item.status || '执行中',
             remarks: item.remarks || '',
           }))
-          totalElements.value = response.data.totalElements
+          totalElements.value = response.data.totalElements || 0
           totalPages.value = response.data.totalPages || 1
         } else {
           showToast(response.message || '加载数据失败', 'error')

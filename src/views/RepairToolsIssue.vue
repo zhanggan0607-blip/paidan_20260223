@@ -507,7 +507,10 @@ export default defineComponent({
         const project = projectList.value.find((p) => p.project_id === formData.value.project_id)
 
         const submitData = {
-          ...formData.value,
+          tool_id: formData.value.tool_id || null,
+          quantity: formData.value.quantity,
+          project_id: formData.value.project_id || null,
+          remark: formData.value.remark || null,
           user_id: formData.value.user_id ? Number(formData.value.user_id) : null,
           user_name: userStore.getUser()?.name,
           project_name: project?.project_name || null,

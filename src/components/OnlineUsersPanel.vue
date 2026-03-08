@@ -138,7 +138,7 @@ export default defineComponent({
       return name ? name.charAt(0).toUpperCase() : '?'
     }
 
-    const formatTime = (timeStr: string) => {
+    const formatTime = (timeStr: string | null) => {
       if (!timeStr) return ''
       const date = new Date(timeStr)
       const now = new Date()

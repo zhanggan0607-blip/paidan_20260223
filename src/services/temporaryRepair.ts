@@ -10,11 +10,16 @@ export interface TemporaryRepair {
   id: number
   repair_id: string
   plan_id?: string
+  plan_type?: string
   project_id: string
   project_name: string
   plan_start_date: string
   plan_end_date: string
   client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  address?: string
+  client_contact_position?: string
   maintenance_personnel?: string
   status: string
   remarks?: string
@@ -22,7 +27,9 @@ export interface TemporaryRepair {
   solution?: string
   photos?: string[]
   signature?: string
+  customer_signature?: string
   execution_date?: string
+  actual_completion_date?: string
   created_at: string
   updated_at: string
 }

@@ -12,6 +12,7 @@ from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import UserInfo, get_current_user_info
 from app.models.online_user import OnlineUser
 from app.schemas.common import ApiResponse
 
@@ -22,8 +23,13 @@ router = APIRouter(prefix="/online", tags=["Online User"])
 class OnlineLoginRequest(BaseModel):
     """在线登录请求"""
     device_type: str = "h5"
-    user_id: int
-    user_name: str
+    user_id: int | None = None
+    user_name: str | None = None
+
+
+class HeartbeatRequest(BaseModel):
+    """心跳请求 - 支持从token获取用户信息"""
+    device_type: str = "h5"
 
 
 def get_client_ip(request: Request) -> str:
@@ -115,22 +121,28 @@ def record_logout(
 
 
 @router.post("/heartbeat", response_model=ApiResponse)
-def heartbeat(
+async def heartbeat(
     request: Request,
-    login_req: OnlineLoginRequest,
-    db: Session = Depends(get_db)
+    heartbeat_req: HeartbeatRequest,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
     """
     心跳接口
     定期更新用户活动时间
+    支持从JWT Token获取用户信息，无需在请求体中传递user_id和user_name
     """
     try:
+        if not user_info.is_authenticated:
+            return ApiResponse(code=401, message="未登录或登录已过期", data=None)
+
         ip_address = get_client_ip(request)
         now = datetime.utcnow()
+        device_type = heartbeat_req.device_type if heartbeat_req.device_type in ["pc", "h5"] else "h5"
 
         existing = db.query(OnlineUser).filter(
             and_(
-                OnlineUser.user_id == login_req.user_id,
+                OnlineUser.user_id == user_info.id,
                 OnlineUser.is_active == True
             )
         ).first()
@@ -138,8 +150,20 @@ def heartbeat(
         if existing:
             existing.last_activity = now
             existing.ip_address = ip_address
-            db.commit()
+            existing.device_type = device_type
+        else:
+            online_user = OnlineUser(
+                user_id=user_info.id,
+                user_name=user_info.name,
+                login_time=now,
+                last_activity=now,
+                ip_address=ip_address,
+                device_type=device_type,
+                is_active=True
+            )
+            db.add(online_user)
 
+        db.commit()
         return ApiResponse(code=200, message="心跳更新成功", data=None)
 
     except Exception as e:

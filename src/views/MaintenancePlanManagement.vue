@@ -275,14 +275,7 @@
                     />
                   </td>
                   <td>
-                    <div
-                      v-if="item.level1_name"
-                      class="selected-text"
-                      @click="
-                        item.level1_id = ''
-                        item.level1_name = ''
-                      "
-                    >
+                    <div v-if="item.level1_name" class="selected-text" @click="clearLevel1(item)">
                       {{ item.level1_name }}
                     </div>
                     <el-select
@@ -302,14 +295,7 @@
                     </el-select>
                   </td>
                   <td>
-                    <div
-                      v-if="item.level2_name"
-                      class="selected-text"
-                      @click="
-                        item.level2_id = ''
-                        item.level2_name = ''
-                      "
-                    >
+                    <div v-if="item.level2_name" class="selected-text" @click="clearLevel2(item)">
                       {{ item.level2_name }}
                     </div>
                     <el-select
@@ -330,14 +316,7 @@
                     </el-select>
                   </td>
                   <td>
-                    <div
-                      v-if="item.level3_name"
-                      class="selected-text"
-                      @click="
-                        item.level3_id = ''
-                        item.level3_name = ''
-                      "
-                    >
+                    <div v-if="item.level3_name" class="selected-text" @click="clearLevel3(item)">
                       {{ item.level3_name }}
                     </div>
                     <el-select
@@ -690,10 +669,7 @@
                     <div
                       v-if="item.level1_name"
                       class="selected-text"
-                      @click="
-                        item.level1_id = ''
-                        item.level1_name = ''
-                      "
+                      @click="clearEditLevel1(item)"
                     >
                       {{ item.level1_name }}
                     </div>
@@ -717,10 +693,7 @@
                     <div
                       v-if="item.level2_name"
                       class="selected-text"
-                      @click="
-                        item.level2_id = ''
-                        item.level2_name = ''
-                      "
+                      @click="clearEditLevel2(item)"
                     >
                       {{ item.level2_name }}
                     </div>
@@ -745,10 +718,7 @@
                     <div
                       v-if="item.level3_name"
                       class="selected-text"
-                      @click="
-                        item.level3_id = ''
-                        item.level3_name = ''
-                      "
+                      @click="clearEditLevel3(item)"
                     >
                       {{ item.level3_name }}
                     </div>
@@ -1081,6 +1051,64 @@ export default defineComponent({
           item.level1_name = level1Node.label
         }
       }
+    }
+
+    const clearLevel1 = (item: any) => {
+      item.level1_id = ''
+      item.level1_name = ''
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearLevel2 = (item: any) => {
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearLevel3 = (item: any) => {
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_content = ''
+    }
+
+    const clearEditLevel1 = (item: any) => {
+      item.level1_id = ''
+      item.level1_name = ''
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearEditLevel2 = (item: any) => {
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearEditLevel3 = (item: any) => {
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_content = ''
     }
 
     const handleLevel2Change = (index: number) => {
@@ -2317,6 +2345,12 @@ export default defineComponent({
       handleLevel1Change,
       handleLevel2Change,
       handleLevel3Change,
+      clearLevel1,
+      clearLevel2,
+      clearLevel3,
+      clearEditLevel1,
+      clearEditLevel2,
+      clearEditLevel3,
       deleteEditPlan,
       addEditPlan,
     }

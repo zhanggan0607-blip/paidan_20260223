@@ -75,13 +75,13 @@
                 >
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.project_id }}</td>
-                  <td>{{ item.projectName }}</td>
-                  <td>{{ item.productName }}</td>
+                  <td>{{ item.project_name }}</td>
+                  <td>{{ item.product_name }}</td>
                   <td>{{ item.brand }}</td>
                   <td>{{ item.model }}</td>
                   <td>{{ item.quantity }}</td>
-                  <td>{{ item.userName }}</td>
-                  <td>{{ item.issueTime }}</td>
+                  <td>{{ item.user_name }}</td>
+                  <td>{{ item.issue_time }}</td>
                   <td>{{ item.unit }}</td>
                   <td>
                     <span
@@ -261,13 +261,13 @@ import { userStore } from '@/stores/userStore'
 interface SparePartsIssueItem {
   id: number
   project_id: string
-  projectName: string
-  productName: string
+  project_name: string
+  product_name: string
   brand: string
   model: string
   quantity: number
-  userName: string
-  issueTime: string
+  user_name: string
+  issue_time: string
   unit: string
   status: string
 }
