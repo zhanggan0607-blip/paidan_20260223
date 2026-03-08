@@ -9,8 +9,8 @@
                 <div class="search-item">
                   <label class="search-label">产品名称：</label>
                   <SearchInput
-                    v-model="filters.product"
-                    field-key="SparePartsStock_product"
+                    v-model="filters.productName"
+                    field-key="SparePartsStock_productName"
                     placeholder="请输入产品名称"
                     @input="handleSearch"
                   />
@@ -18,13 +18,9 @@
               </div>
             </div>
             <div class="action-buttons">
-              <a
-                v-if="isMaterialManager"
-                href="#"
-                class="action-link action-add"
-                @click.prevent="showAddModal = true"
-                >新增入库</a
-              >
+              <button v-if="isMaterialManager" class="btn btn-add" @click="handleAdd">
+                新增入库
+              </button>
             </div>
           </div>
 
@@ -33,38 +29,44 @@
               <thead>
                 <tr>
                   <th>序号</th>
-                  <th>入库单号</th>
                   <th>产品名称</th>
                   <th>品牌</th>
                   <th>产品型号</th>
-                  <th>入库数量</th>
-                  <th>供应商</th>
-                  <th>入库人</th>
-                  <th>入库时间</th>
-                  <th>备注</th>
+                  <th>单位</th>
+                  <th>库存数量</th>
+                  <th>状态</th>
+                  <th>更新时间</th>
+                  <th>操作</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="10" class="loading-cell">
+                  <td colspan="9" class="loading-cell">
                     <div class="loading-spinner"></div>
                     <span>加载中...</span>
                   </td>
                 </tr>
-                <tr v-else-if="recordList.length === 0">
-                  <td colspan="10" class="empty-cell">暂无数据</td>
+                <tr v-else-if="stockList.length === 0">
+                  <td colspan="9" class="empty-cell">暂无数据</td>
                 </tr>
-                <tr v-for="(item, index) in recordList" v-else :key="item.id">
+                <tr v-for="(item, index) in stockList" v-else :key="item.id">
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-                  <td>{{ item.inboundNo }}</td>
                   <td>{{ item.productName }}</td>
-                  <td>{{ item.brand }}</td>
-                  <td>{{ item.model }}</td>
-                  <td>{{ item.quantity }} {{ item.unit }}</td>
-                  <td>{{ item.supplier }}</td>
-                  <td>{{ item.userName }}</td>
-                  <td>{{ item.inboundTime }}</td>
-                  <td>{{ item.remarks || '-' }}</td>
+                  <td>{{ item.brand || '-' }}</td>
+                  <td>{{ item.model || '-' }}</td>
+                  <td>{{ item.unit }}</td>
+                  <td>
+                    <span :class="['stock-badge', item.stock <= 0 ? 'stock-low' : 'stock-normal']">
+                      {{ item.stock }}
+                    </span>
+                  </td>
+                  <td>{{ item.status || '在库' }}</td>
+                  <td>{{ formatTime(item.updatedAt) }}</td>
+                  <td>
+                    <button class="action-btn restock-btn" @click="handleRestock(item)">
+                      入库
+                    </button>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -116,63 +118,56 @@
       </div>
     </div>
 
-    <div v-if="showAddModal" class="modal-overlay" @click.self="showAddModal = false">
-      <div class="modal-content" @click.stop>
+    <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
+      <div class="modal-content">
         <div class="modal-header">
-          <h3>新增备品备件库存</h3>
-          <button class="modal-close" @click="showAddModal = false">&times;</button>
+          <h3>新增备品备件入库</h3>
+          <button class="close-btn" @click="closeAddModal">&times;</button>
         </div>
         <div class="modal-body">
-          <div class="form-grid">
-            <div class="form-item">
-              <label class="form-label">产品名称 <span class="required">*</span></label>
-              <input
-                v-model="inboundForm.productName"
-                type="text"
-                class="form-input"
-                placeholder="请输入产品名称"
-              />
-            </div>
-            <div class="form-item">
+          <div class="form-item">
+            <label class="form-label">产品名称<span class="required">*</span></label>
+            <input
+              v-model="formData.productName"
+              type="text"
+              class="form-input"
+              placeholder="请输入产品名称"
+            />
+          </div>
+          <div class="form-row">
+            <div class="form-item half">
               <label class="form-label">品牌</label>
               <input
-                v-model="inboundForm.brand"
+                v-model="formData.brand"
                 type="text"
                 class="form-input"
                 placeholder="请输入品牌"
               />
             </div>
-            <div class="form-item">
+            <div class="form-item half">
               <label class="form-label">产品型号</label>
               <input
-                v-model="inboundForm.model"
+                v-model="formData.model"
                 type="text"
                 class="form-input"
                 placeholder="请输入产品型号"
               />
             </div>
-            <div class="form-item">
-              <label class="form-label">入库数量 <span class="required">*</span></label>
+          </div>
+          <div class="form-row">
+            <div class="form-item half">
+              <label class="form-label">入库数量<span class="required">*</span></label>
               <input
-                v-model.number="inboundForm.quantity"
+                v-model.number="formData.quantity"
                 type="number"
                 class="form-input"
                 placeholder="请输入入库数量"
                 min="1"
               />
             </div>
-            <div class="form-item">
-              <label class="form-label">供应商</label>
-              <input
-                v-model="inboundForm.supplier"
-                type="text"
-                class="form-input"
-                placeholder="请输入供应商"
-              />
-            </div>
-            <div class="form-item">
+            <div class="form-item half">
               <label class="form-label">单位</label>
-              <select v-model="inboundForm.unit" class="form-select">
+              <select v-model="formData.unit" class="form-select">
                 <option value="件">件</option>
                 <option value="个">个</option>
                 <option value="套">套</option>
@@ -180,31 +175,101 @@
                 <option value="台">台</option>
               </select>
             </div>
-            <div class="form-item">
-              <label class="form-label">入库人 <span class="required">*</span></label>
-              <select v-model="inboundForm.userName" class="form-select">
-                <option value="">请选择入库人</option>
-                <option v-for="user in userList" :key="user.id" :value="user.name">
-                  {{ user.name }}
-                </option>
-              </select>
-            </div>
-            <div class="form-item full-width">
-              <label class="form-label">备注</label>
-              <textarea
-                v-model="inboundForm.remarks"
-                class="form-textarea"
-                placeholder="请输入备注（可选）"
-                rows="3"
-              ></textarea>
-            </div>
+          </div>
+          <div class="form-item">
+            <label class="form-label">供应商</label>
+            <input
+              v-model="formData.supplier"
+              type="text"
+              class="form-input"
+              placeholder="请输入供应商"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">入库人<span class="required">*</span></label>
+            <select v-model="formData.userName" class="form-select">
+              <option value="">请选择入库人</option>
+              <option v-for="user in userList" :key="user.id" :value="user.name">
+                {{ user.name }}
+              </option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label class="form-label">备注</label>
+            <textarea
+              v-model="formData.remarks"
+              class="form-textarea"
+              placeholder="请输入备注（可选）"
+            ></textarea>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="submit-button" :disabled="submitting" @click="handleInboundSubmit">
-            {{ submitting ? '提交中...' : '提交入库单' }}
+          <button class="cancel-btn" @click="closeAddModal">取消</button>
+          <button class="confirm-btn" :disabled="submitting" @click="handleSubmit">
+            {{ submitting ? '提交中...' : '确认' }}
           </button>
-          <button class="reset-button" @click="handleResetForm">重置</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showRestockModal" class="modal-overlay" @click.self="closeRestockModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>备品备件入库</h3>
+          <button class="close-btn" @click="closeRestockModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-item">
+            <label class="form-label">产品名称</label>
+            <input :value="restockData.productName" class="form-input" disabled />
+          </div>
+          <div class="form-row">
+            <div class="form-item half">
+              <label class="form-label">品牌</label>
+              <input :value="restockData.brand || '-'" class="form-input" disabled />
+            </div>
+            <div class="form-item half">
+              <label class="form-label">产品型号</label>
+              <input :value="restockData.model || '-'" class="form-input" disabled />
+            </div>
+          </div>
+          <div class="form-item">
+            <label class="form-label">当前库存</label>
+            <input :value="restockData.currentStock" class="form-input" disabled />
+          </div>
+          <div class="form-item">
+            <label class="form-label">入库数量<span class="required">*</span></label>
+            <input
+              v-model.number="restockData.quantity"
+              type="number"
+              :min="1"
+              class="form-input"
+              placeholder="请输入入库数量"
+            />
+          </div>
+          <div class="form-item">
+            <label class="form-label">入库人<span class="required">*</span></label>
+            <select v-model="restockData.userName" class="form-select">
+              <option value="">请选择入库人</option>
+              <option v-for="user in userList" :key="user.id" :value="user.name">
+                {{ user.name }}
+              </option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label class="form-label">备注</label>
+            <textarea
+              v-model="restockData.remarks"
+              class="form-textarea"
+              placeholder="请输入备注"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-btn" @click="closeRestockModal">取消</button>
+          <button class="confirm-btn" :disabled="submitting" @click="handleRestockSubmit">
+            {{ submitting ? '提交中...' : '确认入库' }}
+          </button>
         </div>
       </div>
     </div>
@@ -221,24 +286,22 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import apiClient from '@/utils/api'
-import type { ApiResponse, PaginatedResponse, SparePartsStockQueryParams } from '@/types/api'
+import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
 import { USER_ROLES } from '@/config/constants'
 import { userStore } from '@/stores/userStore'
 
-interface InboundRecord {
+interface SparePartsStockItem {
   id: number
-  inboundNo: string
   productName: string
   brand: string
   model: string
-  quantity: number
-  supplier: string
-  userName: string
-  inboundTime: string
   unit: string
-  remarks: string
+  stock: number
+  status: string
+  createdAt: string
+  updatedAt: string
 }
 
 interface User {
@@ -256,12 +319,20 @@ export default defineComponent({
   setup() {
     const loading = ref(false)
     const submitting = ref(false)
-    const recordList = ref<InboundRecord[]>([])
+    const stockList = ref<SparePartsStockItem[]>([])
     const total = ref(0)
     const currentPage = ref(1)
     const pageSize = ref(10)
     const showAddModal = ref(false)
-    const inboundForm = ref({
+    const showRestockModal = ref(false)
+    const userList = ref<User[]>([])
+    const isMaterialManager = ref(false)
+
+    const filters = ref({
+      productName: '',
+    })
+
+    const formData = ref({
       productName: '',
       brand: '',
       model: '',
@@ -271,24 +342,29 @@ export default defineComponent({
       userName: '',
       remarks: '',
     })
-    const filters = ref({
-      product: '',
-    })
-    const userList = ref<User[]>([])
-    const isMaterialManager = ref(false)
 
-    // Toast state
+    const restockData = ref({
+      id: 0,
+      productName: '',
+      brand: '',
+      model: '',
+      unit: '',
+      currentStock: 0,
+      quantity: 1,
+      userName: '',
+      remarks: '',
+    })
+
     const toast = ref({
       visible: false,
       message: '',
       type: 'info' as 'success' | 'error' | 'warning' | 'info',
     })
 
-    // AbortController for request cancellation
     let abortController: AbortController | null = null
 
     const totalPages = computed(() => {
-      return Math.ceil(total.value / pageSize.value)
+      return Math.ceil(total.value / pageSize.value) || 1
     })
 
     const showToast = (
@@ -298,39 +374,49 @@ export default defineComponent({
       toast.value = { visible: true, message, type }
     }
 
-    const loadRecords = async () => {
-      // Cancel previous request if exists
+    const formatTime = (time: string | null) => {
+      if (!time) return '-'
+      try {
+        const date = new Date(time)
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      } catch {
+        return time
+      }
+    }
+
+    const loadStockList = async () => {
       if (abortController) {
         abortController.abort()
       }
-
-      // Create new AbortController for this request
       abortController = new AbortController()
 
       loading.value = true
       try {
-        const params: SparePartsStockQueryParams = {
-          page: currentPage.value - 1,
-          pageSize: pageSize.value,
+        const params: Record<string, any> = {}
+        if (filters.value.productName) {
+          params.product_name = filters.value.productName
         }
-        if (filters.value.product) {
-          params.product = filters.value.product
-        }
-        const response = (await apiClient.get<PaginatedResponse<InboundRecord>>(
-          '/spare-parts-stock/inbound-records',
-          { params, signal: abortController.signal }
-        )) as unknown as PaginatedResponse<InboundRecord>
+        const response = (await apiClient.get('/spare-parts-stock/stock', {
+          params,
+          signal: abortController.signal,
+        })) as unknown as PaginatedResponse<SparePartsStockItem>
+
         if (response && response.code === 200 && response.data) {
-          recordList.value = response.data.items || []
+          stockList.value = response.data.items || []
           total.value = response.data.total || 0
         }
       } catch (error) {
-        // Ignore error if request was aborted
         if (error instanceof Error && error.name === 'AbortError') {
           return
         }
-        console.error('加载入库记录失败:', error)
-        showToast('加载入库记录失败', 'error')
+        console.error('加载库存列表失败:', error)
+        showToast('加载库存列表失败', 'error')
       } finally {
         loading.value = false
       }
@@ -349,53 +435,8 @@ export default defineComponent({
       }
     }
 
-    const handleInboundSubmit = async () => {
-      if (!inboundForm.value.productName) {
-        showToast('请输入产品名称', 'warning')
-        return
-      }
-      if (!inboundForm.value.quantity || inboundForm.value.quantity <= 0) {
-        showToast('请输入有效的入库数量', 'warning')
-        return
-      }
-      if (!inboundForm.value.userName) {
-        showToast('请选择入库人', 'warning')
-        return
-      }
-      submitting.value = true
-      try {
-        const requestData = {
-          product_name: inboundForm.value.productName,
-          brand: inboundForm.value.brand || null,
-          model: inboundForm.value.model || null,
-          quantity: inboundForm.value.quantity,
-          supplier: inboundForm.value.supplier || null,
-          unit: inboundForm.value.unit,
-          user_name: inboundForm.value.userName || null,
-          remarks: inboundForm.value.remarks || null,
-        }
-        const response = (await apiClient.post(
-          '/spare-parts-stock/inbound',
-          requestData
-        )) as ApiResponse<any>
-        if (response && response.code === 200) {
-          showToast('入库单提交成功！', 'success')
-          handleResetForm()
-          showAddModal.value = false
-          loadRecords()
-        } else {
-          showToast('入库单提交失败：' + (response?.message || '未知错误'), 'error')
-        }
-      } catch (error) {
-        console.error('提交入库单失败:', error)
-        showToast('入库单提交失败，请稍后重试', 'error')
-      } finally {
-        submitting.value = false
-      }
-    }
-
-    const handleResetForm = () => {
-      inboundForm.value = {
+    const handleAdd = () => {
+      formData.value = {
         productName: '',
         brand: '',
         model: '',
@@ -405,11 +446,118 @@ export default defineComponent({
         userName: '',
         remarks: '',
       }
+      showAddModal.value = true
+    }
+
+    const closeAddModal = () => {
+      showAddModal.value = false
+    }
+
+    const handleSubmit = async () => {
+      if (!formData.value.productName) {
+        showToast('请输入产品名称', 'warning')
+        return
+      }
+      if (!formData.value.quantity || formData.value.quantity <= 0) {
+        showToast('请输入有效的入库数量', 'warning')
+        return
+      }
+      if (!formData.value.userName) {
+        showToast('请选择入库人', 'warning')
+        return
+      }
+      submitting.value = true
+      try {
+        const requestData = {
+          product_name: formData.value.productName,
+          brand: formData.value.brand || null,
+          model: formData.value.model || null,
+          quantity: formData.value.quantity,
+          supplier: formData.value.supplier || null,
+          unit: formData.value.unit,
+          user_name: formData.value.userName || null,
+          remarks: formData.value.remarks || null,
+        }
+        const response = (await apiClient.post(
+          '/spare-parts-stock/inbound',
+          requestData
+        )) as ApiResponse<any>
+        if (response && response.code === 200) {
+          showToast('入库成功！', 'success')
+          closeAddModal()
+          loadStockList()
+        } else {
+          showToast('入库失败：' + (response?.message || '未知错误'), 'error')
+        }
+      } catch (error) {
+        console.error('入库失败:', error)
+        showToast('入库失败，请稍后重试', 'error')
+      } finally {
+        submitting.value = false
+      }
+    }
+
+    const handleRestock = (item: SparePartsStockItem) => {
+      restockData.value = {
+        id: item.id,
+        productName: item.productName,
+        brand: item.brand || '',
+        model: item.model || '',
+        unit: item.unit || '件',
+        currentStock: item.stock,
+        quantity: 1,
+        userName: '',
+        remarks: '',
+      }
+      showRestockModal.value = true
+    }
+
+    const closeRestockModal = () => {
+      showRestockModal.value = false
+    }
+
+    const handleRestockSubmit = async () => {
+      if (!restockData.value.quantity || restockData.value.quantity < 1) {
+        showToast('请输入有效的入库数量', 'warning')
+        return
+      }
+      if (!restockData.value.userName) {
+        showToast('请选择入库人', 'warning')
+        return
+      }
+      submitting.value = true
+      try {
+        const requestData = {
+          product_name: restockData.value.productName,
+          brand: restockData.value.brand || null,
+          model: restockData.value.model || null,
+          quantity: restockData.value.quantity,
+          unit: restockData.value.unit,
+          user_name: restockData.value.userName,
+          remarks: restockData.value.remarks || null,
+        }
+        const response = (await apiClient.post(
+          '/spare-parts-stock/inbound',
+          requestData
+        )) as ApiResponse<any>
+        if (response && response.code === 200) {
+          showToast('入库成功！', 'success')
+          closeRestockModal()
+          loadStockList()
+        } else {
+          showToast('入库失败：' + (response?.message || '未知错误'), 'error')
+        }
+      } catch (error) {
+        console.error('入库失败:', error)
+        showToast('入库失败', 'error')
+      } finally {
+        submitting.value = false
+      }
     }
 
     const handleSearch = () => {
       currentPage.value = 1
-      loadRecords()
+      loadStockList()
     }
 
     const handlePageChange = (page: number) => {
@@ -417,18 +565,18 @@ export default defineComponent({
         return
       }
       currentPage.value = page
-      loadRecords()
+      loadStockList()
     }
 
     const handlePageSizeChange = () => {
       currentPage.value = 1
-      loadRecords()
+      loadStockList()
     }
 
     onMounted(() => {
       isMaterialManager.value = userStore.isMaterialManagerOnly()
       loadUsers()
-      loadRecords()
+      loadStockList()
       window.addEventListener('user-changed', handleUserChanged)
     })
 
@@ -440,25 +588,32 @@ export default defineComponent({
     })
 
     const handleUserChanged = () => {
-      loadRecords()
+      loadStockList()
     }
 
     return {
       loading,
       submitting,
-      recordList,
+      stockList,
       total,
       currentPage,
       pageSize,
       totalPages,
       showAddModal,
-      inboundForm,
+      showRestockModal,
+      formData,
+      restockData,
       filters,
       userList,
       isMaterialManager,
       toast,
-      handleInboundSubmit,
-      handleResetForm,
+      formatTime,
+      handleAdd,
+      closeAddModal,
+      handleSubmit,
+      handleRestock,
+      closeRestockModal,
+      handleRestockSubmit,
       handleSearch,
       handlePageChange,
       handlePageSizeChange,
@@ -494,31 +649,15 @@ export default defineComponent({
   overflow-y: auto;
 }
 
-.add-button {
-  padding: 8px 24px;
-  background: linear-gradient(135deg, #388e3c 0%, #66bb6a 100%);
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  height: 38px;
-}
-
-.add-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(56, 142, 60, 0.3);
-}
-
 .search-section {
   display: flex;
   gap: 16px;
   margin-bottom: 20px;
   align-items: flex-start;
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .search-form {
@@ -536,11 +675,6 @@ export default defineComponent({
   flex-wrap: wrap;
 }
 
-.action-buttons {
-  display: flex;
-  gap: 12px;
-}
-
 .search-item {
   display: flex;
   align-items: center;
@@ -554,59 +688,28 @@ export default defineComponent({
   white-space: nowrap;
 }
 
-.search-input {
-  padding: 8px 12px;
-  border: 1px solid #d0d7de;
-  border-radius: 4px;
-  font-size: 14px;
-  outline: none;
-  min-width: 180px;
+.action-buttons {
+  display: flex;
+  gap: 12px;
 }
 
-.search-input:focus {
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
-}
-
-.action-link {
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: color 0.2s;
+.btn {
   padding: 8px 16px;
-  border-radius: 4px;
-  display: inline-block;
-}
-
-.action-add {
-  color: #fff;
-  background: linear-gradient(135deg, #388e3c 0%, #66bb6a 100%);
-}
-
-.action-add:hover {
-  background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);
-}
-
-.search-button {
-  padding: 8px 24px;
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-  color: #fff;
   border: none;
   border-radius: 4px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  transition: all 0.2s;
 }
 
-.search-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+.btn-add {
+  background: #4caf50;
+  color: #fff;
+}
+
+.btn-add:hover {
+  background: #45a049;
 }
 
 .table-section {
@@ -677,6 +780,43 @@ export default defineComponent({
   }
 }
 
+.stock-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.stock-normal {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.stock-low {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.action-btn {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 6px;
+}
+
+.restock-btn {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.restock-btn:hover {
+  background: #388e3c;
+  color: #fff;
+}
+
 .pagination-section {
   display: flex;
   justify-content: space-between;
@@ -734,13 +874,24 @@ export default defineComponent({
   font-size: 14px;
 }
 
-.pagination-input:focus {
-  outline: none;
-  border-color: #1976d2;
-}
-
 .pagination-slash {
   color: #666;
+}
+
+.page-size-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.page-size-select {
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 .modal-overlay {
@@ -751,17 +902,16 @@ export default defineComponent({
   bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 1000;
 }
 
 .modal-content {
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  max-width: 800px;
-  width: 90%;
+  width: 550px;
+  max-width: 90%;
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -770,131 +920,121 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
+  padding: 16px 20px;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .modal-header h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
   margin: 0;
+  font-size: 18px;
+  color: #333;
 }
 
-.modal-close {
+.close-btn {
   background: none;
   border: none;
   font-size: 24px;
-  color: #999;
   cursor: pointer;
-  padding: 0;
-  transition: color 0.2s;
-}
-
-.modal-close:hover {
-  color: #333;
+  color: #999;
 }
 
 .modal-body {
   padding: 20px;
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+.form-item {
+  margin-bottom: 16px;
+}
+
+.form-row {
+  display: flex;
   gap: 16px;
 }
 
-.form-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-item.full-width {
-  grid-column: 1 / -1;
+.form-item.half {
+  flex: 1;
 }
 
 .form-label {
+  display: block;
+  margin-bottom: 6px;
   font-size: 14px;
   color: #333;
   font-weight: 500;
 }
 
 .required {
-  color: #f56c6c;
-  margin-left: 4px;
+  color: #f44336;
+  margin-left: 2px;
 }
 
-.form-input,
 .form-select,
+.form-input,
 .form-textarea {
-  padding: 8px 12px;
+  width: 100%;
+  padding: 10px 12px;
   border: 1px solid #e0e0e0;
   border-radius: 4px;
   font-size: 14px;
-  transition: border-color 0.2s;
+  box-sizing: border-box;
 }
 
-.form-input:focus,
-.form-select:focus,
-.form-textarea:focus {
-  outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 3px rgba(25, 118, 210, 0.1);
+.form-input:disabled {
+  background: #f5f5f5;
+  color: #666;
 }
 
 .form-textarea {
+  min-height: 80px;
   resize: vertical;
-  font-family: inherit;
+}
+
+.form-select:focus,
+.form-input:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: #1976d2;
 }
 
 .modal-footer {
   display: flex;
-  gap: 12px;
   justify-content: flex-end;
-  padding: 20px;
+  gap: 12px;
+  padding: 16px 20px;
   border-top: 1px solid #e0e0e0;
 }
 
-.submit-button {
-  padding: 10px 32px;
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-  color: #fff;
+.cancel-btn,
+.confirm-btn {
+  padding: 10px 24px;
   border: none;
   border-radius: 4px;
   font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-}
-
-.submit-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
-}
-
-.submit-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.reset-button {
-  padding: 10px 32px;
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.reset-button:hover {
-  background: #f5f7f5;
-  border-color: #ccc;
+.cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background: #e0e0e0;
+}
+
+.confirm-btn {
+  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+  color: #fff;
+}
+
+.confirm-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
+}
+
+.confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

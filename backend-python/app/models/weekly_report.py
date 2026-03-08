@@ -1,6 +1,7 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Text, Index, ForeignKey, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 

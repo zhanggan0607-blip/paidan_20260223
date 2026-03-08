@@ -1,11 +1,12 @@
-from sqlalchemy import Column, BigInteger, String, Integer, Index, DateTime, Text
+from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy.sql import func
+
 from app.database import Base
 
 
 class RepairToolsStock(Base):
     __tablename__ = "repair_tools_stock"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     tool_id = Column(String(50), comment="工具编号")
     tool_name = Column(String(200), nullable=False, comment="工具名称")
@@ -19,14 +20,14 @@ class RepairToolsStock(Base):
     remark = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     __table_args__ = (
         Index('idx_repair_tool_name', 'tool_name'),
         Index('idx_repair_tool_category', 'category'),
         Index('idx_repair_tool_status', 'status'),
         {'comment': '维修工具库存表'}
     )
-    
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -48,7 +49,7 @@ class RepairToolsStock(Base):
 
 class RepairToolsIssue(Base):
     __tablename__ = "repair_tools_issue"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     tool_id = Column(String(50), comment="工具编号")
     tool_name = Column(String(200), nullable=False, comment="工具名称")
@@ -66,7 +67,7 @@ class RepairToolsIssue(Base):
     stock_id = Column(BigInteger, comment="库存记录ID")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     __table_args__ = (
         Index('idx_repair_issue_tool_name', 'tool_name'),
         Index('idx_repair_issue_user_name', 'user_name'),
@@ -74,7 +75,7 @@ class RepairToolsIssue(Base):
         Index('idx_repair_issue_issue_time', 'issue_time'),
         {'comment': '维修工具领用表'}
     )
-    
+
     def to_dict(self):
         return {
             'id': self.id,

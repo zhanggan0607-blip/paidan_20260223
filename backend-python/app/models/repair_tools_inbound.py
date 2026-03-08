@@ -1,11 +1,12 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, Text
+from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Text
 from sqlalchemy.sql import func
+
 from app.database import Base
 
 
 class RepairToolsInbound(Base):
     __tablename__ = "repair_tools_inbound"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     inbound_no = Column(String(50), unique=True, nullable=False, comment="入库单号")
     tool_name = Column(String(200), nullable=False, comment="工具名称")
@@ -19,7 +20,7 @@ class RepairToolsInbound(Base):
     user_name = Column(String(100), nullable=False, comment="入库人")
     remark = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="入库时间")
-    
+
     __table_args__ = (
         Index('idx_repair_tools_inbound_no', 'inbound_no'),
         Index('idx_repair_tools_inbound_tool_name', 'tool_name'),
@@ -27,7 +28,7 @@ class RepairToolsInbound(Base):
         Index('idx_repair_tools_inbound_created_at', 'created_at'),
         {'comment': '维修工具入库记录表'}
     )
-    
+
     def to_dict(self):
         return {
             'id': self.id,

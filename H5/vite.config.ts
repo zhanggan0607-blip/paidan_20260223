@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => ({
       ),
     },
   },
-  base: mode === 'production' ? '/h5/' : '/',
+  base: '/',
   server: {
     host: true,
     port: 5180,

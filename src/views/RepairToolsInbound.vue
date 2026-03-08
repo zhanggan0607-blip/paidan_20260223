@@ -358,7 +358,12 @@ export default defineComponent({
         })) as unknown as PaginatedResponse<RepairToolsStockItem>
 
         if (response && response.code === 200 && response.data) {
-          dataList.value = response.data.items || response.data.content || []
+          const items = response.data.items || response.data.content || []
+          dataList.value = items.sort((a, b) => {
+            if (a.stock === 0 && b.stock !== 0) return -1
+            if (a.stock !== 0 && b.stock === 0) return 1
+            return 0
+          })
           total.value = response.data.total || response.data.totalElements || 0
         }
       } catch (error) {

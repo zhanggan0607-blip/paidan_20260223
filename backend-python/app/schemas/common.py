@@ -1,6 +1,6 @@
-from pydantic import BaseModel
-from typing import Generic, TypeVar, Optional, List, Any
-from pydantic import ConfigDict
+from typing import Generic, TypeVar
+
+from pydantic import BaseModel, ConfigDict
 
 T = TypeVar('T')
 
@@ -9,7 +9,7 @@ class ApiResponse(BaseModel, Generic[T]):
     """统一的API响应格式"""
     code: int
     message: str
-    data: Optional[T] = None
+    data: T | None = None
 
     @classmethod
     def success(cls, data=None, message="success"):

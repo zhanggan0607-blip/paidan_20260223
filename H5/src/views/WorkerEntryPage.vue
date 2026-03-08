@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   showLoadingToast,
   closeToast,
@@ -29,12 +29,14 @@ interface WorkerInfo {
 }
 
 const route = useRoute()
+const router = useRouter()
 const { goBack } = useNavigation()
 
 const projectId = ref('')
 const projectName = ref('')
 const workDateStart = ref('')
 const workDateEnd = ref('')
+const fromPath = ref('')
 
 const workerList = ref<WorkerInfo[]>([])
 const showAddPopup = ref(false)
@@ -144,9 +146,9 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
           if (side === 'front') {
             if (ocrData.name) currentWorker.value.name = ocrData.name
             if (ocrData.gender) currentWorker.value.gender = ocrData.gender
-            if (ocrData.birth_date) currentWorker.value.birthDate = ocrData.birth_date
+            if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
             if (ocrData.address) currentWorker.value.address = ocrData.address
-            const idCardNum = ocrData.id_card_number
+            const idCardNum = ocrData.idCardNumber
             if (idCardNum) {
               currentWorker.value.idCardNumber = idCardNum
               const validation = validateIdCard(idCardNum)
@@ -157,15 +159,15 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
               }
             }
           } else {
-            const issuingAuth = ocrData.issuing_authority
-            const validPeriod = ocrData.valid_period
+            const issuingAuth = ocrData.issuingAuthority
+            const validPeriod = ocrData.validPeriod
             if (issuingAuth) currentWorker.value.issuingAuthority = issuingAuth
             if (validPeriod) currentWorker.value.validPeriod = validPeriod
           }
 
-          if (side === 'front' && !ocrData.name && !ocrData.id_card_number) {
+          if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
             showFailToast('身份证识别失败，请确保图片清晰')
-          } else if (side === 'back' && !ocrData.issuing_authority && !ocrData.valid_period) {
+          } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
             showFailToast('身份证反面识别失败，请确保图片清晰')
           }
         } else if (ocrResponse.code !== 200) {
@@ -383,7 +385,11 @@ const handleSubmit = async () => {
       showSuccessToast(
         `提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`
       )
-      goBack()
+      if (fromPath.value) {
+        router.push(fromPath.value)
+      } else {
+        goBack()
+      }
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -396,11 +402,23 @@ const handleSubmit = async () => {
   }
 }
 
+/**
+ * 处理返回操作
+ */
+const handleBack = () => {
+  if (fromPath.value) {
+    router.push(fromPath.value)
+  } else {
+    goBack()
+  }
+}
+
 onMounted(() => {
   projectId.value = (route.query.projectId as string) || ''
   projectName.value = (route.query.projectName as string) || ''
   workDateStart.value = (route.query.workDateStart as string) || ''
   workDateEnd.value = (route.query.workDateEnd as string) || ''
+  fromPath.value = (route.query.from as string) || ''
 
   if (projectId.value) {
     fetchWorkerList()
@@ -412,7 +430,7 @@ onMounted(() => {
   <div class="worker-entry-page">
     <van-nav-bar title="施工人员录入" fixed placeholder>
       <template #left>
-        <div class="nav-left" @click="goBack()">
+        <div class="nav-left" @click="handleBack()">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>

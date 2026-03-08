@@ -23,7 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables
+# Environment variables - 敏感配置文件
 .env
 .env.local
 .env.*.local
@@ -31,6 +31,9 @@ dist-ssr
 .env.sqlite
 .env.docker
 .env.production
+backend-python/.env
+backend-python/.env.local
+backend-python/.env.production
 
 # Python
 __pycache__/
@@ -54,3 +57,28 @@ defects_report.md
 
 # Uploads directory
 backend-python/app/uploads/
+
+# IDE and tool directories
+.trae/
+.claude/
+.cursor/
+.windsurf/
+
+# Deployment scripts with credentials
+deploy.sh
+deploy*.sh
+scripts/deploy/*.py
+
+# Backup files
+*.bak
+*.backup
+backup_data.json
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Database dumps
+*.sql
+*.dump

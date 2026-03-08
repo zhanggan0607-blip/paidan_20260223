@@ -4,6 +4,7 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
+import type { ApiResponse, PaginatedData } from '@sstcp/shared'
 
 export interface ProjectInfo {
   id: number
@@ -53,26 +54,6 @@ export interface ProjectInfoUpdate {
   client_contact_info?: string
 }
 
-export interface ApiResponse<T = unknown> {
-  code: number
-  message: string
-  data: T
-}
-
-export interface PaginatedResponse {
-  code: number
-  message: string
-  data: {
-    content: ProjectInfo[]
-    totalElements: number
-    totalPages: number
-    size: number
-    number: number
-    first: boolean
-    last: boolean
-  }
-}
-
 export const projectInfoService = {
   /**
    * 获取项目列表（分页）
@@ -82,7 +63,7 @@ export const projectInfoService = {
     size?: number
     project_name?: string
     client_name?: string
-  }): Promise<PaginatedResponse> {
+  }): Promise<ApiResponse<PaginatedData<ProjectInfo>>> {
     return await request.get(API_ENDPOINTS.PROJECT_INFO.LIST, { params })
   },
 

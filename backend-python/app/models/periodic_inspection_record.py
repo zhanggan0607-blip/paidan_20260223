@@ -1,12 +1,12 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Text, ForeignKey, Boolean, Index
+from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
 class PeriodicInspectionRecord(Base):
     __tablename__ = "periodic_inspection_record"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     inspection_id = Column(String(50), ForeignKey('periodic_inspection.inspection_id', ondelete='CASCADE'), nullable=False, index=True, comment="巡检单编号")
     item_id = Column(String(50), nullable=False, comment="巡检项ID")
@@ -22,13 +22,13 @@ class PeriodicInspectionRecord(Base):
     inspection_result = Column(Text, comment="巡检结果")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     __table_args__ = (
         Index('idx_record_inspection_id', 'inspection_id'),
         Index('idx_record_item_id', 'item_id'),
         {'comment': '定期巡检记录表'}
     )
-    
+
     def to_dict(self):
         import json
         photos = []
@@ -37,7 +37,7 @@ class PeriodicInspectionRecord(Base):
                 photos = json.loads(self.photos)
             except (json.JSONDecodeError, TypeError):
                 photos = []
-        
+
         return {
             'id': self.id,
             'inspection_id': self.inspection_id,

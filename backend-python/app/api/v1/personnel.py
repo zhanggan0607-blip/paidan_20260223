@@ -1,21 +1,18 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.services.personnel import PersonnelService
+from app.dependencies import UserInfo, get_manager_user
+from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.personnel import (
     PersonnelCreate,
     PersonnelUpdate,
-    PersonnelResponse,
-    PaginatedResponse,
-    ApiResponse
 )
+from app.services.personnel import PersonnelService
 
 router = APIRouter(prefix="/personnel", tags=["Personnel Management"])
 
-
-# TODO: 人员管理API - 考虑加入批量导入/导出接口
-# FIXME: 权限校验应该统一在中间件处理
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_personnel(
@@ -23,9 +20,9 @@ def get_all_personnel(
 ):
     """
     获取所有人员列表（不分页）
-    
+
     返回系统中所有人员的完整列表，用于下拉选择等场景
-    
+
     Returns:
         ApiResponse: 包含所有人员列表的响应对象
     """
@@ -38,17 +35,17 @@ def get_all_personnel(
 def get_personnel_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=1000, description="Page size"),
-    name: Optional[str] = Query(None, description="Name (fuzzy search)"),
-    department: Optional[str] = Query(None, description="Department (fuzzy search)"),
-    current_user_role: Optional[str] = Query(None, description="Current user role"),
-    current_user_department: Optional[str] = Query(None, description="Current user department"),
+    name: str | None = Query(None, description="Name (fuzzy search)"),
+    department: str | None = Query(None, description="Department (fuzzy search)"),
+    current_user_role: str | None = Query(None, description="Current user role"),
+    current_user_department: str | None = Query(None, description="Current user department"),
     db: Session = Depends(get_db)
 ):
     """
     分页获取人员列表
-    
+
     支持按姓名、部门模糊查询，并根据当前用户角色进行权限过滤
-    
+
     Args:
         page: 页码，从0开始
         size: 每页大小，默认10条
@@ -56,7 +53,7 @@ def get_personnel_list(
         department: 部门模糊查询条件
         current_user_role: 当前用户角色，用于权限控制
         current_user_department: 当前用户部门，用于权限控制
-    
+
     Returns:
         PaginatedResponse: 分页响应对象，包含人员列表和分页信息
     """
@@ -76,13 +73,13 @@ def get_personnel_by_id(
 ):
     """
     根据ID获取人员详情
-    
+
     Args:
         id: 人员ID
-    
+
     Returns:
         ApiResponse: 包含人员详情的响应对象
-    
+
     Raises:
         HTTPException: 人员不存在时返回404错误
     """
@@ -94,17 +91,19 @@ def get_personnel_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_personnel(
     dto: PersonnelCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
 ):
     """
     创建新人员
-    
+    需要管理员或部门经理权限
+
     Args:
         dto: 人员创建数据传输对象
-    
+
     Returns:
         ApiResponse: 包含创建成功的人员信息的响应对象
-    
+
     Raises:
         HTTPException: 数据验证失败时返回400错误
     """
@@ -117,18 +116,20 @@ def create_personnel(
 def update_personnel(
     id: int,
     dto: PersonnelUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
 ):
     """
     更新人员信息
-    
+    需要管理员或部门经理权限
+
     Args:
         id: 人员ID
         dto: 人员更新数据传输对象
-    
+
     Returns:
         ApiResponse: 包含更新后的人员信息的响应对象
-    
+
     Raises:
         HTTPException: 人员不存在时返回404错误
     """
@@ -140,17 +141,19 @@ def update_personnel(
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_personnel(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
 ):
     """
     删除人员
-    
+    需要管理员或部门经理权限
+
     Args:
         id: 人员ID
-    
+
     Returns:
         ApiResponse: 删除成功的响应对象
-    
+
     Raises:
         HTTPException: 人员不存在时返回404错误
     """

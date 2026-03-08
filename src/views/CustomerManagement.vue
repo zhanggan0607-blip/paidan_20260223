@@ -354,12 +354,15 @@ export default defineComponent({
 
       loading.value = true
       try {
-        const response = await customerService.getList({
-          page: currentPage.value,
-          size: pageSize.value,
-          name: searchForm.name || undefined,
-          contact_person: searchForm.contact_person || undefined,
-        })
+        const response = await customerService.getList(
+          {
+            page: currentPage.value,
+            size: pageSize.value,
+            name: searchForm.name || undefined,
+            contact_person: searchForm.contact_person || undefined,
+          },
+          abortController.signal
+        )
 
         if (response.code === 200) {
           customerData.value = response.data.content
@@ -574,6 +577,7 @@ export default defineComponent({
       } catch (error: any) {
         console.error('删除失败:', error)
         if (error.status === 400 && error.message && error.message.includes('请确认是否级联删除')) {
+          loading.value = false
           ElMessageBox.confirm(error.message + '\n\n是否确认删除客户及其所有关联数据？', '提示', {
             confirmButtonText: '确定',
             cancelButtonText: '取消',
@@ -596,9 +600,7 @@ export default defineComponent({
                 loading.value = false
               }
             })
-            .catch(() => {
-              loading.value = false
-            })
+            .catch(() => {})
         } else if (error.status === 400 && error.message) {
           showToast(error.message, 'warning')
         } else {

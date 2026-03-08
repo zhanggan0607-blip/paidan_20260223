@@ -1,9 +1,11 @@
-from sqlalchemy.orm import Session
+import logging
+from typing import Any
+
 from sqlalchemy import or_
-from typing import List, Optional, Dict, Any
+from sqlalchemy.orm import Session
+
 from app.models.inspection_item import InspectionItem
 from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -12,28 +14,28 @@ class InspectionItemRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self) -> List[InspectionItem]:
+    def get_all(self) -> list[InspectionItem]:
         try:
             return self.db.query(InspectionItem).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有巡检事项失败: {str(e)}")
             raise
 
-    def get_by_id(self, item_id: int) -> Optional[InspectionItem]:
+    def get_by_id(self, item_id: int) -> InspectionItem | None:
         try:
             return self.db.query(InspectionItem).filter(InspectionItem.id == item_id).first()
         except Exception as e:
             logger.error(f"查询巡检事项失败 (id={item_id}): {str(e)}")
             raise
 
-    def get_by_code(self, item_code: str) -> Optional[InspectionItem]:
+    def get_by_code(self, item_code: str) -> InspectionItem | None:
         try:
             return self.db.query(InspectionItem).filter(InspectionItem.item_code == item_code).first()
         except Exception as e:
             logger.error(f"查询巡检事项失败 (code={item_code}): {str(e)}")
             raise
 
-    def get_children(self, parent_id: int) -> List[InspectionItem]:
+    def get_children(self, parent_id: int) -> list[InspectionItem]:
         try:
             return self.db.query(InspectionItem).filter(
                 InspectionItem.parent_id == parent_id
@@ -42,16 +44,16 @@ class InspectionItemRepository:
             logger.error(f"查询子节点失败 (parent_id={parent_id}): {str(e)}")
             raise
 
-    def get_root_items(self) -> List[InspectionItem]:
+    def get_root_items(self) -> list[InspectionItem]:
         try:
             return self.db.query(InspectionItem).filter(
-                InspectionItem.parent_id == None
+                InspectionItem.parent_id is None
             ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询根节点失败: {str(e)}")
             raise
 
-    def get_tree(self) -> List[Dict[str, Any]]:
+    def get_tree(self) -> list[dict[str, Any]]:
         try:
             all_items = self.get_all()
             return self._build_tree(all_items)
@@ -59,7 +61,7 @@ class InspectionItemRepository:
             logger.error(f"构建树形结构失败: {str(e)}")
             raise
 
-    def _build_tree(self, items: List[InspectionItem], parent_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    def _build_tree(self, items: list[InspectionItem], parent_id: int | None = None) -> list[dict[str, Any]]:
         tree = []
         for item in items:
             if item.parent_id == parent_id:
@@ -72,7 +74,7 @@ class InspectionItemRepository:
                 tree.append(node)
         return tree
 
-    def search(self, keyword: Optional[str] = None) -> List[InspectionItem]:
+    def search(self, keyword: str | None = None) -> list[InspectionItem]:
         try:
             query = self.db.query(InspectionItem)
             if keyword:
@@ -100,7 +102,7 @@ class InspectionItemRepository:
             logger.error(f"创建巡检事项失败: {str(e)}")
             raise
 
-    def update(self, item_id: int, item_data: InspectionItemUpdate) -> Optional[InspectionItem]:
+    def update(self, item_id: int, item_data: InspectionItemUpdate) -> InspectionItem | None:
         try:
             db_item = self.get_by_id(item_id)
             if not db_item:
@@ -136,7 +138,7 @@ class InspectionItemRepository:
             logger.error(f"删除巡检事项失败: {str(e)}")
             raise
 
-    def get_paginated(self, skip: int = 0, limit: int = 10) -> tuple[List[InspectionItem], int]:
+    def get_paginated(self, skip: int = 0, limit: int = 10) -> tuple[list[InspectionItem], int]:
         try:
             query = self.db.query(InspectionItem)
             total = query.count()

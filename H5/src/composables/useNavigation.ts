@@ -2,7 +2,40 @@
  * 导航组合式函数
  * 统一管理页面导航逻辑
  */
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+
+/**
+ * 页面父级路由映射
+ * 定义每个页面的上一层页面
+ */
+const parentPageMap: Record<string, string> = {
+  ProjectInfo: 'Home',
+  WorkList: 'Home',
+  PeriodicInspection: 'Home',
+  PeriodicInspectionDetail: 'PeriodicInspection',
+  TemporaryRepair: 'Home',
+  TemporaryRepairCreate: 'TemporaryRepair',
+  TemporaryRepairDetail: 'TemporaryRepair',
+  SpotWork: 'Home',
+  SpotWorkDetail: 'SpotWork',
+  SpotWorkQuickFill: 'SpotWork',
+  WorkerEntry: 'SpotWork',
+  Signature: 'Home',
+  SpotWorkApply: 'SpotWork',
+  MaintenanceLog: 'Home',
+  MaintenanceLogList: 'Home',
+  MaintenanceLogDetail: 'MaintenanceLogList',
+  WeeklyReportFill: 'Home',
+  WeeklyReportList: 'Home',
+  WeeklyReportDetail: 'WeeklyReportList',
+  WeeklyReportAll: 'Home',
+  SparePartsIssue: 'Home',
+  SparePartsStock: 'Home',
+  SparePartsReturn: 'Home',
+  RepairToolsIssue: 'Home',
+  RepairToolsStock: 'Home',
+  RepairToolsReturn: 'Home',
+}
 
 /**
  * 导航组合式函数
@@ -10,15 +43,19 @@ import { useRouter } from 'vue-router'
  */
 export const useNavigation = () => {
   const router = useRouter()
+  const route = useRoute()
 
   /**
-   * 返回上一页，如果没有历史记录则跳转到首页
+   * 返回上一层页面，根据路由层级直接返回，不依赖浏览器历史记录
    */
   const goBack = () => {
-    if (window.history.state && window.history.state.back) {
-      router.back()
+    const currentRouteName = route.name as string
+    const parentRouteName = parentPageMap[currentRouteName]
+
+    if (parentRouteName) {
+      router.push({ name: parentRouteName })
     } else {
-      router.push('/')
+      router.push({ name: 'Home' })
     }
   }
 

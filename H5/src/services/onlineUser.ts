@@ -1,70 +1,105 @@
 /**
  * 在线用户服务
- * 提供在线用户统计和心跳功能
+ * 提供在线用户状态记录和管理功能
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse } from '../types/api'
-import type { OnlineUser, OnlineCount, OnlineStatistics } from '../types/models'
+import type { ApiResponse } from '../types'
+
+interface OnlineLoginRequest {
+  device_type: string
+  user_id: number
+  user_name: string
+}
+
+interface OnlineUser {
+  id: number
+  user_id: number
+  user_name: string
+  department: string | null
+  role: string | null
+  login_time: string | null
+  last_activity: string | null
+  ip_address: string | null
+  device_type: string
+  is_active: boolean
+}
+
+interface OnlineStatistics {
+  total_online: number
+  h5_count: number
+  pc_count: number
+  today_logins: number
+}
 
 export const onlineUserService = {
   /**
-   * 获取在线用户数量统计
+   * 记录用户登录
    */
-  async getOnlineCount(): Promise<ApiResponse<OnlineCount>> {
+  async recordLogin(
+    deviceType: string,
+    userId: number,
+    userName: string
+  ): Promise<ApiResponse<null>> {
+    const data: OnlineLoginRequest = {
+      device_type: deviceType,
+      user_id: userId,
+      user_name: userName,
+    }
+    return request.post(API_ENDPOINTS.ONLINE_USER.LOGIN, data)
+  },
+
+  /**
+   * 记录用户登出
+   */
+  async recordLogout(
+    deviceType: string,
+    userId: number,
+    userName: string
+  ): Promise<ApiResponse<null>> {
+    const data: OnlineLoginRequest = {
+      device_type: deviceType,
+      user_id: userId,
+      user_name: userName,
+    }
+    return request.post(API_ENDPOINTS.ONLINE_USER.LOGOUT, data)
+  },
+
+  /**
+   * 心跳更新
+   */
+  async heartbeat(
+    deviceType: string,
+    userId: number,
+    userName: string
+  ): Promise<ApiResponse<null>> {
+    const data: OnlineLoginRequest = {
+      device_type: deviceType,
+      user_id: userId,
+      user_name: userName,
+    }
+    return request.post(API_ENDPOINTS.ONLINE_USER.HEARTBEAT, data)
+  },
+
+  /**
+   * 获取在线用户数量
+   */
+  async getCount(): Promise<ApiResponse<{ count: number }>> {
     return request.get(API_ENDPOINTS.ONLINE_USER.COUNT)
   },
 
   /**
    * 获取在线用户列表
    */
-  async getOnlineUsers(deviceType?: string): Promise<ApiResponse<OnlineUser[]>> {
-    const params = deviceType ? { device_type: deviceType } : {}
-    return request.get(API_ENDPOINTS.ONLINE_USER.USERS, { params })
+  async getUsers(): Promise<ApiResponse<OnlineUser[]>> {
+    return request.get(API_ENDPOINTS.ONLINE_USER.USERS)
   },
 
   /**
-   * 获取在线用户详细统计
+   * 获取在线用户统计
    */
-  async getOnlineStatistics(): Promise<ApiResponse<OnlineStatistics>> {
+  async getStatistics(): Promise<ApiResponse<OnlineStatistics>> {
     return request.get(API_ENDPOINTS.ONLINE_USER.STATISTICS)
-  },
-
-  /**
-   * 发送心跳更新活跃状态
-   */
-  async sendHeartbeat(deviceType: string = 'h5'): Promise<ApiResponse<null>> {
-    return request.post(API_ENDPOINTS.ONLINE_USER.HEARTBEAT, { device_type: deviceType })
-  },
-
-  /**
-   * 记录登录
-   */
-  async recordLogin(
-    deviceType: string = 'h5',
-    userId?: number,
-    userName?: string
-  ): Promise<ApiResponse<null>> {
-    const params: Record<string, unknown> = { device_type: deviceType }
-    if (userId) {
-      params.user_id = userId
-      params.user_name = userName
-    }
-    return request.post(API_ENDPOINTS.ONLINE_USER.LOGIN, params)
-  },
-
-  /**
-   * 记录登出
-   */
-  async logout(userId?: number, deviceType?: string): Promise<ApiResponse<null>> {
-    const params: Record<string, unknown> = {}
-    if (userId) {
-      params.user_id = userId
-    }
-    if (deviceType) {
-      params.device_type = deviceType
-    }
-    return request.post(API_ENDPOINTS.ONLINE_USER.LOGOUT, params)
   },
 }
 

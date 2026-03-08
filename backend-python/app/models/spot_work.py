@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 
 
 class SpotWork(Base, SoftDeleteMixin):
     __tablename__ = "spot_work"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     work_id = Column(String(50), unique=True, nullable=False, comment="用工单编号")
     plan_id = Column(String(50), ForeignKey('maintenance_plan.plan_id', ondelete='CASCADE'), nullable=True, index=True, comment="关联维保计划编号")
@@ -27,10 +28,10 @@ class SpotWork(Base, SoftDeleteMixin):
     actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     project = relationship("ProjectInfo", back_populates="spot_works")
     maintenance_plan = relationship("MaintenancePlan", back_populates="spot_works")
-    
+
     __table_args__ = (
         Index('idx_spot_work_id', 'work_id'),
         Index('idx_spot_project_id', 'project_id'),
@@ -42,7 +43,7 @@ class SpotWork(Base, SoftDeleteMixin):
         Index('idx_spot_status_updated', 'status', 'updated_at'),
         {'comment': '零星用工单表'}
     )
-    
+
     def to_dict(self):
         import json
         project_name = self.project_name
@@ -54,21 +55,21 @@ class SpotWork(Base, SoftDeleteMixin):
             client_name = self.project.client_name or client_name
             address = self.project.address or ''
             client_contact_position = self.project.client_contact_position or ''
-        
+
         client_contact = self.client_contact or ''
         client_contact_info = self.client_contact_info or ''
         if not client_contact and self.project:
             client_contact = self.project.client_contact or ''
         if not client_contact_info and self.project:
             client_contact_info = self.project.client_contact_info or ''
-        
+
         photos = []
         if self.photos:
             try:
                 photos = json.loads(self.photos)
             except (json.JSONDecodeError, TypeError):
                 photos = []
-        
+
         return {
             'id': self.id,
             'work_id': self.work_id,

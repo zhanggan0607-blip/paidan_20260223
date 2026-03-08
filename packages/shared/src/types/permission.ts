@@ -8,16 +8,16 @@ export const RoleCode = {
   DEPARTMENT_MANAGER: '部门经理',
   SUPERVISOR: '主管',
   MATERIAL_MANAGER: '材料员',
-  EMPLOYEE: '运维人员'
+  EMPLOYEE: '运维人员',
 } as const
 
-export type RoleCodeType = typeof RoleCode[keyof typeof RoleCode]
+export type RoleCodeType = (typeof RoleCode)[keyof typeof RoleCode]
 
 export const ADMIN_ROLES: UserRole[] = ['管理员', '部门经理', '主管']
 
 export const ALL_ROLES: UserRole[] = ['管理员', '部门经理', '主管', '运维人员', '材料员']
 
-export const MANAGER_ROLES: UserRole[] = ['管理员', '部门经理']
+export const MANAGER_ROLES: UserRole[] = ['管理员', '部门经理', '主管']
 
 export const PROJECT_MANAGEMENT_ROLES: string[] = ['管理员', '部门经理']
 
@@ -51,32 +51,32 @@ export const ROLE_CONFIGS: Record<string, RoleConfig> = {
     code: RoleCode.ADMIN,
     name: '管理员',
     level: 100,
-    description: '系统管理员，拥有所有权限'
+    description: '系统管理员，拥有所有权限',
   },
   [RoleCode.DEPARTMENT_MANAGER]: {
     code: RoleCode.DEPARTMENT_MANAGER,
     name: '部门经理',
     level: 70,
-    description: '部门经理，可管理项目和人员'
+    description: '部门经理，可管理项目和人员',
   },
   [RoleCode.SUPERVISOR]: {
     code: RoleCode.SUPERVISOR,
     name: '主管',
     level: 60,
-    description: '主管，可审批工单'
+    description: '主管，可审批工单',
   },
   [RoleCode.MATERIAL_MANAGER]: {
     code: RoleCode.MATERIAL_MANAGER,
     name: '材料员',
     level: 50,
-    description: '材料管理员，管理备品备件'
+    description: '材料管理员，管理备品备件',
   },
   [RoleCode.EMPLOYEE]: {
     code: RoleCode.EMPLOYEE,
     name: '运维人员',
     level: 10,
-    description: '普通员工，执行维保任务'
-  }
+    description: '普通员工，执行维保任务',
+  },
 }
 
 export function isAdminRole(role: string | undefined | null): boolean {
@@ -146,14 +146,21 @@ export interface PermissionConfig {
   allowedRoles: string[]
 }
 
-export function hasPermission(role: string | undefined | null, permissionId: string, permissionConfigs: Record<string, PermissionConfig>): boolean {
+export function hasPermission(
+  role: string | undefined | null,
+  permissionId: string,
+  permissionConfigs: Record<string, PermissionConfig>
+): boolean {
   if (!role) return false
   const permission = permissionConfigs[permissionId]
   if (!permission) return false
   return permission.allowedRoles.includes(role)
 }
 
-export function getAllowedPermissions(role: string, permissionConfigs: Record<string, PermissionConfig>): string[] {
+export function getAllowedPermissions(
+  role: string,
+  permissionConfigs: Record<string, PermissionConfig>
+): string[] {
   return Object.entries(permissionConfigs)
     .filter(([_, config]) => config.allowedRoles.includes(role))
     .map(([id]) => id)

@@ -4,6 +4,7 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
+import type { ApiResponse } from '@sstcp/shared'
 
 export interface StatisticsOverview {
   year: number
@@ -69,7 +70,10 @@ export const statisticsService = {
    * 获取统计概览
    */
   async getStatisticsOverview(year: number): Promise<StatisticsOverview> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.OVERVIEW, { params: { year } })
+    const response = await request.get<ApiResponse<StatisticsOverview>>(
+      API_ENDPOINTS.STATISTICS.OVERVIEW,
+      { params: { year } }
+    )
     return response.data
   },
 
@@ -77,9 +81,10 @@ export const statisticsService = {
    * 获取完成率统计
    */
   async getCompletionRate(year: number): Promise<CompletionRate> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.COMPLETION_RATE, {
-      params: { year },
-    })
+    const response = await request.get<ApiResponse<CompletionRate>>(
+      API_ENDPOINTS.STATISTICS.COMPLETION_RATE,
+      { params: { year } }
+    )
     return response.data
   },
 
@@ -87,9 +92,10 @@ export const statisticsService = {
    * 获取项目排行
    */
   async getTopProjects(year: number, limit: number = 5): Promise<TopProject[]> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.TOP_PROJECTS, {
-      params: { year, limit },
-    })
+    const response = await request.get<ApiResponse<TopProject[]>>(
+      API_ENDPOINTS.STATISTICS.TOP_PROJECTS,
+      { params: { year, limit } }
+    )
     return response.data
   },
 
@@ -97,7 +103,9 @@ export const statisticsService = {
    * 获取维修排行
    */
   async getTopRepairs(year: number, limit: number = 5): Promise<TopProject[]> {
-    const response = await request.get('/statistics/top-repairs', { params: { year, limit } })
+    const response = await request.get<ApiResponse<TopProject[]>>('/statistics/top-repairs', {
+      params: { year, limit },
+    })
     return response.data
   },
 
@@ -105,9 +113,10 @@ export const statisticsService = {
    * 获取员工统计
    */
   async getEmployeeStats(year: number): Promise<EmployeeStats> {
-    const response = await request.get(API_ENDPOINTS.STATISTICS.WORK_BY_PERSON, {
-      params: { year },
-    })
+    const response = await request.get<ApiResponse<EmployeeStats>>(
+      API_ENDPOINTS.STATISTICS.WORK_BY_PERSON,
+      { params: { year } }
+    )
     return response.data
   },
 
@@ -115,7 +124,9 @@ export const statisticsService = {
    * 获取巡检统计
    */
   async getInspectionStats(year: number): Promise<EmployeeStats> {
-    const response = await request.get('/statistics/inspection-stats', { params: { year } })
+    const response = await request.get<ApiResponse<EmployeeStats>>('/statistics/inspection-stats', {
+      params: { year },
+    })
     return response.data
   },
 
@@ -123,7 +134,9 @@ export const statisticsService = {
    * 获取维修统计
    */
   async getRepairStats(year: number): Promise<EmployeeStats> {
-    const response = await request.get('/statistics/repair-stats', { params: { year } })
+    const response = await request.get<ApiResponse<EmployeeStats>>('/statistics/repair-stats', {
+      params: { year },
+    })
     return response.data
   },
 
@@ -131,7 +144,9 @@ export const statisticsService = {
    * 获取零星用工统计
    */
   async getSpotworkStats(year: number): Promise<EmployeeStats> {
-    const response = await request.get('/statistics/spotwork-stats', { params: { year } })
+    const response = await request.get<ApiResponse<EmployeeStats>>('/statistics/spotwork-stats', {
+      params: { year },
+    })
     return response.data
   },
 
@@ -139,10 +154,11 @@ export const statisticsService = {
    * 获取统计详情
    */
   async getStatisticsDetail(params: DetailParams): Promise<DetailResponse> {
-    const response = (await request.get(API_ENDPOINTS.STATISTICS.DETAIL, {
-      params,
-    })) as unknown as { data: DetailResponse }
+    const response = await request.get<ApiResponse<DetailResponse>>(
+      API_ENDPOINTS.STATISTICS.DETAIL,
+      { params }
+    )
     console.log('getStatisticsDetail raw response:', response)
-    return response.data as DetailResponse
+    return response.data
   },
 }

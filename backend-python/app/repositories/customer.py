@@ -1,8 +1,9 @@
+import logging
+
 from sqlalchemy.orm import Session
+
 from app.models.customer import Customer
 from app.schemas.customer import CustomerCreate, CustomerUpdate
-from typing import List, Optional
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -10,26 +11,26 @@ class CustomerRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def get_all(self, skip: int = 0, limit: int = 10, name: Optional[str] = None, contact_person: Optional[str] = None, client_names: Optional[List[str]] = None) -> tuple[List[Customer], int]:
+    def get_all(self, skip: int = 0, limit: int = 10, name: str | None = None, contact_person: str | None = None, client_names: list[str] | None = None) -> tuple[list[Customer], int]:
         try:
             query = self.db.query(Customer)
-            
+
             if name:
                 query = query.filter(Customer.name.ilike(f"%{name}%"))
             if contact_person:
                 query = query.filter(Customer.contact_person.ilike(f"%{contact_person}%"))
             if client_names:
                 query = query.filter(Customer.name.in_(client_names))
-            
+
             total = query.count()
             items = query.order_by(Customer.created_at.desc()).offset(skip).limit(limit).all()
-            
+
             return items, total
         except Exception as e:
             logger.error(f"查询客户列表失败: {str(e)}")
             raise
 
-    def get_by_id(self, customer_id: int) -> Optional[Customer]:
+    def get_by_id(self, customer_id: int) -> Customer | None:
         try:
             return self.db.query(Customer).filter(Customer.id == customer_id).first()
         except Exception as e:
@@ -55,16 +56,16 @@ class CustomerRepository:
             logger.error(f"创建客户失败: {str(e)}")
             raise
 
-    def update(self, customer_id: int, customer: CustomerUpdate) -> Optional[Customer]:
+    def update(self, customer_id: int, customer: CustomerUpdate) -> Customer | None:
         try:
             db_customer = self.get_by_id(customer_id)
             if not db_customer:
                 return None
-            
+
             update_data = customer.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(db_customer, key, value)
-            
+
             self.db.commit()
             self.db.refresh(db_customer)
             return db_customer
@@ -78,7 +79,7 @@ class CustomerRepository:
             db_customer = self.get_by_id(customer_id)
             if not db_customer:
                 return False
-            
+
             self.db.delete(db_customer)
             self.db.commit()
             return True

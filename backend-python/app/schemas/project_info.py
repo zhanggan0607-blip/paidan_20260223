@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from typing import Optional, List, Union
-from app.schemas.common import ApiResponse, PaginatedResponse
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class ProjectInfoBase(BaseModel):
@@ -12,11 +11,11 @@ class ProjectInfoBase(BaseModel):
     maintenance_period: str = Field(..., max_length=20, description="维保频率")
     client_name: str = Field(..., max_length=100, description="客户单位名称")
     address: str = Field(..., max_length=200, description="客户地址")
-    project_abbr: Optional[str] = Field(None, max_length=10, description="项目简称")
-    project_manager: Optional[str] = Field(None, max_length=50, description="运维人员")
-    client_contact: Optional[str] = Field(None, max_length=50, description="客户联系人")
-    client_contact_position: Optional[str] = Field(None, max_length=20, description="客户联系人职位")
-    client_contact_info: Optional[str] = Field(None, max_length=50, description="客户联系方式")
+    project_abbr: str | None = Field(None, max_length=10, description="项目简称")
+    project_manager: str = Field(..., max_length=50, description="运维人员")
+    client_contact: str | None = Field(None, max_length=50, description="客户联系人")
+    client_contact_position: str | None = Field(None, max_length=20, description="客户联系人职位")
+    client_contact_info: str | None = Field(None, max_length=50, description="客户联系方式")
 
     @field_validator('maintenance_period')
     @classmethod
@@ -32,8 +31,8 @@ class ProjectInfoBase(BaseModel):
         if isinstance(v, str):
             try:
                 return datetime.fromisoformat(v)
-            except ValueError:
-                raise ValueError('日期格式无效，请使用ISO格式')
+            except ValueError as e:
+                raise ValueError('日期格式无效，请使用ISO格式') from e
         return v
 
 
@@ -54,11 +53,11 @@ class ProjectInfoResponse(BaseModel):
     maintenance_period: str
     client_name: str
     address: str
-    project_abbr: Optional[str]
-    project_manager: Optional[str]
-    client_contact: Optional[str]
-    client_contact_position: Optional[str]
-    client_contact_info: Optional[str]
+    project_abbr: str | None
+    project_manager: str
+    client_contact: str | None
+    client_contact_position: str | None
+    client_contact_info: str | None
     created_at: datetime
     updated_at: datetime
 

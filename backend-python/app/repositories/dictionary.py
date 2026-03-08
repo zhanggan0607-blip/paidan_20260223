@@ -1,7 +1,8 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from app.models.dictionary import Dictionary
 import logging
+
+from sqlalchemy.orm import Session
+
+from app.models.dictionary import Dictionary
 
 logger = logging.getLogger(__name__)
 
@@ -10,24 +11,24 @@ class DictionaryRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def find_by_id(self, id: int) -> Optional[Dictionary]:
+    def find_by_id(self, id: int) -> Dictionary | None:
         try:
             return self.db.query(Dictionary).filter(Dictionary.id == id).first()
         except Exception as e:
             logger.error(f"查询字典失败 (id={id}): {str(e)}")
             raise
 
-    def find_by_type(self, dict_type: str) -> List[Dictionary]:
+    def find_by_type(self, dict_type: str) -> list[Dictionary]:
         try:
             return self.db.query(Dictionary).filter(
                 Dictionary.dict_type == dict_type,
-                Dictionary.is_active == True
+                Dictionary.is_active
             ).order_by(Dictionary.sort_order.asc()).all()
         except Exception as e:
             logger.error(f"查询字典列表失败 (dict_type={dict_type}): {str(e)}")
             raise
 
-    def find_by_type_and_key(self, dict_type: str, dict_key: str) -> Optional[Dictionary]:
+    def find_by_type_and_key(self, dict_type: str, dict_key: str) -> Dictionary | None:
         try:
             return self.db.query(Dictionary).filter(
                 Dictionary.dict_type == dict_type,
@@ -41,8 +42,8 @@ class DictionaryRepository:
         self,
         page: int = 0,
         size: int = 10,
-        dict_type: Optional[str] = None
-    ) -> tuple[List[Dictionary], int]:
+        dict_type: str | None = None
+    ) -> tuple[list[Dictionary], int]:
         try:
             query = self.db.query(Dictionary)
 
@@ -57,7 +58,7 @@ class DictionaryRepository:
             logger.error(f"查询字典列表失败: {str(e)}")
             raise
 
-    def find_all_unpaginated(self, dict_type: Optional[str] = None) -> List[Dictionary]:
+    def find_all_unpaginated(self, dict_type: str | None = None) -> list[Dictionary]:
         try:
             query = self.db.query(Dictionary)
 

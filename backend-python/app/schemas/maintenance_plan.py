@@ -1,7 +1,6 @@
-from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-from typing import Optional, Union, List, Any
-from app.schemas.common import ApiResponse, PaginatedResponse
+
+from pydantic import BaseModel, Field, field_validator
 
 
 class MaintenancePlanBase(BaseModel):
@@ -11,25 +10,25 @@ class MaintenancePlanBase(BaseModel):
     plan_type: str = Field(..., max_length=20, description="工单类型")
     equipment_id: str = Field(..., max_length=50, description="设备编号")
     equipment_name: str = Field(..., max_length=200, description="设备名称")
-    equipment_model: Optional[str] = Field(None, max_length=100, description="设备型号")
-    equipment_location: Optional[str] = Field(None, max_length=200, description="设备位置")
+    equipment_model: str | None = Field(None, max_length=100, description="设备型号")
+    equipment_location: str | None = Field(None, max_length=200, description="设备位置")
     plan_start_date: datetime = Field(..., description="计划开始日期")
     plan_end_date: datetime = Field(..., description="计划结束日期")
-    execution_date: Optional[datetime] = Field(None, description="执行日期")
-    next_maintenance_date: Optional[datetime] = Field(None, description="下次维保日期")
-    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    responsible_department: Optional[str] = Field(None, max_length=100, description="负责部门")
-    contact_info: Optional[str] = Field(None, max_length=50, description="联系方式")
+    execution_date: datetime | None = Field(None, description="执行日期")
+    next_maintenance_date: datetime | None = Field(None, description="下次维保日期")
+    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    responsible_department: str | None = Field(None, max_length=100, description="负责部门")
+    contact_info: str | None = Field(None, max_length=50, description="联系方式")
     maintenance_content: str = Field(..., description="维保内容")
-    maintenance_requirements: Optional[str] = Field(None, description="维保要求")
-    maintenance_standard: Optional[str] = Field(None, description="维保标准")
+    maintenance_requirements: str | None = Field(None, description="维保要求")
+    maintenance_standard: str | None = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
     status: str = Field("执行中", max_length=20, description="执行状态")
-    completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
-    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
-    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
-    remarks: Optional[str] = Field(None, description="备注")
-    inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
+    completion_rate: int | None = Field(0, ge=0, le=100, description="完成率")
+    filled_count: int | None = Field(0, ge=0, description="已填写检查项数量")
+    total_count: int | None = Field(5, ge=0, description="检查项总数量")
+    remarks: str | None = Field(None, description="备注")
+    inspection_items: str | None = Field(None, description="巡查项数据(JSON格式)")
 
     @field_validator('plan_type')
     @classmethod
@@ -50,7 +49,7 @@ class MaintenancePlanBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
+        valid_statuses = ['未开始', '执行中', '待确认', '已完成', '已退回']
         if v not in valid_statuses:
             raise ValueError(f'执行状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -61,8 +60,8 @@ class MaintenancePlanBase(BaseModel):
         if isinstance(v, str):
             try:
                 return datetime.fromisoformat(v)
-            except ValueError:
-                raise ValueError('日期格式无效，请使用ISO格式')
+            except ValueError as e:
+                raise ValueError('日期格式无效，请使用ISO格式') from e
         return v
 
 
@@ -73,25 +72,25 @@ class MaintenancePlanCreate(BaseModel):
     plan_type: str = Field(..., max_length=20, description="工单类型")
     equipment_id: str = Field(..., max_length=50, description="设备编号")
     equipment_name: str = Field(..., max_length=200, description="设备名称")
-    equipment_model: Optional[str] = Field(None, max_length=100, description="设备型号")
-    equipment_location: Optional[str] = Field(None, max_length=200, description="设备位置")
-    plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")
-    plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
-    execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
-    next_maintenance_date: Optional[Union[str, datetime]] = Field(None, description="下次维保日期")
-    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    responsible_department: Optional[str] = Field(None, max_length=100, description="负责部门")
-    contact_info: Optional[str] = Field(None, max_length=50, description="联系方式")
+    equipment_model: str | None = Field(None, max_length=100, description="设备型号")
+    equipment_location: str | None = Field(None, max_length=200, description="设备位置")
+    plan_start_date: str | datetime = Field(..., description="计划开始日期")
+    plan_end_date: str | datetime = Field(..., description="计划结束日期")
+    execution_date: str | datetime | None = Field(None, description="执行日期")
+    next_maintenance_date: str | datetime | None = Field(None, description="下次维保日期")
+    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    responsible_department: str | None = Field(None, max_length=100, description="负责部门")
+    contact_info: str | None = Field(None, max_length=50, description="联系方式")
     maintenance_content: str = Field(..., description="维保内容")
-    maintenance_requirements: Optional[str] = Field(None, description="维保要求")
-    maintenance_standard: Optional[str] = Field(None, description="维保标准")
+    maintenance_requirements: str | None = Field(None, description="维保要求")
+    maintenance_standard: str | None = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
     status: str = Field("执行中", max_length=20, description="执行状态")
-    completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
-    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
-    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
-    remarks: Optional[str] = Field(None, description="备注")
-    inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
+    completion_rate: int | None = Field(0, ge=0, le=100, description="完成率")
+    filled_count: int | None = Field(0, ge=0, description="已填写检查项数量")
+    total_count: int | None = Field(5, ge=0, description="检查项总数量")
+    remarks: str | None = Field(None, description="备注")
+    inspection_items: str | None = Field(None, description="巡查项数据(JSON格式)")
 
 
 class MaintenancePlanUpdate(BaseModel):
@@ -101,25 +100,25 @@ class MaintenancePlanUpdate(BaseModel):
     plan_type: str = Field(..., max_length=20, description="工单类型")
     equipment_id: str = Field(..., max_length=50, description="设备编号")
     equipment_name: str = Field(..., max_length=200, description="设备名称")
-    equipment_model: Optional[str] = Field(None, max_length=100, description="设备型号")
-    equipment_location: Optional[str] = Field(None, max_length=200, description="设备位置")
-    plan_start_date: Union[str, datetime] = Field(..., description="计划开始日期")
-    plan_end_date: Union[str, datetime] = Field(..., description="计划结束日期")
-    execution_date: Optional[Union[str, datetime]] = Field(None, description="执行日期")
-    next_maintenance_date: Optional[Union[str, datetime]] = Field(None, description="下次维保日期")
-    maintenance_personnel: Optional[str] = Field(None, max_length=100, description="运维人员")
-    responsible_department: Optional[str] = Field(None, max_length=100, description="负责部门")
-    contact_info: Optional[str] = Field(None, max_length=50, description="联系方式")
+    equipment_model: str | None = Field(None, max_length=100, description="设备型号")
+    equipment_location: str | None = Field(None, max_length=200, description="设备位置")
+    plan_start_date: str | datetime = Field(..., description="计划开始日期")
+    plan_end_date: str | datetime = Field(..., description="计划结束日期")
+    execution_date: str | datetime | None = Field(None, description="执行日期")
+    next_maintenance_date: str | datetime | None = Field(None, description="下次维保日期")
+    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    responsible_department: str | None = Field(None, max_length=100, description="负责部门")
+    contact_info: str | None = Field(None, max_length=50, description="联系方式")
     maintenance_content: str = Field(..., description="维保内容")
-    maintenance_requirements: Optional[str] = Field(None, description="维保要求")
-    maintenance_standard: Optional[str] = Field(None, description="维保标准")
+    maintenance_requirements: str | None = Field(None, description="维保要求")
+    maintenance_standard: str | None = Field(None, description="维保标准")
     plan_status: str = Field(..., max_length=20, description="计划状态")
     status: str = Field(..., max_length=20, description="执行状态")
-    completion_rate: Optional[int] = Field(0, ge=0, le=100, description="完成率")
-    filled_count: Optional[int] = Field(0, ge=0, description="已填写检查项数量")
-    total_count: Optional[int] = Field(5, ge=0, description="检查项总数量")
-    remarks: Optional[str] = Field(None, description="备注")
-    inspection_items: Optional[str] = Field(None, description="巡查项数据(JSON格式)")
+    completion_rate: int | None = Field(0, ge=0, le=100, description="完成率")
+    filled_count: int | None = Field(0, ge=0, description="已填写检查项数量")
+    total_count: int | None = Field(5, ge=0, description="检查项总数量")
+    remarks: str | None = Field(None, description="备注")
+    inspection_items: str | None = Field(None, description="巡查项数据(JSON格式)")
 
 
 class MaintenancePlanResponse(BaseModel):
@@ -130,25 +129,25 @@ class MaintenancePlanResponse(BaseModel):
     plan_type: str
     equipment_id: str
     equipment_name: str
-    equipment_model: Optional[str]
-    equipment_location: Optional[str]
+    equipment_model: str | None
+    equipment_location: str | None
     plan_start_date: datetime
     plan_end_date: datetime
-    execution_date: Optional[datetime]
-    next_maintenance_date: Optional[datetime]
-    maintenance_personnel: Optional[str]
-    responsible_department: Optional[str]
-    contact_info: Optional[str]
+    execution_date: datetime | None
+    next_maintenance_date: datetime | None
+    maintenance_personnel: str | None
+    responsible_department: str | None
+    contact_info: str | None
     maintenance_content: str
-    maintenance_requirements: Optional[str]
-    maintenance_standard: Optional[str]
+    maintenance_requirements: str | None
+    maintenance_standard: str | None
     plan_status: str
     status: str
-    completion_rate: Optional[int]
-    filled_count: Optional[int]
-    total_count: Optional[int]
-    remarks: Optional[str]
-    inspection_items: Optional[str]
+    completion_rate: int | None
+    filled_count: int | None
+    total_count: int | None
+    remarks: str | None
+    inspection_items: str | None
     created_at: datetime
     updated_at: datetime
 

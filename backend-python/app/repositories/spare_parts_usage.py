@@ -1,7 +1,8 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from app.models.spare_parts_usage import SparePartsUsage
 import logging
+
+from sqlalchemy.orm import Session
+
+from app.models.spare_parts_usage import SparePartsUsage
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +15,11 @@ class SparePartsUsageRepository:
         self,
         page: int = 0,
         size: int = 10,
-        user: Optional[str] = None,
-        product: Optional[str] = None,
-        project: Optional[str] = None,
-        status_filter: Optional[str] = None
-    ) -> tuple[List[SparePartsUsage], int]:
+        user: str | None = None,
+        product: str | None = None,
+        project: str | None = None,
+        status_filter: str | None = None
+    ) -> tuple[list[SparePartsUsage], int]:
         try:
             query = self.db.query(SparePartsUsage)
 
@@ -42,7 +43,7 @@ class SparePartsUsageRepository:
             logger.error(f"查询备品备件领用列表失败: {str(e)}")
             raise
 
-    def find_by_id(self, id: int) -> Optional[SparePartsUsage]:
+    def find_by_id(self, id: int) -> SparePartsUsage | None:
         try:
             return self.db.query(SparePartsUsage).filter(SparePartsUsage.id == id).first()
         except Exception as e:

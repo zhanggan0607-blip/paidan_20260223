@@ -1,17 +1,50 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
-import { sparePartsService, personnelService } from '../services'
-import { formatDate } from '@sstcp/shared'
+import { sparePartsService } from '../services'
 import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
-import type { SparePartsInbound, Personnel } from '../types/models'
+import { userStore } from '../stores/userStore'
+import type { SparePartsStock } from '../types/models'
 
 const { goBack } = useNavigation()
 
 const loading = ref(false)
-const stockList = ref<SparePartsInbound[]>([])
-const userList = ref<Personnel[]>([])
+const stockList = ref<SparePartsStock[]>([])
+
+const filterKeyword = ref('')
+
+const currentUser = computed(() => userStore.getUser())
+
+const existingProductNames = computed(() => {
+  const names = new Set<string>()
+  stockList.value.forEach((item) => {
+    if (item.productName) {
+      names.add(item.productName)
+    }
+  })
+  return Array.from(names).sort()
+})
+
+const filteredStockList = computed(() => {
+  let result = stockList.value
+  if (filterKeyword.value) {
+    const keyword = filterKeyword.value.toLowerCase()
+    result = result.filter(
+      (item) =>
+        item.productName?.toLowerCase().includes(keyword) ||
+        item.brand?.toLowerCase().includes(keyword) ||
+        item.model?.toLowerCase().includes(keyword)
+    )
+  }
+  return result.sort((a, b) => {
+    const aStock = a.stock || 0
+    const bStock = b.stock || 0
+    if (aStock === 0 && bStock !== 0) return -1
+    if (aStock !== 0 && bStock === 0) return 1
+    return 0
+  })
+})
 
 const showInboundPopup = ref(false)
 const inboundForm = ref({
@@ -21,18 +54,34 @@ const inboundForm = ref({
   quantity: 1,
   supplier: '',
   unit: '件',
-  userName: '',
   remarks: '',
 })
 
 /**
- * 获取入库记录
+ * 监听产品名称变化，自动填充已有产品的信息
+ */
+watch(
+  () => inboundForm.value.productName,
+  (newName) => {
+    if (newName && existingProductNames.value.includes(newName)) {
+      const existingProduct = stockList.value.find((item) => item.productName === newName)
+      if (existingProduct) {
+        inboundForm.value.brand = existingProduct.brand || ''
+        inboundForm.value.model = existingProduct.model || ''
+        inboundForm.value.unit = existingProduct.unit || '件'
+      }
+    }
+  }
+)
+
+/**
+ * 获取当前库存列表
  */
 const fetchStockList = async () => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await sparePartsService.getInboundRecords({ page: 0, pageSize: 100 })
+    const response = await sparePartsService.getStockList({ page: 0, pageSize: 100 })
     if (response.code === 200) {
       stockList.value = response.data?.items || []
     }
@@ -41,22 +90,6 @@ const fetchStockList = async () => {
   } finally {
     loading.value = false
     closeToast()
-  }
-}
-
-/**
- * 获取人员列表
- */
-const fetchUserList = async () => {
-  try {
-    const response = await personnelService.getAll()
-    if (response.code === 200) {
-      userList.value = (response.data || []).filter(
-        (user: Personnel) => user.role === 'material_manager'
-      )
-    }
-  } catch (error) {
-    console.error('Failed to fetch user list:', error)
   }
 }
 
@@ -72,10 +105,6 @@ const handleSubmitInbound = async () => {
     showFailToast('请输入有效数量')
     return
   }
-  if (!inboundForm.value.userName) {
-    showFailToast('请选择入库人')
-    return
-  }
 
   loading.value = true
   showLoadingToast({ message: '提交中...', forbidClick: true })
@@ -88,7 +117,7 @@ const handleSubmitInbound = async () => {
       quantity: inboundForm.value.quantity,
       supplier: inboundForm.value.supplier || undefined,
       unit: inboundForm.value.unit,
-      user_name: inboundForm.value.userName,
+      user_name: currentUser.value?.name || '',
       remarks: inboundForm.value.remarks || undefined,
     })
 
@@ -102,7 +131,6 @@ const handleSubmitInbound = async () => {
         quantity: 1,
         supplier: '',
         unit: '件',
-        userName: '',
         remarks: '',
       }
       fetchStockList()
@@ -126,15 +154,28 @@ const handleUserChanged = () => {
   fetchStockList()
 }
 
+/**
+ * 打开入库弹窗
+ */
+const openInboundPopup = () => {
+  showInboundPopup.value = true
+}
+
+/**
+ * 获取库存样式
+ */
+const getStockClass = (item: SparePartsStock) => {
+  return (item.stock || 0) <= 0 ? 'stock-low' : 'stock-normal'
+}
+
 onMounted(() => {
-  fetchUserList()
   fetchStockList()
 })
 </script>
 
 <template>
   <div class="spare-parts-stock-page">
-    <van-nav-bar title="配品备件入库" fixed placeholder @click-left="handleBack">
+    <van-nav-bar title="备品备件入库" fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
@@ -147,24 +188,26 @@ onMounted(() => {
     </van-nav-bar>
 
     <div class="action-bar">
-      <van-button type="primary" size="small" @click="showInboundPopup = true">
-        新增入库
-      </van-button>
+      <van-search
+        v-model="filterKeyword"
+        placeholder="搜索产品名称/品牌/型号"
+        shape="round"
+        class="search-input"
+      />
+      <van-button type="primary" size="small" @click="openInboundPopup"> 新增入库 </van-button>
     </div>
 
     <van-pull-refresh v-model="loading" @refresh="fetchStockList">
       <van-list :loading="loading" :finished="true">
         <div class="stock-list">
-          <div v-for="item in stockList" :key="item.id" class="stock-card">
+          <div v-for="item in filteredStockList" :key="item.id" class="stock-card">
             <div class="card-header">
               <span class="stock-name">{{ item.productName }}</span>
-              <span class="stock-date">{{ formatDate(item.inboundTime) }}</span>
+              <span :class="['stock-badge', getStockClass(item)]"
+                >库存: {{ item.stock }} {{ item.unit }}</span
+              >
             </div>
             <div class="card-body">
-              <div class="info-row">
-                <span class="label">入库单号</span>
-                <span class="value">{{ item.inboundNo }}</span>
-              </div>
               <div class="info-row">
                 <span class="label">品牌</span>
                 <span class="value">{{ item.brand || '-' }}</span>
@@ -174,25 +217,13 @@ onMounted(() => {
                 <span class="value">{{ item.model || '-' }}</span>
               </div>
               <div class="info-row">
-                <span class="label">入库数量</span>
-                <span class="value">{{ item.quantity }} {{ item.unit }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">供应商</span>
-                <span class="value">{{ item.supplier || '-' }}</span>
-              </div>
-              <div class="info-row">
-                <span class="label">入库人</span>
-                <span class="value">{{ item.userName || item.user_name || '-' }}</span>
-              </div>
-              <div v-if="item.remarks" class="info-row">
-                <span class="label">备注</span>
-                <span class="value">{{ item.remarks }}</span>
+                <span class="label">状态</span>
+                <span class="value">{{ item.status || '在库' }}</span>
               </div>
             </div>
           </div>
         </div>
-        <van-empty v-if="!loading && stockList.length === 0" description="暂无入库记录" />
+        <van-empty v-if="!loading && filteredStockList.length === 0" description="暂无库存记录" />
       </van-list>
     </van-pull-refresh>
 
@@ -206,9 +237,21 @@ onMounted(() => {
           <van-field
             v-model="inboundForm.productName"
             label="产品名称"
-            placeholder="请输入产品名称"
+            placeholder="请输入或选择产品名称"
             required
-          />
+          >
+            <template #input>
+              <input
+                v-model="inboundForm.productName"
+                list="productNames"
+                placeholder="请输入或选择产品名称"
+                class="datalist-input"
+              />
+              <datalist id="productNames">
+                <option v-for="name in existingProductNames" :key="name" :value="name" />
+              </datalist>
+            </template>
+          </van-field>
           <van-field v-model="inboundForm.brand" label="品牌" placeholder="请输入品牌" />
           <van-field v-model="inboundForm.model" label="产品型号" placeholder="请输入产品型号" />
           <van-field
@@ -227,21 +270,6 @@ onMounted(() => {
                 <option value="套">套</option>
                 <option value="箱">箱</option>
                 <option value="台">台</option>
-              </select>
-            </template>
-          </van-field>
-          <van-field
-            v-model="inboundForm.userName"
-            label="入库人"
-            placeholder="请选择入库人"
-            required
-          >
-            <template #input>
-              <select v-model="inboundForm.userName" class="user-select">
-                <option value="">请选择入库人</option>
-                <option v-for="user in userList" :key="user.id" :value="user.name">
-                  {{ user.name }}
-                </option>
               </select>
             </template>
           </van-field>
@@ -273,6 +301,18 @@ onMounted(() => {
   padding: 12px 16px;
   background: #fff;
   border-bottom: 1px solid #ebedf0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-input {
+  padding: 0 !important;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .stock-list {
@@ -301,9 +341,21 @@ onMounted(() => {
   color: #323233;
 }
 
-.stock-date {
+.stock-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
   font-size: 12px;
-  color: #969799;
+  font-weight: 600;
+}
+
+.stock-normal {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.stock-low {
+  background: #ffebee;
+  color: #c62828;
 }
 
 .card-body {
@@ -363,13 +415,21 @@ onMounted(() => {
   margin-top: auto;
 }
 
-.unit-select,
-.user-select {
+.unit-select {
   width: 100%;
   padding: 8px 0;
   border: none;
   font-size: 14px;
   background: transparent;
+}
+
+.datalist-input {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  font-size: 14px;
+  background: transparent;
+  outline: none;
 }
 
 :deep(.van-cell-group--inset) {

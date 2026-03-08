@@ -1,8 +1,14 @@
 /**
  * Axios请求封装
  * 提供统一的HTTP请求客户端，包含请求/响应拦截器、Token刷新等功能
+ * 支持AbortSignal用于取消请求
  */
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import axios, {
+  AxiosInstance,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+  AxiosRequestConfig,
+} from 'axios'
 import { API_CONFIG } from '../config/constants'
 import { userStore } from '../stores/userStore'
 
@@ -53,7 +59,7 @@ async function refreshToken(): Promise<string | null> {
 /**
  * Axios实例
  */
-const request: AxiosInstance = axios.create({
+const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_CONFIG.BASE_URL,
   timeout: API_CONFIG.TIMEOUT,
   headers: {
@@ -65,7 +71,7 @@ const request: AxiosInstance = axios.create({
  * 请求拦截器
  * 自动添加Token和用户信息到请求头
  */
-request.interceptors.request.use(
+axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = userStore.getToken()
     if (token) {
@@ -89,7 +95,7 @@ request.interceptors.request.use(
  * 响应拦截器
  * 处理响应数据和401错误自动刷新Token
  */
-request.interceptors.response.use(
+axiosInstance.interceptors.response.use(
   (response: AxiosResponse) => {
     return response.data
   },
@@ -106,7 +112,7 @@ request.interceptors.response.use(
           return new Promise((resolve) => {
             subscribeTokenRefresh((token: string) => {
               originalRequest.headers.Authorization = `Bearer ${token}`
-              resolve(request(originalRequest))
+              resolve(axiosInstance(originalRequest))
             })
           })
         }
@@ -120,7 +126,7 @@ request.interceptors.response.use(
         if (newToken) {
           onTokenRefreshed(newToken)
           originalRequest.headers.Authorization = `Bearer ${newToken}`
-          return request(originalRequest)
+          return axiosInstance(originalRequest)
         }
 
         return Promise.reject({
@@ -178,5 +184,53 @@ request.interceptors.response.use(
     }
   }
 )
+
+/**
+ * 封装请求方法，支持AbortSignal
+ */
+const request = {
+  get<T = unknown>(
+    url: string,
+    config?: AxiosRequestConfig & { signal?: AbortSignal }
+  ): Promise<T> {
+    const { signal, ...axiosConfig } = config || {}
+    return axiosInstance.get(url, { ...axiosConfig, signal })
+  },
+
+  post<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig & { signal?: AbortSignal }
+  ): Promise<T> {
+    const { signal, ...axiosConfig } = config || {}
+    return axiosInstance.post(url, data, { ...axiosConfig, signal })
+  },
+
+  put<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig & { signal?: AbortSignal }
+  ): Promise<T> {
+    const { signal, ...axiosConfig } = config || {}
+    return axiosInstance.put(url, data, { ...axiosConfig, signal })
+  },
+
+  patch<T = unknown>(
+    url: string,
+    data?: unknown,
+    config?: AxiosRequestConfig & { signal?: AbortSignal }
+  ): Promise<T> {
+    const { signal, ...axiosConfig } = config || {}
+    return axiosInstance.patch(url, data, { ...axiosConfig, signal })
+  },
+
+  delete<T = unknown>(
+    url: string,
+    config?: AxiosRequestConfig & { signal?: AbortSignal }
+  ): Promise<T> {
+    const { signal, ...axiosConfig } = config || {}
+    return axiosInstance.delete(url, { ...axiosConfig, signal })
+  },
+}
 
 export default request

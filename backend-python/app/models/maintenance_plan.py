@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Text, Integer, Float, Index, ForeignKey, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 
 
 class MaintenancePlan(Base, SoftDeleteMixin):
     __tablename__ = "maintenance_plan"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), nullable=False, unique=True, comment="计划编号")
     plan_name = Column(String(200), nullable=False, comment="计划名称")
@@ -37,12 +38,12 @@ class MaintenancePlan(Base, SoftDeleteMixin):
     inspection_items = Column(Text, comment="巡查项数据(JSON格式)")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     project = relationship("ProjectInfo", back_populates="maintenance_plans")
     periodic_inspections = relationship("PeriodicInspection", back_populates="maintenance_plan", passive_deletes=True)
     temporary_repairs = relationship("TemporaryRepair", back_populates="maintenance_plan", passive_deletes=True)
     spot_works = relationship("SpotWork", back_populates="maintenance_plan", passive_deletes=True)
-    
+
     __table_args__ = (
         Index('idx_maintenance_plan_id', 'plan_id'),
         Index('idx_maintenance_project_id', 'project_id'),
@@ -53,7 +54,7 @@ class MaintenancePlan(Base, SoftDeleteMixin):
         Index('idx_maintenance_personnel', 'maintenance_personnel'),
         {'comment': '维保计划表'}
     )
-    
+
     def to_dict(self):
         project_name = self.project_name
         client_name = ''
@@ -68,7 +69,7 @@ class MaintenancePlan(Base, SoftDeleteMixin):
             client_contact_info = self.project.client_contact_info or ''
             address = self.project.address or ''
             client_contact_position = self.project.client_contact_position or ''
-        
+
         return {
             'id': self.id,
             'plan_id': self.plan_id,

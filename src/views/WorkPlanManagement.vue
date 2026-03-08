@@ -542,8 +542,8 @@ export default defineComponent({
           inspection_id: searchForm.value.order_id || undefined,
         })
 
-        if (response.code === 200) {
-          planData.value = response.data.content.map((item: PeriodicInspection) => ({
+        if (response.code === 200 && response.data) {
+          planData.value = (response.data.content || []).map((item: PeriodicInspection) => ({
             id: item.id,
             plan_id: item.inspection_id,
             plan_type: '定期巡检单',
@@ -559,8 +559,8 @@ export default defineComponent({
             execution_result: item.execution_result || '',
             signature: item.signature || '',
           }))
-          totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+          totalElements.value = response.data.totalElements ?? 0
+          totalPages.value = response.data.totalPages ?? 0
         } else {
           showToast(response.message || '加载数据失败', 'error')
         }

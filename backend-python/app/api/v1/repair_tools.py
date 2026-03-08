@@ -1,29 +1,30 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
-from typing import Optional
-from datetime import datetime
+import logging
 import random
 import string
+import uuid
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
-from app.models.repair_tools import RepairToolsStock, RepairToolsIssue
-from app.models.repair_tools_inbound import RepairToolsInbound
-from app.models.project_info import ProjectInfo
+from app.dependencies import UserInfo, get_current_user_info, get_material_manager_user
 from app.models.personnel import Personnel
+from app.models.project_info import ProjectInfo
+from app.models.repair_tools import RepairToolsIssue, RepairToolsStock
+from app.models.repair_tools_inbound import RepairToolsInbound
 from app.models.work_plan import WorkPlan
+from app.schemas.common import ApiResponse
 from app.schemas.repair_tools import (
+    RepairToolsIssueCreate,
+    RepairToolsRestock,
+    RepairToolsReturn,
     RepairToolsStockCreate,
     RepairToolsStockUpdate,
-    RepairToolsRestock,
-    RepairToolsInboundCreate,
-    RepairToolsIssueCreate,
-    RepairToolsReturn,
-    RepairToolsStockResponse,
-    RepairToolsIssueResponse
 )
-from app.schemas.common import ApiResponse
-from app.auth import get_current_user, get_current_user_from_headers
 
 router = APIRouter(prefix="/repair-tools", tags=["维修工具管理"])
 
@@ -37,19 +38,19 @@ def generate_inbound_no() -> str:
 
 @router.get("/personnel-projects", summary="获取人员与项目的关联关系")
 async def get_personnel_projects(
-    personnel_id: Optional[int] = Query(None, description="人员ID"),
-    project_id: Optional[str] = Query(None, description="项目编号"),
+    personnel_id: int | None = Query(None, description="人员ID"),
+    project_id: str | None = Query(None, description="项目编号"),
     db: Session = Depends(get_db)
 ):
     result = []
-    
+
     if personnel_id:
         person = db.query(Personnel).filter(Personnel.id == personnel_id).first()
         if person:
             work_plans = db.query(WorkPlan).filter(
                 WorkPlan.maintenance_personnel == person.name
             ).all()
-            
+
             for plan in work_plans:
                 project = db.query(ProjectInfo).filter(
                     ProjectInfo.project_id == plan.project_id
@@ -59,36 +60,35 @@ async def get_personnel_projects(
                         'project_id': project.project_id,
                         'project_name': project.project_name
                     })
-    
+
     elif project_id:
         work_plans = db.query(WorkPlan).filter(
             WorkPlan.project_id == project_id
         ).all()
-        
+
         for plan in work_plans:
             if plan.maintenance_personnel:
                 person = db.query(Personnel).filter(
                     Personnel.name == plan.maintenance_personnel,
                     Personnel.role == '运维人员'
                 ).first()
-                if person:
-                    if not any(p['id'] == person.id for p in result):
-                        result.append({
-                            'id': person.id,
-                            'name': person.name
-                        })
-    
+                if person and not any(p['id'] == person.id for p in result):
+                    result.append({
+                        'id': person.id,
+                        'name': person.name
+                    })
+
     else:
         work_plans = db.query(WorkPlan).all()
         personnel_projects = {}
-        
+
         for plan in work_plans:
             if plan.maintenance_personnel and plan.project_id:
                 person = db.query(Personnel).filter(
                     Personnel.name == plan.maintenance_personnel,
                     Personnel.role == '运维人员'
                 ).first()
-                
+
                 if person:
                     if person.id not in personnel_projects:
                         personnel_projects[person.id] = {
@@ -96,32 +96,32 @@ async def get_personnel_projects(
                             'personnel_name': person.name,
                             'projects': []
                         }
-                    
+
                     project = db.query(ProjectInfo).filter(
                         ProjectInfo.project_id == plan.project_id
                     ).first()
-                    
+
                     if project:
                         if not any(p['project_id'] == project.project_id for p in personnel_projects[person.id]['projects']):
                             personnel_projects[person.id]['projects'].append({
                                 'project_id': project.project_id,
                                 'project_name': project.project_name
                             })
-        
+
         result = list(personnel_projects.values())
-    
+
     return ApiResponse(code=200, message="success", data=result)
 
 
 @router.get("/tools/search", summary="模糊搜索工具")
 async def search_tools(
-    keyword: Optional[str] = Query(None, description="搜索关键词"),
+    keyword: str | None = Query(None, description="搜索关键词"),
     page: int = Query(0, ge=0, description="页码"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db)
 ):
     query = db.query(RepairToolsStock).filter(RepairToolsStock.stock > 0)
-    
+
     if keyword:
         query = query.filter(
             or_(
@@ -131,10 +131,10 @@ async def search_tools(
                 RepairToolsStock.category.ilike(f"%{keyword}%")
             )
         )
-    
+
     total = query.count()
     items = query.order_by(RepairToolsStock.tool_name).offset(page * size).limit(size).all()
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -151,20 +151,20 @@ async def search_tools(
 async def get_stock_list(
     page: int = Query(0, ge=0, description="页码"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
-    tool_name: Optional[str] = Query(None, description="工具名称"),
-    category: Optional[str] = Query(None, description="工具分类"),
+    tool_name: str | None = Query(None, description="工具名称"),
+    category: str | None = Query(None, description="工具分类"),
     db: Session = Depends(get_db)
 ):
     query = db.query(RepairToolsStock)
-    
+
     if tool_name:
         query = query.filter(RepairToolsStock.tool_name.ilike(f"%{tool_name}%"))
     if category:
         query = query.filter(RepairToolsStock.category == category)
-    
+
     total = query.count()
     items = query.order_by(RepairToolsStock.updated_at.desc()).offset(page * size).limit(size).all()
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -180,11 +180,17 @@ async def get_stock_list(
 @router.post("/stock", summary="新增维修工具入库")
 async def create_stock(
     data: RepairToolsStockCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_material_manager_user)
 ):
+    """
+    新增维修工具入库
+    同时创建入库记录和库存记录
+    需要管理员、部门经理或材料员权限
+    """
     try:
         inbound_no = generate_inbound_no()
-        
+
         inbound = RepairToolsInbound(
             inbound_no=inbound_no,
             tool_name=data.tool_name,
@@ -197,7 +203,7 @@ async def create_stock(
             remark=data.remark
         )
         db.add(inbound)
-        
+
         stock = RepairToolsStock(
             tool_name=data.tool_name,
             category=data.category,
@@ -209,14 +215,19 @@ async def create_stock(
             remark=data.remark
         )
         db.add(stock)
-        
+
         db.commit()
         db.refresh(stock)
-        
+
         return ApiResponse(code=200, data=stock.to_dict(), message="新增成功")
     except Exception as e:
         db.rollback()
-        return ApiResponse(code=500, message=f"新增失败: {str(e)}", data=None)
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"[{error_id}] 新增维修工具入库失败: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"新增失败，错误ID: {error_id}，请联系管理员"
+        ) from None
 
 
 @router.get("/stock/{stock_id}", summary="获取维修工具详情")
@@ -227,7 +238,7 @@ async def get_stock_detail(
     stock = db.query(RepairToolsStock).filter(RepairToolsStock.id == stock_id).first()
     if not stock:
         raise HTTPException(status_code=404, detail="工具不存在")
-    
+
     return ApiResponse(code=200, data=stock.to_dict())
 
 
@@ -235,19 +246,24 @@ async def get_stock_detail(
 async def update_stock(
     stock_id: int,
     data: RepairToolsStockUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_material_manager_user)
 ):
+    """
+    更新维修工具信息
+    需要管理员、部门经理或材料员权限
+    """
     stock = db.query(RepairToolsStock).filter(RepairToolsStock.id == stock_id).first()
     if not stock:
         raise HTTPException(status_code=404, detail="工具不存在")
-    
+
     update_data = data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(stock, key, value)
-    
+
     db.commit()
     db.refresh(stock)
-    
+
     return ApiResponse(code=200, data=stock.to_dict(), message="更新成功")
 
 
@@ -255,15 +271,20 @@ async def update_stock(
 async def restock_tool(
     stock_id: int,
     data: RepairToolsRestock,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_material_manager_user)
 ):
+    """
+    工具入库（增加库存）
+    需要管理员、部门经理或材料员权限
+    """
     stock = db.query(RepairToolsStock).filter(RepairToolsStock.id == stock_id).first()
     if not stock:
         raise HTTPException(status_code=404, detail="工具不存在")
-    
+
     try:
         inbound_no = generate_inbound_no()
-        
+
         inbound = RepairToolsInbound(
             inbound_no=inbound_no,
             tool_name=stock.tool_name,
@@ -277,29 +298,48 @@ async def restock_tool(
             remark=data.remark
         )
         db.add(inbound)
-        
+
         stock.stock += data.quantity
         db.commit()
         db.refresh(stock)
-        
+
         return ApiResponse(code=200, data=stock.to_dict(), message="入库成功")
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"入库失败: {str(e)}")
+        error_id = str(uuid.uuid4())[:8]
+        logger.error(f"[{error_id}] 维修工具入库失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"入库失败，错误ID: {error_id}，请联系管理员") from None
 
 
 @router.delete("/stock/{stock_id}", summary="删除维修工具")
 async def delete_stock(
     stock_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_material_manager_user)
 ):
+    """
+    删除维修工具
+    需要管理员、部门经理或材料员权限
+    删除前会检查是否有未归还的领用记录
+    """
     stock = db.query(RepairToolsStock).filter(RepairToolsStock.id == stock_id).first()
     if not stock:
         raise HTTPException(status_code=404, detail="工具不存在")
-    
+
+    pending_issues = db.query(RepairToolsIssue).filter(
+        RepairToolsIssue.stock_id == stock_id,
+        RepairToolsIssue.status != "已归还"
+    ).count()
+
+    if pending_issues > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"该工具有 {pending_issues} 条未归还的领用记录，无法删除"
+        )
+
     db.delete(stock)
     db.commit()
-    
+
     return ApiResponse(code=200, message="删除成功")
 
 
@@ -307,20 +347,20 @@ async def delete_stock(
 async def get_inbound_list(
     page: int = Query(0, ge=0, description="页码"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
-    tool_name: Optional[str] = Query(None, description="工具名称"),
-    user_name: Optional[str] = Query(None, description="入库人"),
+    tool_name: str | None = Query(None, description="工具名称"),
+    user_name: str | None = Query(None, description="入库人"),
     db: Session = Depends(get_db)
 ):
     query = db.query(RepairToolsInbound)
-    
+
     if tool_name:
         query = query.filter(RepairToolsInbound.tool_name.ilike(f"%{tool_name}%"))
     if user_name:
         query = query.filter(RepairToolsInbound.user_name.ilike(f"%{user_name}%"))
-    
+
     total = query.count()
     items = query.order_by(RepairToolsInbound.created_at.desc()).offset(page * size).limit(size).all()
-    
+
     return ApiResponse(code=200, data={
         'items': [item.to_dict() for item in items],
         'total': total
@@ -329,39 +369,33 @@ async def get_inbound_list(
 
 @router.get("/issue", summary="获取维修工具领用记录列表")
 async def get_issue_list(
-    request: Request,
     page: int = Query(0, ge=0, description="页码"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
-    tool_name: Optional[str] = Query(None, description="工具名称"),
-    user_name: Optional[str] = Query(None, description="运维人员"),
-    status: Optional[str] = Query(None, description="状态"),
+    tool_name: str | None = Query(None, description="工具名称"),
+    user_name: str | None = Query(None, description="运维人员"),
+    status: str | None = Query(None, description="状态"),
     db: Session = Depends(get_db),
-    current_user: Optional[dict] = Depends(get_current_user)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
-    user_info = current_user or get_current_user_from_headers(request)
-    current_user_name = None
-    is_manager = False
-    if user_info:
-        current_user_name = user_info.get('sub') or user_info.get('name')
-        role = user_info.get('role', '')
-        is_manager = role in ['管理员', '部门经理', '主管', '物料管理员', '材料员']
-    
+    current_user_name = user_info.name
+    is_manager = user_info.is_manager
+
     query = db.query(RepairToolsIssue)
-    
+
     if tool_name:
         query = query.filter(RepairToolsIssue.tool_name.ilike(f"%{tool_name}%"))
-    
+
     if not is_manager and current_user_name:
         query = query.filter(RepairToolsIssue.user_name == current_user_name)
     elif user_name:
         query = query.filter(RepairToolsIssue.user_name.ilike(f"%{user_name}%"))
-    
+
     if status:
         query = query.filter(RepairToolsIssue.status == status)
-    
+
     total = query.count()
     items = query.order_by(RepairToolsIssue.issue_time.desc()).offset(page * size).limit(size).all()
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -377,46 +411,77 @@ async def get_issue_list(
 @router.post("/issue", summary="新增工具领用")
 async def create_issue(
     data: RepairToolsIssueCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    新增工具领用
+
+    - 如果库存中有该工具，会自动扣减库存
+    - 库存为0或不存在时，不允许领用
+
+    需要登录认证
+    """
+    if not user_info.is_authenticated:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未登录或登录已过期"
+        )
+
     stock = None
     tool_name = data.tool_name
     specification = data.specification
-    
+
     if data.tool_id:
         if data.tool_id.isdigit():
             stock = db.query(RepairToolsStock).filter(RepairToolsStock.id == int(data.tool_id)).first()
         else:
             stock = db.query(RepairToolsStock).filter(RepairToolsStock.tool_id == data.tool_id).first()
-        
-        if stock:
-            if stock.stock < data.quantity:
-                raise HTTPException(status_code=400, detail="库存不足")
-            stock.stock -= data.quantity
-            if not tool_name:
-                tool_name = stock.tool_name
-            if not specification:
-                specification = stock.specification
-    
+
+    if not stock and tool_name:
+        stock = db.query(RepairToolsStock).filter(
+            RepairToolsStock.tool_name == tool_name,
+            RepairToolsStock.specification == (specification or '')
+        ).first()
+
+    if not stock:
+        raise HTTPException(status_code=400, detail="该工具不存在于库存中，请先入库")
+
+    if stock.stock <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"库存不足，当前库存: {stock.stock} {stock.unit}，请先补充库存"
+        )
+
+    if stock.stock < data.quantity:
+        raise HTTPException(
+            status_code=400,
+            detail=f"库存不足，当前库存: {stock.stock} {stock.unit}，请先补充库存"
+        )
+
+    stock.stock -= data.quantity
+    if not tool_name:
+        tool_name = stock.tool_name
+    if not specification:
+        specification = stock.specification
+
     user_name = data.user_name
     if data.user_id and not user_name:
         user = db.query(Personnel).filter(Personnel.id == data.user_id).first()
         if user:
             user_name = user.name
-    
+
     project_name = data.project_name
     if data.project_id and not project_name:
         project = db.query(ProjectInfo).filter(ProjectInfo.project_id == data.project_id).first()
         if project:
             project_name = project.project_name
-    
-    if not tool_name:
-        raise HTTPException(status_code=400, detail="请选择工具")
+
     if not user_name:
         raise HTTPException(status_code=400, detail="请选择运维人员")
-    
+
     issue = RepairToolsIssue(
-        tool_id=data.tool_id,
+        tool_id=stock.tool_id or str(stock.id),
         tool_name=tool_name,
         specification=specification or '',
         quantity=data.quantity,
@@ -428,12 +493,12 @@ async def create_issue(
         project_name=project_name,
         status="待归还",
         remark=data.remark,
-        stock_id=stock.id if stock else None
+        stock_id=stock.id
     )
     db.add(issue)
     db.commit()
     db.refresh(issue)
-    
+
     return ApiResponse(code=200, data=issue.to_dict(), message="领用成功")
 
 
@@ -441,32 +506,67 @@ async def create_issue(
 async def return_tool(
     issue_id: int,
     data: RepairToolsReturn,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    """
+    工具归还
+
+    - 如果领用时有库存记录（stock_id不为空），归还时会自动回补库存
+    - 如果领用时没有库存记录（stock_id为空），归还时自动创建库存记录并关联
+
+    需要登录认证
+    """
+    if not user_info.is_authenticated:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="未登录或登录已过期"
+        )
+
     issue = db.query(RepairToolsIssue).filter(RepairToolsIssue.id == issue_id).first()
     if not issue:
         raise HTTPException(status_code=404, detail="领用记录不存在")
-    
+
     if issue.status == "已归还":
         raise HTTPException(status_code=400, detail="该工具已归还")
-    
+
     if data.return_quantity > issue.quantity - (issue.return_quantity or 0):
         raise HTTPException(status_code=400, detail="归还数量超过领用数量")
-    
+
     issue.return_quantity = (issue.return_quantity or 0) + data.return_quantity
     issue.return_time = datetime.now()
-    
+
     if issue.return_quantity >= issue.quantity:
         issue.status = "已归还"
-    
+
     if issue.stock_id:
         stock = db.query(RepairToolsStock).filter(RepairToolsStock.id == issue.stock_id).first()
         if stock:
             stock.stock += data.return_quantity
-    
+        else:
+            new_stock = RepairToolsStock(
+                tool_name=issue.tool_name,
+                specification=issue.specification or '',
+                stock=data.return_quantity,
+                unit='个'
+            )
+            db.add(new_stock)
+            db.flush()
+            issue.stock_id = new_stock.id
+    else:
+        new_stock = RepairToolsStock(
+            tool_name=issue.tool_name,
+            specification=issue.specification or '',
+            stock=data.return_quantity,
+            unit='个'
+        )
+        db.add(new_stock)
+        db.flush()
+        issue.stock_id = new_stock.id
+
     db.commit()
     db.refresh(issue)
-    
+
     return ApiResponse(code=200, data=issue.to_dict(), message="归还成功")
 
 
@@ -478,5 +578,5 @@ async def get_issue_detail(
     issue = db.query(RepairToolsIssue).filter(RepairToolsIssue.id == issue_id).first()
     if not issue:
         raise HTTPException(status_code=404, detail="领用记录不存在")
-    
+
     return ApiResponse(code=200, data=issue.to_dict())

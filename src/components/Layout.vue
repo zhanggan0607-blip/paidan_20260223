@@ -1,6 +1,4 @@
 <template>
-  <!-- TODO: Layout组件 - 考虑加入主题切换功能 -->
-  <!-- FIXME: 全屏模式下ESC键退出功能在某些浏览器不生效 -->
   <div class="layout" :class="{ 'fullscreen-mode': isFullscreenMode }">
     <aside v-show="!isFullscreenMode" class="sidebar">
       <div class="sidebar-header">
@@ -54,15 +52,12 @@
             <span class="user-name">{{ userDisplayName }}</span>
             <span class="dropdown-arrow">▼</span>
             <div v-if="showUserMenu" class="user-dropdown">
-              <div
-                v-for="user in userList"
-                :key="user.id"
-                class="dropdown-item"
-                :class="{ active: currentUser?.id === user.id }"
-                @click.stop="selectUser(user)"
-              >
-                {{ user.name }} ({{ user.role }})
+              <div class="dropdown-item user-role">
+                {{ currentUser?.role || '未知角色' }}
               </div>
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-item" @click.stop="handleChangePassword">修改密码</div>
+              <div class="dropdown-item logout" @click.stop="handleLogout">退出登录</div>
             </div>
           </div>
         </div>
@@ -75,12 +70,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, provide, readonly, onMounted } from 'vue'
+import { defineComponent, ref, computed, provide, readonly, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import type { MenuItem } from '@/types'
-import { userStore, type User } from '@/stores/userStore'
-import { personnelService } from '@/services/personnel'
-import onlineUserService from '@/services/onlineUser'
+import { userStore } from '@/stores/userStore'
 import api from '@/utils/api'
 
 export default defineComponent({
@@ -91,6 +84,7 @@ export default defineComponent({
     const expandedMenus = ref<string[]>(['statistics'])
     const activeMenu = ref<string>('project-info')
     const isFullscreenMode = ref(false)
+    const showUserMenu = ref(false)
 
     const setFullscreenMode = (value: boolean) => {
       isFullscreenMode.value = value
@@ -98,6 +92,8 @@ export default defineComponent({
 
     provide('fullscreenMode', readonly(isFullscreenMode))
     provide('setFullscreenMode', setFullscreenMode)
+
+    const currentUser = computed(() => userStore.getUser())
 
     const userInitials = computed(() => {
       const user = userStore.getUser()
@@ -201,127 +197,17 @@ export default defineComponent({
     const currentBreadcrumb = computed(() => {
       const path = route.path
       if (path === '/statistics') {
-        return {
-          level1: '统计分析',
-          level2: '数据看板',
-          full: '统计分析 / 数据看板',
-        }
+        return { level1: '统计分析', level2: '数据看板' }
       }
       for (const menu of menuItems) {
         if (menu.children) {
           const child = menu.children.find((c) => c.path === path)
           if (child) {
-            return {
-              level1: menu.label,
-              level2: child.label,
-              full: `${menu.label} / ${child.label}`,
-            }
+            return { level1: menu.label, level2: child.label }
           }
         }
       }
-      if (path === '/work-order/temporary-repair') {
-        return {
-          level1: '工单管理',
-          level2: '临时维修单查询',
-          full: '工单管理 / 临时维修单查询',
-        }
-      }
-      if (path === '/work-order/spot-work') {
-        return {
-          level1: '工单管理',
-          level2: '零星用工单查询',
-          full: '工单管理 / 零星用工单查询',
-        }
-      }
-      if (path === '/work-plan') {
-        return {
-          level1: '工单管理',
-          level2: '定期巡检单查询',
-          full: '工单管理 / 定期巡检单查询',
-        }
-      }
-      if (path === '/spare-parts/issue') {
-        return {
-          level1: '备品备件管理',
-          level2: '备品备件领用',
-          full: '备品备件管理 / 备品备件领用',
-        }
-      }
-      if (path === '/spare-parts/return') {
-        return {
-          level1: '备品备件管理',
-          level2: '备品备件归还',
-          full: '备品备件管理 / 备品备件归还',
-        }
-      }
-      if (path === '/spare-parts/stock') {
-        return {
-          level1: '备品备件管理',
-          level2: '',
-          full: '备品备件管理',
-        }
-      }
-      if (path === '/spare-parts') {
-        return {
-          level1: '备品备件管理',
-          level2: '备品备件管理',
-          full: '备品备件管理',
-        }
-      }
-      if (path === '/repair-tools/issue') {
-        return {
-          level1: '维修工具管理',
-          level2: '维修工具领用',
-          full: '维修工具管理 / 维修工具领用',
-        }
-      }
-      if (path === '/repair-tools/return') {
-        return {
-          level1: '维修工具管理',
-          level2: '维修工具归还',
-          full: '维修工具管理 / 维修工具归还',
-        }
-      }
-      if (path === '/repair-tools/inbound') {
-        return {
-          level1: '维修工具管理',
-          level2: '维修工具库存',
-          full: '维修工具管理 / 维修工具库存',
-        }
-      }
-      if (path === '/maintenance-log/fill') {
-        return {
-          level1: '维保日志',
-          level2: '新报维保日志',
-          full: '维保日志 / 新报维保日志',
-        }
-      }
-      if (path === '/maintenance-log/list') {
-        return {
-          level1: '维保日志',
-          level2: '维保日志查询',
-          full: '维保日志 / 维保日志查询',
-        }
-      }
-      if (path === '/weekly-report/fill') {
-        return {
-          level1: '维保日志',
-          level2: '新报部门周报',
-          full: '维保日志 / 新报部门周报',
-        }
-      }
-      if (path === '/weekly-report/list') {
-        return {
-          level1: '维保日志',
-          level2: '部门周报查询',
-          full: '维保日志 / 部门周报查询',
-        }
-      }
-      return {
-        level1: '维保项目管理',
-        level2: '项目信息管理',
-        full: '维保项目管理 / 项目信息管理',
-      }
+      return { level1: '维保项目管理', level2: '项目信息管理' }
     })
 
     const toggleMenu = (menuId: string) => {
@@ -342,124 +228,40 @@ export default defineComponent({
           expandedMenus.value = [...expandedMenus.value, parentMenu.id]
         }
       }
-      console.log('Navigate to', item.id, 'path=', item.path)
       if (item.path) {
         router.push({ path: item.path })
-      } else if (item.id === 'near-expiry-alert') {
-        router.push('/near-expiry-alert')
       }
     }
 
-    const showUserMenu = ref(false)
-    const userList = ref<User[]>([])
+    const handleChangePassword = () => {
+      showUserMenu.value = false
+      router.push('/change-password')
+    }
 
-    const loadUserList = async () => {
+    const handleLogout = async () => {
+      showUserMenu.value = false
       try {
-        const response = await personnelService.getAll()
-        if (response.code === 200 && response.data) {
-          userList.value = response.data.map((p: any) => ({
-            id: p.id,
-            name: p.name,
-            role: p.role,
-            department: p.department || '',
-            phone: p.phone || '',
-          }))
-        }
-      } catch (error) {
-        console.error('加载用户列表失败:', error)
+        await api.post('/auth/logout')
+      } catch {
+        // 忽略登出错误
       }
+      userStore.clearUser()
+      router.push('/login')
     }
 
-    /**
-     * 用户登录获取token
-     * @param user 用户信息
-     */
-    const loginUser = async (user: User): Promise<boolean> => {
-      try {
-        const defaultPassword = user.phone ? user.phone.slice(-6) : '123456'
-
-        const response = await api.post('/auth/login-json', {
-          username: user.name,
-          password: defaultPassword,
-          device_type: 'pc',
-        })
-
-        if ((response as any).code === 200 && (response as any).data?.access_token) {
-          userStore.setToken((response as any).data.access_token)
-          onlineUserService.recordLogin('pc', user.id, user.name).catch(() => {})
-          return true
-        }
-
-        return false
-      } catch (error) {
-        console.error('登录失败:', error)
-        return false
-      }
-    }
-
-    const selectUser = async (user: User) => {
-      const loginSuccess = await loginUser(user)
-      if (loginSuccess) {
-        userStore.setUser(user)
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest('.user-info')) {
         showUserMenu.value = false
-
-        const currentPath = route.path
-        const menuId = getRouteMenuId(currentPath)
-        if (menuId && !canShowMenu(menuId)) {
-          navigateToFirstAllowedRoute()
-        }
       }
     }
 
-    const getRouteMenuId = (path: string): string | null => {
-      for (const menu of menuItems) {
-        if (menu.path === path) {
-          return menu.id
-        }
-        if (menu.children) {
-          const child = menu.children.find((c) => c.path === path)
-          if (child) {
-            return child.id
-          }
-        }
-      }
-      return null
-    }
+    onMounted(() => {
+      document.addEventListener('click', handleClickOutside)
+    })
 
-    const navigateToFirstAllowedRoute = () => {
-      for (const menu of menuItems) {
-        if (menu.path && canShowMenu(menu.id)) {
-          router.push(menu.path)
-          return
-        }
-        if (menu.children) {
-          for (const child of menu.children) {
-            if (child.path && canShowMenu(child.id)) {
-              router.push(child.path)
-              return
-            }
-          }
-        }
-      }
-      router.push('/project-info')
-    }
-
-    onMounted(async () => {
-      await loadUserList()
-
-      const storedUser = userStore.getUser()
-      if (storedUser) {
-        const loginSuccess = await loginUser(storedUser)
-        if (!loginSuccess) {
-          console.error('自动登录失败')
-        }
-      } else if (userList.value.length > 0) {
-        const firstUser = userList.value[0]
-        const loginSuccess = await loginUser(firstUser)
-        if (loginSuccess) {
-          userStore.setUser(firstUser)
-        }
-      }
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClickOutside)
     })
 
     return {
@@ -470,12 +272,12 @@ export default defineComponent({
       toggleMenu,
       handleMenuClick,
       isFullscreenMode,
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser,
       userInitials,
       userDisplayName,
       showUserMenu,
-      userList,
-      selectUser,
+      handleChangePassword,
+      handleLogout,
     }
   },
 })
@@ -559,22 +361,6 @@ export default defineComponent({
   transform: rotate(90deg);
 }
 
-.menu-item {
-  padding: 10px 16px;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-size: 18px;
-}
-
-.menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.menu-item.active {
-  background: rgba(255, 255, 255, 0.1);
-  border-left: 3px solid #90caf9;
-}
-
 .submenu {
   background: rgba(0, 0, 0, 0.08);
 }
@@ -585,9 +371,6 @@ export default defineComponent({
   transition: background 0.15s;
   font-size: 16px;
   text-align: left;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 }
 
 .submenu-item:hover {
@@ -595,90 +378,93 @@ export default defineComponent({
 }
 
 .submenu-item.active {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.12);
   border-left: 3px solid #90caf9;
-  font-weight: 500;
+}
+
+.center-content {
+  display: flex;
+  flex-direction: column;
+  background: #f5f7fa;
+  overflow: hidden;
 }
 
 .main-content {
   flex: 1;
-  background: #f8f9fa;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-}
-
-.center-content {
-  padding: 0;
+  overflow: hidden;
 }
 
 .top-bar {
+  height: 56px;
+  background: #fff;
+  border-bottom: 1px solid #e8e8e8;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 12px 20px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e0e0e0;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
 }
 
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 8px;
   font-size: 14px;
   color: #666;
-  font-weight: 500;
 }
 
 .breadcrumb-level1 {
-  color: #1976d2;
-  font-weight: 500;
+  color: #999;
 }
 
 .breadcrumb-separator {
-  color: #999;
+  margin: 0 8px;
+  color: #ccc;
 }
 
 .breadcrumb-level2 {
   color: #333;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: background 0.2s;
   position: relative;
+}
+
+.user-info:hover {
+  background: #f5f5f5;
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
-  font-size: 12px;
-  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 8px;
 }
 
 .user-name {
   font-size: 14px;
   color: #333;
-  font-weight: 500;
+  margin-right: 4px;
 }
 
 .dropdown-arrow {
   font-size: 10px;
   color: #999;
-  margin-left: 4px;
 }
 
 .user-dropdown {
@@ -688,48 +474,51 @@ export default defineComponent({
   margin-top: 8px;
   background: #fff;
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  min-width: 180px;
-  max-height: 300px;
-  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
   z-index: 1000;
+  overflow: hidden;
 }
 
 .dropdown-item {
-  padding: 10px 16px;
+  padding: 12px 16px;
   font-size: 14px;
   color: #333;
   cursor: pointer;
   transition: background 0.15s;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.dropdown-item:last-child {
-  border-bottom: none;
 }
 
 .dropdown-item:hover {
   background: #f5f5f5;
 }
 
-.dropdown-item.active {
-  background: #e3f2fd;
-  color: #1976d2;
-  font-weight: 500;
+.dropdown-item.user-role {
+  color: #666;
+  font-size: 12px;
+  cursor: default;
+}
+
+.dropdown-item.user-role:hover {
+  background: transparent;
+}
+
+.dropdown-item.logout {
+  color: #e74c3c;
+}
+
+.dropdown-item.logout:hover {
+  background: #fdf2f2;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
 }
 
 .content-wrapper {
-  padding: 20px;
-  max-width: 100%;
-  margin: 0 auto;
   flex: 1;
-}
-
-.layout.fullscreen-mode .content-wrapper {
-  padding: 0;
-}
-
-.layout.fullscreen-mode .main-content {
-  background: #f5f7fa;
+  overflow: auto;
+  padding: 20px;
 }
 </style>

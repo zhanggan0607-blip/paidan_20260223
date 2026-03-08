@@ -1,10 +1,10 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, status
-from sqlalchemy.orm import Session
-from app.database import get_db
-from app.services.dictionary import DictionaryService
-from app.schemas.common import ApiResponse, PaginatedResponse
 
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.schemas.common import ApiResponse
+from app.services.dictionary import DictionaryService
 
 router = APIRouter(prefix="/dictionary", tags=["Dictionary Management"])
 
@@ -25,7 +25,7 @@ def get_dictionary_by_type(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_dictionaries_unpaginated(
-    dict_type: Optional[str] = Query(None, description="Dictionary type filter"),
+    dict_type: str | None = Query(None, description="Dictionary type filter"),
     db: Session = Depends(get_db)
 ):
     service = DictionaryService(db)
@@ -41,7 +41,7 @@ def get_all_dictionaries_unpaginated(
 def get_dictionaries_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=1000, description="Page size"),
-    dict_type: Optional[str] = Query(None, description="Dictionary type filter"),
+    dict_type: str | None = Query(None, description="Dictionary type filter"),
     db: Session = Depends(get_db)
 ):
     service = DictionaryService(db)

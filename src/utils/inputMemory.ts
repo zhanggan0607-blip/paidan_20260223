@@ -55,28 +55,12 @@ export function loadInputMemory(pageName: string): Record<string, any> | null {
  * 清除指定页面的输入记忆
  * @param pageName 页面名称
  */
-export function clearInputMemory(pageName: string) {
+function clearInputMemory(pageName: string) {
   try {
     const key = STORAGE_PREFIX + pageName
     localStorage.removeItem(key)
   } catch (error) {
     console.error('清除输入记忆失败:', error)
-  }
-}
-
-/**
- * 清除所有页面的输入记忆
- */
-export function clearAllInputMemory() {
-  try {
-    const keys = Object.keys(localStorage)
-    keys.forEach((key) => {
-      if (key.startsWith(STORAGE_PREFIX)) {
-        localStorage.removeItem(key)
-      }
-    })
-  } catch (error) {
-    console.error('清除所有输入记忆失败:', error)
   }
 }
 

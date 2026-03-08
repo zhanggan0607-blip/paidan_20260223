@@ -2,21 +2,23 @@
 零星用工服务
 提供零星用工业务逻辑处理
 """
-from typing import List, Optional, Union, Dict, Any, Tuple
-from datetime import datetime, date
-from sqlalchemy import func, or_, and_
+import json
+import logging
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
+
+from app.exceptions import DuplicateException, NotFoundException, ValidationException
 from app.models.spot_work import SpotWork
 from app.models.spot_work_worker import SpotWorkWorker
 from app.repositories.spot_work import SpotWorkRepository
-from app.utils.dictionary_helper import get_default_spot_work_status
-from app.services.sync_service import SyncService, PLAN_TYPE_SPOTWORK
 from app.schemas.spot_work import SpotWorkCreate, SpotWorkUpdate
+from app.services.sync_service import PLAN_TYPE_SPOTWORK, SyncService
 from app.utils.date_utils import parse_datetime
+from app.utils.dictionary_helper import get_default_spot_work_status
 from app.utils.work_order_id_generator import generate_spot_work_id
-from app.exceptions import NotFoundException, DuplicateException, ValidationException
-import json
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -26,28 +28,28 @@ class SpotWorkService:
     零星用工服务
     提供零星用工的增删改查等业务逻辑
     """
-    
+
     def __init__(self, db: Session):
         self.repository = SpotWorkRepository(db)
         self.sync_service = SyncService(db)
         self._db = db
-    
-    def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
+
+    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
         """解析日期"""
         return parse_datetime(date_value)
-    
+
     def get_all(
-        self, 
-        page: int = 0, 
-        size: int = 10, 
-        project_name: Optional[str] = None,
-        work_id: Optional[str] = None,
-        status: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None
-    ) -> Tuple[List[SpotWork], int]:
+        self,
+        page: int = 0,
+        size: int = 10,
+        project_name: str | None = None,
+        work_id: str | None = None,
+        status: str | None = None,
+        maintenance_personnel: str | None = None
+    ) -> tuple[list[SpotWork], int]:
         """
         分页获取零星用工列表
-        
+
         Args:
             page: 页码
             size: 每页数量
@@ -55,24 +57,24 @@ class SpotWorkService:
             work_id: 工单编号
             status: 状态
             maintenance_personnel: 运维人员
-            
+
         Returns:
             (工单列表, 总数)
         """
         return self.repository.find_all(
             page, size, project_name, work_id, status, maintenance_personnel
         )
-    
+
     def get_by_id(self, id: int) -> SpotWork:
         """
         根据ID获取零星用工
-        
+
         Args:
             id: 工单ID
-            
+
         Returns:
             工单对象
-            
+
         Raises:
             NotFoundException: 工单不存在
         """
@@ -80,17 +82,17 @@ class SpotWorkService:
         if not work:
             raise NotFoundException("用工单不存在")
         return work
-    
+
     def get_by_work_id(self, work_id: str) -> SpotWork:
         """
         根据工单编号获取零星用工
-        
+
         Args:
             work_id: 工单编号
-            
+
         Returns:
             工单对象
-            
+
         Raises:
             NotFoundException: 工单不存在
         """
@@ -98,49 +100,45 @@ class SpotWorkService:
         if not work:
             raise NotFoundException("用工单不存在")
         return work
-    
+
     def generate_work_id(self, project_id: str) -> str:
         """
-        生成工单编号
-        
+        生成工单编号（使用数据库序列保证并发安全）
+
         Args:
             project_id: 项目编号
-            
+
         Returns:
             工单编号
         """
-        today = datetime.now().strftime("%Y%m%d")
-        prefix = f"YG-{project_id}-{today}"
-        count = self.repository.count_by_work_id_prefix(prefix)
-        sequence = str(count + 1).zfill(2)
-        return f"{prefix}-{sequence}"
-    
-    def create(self, dto: SpotWorkCreate, operator_id: Optional[int] = None, operator_name: Optional[str] = None) -> SpotWork:
+        return generate_spot_work_id(self._db, project_id)
+
+    def create(self, dto: SpotWorkCreate, operator_id: int | None = None, operator_name: str | None = None) -> SpotWork:
         """
         创建零星用工
-        
+
         Args:
             dto: 创建数据传输对象
             operator_id: 操作者ID
             operator_name: 操作者名称
-            
+
         Returns:
             创建的工单对象
-            
+
         Raises:
             DuplicateException: 工单编号已存在
         """
         work_id = dto.work_id
         if work_id and self.repository.exists_by_work_id(work_id):
             raise DuplicateException("用工单编号已存在")
-        
+
         if not work_id:
             work_id = self.generate_work_id(dto.project_id)
-        
+
         default_status = get_default_spot_work_status(self._db)
-        
+
         photos_json = json.dumps(dto.photos, ensure_ascii=False) if dto.photos else None
-        
+
         work = SpotWork(
             work_id=work_id,
             project_id=dto.project_id,
@@ -157,10 +155,10 @@ class SpotWorkService:
             status=dto.status or default_status,
             remarks=dto.remarks
         )
-        
+
         result = self.repository.create(work)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
-        
+
         if operator_name and result.id:
             self._create_operation_log(
                 work_order_id=result.id,
@@ -171,31 +169,31 @@ class SpotWorkService:
                 operation_type_name='创建',
                 remark='创建零星用工工单'
             )
-        
+
         return result
-    
+
     def update(self, id: int, dto: SpotWorkUpdate) -> SpotWork:
         """
         更新零星用工
-        
+
         Args:
             id: 工单ID
             dto: 更新数据传输对象
-            
+
         Returns:
             更新后的工单对象
-            
+
         Raises:
             NotFoundException: 工单不存在
             DuplicateException: 工单编号已存在
         """
         existing_work = self.get_by_id(id)
-        
+
         if existing_work.work_id != dto.work_id and self.repository.exists_by_work_id(dto.work_id):
             raise DuplicateException("用工单编号已存在")
-        
+
         photos_json = json.dumps(dto.photos, ensure_ascii=False) if dto.photos else None
-        
+
         existing_work.work_id = dto.work_id
         existing_work.project_id = dto.project_id
         existing_work.project_name = dto.project_name
@@ -210,28 +208,29 @@ class SpotWorkService:
         existing_work.signature = dto.signature
         existing_work.status = dto.status
         existing_work.remarks = dto.remarks
-        
+
         result = self.repository.update(existing_work)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
+        self._db.commit()
         return result
-    
+
     def partial_update(self, id: int, dto) -> SpotWork:
         """
         部分更新零星用工
-        
+
         Args:
             id: 工单ID
             dto: 部分更新数据传输对象
-            
+
         Returns:
             更新后的工单对象
-            
+
         Raises:
             NotFoundException: 工单不存在
             DuplicateException: 工单编号已存在
         """
         existing_work = self.get_by_id(id)
-        
+
         if dto.work_id is not None:
             if existing_work.work_id != dto.work_id and self.repository.exists_by_work_id(dto.work_id):
                 raise DuplicateException("用工单编号已存在")
@@ -264,26 +263,27 @@ class SpotWorkService:
                 existing_work.actual_completion_date = datetime.now()
         if dto.remarks is not None:
             existing_work.remarks = dto.remarks
-        
+
         result = self.repository.update(existing_work)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, result)
+        self._db.commit()
         return result
-    
+
     def delete(self, id: int, user_id: int = None, operator_name: str = None) -> None:
         """
         软删除零星用工单
-        
+
         Args:
             id: 工单ID
             user_id: 执行删除的用户ID
             operator_name: 操作者名称
-            
+
         Raises:
             NotFoundException: 工单不存在
         """
         work = self.get_by_id(id)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_SPOTWORK, work, is_delete=True, user_id=user_id)
-        
+
         if operator_name and work.id:
             self._create_operation_log(
                 work_order_id=work.id,
@@ -294,30 +294,30 @@ class SpotWorkService:
                 operation_type_name='删除',
                 remark=f'删除零星用工单 {work.work_id}'
             )
-        
+
         self.repository.soft_delete(work, user_id)
-    
-    def get_all_unpaginated(self) -> List[SpotWork]:
+
+    def get_all_unpaginated(self) -> list[SpotWork]:
         """
         获取所有零星用工（不分页）
-        
+
         Returns:
             工单列表
         """
         return self.repository.find_all_unpaginated()
-    
+
     def get_all_with_workers(
         self,
         page: int = 0,
         size: int = 10,
-        project_name: Optional[str] = None,
-        work_id: Optional[str] = None,
-        status: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None
-    ) -> Tuple[List[Dict[str, Any]], int]:
+        project_name: str | None = None,
+        work_id: str | None = None,
+        status: str | None = None,
+        maintenance_personnel: str | None = None
+    ) -> tuple[list[dict[str, Any]], int]:
         """
         分页获取零星用工列表（包含工人信息）
-        
+
         Args:
             page: 页码
             size: 每页数量
@@ -325,19 +325,19 @@ class SpotWorkService:
             work_id: 工单编号
             status: 状态
             maintenance_personnel: 运维人员
-            
+
         Returns:
             (工单字典列表, 总数)
         """
         items, total = self.repository.find_all(
             page, size, project_name, work_id, status, maintenance_personnel
         )
-        
+
         if not items:
             return [], total
-        
+
         project_ids = [item.project_id for item in items]
-        
+
         date_filters = []
         for item in items:
             if item.plan_start_date and item.plan_end_date:
@@ -355,9 +355,9 @@ class SpotWorkService:
                         func.date(SpotWorkWorker.start_date) == item.plan_start_date.date()
                     )
                 )
-        
+
         all_workers = self.repository.find_workers_by_conditions(project_ids, date_filters)
-        
+
         worker_map = {}
         for worker in all_workers:
             key = (
@@ -368,11 +368,11 @@ class SpotWorkService:
             if key not in worker_map:
                 worker_map[key] = []
             worker_map[key].append(worker)
-        
+
         items_dict = []
         for item in items:
             item_dict = item.to_dict()
-            
+
             key = (
                 item.project_id,
                 item.plan_start_date.date() if item.plan_start_date else None,
@@ -380,99 +380,99 @@ class SpotWorkService:
             )
             workers = worker_map.get(key, [])
             worker_count = len(workers)
-            
+
             days = 0
             if item.plan_start_date and item.plan_end_date:
                 delta = (item.plan_end_date - item.plan_start_date).days + 1
                 days = max(0, delta)
-            
+
             item_dict['worker_count'] = worker_count
             item_dict['work_days'] = days * worker_count
             items_dict.append(item_dict)
-        
+
         return items_dict, total
-    
-    def get_by_id_with_workers(self, id: int) -> Dict[str, Any]:
+
+    def get_by_id_with_workers(self, id: int) -> dict[str, Any]:
         """
         根据ID获取零星用工（包含工人信息）
-        
+
         Args:
             id: 工单ID
-            
+
         Returns:
             工单字典
-            
+
         Raises:
             NotFoundException: 工单不存在
         """
         work = self.get_by_id(id)
         work_dict = work.to_dict()
-        
+
         plan_start = work.plan_start_date.date() if work.plan_start_date else None
         plan_end = work.plan_end_date.date() if work.plan_end_date else None
-        
+
         workers = self.repository.find_workers_for_spot_work(
             work.project_id, plan_start, plan_end
         )
-        
+
         worker_count = len(workers)
-        
+
         days = 0
         if work.plan_start_date and work.plan_end_date:
             delta = (work.plan_end_date - work.plan_start_date).days + 1
             days = max(0, delta)
-        
+
         work_dict['worker_count'] = worker_count
         work_dict['work_days'] = days * worker_count
         work_dict['workers'] = [w.to_dict() for w in workers]
-        
+
         return work_dict
-    
+
     def get_workers_by_project_and_date(
         self,
         project_id: str,
         start_date: str,
         end_date: str
-    ) -> List[SpotWorkWorker]:
+    ) -> list[SpotWorkWorker]:
         """
         根据项目ID和日期范围获取工人列表
-        
+
         Args:
             project_id: 项目编号
             start_date: 开始日期
             end_date: 结束日期
-            
+
         Returns:
             工人列表
         """
         return self.repository.find_workers_by_project_and_date(project_id, start_date, end_date)
-    
+
     def save_workers(
         self,
         project_id: str,
         project_name: str,
-        start_date: Optional[str],
-        end_date: Optional[str],
-        workers_data: List[Dict[str, Any]]
-    ) -> Tuple[int, int]:
+        start_date: str | None,
+        end_date: str | None,
+        workers_data: list[dict[str, Any]]
+    ) -> tuple[int, int]:
         """
         保存施工人员信息
-        
+
         Args:
             project_id: 项目编号
             project_name: 项目名称
             start_date: 开始日期
             end_date: 结束日期
             workers_data: 工人数据列表
-            
+
         Returns:
             (保存数量, 跳过数量)
-            
+
         Raises:
             ValidationException: 身份证验证失败
         """
         from app.utils.id_card_validator import validate_id_card
-        
+
         try:
             start = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
             end = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
@@ -480,11 +480,11 @@ class SpotWorkService:
             logger.error(f"日期解析错误: {e}")
             start = None
             end = None
-        
+
         saved_count = 0
         skipped_count = 0
         workers_to_create = []
-        
+
         for worker_data in workers_data:
             is_valid, id_card_msg, birth_date_from_id, gender_from_id = validate_id_card(
                 worker_data.get('idCardNumber', '')
@@ -493,31 +493,31 @@ class SpotWorkService:
                 raise ValidationException(
                     f"施工人员'{worker_data.get('name')}'的身份证号码无效: {id_card_msg}"
                 )
-            
+
             birth_date = worker_data.get('birthDate')
             if birth_date_from_id and birth_date and birth_date != birth_date_from_id:
                 raise ValidationException(
                     f"施工人员'{worker_data.get('name')}'的身份证号码与出生日期不匹配，根据身份证应为{birth_date_from_id}"
                 )
-            
+
             gender = worker_data.get('gender')
             if gender_from_id and gender and gender != gender_from_id:
                 raise ValidationException(
                     f"施工人员'{worker_data.get('name')}'的身份证号码与性别不匹配，根据身份证应为{gender_from_id}"
                 )
-            
+
             existing = self.repository.find_worker_by_unique_key(
                 project_id,
                 worker_data.get('idCardNumber'),
                 start.date() if start else None,
                 end.date() if end else None
             )
-            
+
             if existing:
                 logger.info(f"施工人员已存在，跳过: name={worker_data.get('name')}")
                 skipped_count += 1
                 continue
-            
+
             logger.info(f"准备保存施工人员: name={worker_data.get('name')}")
             worker = SpotWorkWorker(
                 project_id=project_id,
@@ -536,32 +536,32 @@ class SpotWorkService:
             )
             workers_to_create.append(worker)
             saved_count += 1
-        
+
         if workers_to_create:
             self.repository.create_workers_batch(workers_to_create)
-        
+
         logger.info(f"施工人员保存成功，新增 {saved_count} 条，跳过 {skipped_count} 条重复数据")
         return saved_count, skipped_count
-    
+
     def quick_fill(
         self,
         project_id: str,
         project_name: str,
         plan_start_date: str,
         plan_end_date: str,
-        work_content: Optional[str] = None,
-        remark: Optional[str] = None,
-        client_contact: Optional[str] = None,
-        client_contact_info: Optional[str] = None,
-        photos: Optional[str] = None,
-        signature: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None,
-        operator_id: Optional[int] = None,
-        operator_name: Optional[str] = None
+        work_content: str | None = None,
+        remark: str | None = None,
+        client_contact: str | None = None,
+        client_contact_info: str | None = None,
+        photos: str | None = None,
+        signature: str | None = None,
+        maintenance_personnel: str | None = None,
+        operator_id: int | None = None,
+        operator_name: str | None = None
     ) -> SpotWork:
         """
         快速填报零星用工
-        
+
         Args:
             project_id: 项目编号
             project_name: 项目名称
@@ -576,12 +576,12 @@ class SpotWorkService:
             maintenance_personnel: 运维人员
             operator_id: 操作者ID
             operator_name: 操作者名称
-            
+
         Returns:
             创建的工单对象
         """
         work_id = self.generate_work_id(project_id)
-        
+
         photos_list = None
         if photos:
             try:
@@ -589,7 +589,7 @@ class SpotWorkService:
             except (json.JSONDecodeError, TypeError) as e:
                 logger.warning(f"Failed to parse photos JSON: {e}")
                 photos_list = None
-        
+
         create_dto = SpotWorkCreate(
             work_id=work_id,
             project_id=project_id,
@@ -606,9 +606,9 @@ class SpotWorkService:
             status='待确认',
             remarks=remark
         )
-        
+
         work = self.create(create_dto, operator_id, operator_name)
-        
+
         if operator_name and work.id:
             self._create_operation_log(
                 work_order_id=work.id,
@@ -619,22 +619,22 @@ class SpotWorkService:
                 operation_type_name='提交',
                 remark='员工提交工单'
             )
-        
+
         return work
-    
+
     def _create_operation_log(
         self,
         work_order_id: int,
         work_order_no: str,
         operator_name: str,
-        operator_id: Optional[int],
+        operator_id: int | None,
         operation_type: str,
         operation_type_name: str,
         remark: str
     ) -> None:
         """
         创建操作日志
-        
+
         Args:
             work_order_id: 工单ID
             work_order_no: 工单编号
@@ -645,7 +645,7 @@ class SpotWorkService:
             remark: 备注
         """
         from app.models.work_order_operation_log import WorkOrderOperationLog
-        
+
         log = WorkOrderOperationLog(
             work_order_type='spot_work',
             work_order_id=work_order_id,

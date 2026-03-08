@@ -86,9 +86,11 @@ interface InspectionSystem {
 
 const loading = ref(false)
 const detail = ref<WorkPlanDetail | null>(null)
+const errorMessage = ref('')
 const inspectionSystems = ref<InspectionSystem[]>([])
 const inspectionItemsLoading = ref(false)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
+const isSubmitting = ref(false)
 
 const formData = ref({
   execution_result: '',
@@ -107,8 +109,14 @@ const canApprove = computed(() => {
   return userStore.canApprovePeriodicInspection()
 })
 
+const isWorker = computed(() => {
+  const user = userStore.getUser()
+  if (!user || !detail.value) return false
+  return detail.value.maintenance_personnel === user.name
+})
+
 const isEditable = computed(() => {
-  if (isApproveMode.value) return false
+  if (!isWorker.value) return false
   const status = detail.value?.status
   return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
 })
@@ -126,7 +134,10 @@ const canSign = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return canSign.value && formData.value.signature
+  if (!canSign.value || !formData.value.signature) return false
+  if (!isWorker.value) return false
+  const status = detail.value?.status
+  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
 })
 
 const totalCount = computed(() => {
@@ -191,6 +202,7 @@ const fetchDetail = async () => {
   if (!id) return
 
   loading.value = true
+  errorMessage.value = ''
   showLoadingToast({ message: '加载中...', forbidClick: true })
 
   try {
@@ -203,9 +215,14 @@ const fetchDetail = async () => {
         formData.value.signature = response.data.signature || ''
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch detail:', error)
-    showFailToast('加载失败')
+    if (error?.status === 403) {
+      errorMessage.value = '您没有权限查看此工单'
+    } else {
+      errorMessage.value = '加载失败'
+    }
+    showFailToast(errorMessage.value)
   } finally {
     loading.value = false
     closeToast()
@@ -390,14 +407,14 @@ const loadSignature = () => {
  * @param system 巡检项
  */
 const handleInspection = async (system: InspectionSystem) => {
-  if (!isEditable.value) {
-    showToast('当前工单状态不可编辑')
-    return
-  }
-
   if (system.inspected) {
     currentInspectionSystem.value = { ...system }
     showInspectionPopup.value = true
+    return
+  }
+
+  if (!isEditable.value) {
+    showToast('当前工单状态不可编辑')
     return
   }
 
@@ -530,7 +547,14 @@ const handleSignature = () => {
 
 const handleSubmit = async () => {
   if (!canSubmit.value) {
-    showFailToast('请完成所有必填项')
+    const status = detail.value?.status
+    if (status === WORK_STATUS.PENDING_CONFIRM) {
+      showFailToast('工单已提交，等待审批中')
+    } else if (status === WORK_STATUS.COMPLETED) {
+      showFailToast('工单已完成')
+    } else {
+      showFailToast('请完成所有必填项')
+    }
     return
   }
 
@@ -557,7 +581,7 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
       showSuccessToast('提交成功')
-      goBack()
+      router.push({ path: '/work-list', query: { type: 'periodic' } })
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -569,37 +593,16 @@ const handleSubmit = async () => {
   }
 }
 
-const handleSave = async () => {
-  showLoadingToast({ message: '保存中...', forbidClick: true })
-
-  try {
-    const saveData = {
-      execution_result: formData.value.execution_result,
-      remarks: formData.value.remarks,
-      signature: formData.value.signature,
-      total_count: totalCount.value,
-      filled_count: filledCount.value,
-    }
-
-    const response = await periodicInspectionService.patch(detail.value?.id!, saveData)
-
-    if (response.code === 200) {
-      await addOperationLog('save', '员工保存工单')
-      showSuccessToast('保存成功')
-    }
-  } catch (error) {
-    console.error('Failed to save:', error)
-    showFailToast('保存失败')
-  } finally {
-    closeToast()
-  }
-}
-
 /**
  * 审批通过
  */
 const handleApprovePass = async () => {
   if (!detail.value?.id) return
+
+  if (isSubmitting.value) {
+    showToast('正在处理中，请勿重复提交')
+    return
+  }
 
   try {
     await showConfirmDialog({
@@ -607,6 +610,7 @@ const handleApprovePass = async () => {
       message: '确认审批通过该工单吗？',
     })
 
+    isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
     const submitData = {
@@ -618,7 +622,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      goBack()
+      router.push({ path: '/work-list', query: { type: 'periodic' } })
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -627,6 +631,7 @@ const handleApprovePass = async () => {
     }
   } finally {
     closeToast()
+    isSubmitting.value = false
   }
 }
 
@@ -636,6 +641,11 @@ const handleApprovePass = async () => {
 const handleApproveReject = async () => {
   if (!detail.value?.id) return
 
+  if (isSubmitting.value) {
+    showToast('正在处理中，请勿重复提交')
+    return
+  }
+
   try {
     await showConfirmDialog({
       title: '退回确认',
@@ -644,6 +654,7 @@ const handleApproveReject = async () => {
       confirmButtonColor: '#ee0a24',
     })
 
+    isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
     const submitData = {
@@ -655,7 +666,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      goBack()
+      router.push({ path: '/work-list', query: { type: 'periodic' } })
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -664,6 +675,7 @@ const handleApproveReject = async () => {
     }
   } finally {
     closeToast()
+    isSubmitting.value = false
   }
 }
 
@@ -698,7 +710,7 @@ const autoSaveFieldContent = async () => {
         filled_count: filledCount.value,
       }
 
-      await periodicInspectionService.update(detail.value?.id!, saveData)
+      await periodicInspectionService.patch(detail.value?.id!, saveData)
     } catch (error) {
       console.error('Auto save failed:', error)
     }
@@ -749,14 +761,21 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   }
 }
 
-const handleUserReady = (_user: User) => {
-  // 用户状态由 userStore 管理
+const handleUserReady = async (_user: User) => {
+  await fetchDetail()
+  await fetchInspectionItems()
+  loadSignature()
 }
 
 onMounted(async () => {
-  await fetchDetail()
-  fetchInspectionItems()
-  loadSignature()
+  if (userStore.isLoggedIn()) {
+    const user = userStore.getUser()
+    if (user) {
+      await fetchDetail()
+      await fetchInspectionItems()
+      loadSignature()
+    }
+  }
 })
 
 onActivated(() => {
@@ -939,18 +958,22 @@ onActivated(() => {
       />
 
       <div v-if="isEditable" class="action-buttons">
-        <van-button type="default" size="large" @click="handleSave">保存</van-button>
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
           >提交</van-button
         >
       </div>
 
       <div v-if="isApproveMode && canApprove" class="action-buttons">
-        <van-button type="danger" size="large" @click="handleApproveReject">退回</van-button>
-        <van-button type="success" size="large" @click="handleApprovePass">通过</van-button>
+        <van-button type="danger" size="large" :disabled="isSubmitting" @click="handleApproveReject"
+          >退回</van-button
+        >
+        <van-button type="success" size="large" :disabled="isSubmitting" @click="handleApprovePass"
+          >通过</van-button
+        >
       </div>
     </div>
 
+    <van-empty v-else-if="!loading && errorMessage" :description="errorMessage" image="error" />
     <van-empty v-else-if="!loading" description="暂无数据" />
 
     <van-popup
@@ -985,6 +1008,7 @@ onActivated(() => {
             label="巡检内容"
             type="textarea"
             placeholder="请输入巡检内容"
+            :readonly="!isEditable"
           />
           <van-field
             v-model="currentInspectionSystem.inspection_result"
@@ -993,10 +1017,14 @@ onActivated(() => {
             label="巡检结果"
             type="textarea"
             placeholder="请输入巡检结果"
+            :readonly="!isEditable"
           />
         </div>
-        <div class="popup-footer">
+        <div v-if="isEditable" class="popup-footer">
           <van-button type="primary" block @click="handleInspectionSave">保存</van-button>
+        </div>
+        <div v-else class="popup-footer">
+          <van-button type="default" block @click="showInspectionPopup = false">关闭</van-button>
         </div>
       </div>
     </van-popup>

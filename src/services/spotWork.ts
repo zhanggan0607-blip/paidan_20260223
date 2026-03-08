@@ -4,9 +4,29 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { SpotWork as SpotWorkType, ApiResponse } from '../types/api'
+import type { ApiResponse, PaginatedData } from '@sstcp/shared'
 
-export type SpotWork = SpotWorkType
+export interface SpotWork {
+  id: number
+  work_id: string
+  plan_id?: string
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  maintenance_personnel?: string
+  work_content?: string
+  photos?: string
+  signature?: string
+  status: string
+  remarks?: string
+  worker_count?: number
+  created_at: string
+  updated_at: string
+}
 
 export interface SpotWorkCreate {
   work_id?: string
@@ -46,20 +66,6 @@ export interface SpotWorkUpdate {
   worker_count?: number
 }
 
-export interface SpotWorkPaginatedResponse {
-  code: number
-  message: string
-  data: {
-    content: SpotWork[]
-    totalElements: number
-    totalPages: number
-    size: number
-    number: number
-    first: boolean
-    last: boolean
-  }
-}
-
 export const spotWorkService = {
   /**
    * 获取零星用工列表（分页）
@@ -70,7 +76,7 @@ export const spotWorkService = {
     project_name?: string
     work_id?: string
     status?: string
-  }): Promise<SpotWorkPaginatedResponse> {
+  }): Promise<ApiResponse<PaginatedData<SpotWork>>> {
     return await request.get(API_ENDPOINTS.SPOT_WORK.LIST, { params })
   },
 

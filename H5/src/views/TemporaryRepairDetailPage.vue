@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onActivated, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   showLoadingToast,
@@ -13,7 +13,7 @@ import { temporaryRepairService, uploadService, operationLogService } from '../s
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
 import UserSelector from '../components/UserSelector.vue'
-import { userStore } from '../stores/userStore'
+import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import type { TemporaryRepair } from '../types/models'
@@ -25,6 +25,7 @@ const { goBack } = useNavigation()
 const loading = ref(false)
 const detail = ref<TemporaryRepair | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
+const isSubmitting = ref(false)
 
 const formData = ref({
   remarks: '',
@@ -34,24 +35,34 @@ const formData = ref({
 const currentPhotos = ref<string[]>([])
 const showPhotoPopup = ref(false)
 
-const isEditable = computed(() => {
-  const status = detail.value?.status
-  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
-})
-
-const canSubmit = computed(() => {
-  return currentPhotos.value.length > 0 && formData.value.signature
-})
-
-const handleBackToList = () => {
-  goBack()
-}
-
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
 const isApproveMode = computed(() => {
   return canApprove.value && detail.value?.status === WORK_STATUS.PENDING_CONFIRM
 })
+
+const isWorker = computed(() => {
+  const user = userStore.getUser()
+  if (!user || !detail.value) return false
+  return detail.value.maintenance_personnel === user.name
+})
+
+const isEditable = computed(() => {
+  const status = detail.value?.status
+  if (!isWorker.value) return false
+  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+})
+
+const canSubmit = computed(() => {
+  if (currentPhotos.value.length === 0 || !formData.value.signature) return false
+  if (!isWorker.value) return false
+  const status = detail.value?.status
+  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+})
+
+const handleBackToList = () => {
+  goBack()
+}
 
 /**
  * 复制工单编号到剪贴板
@@ -192,6 +203,14 @@ const handleSignature = () => {
 
 const handleSubmit = async () => {
   if (!canSubmit.value) {
+    const status = detail.value?.status
+    if (status === WORK_STATUS.PENDING_CONFIRM) {
+      showFailToast('工单已提交，等待审批中')
+      return
+    } else if (status === WORK_STATUS.COMPLETED) {
+      showFailToast('工单已完成')
+      return
+    }
     if (currentPhotos.value.length === 0) {
       showFailToast('请上传现场图片')
     } else if (!formData.value.signature) {
@@ -221,7 +240,7 @@ const handleSubmit = async () => {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('temporary_repair_signature')
       showSuccessToast('提交成功')
-      goBack()
+      router.push({ path: '/work-list', query: { type: 'repair' } })
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -233,29 +252,46 @@ const handleSubmit = async () => {
   }
 }
 
-const handleSave = async () => {
-  showLoadingToast({ message: '保存中...', forbidClick: true })
+let autoSaveTimer: ReturnType<typeof setTimeout> | null = null
 
-  try {
-    const saveData = {
-      photos: currentPhotos.value,
-      signature: formData.value.signature,
-      remarks: formData.value.remarks,
-    }
+/**
+ * 自动保存内容到后端（防抖）
+ */
+const autoSaveContent = async () => {
+  if (!detail.value?.id || !isEditable.value) return
 
-    const response = await temporaryRepairService.patch(detail.value?.id!, saveData)
-
-    if (response.code === 200) {
-      await addOperationLog('save', '员工保存工单')
-      showSuccessToast('保存成功')
-    }
-  } catch (error) {
-    console.error('Failed to save:', error)
-    showFailToast('保存失败')
-  } finally {
-    closeToast()
+  if (autoSaveTimer) {
+    clearTimeout(autoSaveTimer)
   }
+
+  autoSaveTimer = setTimeout(async () => {
+    try {
+      const saveData = {
+        photos: currentPhotos.value,
+        signature: formData.value.signature,
+        remarks: formData.value.remarks,
+      }
+
+      await temporaryRepairService.patch(detail.value?.id!, saveData)
+    } catch (error) {
+      console.error('Auto save failed:', error)
+    }
+  }, 1000)
 }
+
+watch(
+  () => formData.value.remarks,
+  () => {
+    autoSaveContent()
+  }
+)
+
+watch(
+  () => formData.value.signature,
+  () => {
+    autoSaveContent()
+  }
+)
 
 /**
  * 审批通过
@@ -263,12 +299,18 @@ const handleSave = async () => {
 const handleApprovePass = async () => {
   if (!detail.value?.id) return
 
+  if (isSubmitting.value) {
+    showFailToast('正在处理中，请勿重复提交')
+    return
+  }
+
   try {
     await showConfirmDialog({
       title: '审批确认',
       message: '确认审批通过该工单吗？',
     })
 
+    isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
     const submitData = {
@@ -280,7 +322,7 @@ const handleApprovePass = async () => {
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      goBack()
+      router.push({ path: '/work-list', query: { type: 'repair' } })
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -289,6 +331,7 @@ const handleApprovePass = async () => {
     }
   } finally {
     closeToast()
+    isSubmitting.value = false
   }
 }
 
@@ -298,6 +341,11 @@ const handleApprovePass = async () => {
 const handleApproveReject = async () => {
   if (!detail.value?.id) return
 
+  if (isSubmitting.value) {
+    showFailToast('正在处理中，请勿重复提交')
+    return
+  }
+
   try {
     await showConfirmDialog({
       title: '退回确认',
@@ -306,6 +354,7 @@ const handleApproveReject = async () => {
       confirmButtonColor: '#ee0a24',
     })
 
+    isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
     const submitData = {
@@ -317,7 +366,7 @@ const handleApproveReject = async () => {
     if (response.code === 200) {
       await addOperationLog('reject', '部门经理退回工单')
       showSuccessToast('已退回')
-      goBack()
+      router.push({ path: '/work-list', query: { type: 'repair' } })
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -326,11 +375,30 @@ const handleApproveReject = async () => {
     }
   } finally {
     closeToast()
+    isSubmitting.value = false
   }
 }
 
-onMounted(() => {
-  fetchDetail()
+/**
+ * 用户选择器准备就绪回调
+ * @param _user 用户信息
+ */
+const handleUserReady = async (_user: User) => {
+  await fetchDetail()
+  loadSignature()
+}
+
+onMounted(async () => {
+  if (userStore.isLoggedIn()) {
+    const user = userStore.getUser()
+    if (user) {
+      await fetchDetail()
+      loadSignature()
+    }
+  }
+})
+
+onActivated(() => {
   loadSignature()
 })
 
@@ -375,7 +443,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         </div>
       </template>
       <template #right>
-        <UserSelector />
+        <UserSelector @ready="handleUserReady" />
       </template>
     </van-nav-bar>
 
@@ -460,15 +528,18 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
       />
 
       <div v-if="isEditable" class="action-buttons">
-        <van-button type="default" size="large" @click="handleSave">保存</van-button>
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
           >提交</van-button
         >
       </div>
 
       <div v-if="isApproveMode" class="action-buttons">
-        <van-button type="danger" size="large" @click="handleApproveReject">退回</van-button>
-        <van-button type="success" size="large" @click="handleApprovePass">审批通过</van-button>
+        <van-button type="danger" size="large" :disabled="isSubmitting" @click="handleApproveReject"
+          >退回</van-button
+        >
+        <van-button type="success" size="large" :disabled="isSubmitting" @click="handleApprovePass"
+          >审批通过</van-button
+        >
       </div>
     </div>
 

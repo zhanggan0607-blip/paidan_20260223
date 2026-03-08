@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
 """
 统一权限配置模块
 集中管理所有角色、权限和菜单配置
 """
 
-from typing import List, Dict, Set, Optional
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 
-class RoleCode(str, Enum):
+class RoleCode(StrEnum):
     """角色代码枚举"""
     ADMIN = '管理员'
     DEPARTMENT_MANAGER = '部门经理'
@@ -26,7 +24,7 @@ class RoleConfig:
     description: str = ''
 
 
-ROLE_CONFIGS: Dict[str, RoleConfig] = {
+ROLE_CONFIGS: dict[str, RoleConfig] = {
     RoleCode.ADMIN.value: RoleConfig(
         code=RoleCode.ADMIN.value,
         name='管理员',
@@ -53,66 +51,67 @@ ROLE_CONFIGS: Dict[str, RoleConfig] = {
     ),
 }
 
-ALL_ROLES: List[str] = list(ROLE_CONFIGS.keys())
+ALL_ROLES: list[str] = list(ROLE_CONFIGS.keys())
 
-MANAGER_ROLES: List[str] = [
+MANAGER_ROLES: list[str] = [
+    RoleCode.ADMIN.value,
+    RoleCode.DEPARTMENT_MANAGER.value,
+    '主管',
+]
+
+ADMIN_ROLES: list[str] = [RoleCode.ADMIN.value]
+
+PROJECT_MANAGEMENT_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
 ]
 
-ADMIN_ROLES: List[str] = [RoleCode.ADMIN.value]
-
-PROJECT_MANAGEMENT_ROLES: List[str] = [
+PERSONNEL_MANAGEMENT_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
 ]
 
-PERSONNEL_MANAGEMENT_ROLES: List[str] = [
-    RoleCode.ADMIN.value,
-    RoleCode.DEPARTMENT_MANAGER.value,
-]
-
-SPARE_PARTS_MANAGEMENT_ROLES: List[str] = [
+SPARE_PARTS_MANAGEMENT_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
     RoleCode.MATERIAL_MANAGER.value,
 ]
 
-WORK_ORDER_VIEW_ROLES: List[str] = [
+WORK_ORDER_VIEW_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
     RoleCode.EMPLOYEE.value,
 ]
 
-WORK_ORDER_APPROVE_ROLES: List[str] = [
+WORK_ORDER_APPROVE_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
 ]
 
-STATISTICS_VIEW_ROLES: List[str] = [
-    RoleCode.ADMIN.value,
-    RoleCode.DEPARTMENT_MANAGER.value,
-    RoleCode.EMPLOYEE.value,
-]
-
-MAINTENANCE_LOG_FILL_ROLES: List[str] = [
+STATISTICS_VIEW_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
     RoleCode.EMPLOYEE.value,
 ]
 
-MAINTENANCE_LOG_VIEW_ROLES: List[str] = [
+MAINTENANCE_LOG_FILL_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
     RoleCode.EMPLOYEE.value,
 ]
 
-WEEKLY_REPORT_FILL_ROLES: List[str] = [
+MAINTENANCE_LOG_VIEW_ROLES: list[str] = [
+    RoleCode.ADMIN.value,
+    RoleCode.DEPARTMENT_MANAGER.value,
+    RoleCode.EMPLOYEE.value,
+]
+
+WEEKLY_REPORT_FILL_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
 ]
 
-WEEKLY_REPORT_VIEW_ROLES: List[str] = [
+WEEKLY_REPORT_VIEW_ROLES: list[str] = [
     RoleCode.ADMIN.value,
     RoleCode.DEPARTMENT_MANAGER.value,
 ]
@@ -124,10 +123,10 @@ class PermissionConfig:
     id: str
     name: str
     description: str
-    allowed_roles: List[str] = field(default_factory=list)
+    allowed_roles: list[str] = field(default_factory=list)
 
 
-PERMISSION_CONFIGS: Dict[str, PermissionConfig] = {
+PERMISSION_CONFIGS: dict[str, PermissionConfig] = {
     'view_statistics': PermissionConfig(
         id='view_statistics',
         name='查看统计',
@@ -249,140 +248,3 @@ PERMISSION_CONFIGS: Dict[str, PermissionConfig] = {
         allowed_roles=[RoleCode.ADMIN.value]
     ),
 }
-
-
-def has_permission(role: Optional[str], permission_id: str) -> bool:
-    """
-    检查角色是否有指定权限
-    
-    Args:
-        role: 用户角色
-        permission_id: 权限ID
-        
-    Returns:
-        bool: 是否有权限
-    """
-    if not role:
-        return False
-    
-    permission = PERMISSION_CONFIGS.get(permission_id)
-    if not permission:
-        return False
-    
-    return role in permission.allowed_roles
-
-
-def get_allowed_permissions(role: str) -> List[str]:
-    """
-    获取角色的所有权限
-    
-    Args:
-        role: 用户角色
-        
-    Returns:
-        List[str]: 权限ID列表
-    """
-    return [
-        perm_id for perm_id, perm in PERMISSION_CONFIGS.items()
-        if role in perm.allowed_roles
-    ]
-
-
-def is_manager_role(role: Optional[str]) -> bool:
-    """
-    检查是否为管理层角色
-    
-    Args:
-        role: 用户角色
-        
-    Returns:
-        bool: 是否为管理层
-    """
-    return role in MANAGER_ROLES if role else False
-
-
-def is_admin_role(role: Optional[str]) -> bool:
-    """
-    检查是否为管理员角色
-    
-    Args:
-        role: 用户角色
-        
-    Returns:
-        bool: 是否为管理员
-    """
-    return role in ADMIN_ROLES if role else False
-
-
-def get_role_level(role: Optional[str]) -> int:
-    """
-    获取角色级别
-    
-    Args:
-        role: 用户角色
-        
-    Returns:
-        int: 角色级别，级别越高权限越大
-    """
-    if not role:
-        return 0
-    
-    config = ROLE_CONFIGS.get(role)
-    return config.level if config else 0
-
-
-def can_edit_personnel(current_role: str, target_role: str, 
-                       current_department: str = '', target_department: str = '') -> bool:
-    """
-    检查是否可以编辑目标人员
-    
-    Args:
-        current_role: 当前用户角色
-        target_role: 目标人员角色
-        current_department: 当前用户部门
-        target_department: 目标人员部门
-        
-    Returns:
-        bool: 是否可以编辑
-    """
-    if current_role == RoleCode.ADMIN.value:
-        return True
-    
-    if current_role == RoleCode.DEPARTMENT_MANAGER.value:
-        if current_department and target_department == current_department:
-            return True
-    
-    return False
-
-
-def can_delete_personnel(current_role: str) -> bool:
-    """
-    检查是否可以删除人员
-    
-    Args:
-        current_role: 当前用户角色
-        
-    Returns:
-        bool: 是否可以删除
-    """
-    return current_role == RoleCode.ADMIN.value
-
-
-def get_personnel_filter_condition(current_role: str, current_department: str = '') -> Dict:
-    """
-    获取人员列表过滤条件
-    
-    Args:
-        current_role: 当前用户角色
-        current_department: 当前用户部门
-        
-    Returns:
-        Dict: 过滤条件
-    """
-    if current_role == RoleCode.ADMIN.value:
-        return {'filter': 'all'}
-    
-    if current_role == RoleCode.DEPARTMENT_MANAGER.value:
-        return {'filter': 'all'}
-    
-    return {'filter': 'none'}

@@ -138,7 +138,7 @@ const routes = [
     path: '/spare-parts-stock',
     name: 'SparePartsStock',
     component: () => import('../views/SparePartsStockPage.vue'),
-    meta: { title: '配品备件入库', permission: 'canViewSparePartsStock' },
+    meta: { title: '备品备件入库', permission: 'canViewSparePartsStock' },
   },
   {
     path: '/spare-parts-return',

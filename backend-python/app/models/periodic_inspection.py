@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 
 
 class PeriodicInspection(Base, SoftDeleteMixin):
     __tablename__ = "periodic_inspection"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     inspection_id = Column(String(50), unique=True, nullable=False, comment="工单编号")
     plan_id = Column(String(50), ForeignKey('maintenance_plan.plan_id', ondelete='CASCADE'), nullable=True, index=True, comment="关联维保计划编号")
@@ -26,10 +27,10 @@ class PeriodicInspection(Base, SoftDeleteMixin):
     actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     project = relationship("ProjectInfo", back_populates="periodic_inspections")
     maintenance_plan = relationship("MaintenancePlan", back_populates="periodic_inspections")
-    
+
     __table_args__ = (
         Index('idx_periodic_inspection_id', 'inspection_id'),
         Index('idx_periodic_project_id', 'project_id'),
@@ -39,7 +40,7 @@ class PeriodicInspection(Base, SoftDeleteMixin):
         Index('idx_periodic_plan_start_date', 'plan_start_date'),
         {'comment': '定期巡检单表'}
     )
-    
+
     def to_dict(self):
         project_name = self.project_name
         client_name = self.client_name
@@ -54,7 +55,7 @@ class PeriodicInspection(Base, SoftDeleteMixin):
             client_contact_info = self.project.client_contact_info or ''
             address = self.project.address or ''
             client_contact_position = self.project.client_contact_position or ''
-        
+
         return {
             'id': self.id,
             'inspection_id': self.inspection_id,

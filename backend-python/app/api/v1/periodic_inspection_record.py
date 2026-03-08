@@ -1,15 +1,14 @@
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
 from app.database import get_db
-from app.services.periodic_inspection_record import PeriodicInspectionRecordService
+from app.schemas.common import ApiResponse
 from app.schemas.periodic_inspection_record import (
+    BatchRecordSave,
     PeriodicInspectionRecordCreate,
     PeriodicInspectionRecordUpdate,
-    PeriodicInspectionRecordResponse,
-    BatchRecordSave
 )
-from app.schemas.common import ApiResponse
+from app.services.periodic_inspection_record import PeriodicInspectionRecordService
 
 router = APIRouter(prefix="/periodic-inspection-record", tags=["Periodic Inspection Record"])
 

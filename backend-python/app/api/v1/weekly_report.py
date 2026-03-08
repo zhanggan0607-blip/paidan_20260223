@@ -2,19 +2,30 @@
 维保周报API
 提供维保周报的HTTP接口
 """
-from typing import Optional
-from datetime import datetime
 import logging
-from fastapi import APIRouter, Depends, Query, status
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.common import ApiResponse
-from app.schemas.weekly_report import WeeklyReportCreate, WeeklyReportUpdate, WeeklyReportApprove, WeeklyReportSign
-from app.services.weekly_report import WeeklyReportService
+from app.dependencies import (
+    UserInfo,
+    check_data_access,
+    get_current_user_info,
+    get_current_user_required,
+    get_manager_user,
+)
 from app.models.weekly_report import WeeklyReport
 from app.models.work_order_operation_log import WorkOrderOperationLog
-from app.dependencies import get_current_user_info, UserInfo
+from app.schemas.common import ApiResponse
+from app.schemas.weekly_report import (
+    WeeklyReportApprove,
+    WeeklyReportCreate,
+    WeeklyReportSign,
+    WeeklyReportUpdate,
+)
+from app.services.weekly_report import WeeklyReportService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/weekly-report", tags=["Weekly Report Management"])
@@ -22,7 +33,7 @@ router = APIRouter(prefix="/weekly-report", tags=["Weekly Report Management"])
 
 @router.get("/generate-id", response_model=ApiResponse)
 def generate_report_id(
-    report_date: Optional[str] = Query(None, description="填报日期"),
+    report_date: str | None = Query(None, description="填报日期"),
     db: Session = Depends(get_db)
 ):
     """
@@ -32,14 +43,14 @@ def generate_report_id(
     """
     today = datetime.now().strftime("%Y%m%d")
     base_id = f"ZB-{today}"
-    
+
     count = db.query(WeeklyReport).filter(
         WeeklyReport.report_id.like(f"{base_id}%")
     ).count()
-    
+
     sequence = str(count + 1).zfill(2)
     report_id = f"{base_id}-{sequence}"
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -51,17 +62,22 @@ def generate_report_id(
 def get_weekly_reports(
     page: int = Query(0, ge=0, description="页码，从0开始"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
-    report_id: Optional[str] = Query(None, description="周报编号"),
-    report_date: Optional[str] = Query(None, description="填报日期"),
-    work_summary: Optional[str] = Query(None, description="周报内容(模糊搜索)"),
-    created_by: Optional[str] = Query(None, description="创建人"),
+    report_id: str | None = Query(None, description="周报编号"),
+    report_date: str | None = Query(None, description="填报日期"),
+    work_summary: str | None = Query(None, description="周报内容(模糊搜索)"),
+    created_by: str | None = Query(None, description="创建人"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取维保周报列表
+    管理员可以查看所有周报，普通用户只能查看自己的周报
     """
     service = WeeklyReportService(db)
+
+    if not user_info.is_manager:
+        created_by = user_info.name
+
     items, total = service.get_all(
         page, size, report_id, report_date, work_summary, created_by
     )
@@ -84,13 +100,18 @@ def get_weekly_reports(
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_weekly_reports(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有维保周报列表(不分页)
+    管理员可以查看所有周报，普通用户只能查看自己的周报
     """
     service = WeeklyReportService(db)
-    items = service.get_all_unpaginated()
+
+    if user_info.is_manager:
+        items = service.get_all_unpaginated()
+    else:
+        items = service.get_all_unpaginated(created_by=user_info.name)
 
     return ApiResponse(
         code=200,
@@ -102,13 +123,22 @@ def get_all_weekly_reports(
 @router.get("/{id}", response_model=ApiResponse)
 def get_weekly_report_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取维保周报详情
+    管理员可以查看所有周报，普通用户只能查看自己的周报
     """
     service = WeeklyReportService(db)
     report = service.get_by_id(id)
+
+    if not check_data_access(user_info, report.created_by):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权访问此周报"
+        )
+
     return ApiResponse(
         code=200,
         message="success",
@@ -155,12 +185,21 @@ def update_weekly_report(
     id: int,
     dto: WeeklyReportUpdate,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     更新维保周报
+    管理员可更新所有周报，普通用户只能更新自己的周报
     """
     service = WeeklyReportService(db)
+
+    existing_report = service.get_by_id(id)
+    if not check_data_access(user_info, existing_report.created_by):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权修改此周报"
+        )
+
     report = service.update(id, dto, user_info.id, user_info.name)
 
     return ApiResponse(
@@ -174,12 +213,21 @@ def update_weekly_report(
 def submit_weekly_report(
     id: int,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     提交维保周报
+    管理员可提交所有周报，普通用户只能提交自己的周报
     """
     service = WeeklyReportService(db)
+
+    existing_report = service.get_by_id(id)
+    if not check_data_access(user_info, existing_report.created_by):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权提交此周报"
+        )
+
     report = service.submit(id, user_info.id, user_info.name)
 
     if user_info.name and report.id:
@@ -209,10 +257,11 @@ def approve_weekly_report(
     id: int,
     dto: WeeklyReportApprove,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_manager_user)
 ):
     """
     审核维保周报
+    需要管理员或部门经理权限
     """
     service = WeeklyReportService(db)
     if dto.approved:
@@ -262,10 +311,11 @@ def sign_weekly_report(
     id: int,
     dto: WeeklyReportSign,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_manager_user)
 ):
     """
     部门经理签字
+    需要管理员或部门经理权限
     """
     service = WeeklyReportService(db)
     report = service.sign(id, dto.manager_signature, user_info.id, user_info.name)
@@ -281,12 +331,21 @@ def sign_weekly_report(
 def delete_weekly_report(
     id: int,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     删除维保周报(软删除)
+    管理员可以删除所有周报，普通用户只能删除自己的周报
     """
     service = WeeklyReportService(db)
+    report = service.get_by_id(id)
+
+    if not check_data_access(user_info, report.created_by):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权删除此周报"
+        )
+
     service.delete(id, user_info.id, user_info.name)
 
     return ApiResponse(
@@ -307,17 +366,16 @@ def get_weekly_report_operation_logs(
     service = WeeklyReportService(db)
     report = service.get_by_id(id)
     if not report:
-        return ApiResponse(
-            code=404,
-            message="周报不存在",
-            data=None
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="周报不存在"
         )
-    
+
     operation_logs = db.query(WorkOrderOperationLog).filter(
         WorkOrderOperationLog.work_order_type == 'weekly_report',
         WorkOrderOperationLog.work_order_id == id
     ).order_by(WorkOrderOperationLog.created_at.desc()).all()
-    
+
     return ApiResponse(
         code=200,
         message="success",

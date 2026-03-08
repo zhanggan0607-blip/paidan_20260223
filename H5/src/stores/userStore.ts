@@ -12,7 +12,6 @@ import {
   isAdminRole,
   isMaterialManager,
 } from '../config/permission'
-import { onlineUserService } from '../services/onlineUser'
 
 export interface User {
   id: number
@@ -26,7 +25,6 @@ const USER_STORAGE_KEY = 'user'
 const TOKEN_STORAGE_KEY = 'token'
 
 const currentUser = ref<User | null>(null)
-let heartbeatInterval: number | null = null
 
 const loadUserFromStorage = (): User | null => {
   const userStr = localStorage.getItem(USER_STORAGE_KEY)
@@ -40,30 +38,8 @@ const loadUserFromStorage = (): User | null => {
   return null
 }
 
-const startHeartbeat = () => {
-  stopHeartbeat()
-  onlineUserService.sendHeartbeat('h5').catch(() => {})
-  heartbeatInterval = window.setInterval(
-    () => {
-      const token = localStorage.getItem(TOKEN_STORAGE_KEY)
-      if (token) {
-        onlineUserService.sendHeartbeat('h5').catch(() => {})
-      }
-    },
-    1 * 60 * 1000
-  )
-}
-
-const stopHeartbeat = () => {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval)
-    heartbeatInterval = null
-  }
-}
-
 currentUser.value = loadUserFromStorage()
 
-// 监听 user-changed 事件，同步用户状态
 if (typeof window !== 'undefined') {
   window.addEventListener('user-changed', ((event: CustomEvent<User | null>) => {
     currentUser.value = event.detail
@@ -88,19 +64,12 @@ export const userStore = {
   },
 
   setUser(user: User): void {
-    if (currentUser.value && currentUser.value.id !== user.id) {
-      onlineUserService.logout(currentUser.value.id, 'h5').catch(() => {})
-    }
     currentUser.value = user
     localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
     window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
   },
 
   clearUser(): void {
-    stopHeartbeat()
-    if (currentUser.value) {
-      onlineUserService.logout(currentUser.value.id, 'h5').catch(() => {})
-    }
     currentUser.value = null
     localStorage.removeItem(USER_STORAGE_KEY)
     localStorage.removeItem(TOKEN_STORAGE_KEY)
@@ -113,7 +82,6 @@ export const userStore = {
 
   setToken(token: string): void {
     localStorage.setItem(TOKEN_STORAGE_KEY, token)
-    startHeartbeat()
   },
 
   isLoggedIn(): boolean {

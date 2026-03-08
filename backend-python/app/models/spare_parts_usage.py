@@ -1,12 +1,13 @@
-from sqlalchemy import Column, BigInteger, String, Integer, DateTime, Index, ForeignKey
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 
 
 class SparePartsUsage(Base):
     __tablename__ = "spare_parts_usage"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     product_name = Column(String(200), nullable=False, comment="产品名称")
     brand = Column(String(100), comment="品牌")
@@ -24,9 +25,9 @@ class SparePartsUsage(Base):
     remark = Column(String(500), comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     stock = relationship("SparePartsStock", back_populates="usages")
-    
+
     __table_args__ = (
         Index('idx_usage_product_name', 'product_name'),
         Index('idx_usage_user_name', 'user_name'),
@@ -36,7 +37,7 @@ class SparePartsUsage(Base):
         Index('idx_usage_stock_id', 'stock_id'),
         {'comment': '备品备件领用表'}
     )
-    
+
     def to_dict(self):
         return {
             'id': self.id,

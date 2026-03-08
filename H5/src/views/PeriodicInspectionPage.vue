@@ -41,8 +41,10 @@ const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1
 /**
  * 获取工单列表
  * 排序规则：
- * 1. 待确认tab中，部门经理登录时，自己负责的工单排最上面
- * 2. 时间最近的排最上面
+ * 1. 执行中tab中，所有角色只能看到自己的工单
+ * 2. 审批tab中，显示其他人提交的待确认工单
+ * 3. 待确认tab中，显示自己提交的待确认工单
+ * 4. 时间最近的排最上面
  */
 const fetchWorkList = async () => {
   if (!userReady.value) return
@@ -55,19 +57,34 @@ const fetchWorkList = async () => {
     })
     if (response.code === 200) {
       const allItems = response.data?.content || []
-      const filteredItems = allItems.filter((item: any) =>
+      const currentUserName = userStore.getUser()?.name || ''
+      const isInProgressTab = currentTab.value?.key === '执行中'
+      const isApprovalTab = currentTab.value?.key === '审批'
+      const isPendingConfirmTab = currentTab.value?.key === '待确认'
+
+      let filteredItems = allItems.filter((item: any) =>
         currentTab.value?.statuses.includes(item.status)
       )
-      const currentUserName = userStore.getUser()?.name || ''
-      const isManager = canApprove.value
-      const isPendingConfirmTab = currentTab.value?.key === '待确认'
+
+      if (isInProgressTab) {
+        filteredItems = filteredItems.filter(
+          (item: any) => item.maintenance_personnel === currentUserName
+        )
+      }
+
+      if (isApprovalTab) {
+        filteredItems = filteredItems.filter(
+          (item: any) => item.maintenance_personnel !== currentUserName
+        )
+      }
+
+      if (isPendingConfirmTab) {
+        filteredItems = filteredItems.filter(
+          (item: any) => item.maintenance_personnel === currentUserName
+        )
+      }
+
       workList.value = filteredItems.sort((a: any, b: any) => {
-        if (isManager && isPendingConfirmTab) {
-          const aIsOwn = a.maintenance_personnel === currentUserName
-          const bIsOwn = b.maintenance_personnel === currentUserName
-          if (aIsOwn && !bIsOwn) return -1
-          if (!aIsOwn && bIsOwn) return 1
-        }
         const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
         const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
         return dateB - dateA
@@ -92,14 +109,6 @@ const handleBack = () => {
 const handleFeedback = (item: any) => {
   // TODO: 反馈功能还没实现
   console.log('反馈工单:', item)
-}
-
-/**
- * 处理审批操作
- * @param item 工单数据
- */
-const handleApprove = (item: any) => {
-  router.push(`/periodic-inspection/${item.id}?tab=${activeTab.value}&mode=approve`)
 }
 
 const handleUserReady = (_user: User) => {
@@ -181,8 +190,8 @@ onMounted(() => {
                   <div class="info-row">
                     <span class="label">填写内容</span>
                     <span class="value highlight"
-                      >共{{ item.total_count || 5 }}项（已填写
-                      {{ item.filled_count || 0 }} 项）</span
+                      >共{{ item.total_count ?? 0 }}项（已填写
+                      {{ item.filled_count ?? 0 }} 项）</span
                     >
                   </div>
                   <div
@@ -201,14 +210,6 @@ onMounted(() => {
                     @click="handleFeedback(item)"
                   >
                     反馈
-                  </van-button>
-                  <van-button
-                    v-if="currentTab?.key === '审批'"
-                    type="success"
-                    size="small"
-                    @click="handleApprove(item)"
-                  >
-                    审批
                   </van-button>
                   <van-button type="primary" size="small" @click="handleView(item)">
                     查看

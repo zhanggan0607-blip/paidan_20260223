@@ -25,7 +25,7 @@ export interface MaintenancePlan {
   plan_end_date: string
   execution_date?: string
   next_maintenance_date?: string
-  responsible_person: string
+  maintenance_personnel?: string
   responsible_department?: string
   contact_info?: string
   maintenance_content: string
@@ -34,6 +34,8 @@ export interface MaintenancePlan {
   plan_status: string
   status: string
   completion_rate?: number
+  filled_count?: number
+  total_count?: number
   remarks?: string
   inspection_items?: string
   created_at: string
@@ -65,7 +67,7 @@ export interface MaintenancePlanCreate {
   plan_end_date: string
   execution_date?: string
   next_maintenance_date?: string
-  responsible_person: string
+  maintenance_personnel?: string
   responsible_department?: string
   contact_info?: string
   maintenance_content: string
@@ -91,7 +93,7 @@ export interface MaintenancePlanUpdate {
   plan_end_date: string
   execution_date?: string
   next_maintenance_date?: string
-  responsible_person: string
+  maintenance_personnel?: string
   responsible_department?: string
   contact_info?: string
   maintenance_content: string

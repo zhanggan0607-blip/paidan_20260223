@@ -2,15 +2,15 @@
 工作计划API
 提供工作计划的HTTP接口
 """
-from typing import Optional
 import logging
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.services.work_plan import WorkPlanService, WorkPlanCreate, WorkPlanUpdate
+from app.dependencies import UserInfo, get_current_user_info
 from app.schemas.common import ApiResponse
-from app.dependencies import get_current_user_info, UserInfo
+from app.services.work_plan import WorkPlanCreate, WorkPlanService, WorkPlanUpdate
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/work-plan", tags=["Work Plan Management"])
@@ -35,7 +35,7 @@ def get_statistics(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_work_plans(
-    plan_type: Optional[str] = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
+    plan_type: str | None = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
 ):
@@ -45,10 +45,10 @@ def get_all_work_plans(
     """
     service = WorkPlanService(db)
     items = service.get_all_unpaginated(plan_type)
-    
+
     if not user_info.is_manager and user_info.name:
         items = [item for item in items if item.maintenance_personnel == user_info.name]
-    
+
     return ApiResponse(
         code=200,
         message="success",
@@ -60,10 +60,10 @@ def get_all_work_plans(
 def get_work_plans_list(
     page: int = Query(0, ge=0, description="Page number, starts from 0"),
     size: int = Query(10, ge=1, le=1000, description="Page size"),
-    plan_type: Optional[str] = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
-    project_name: Optional[str] = Query(None, description="Project name (fuzzy search)"),
-    client_name: Optional[str] = Query(None, description="Client name (fuzzy search)"),
-    status: Optional[str] = Query(None, description="Status"),
+    plan_type: str | None = Query(None, description="工单类型：定期巡检/临时维修/零星用工"),
+    project_name: str | None = Query(None, description="Project name (fuzzy search)"),
+    client_name: str | None = Query(None, description="Client name (fuzzy search)"),
+    status: str | None = Query(None, description="Status"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
 ):
@@ -73,9 +73,9 @@ def get_work_plans_list(
     """
     service = WorkPlanService(db)
     maintenance_personnel = user_info.get_maintenance_personnel_filter()
-    
+
     items, total = service.get_all(
-        page=page, size=size, plan_type=plan_type, project_name=project_name, 
+        page=page, size=size, plan_type=plan_type, project_name=project_name,
         client_name=client_name, status=status, maintenance_personnel=maintenance_personnel
     )
     items_dict = [item.to_dict() for item in items]

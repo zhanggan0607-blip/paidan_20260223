@@ -220,7 +220,7 @@
                     <input v-model="plan.plan_end_date" type="date" class="table-input" />
                   </td>
                   <td>
-                    <select v-model="plan.responsible_person" class="table-input">
+                    <select v-model="plan.maintenance_personnel" class="table-input">
                       <option value="">请选择</option>
                       <option v-for="person in personnelList" :key="person" :value="person">
                         {{ person }}
@@ -275,7 +275,18 @@
                     />
                   </td>
                   <td>
+                    <div
+                      v-if="item.level1_name"
+                      class="selected-text"
+                      @click="
+                        item.level1_id = ''
+                        item.level1_name = ''
+                      "
+                    >
+                      {{ item.level1_name }}
+                    </div>
                     <el-select
+                      v-else
                       v-model="item.level1_id"
                       placeholder="选择巡查类"
                       size="small"
@@ -291,7 +302,18 @@
                     </el-select>
                   </td>
                   <td>
+                    <div
+                      v-if="item.level2_name"
+                      class="selected-text"
+                      @click="
+                        item.level2_id = ''
+                        item.level2_name = ''
+                      "
+                    >
+                      {{ item.level2_name }}
+                    </div>
                     <el-select
+                      v-else
                       v-model="item.level2_id"
                       placeholder="选择巡查项"
                       size="small"
@@ -308,7 +330,18 @@
                     </el-select>
                   </td>
                   <td>
+                    <div
+                      v-if="item.level3_name"
+                      class="selected-text"
+                      @click="
+                        item.level3_id = ''
+                        item.level3_name = ''
+                      "
+                    >
+                      {{ item.level3_name }}
+                    </div>
                     <el-select
+                      v-else
                       v-model="item.level3_id"
                       placeholder="选择巡查内容"
                       size="small"
@@ -443,7 +476,7 @@
               </div>
               <div class="form-item">
                 <label class="form-label">运维人员</label>
-                <div class="form-value">{{ viewData.responsible_person || '-' }}</div>
+                <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
               </div>
               <div class="form-item">
                 <label class="form-label">联系方式</label>
@@ -596,7 +629,7 @@
                     <input v-model="plan.plan_end_date" type="date" class="table-input" />
                   </td>
                   <td>
-                    <select v-model="plan.responsible_person" class="table-input">
+                    <select v-model="plan.maintenance_personnel" class="table-input">
                       <option value="">请选择</option>
                       <option v-for="person in personnelList" :key="person" :value="person">
                         {{ person }}
@@ -654,7 +687,18 @@
                     />
                   </td>
                   <td>
+                    <div
+                      v-if="item.level1_name"
+                      class="selected-text"
+                      @click="
+                        item.level1_id = ''
+                        item.level1_name = ''
+                      "
+                    >
+                      {{ item.level1_name }}
+                    </div>
                     <el-select
+                      v-else
                       v-model="item.level1_id"
                       placeholder="选择巡查类"
                       size="small"
@@ -670,7 +714,18 @@
                     </el-select>
                   </td>
                   <td>
+                    <div
+                      v-if="item.level2_name"
+                      class="selected-text"
+                      @click="
+                        item.level2_id = ''
+                        item.level2_name = ''
+                      "
+                    >
+                      {{ item.level2_name }}
+                    </div>
                     <el-select
+                      v-else
                       v-model="item.level2_id"
                       placeholder="选择巡查项"
                       size="small"
@@ -687,7 +742,18 @@
                     </el-select>
                   </td>
                   <td>
+                    <div
+                      v-if="item.level3_name"
+                      class="selected-text"
+                      @click="
+                        item.level3_id = ''
+                        item.level3_name = ''
+                      "
+                    >
+                      {{ item.level3_name }}
+                    </div>
                     <el-select
+                      v-else
                       v-model="item.level3_id"
                       placeholder="选择巡查内容"
                       size="small"
@@ -921,7 +987,7 @@ export default defineComponent({
       plan_id: string
       plan_start_date: string
       plan_end_date: string
-      responsible_person: string
+      maintenance_personnel: string
       remarks: string
     }
 
@@ -932,8 +998,11 @@ export default defineComponent({
       check_requirements: string
       brief_description: string
       level1_id: string
+      level1_name: string
       level2_id: string
+      level2_name: string
       level3_id: string
+      level3_name: string
     }
 
     const formData = reactive({
@@ -999,15 +1068,25 @@ export default defineComponent({
     const handleLevel1Change = (index: number) => {
       const item = formData.itemList[index]
       item.level2_id = ''
+      item.level2_name = ''
       item.level3_id = ''
+      item.level3_name = ''
       item.check_requirements = ''
       item.inspection_item = ''
       item.inspection_content = ''
+
+      if (item.level1_id) {
+        const level1Node = level1Nodes.value.find((node) => node.id === item.level1_id)
+        if (level1Node) {
+          item.level1_name = level1Node.label
+        }
+      }
     }
 
     const handleLevel2Change = (index: number) => {
       const item = formData.itemList[index]
       item.level3_id = ''
+      item.level3_name = ''
       item.check_requirements = ''
       item.inspection_content = ''
 
@@ -1016,6 +1095,7 @@ export default defineComponent({
         const level2Node = level2Nodes.find((node) => node.id === item.level2_id)
         if (level2Node) {
           item.inspection_item = level2Node.label
+          item.level2_name = level2Node.label
         }
       }
     }
@@ -1030,11 +1110,10 @@ export default defineComponent({
         if (level3Node) {
           item.inspection_content = level3Node.label
           item.check_requirements = level3Node.checkRequirement || ''
+          item.level3_name = level3Node.label
         }
       }
     }
-
-    let abortController: AbortController | null = null
 
     const viewData = reactive({
       id: 0,
@@ -1046,7 +1125,7 @@ export default defineComponent({
       plan_end_date: '',
       execution_date: '',
       next_maintenance_date: '',
-      responsible_person: '',
+      maintenance_personnel: '',
       responsible_department: '',
       contact_info: '',
       maintenance_content: '',
@@ -1071,7 +1150,7 @@ export default defineComponent({
       viewData.plan_end_date = plan.plan_end_date
       viewData.execution_date = plan.execution_date || ''
       viewData.next_maintenance_date = plan.next_maintenance_date || ''
-      viewData.responsible_person = plan.responsible_person
+      viewData.maintenance_personnel = plan.maintenance_personnel || ''
       viewData.responsible_department = plan.responsible_department || ''
       viewData.contact_info = plan.contact_info || ''
       viewData.maintenance_content = plan.maintenance_content
@@ -1110,7 +1189,7 @@ export default defineComponent({
         plan_id: string
         plan_start_date: string
         plan_end_date: string
-        responsible_person: string
+        maintenance_personnel: string
         remarks: string
         plan_type: string
         execution_date: string
@@ -1131,8 +1210,11 @@ export default defineComponent({
         check_requirements: string
         brief_description: string
         level1_id: string
+        level1_name: string
         level2_id: string
+        level2_name: string
         level3_id: string
+        level3_name: string
       }[],
     })
 
@@ -1162,7 +1244,7 @@ export default defineComponent({
         plan_id: newPlanId,
         plan_start_date: '',
         plan_end_date: '',
-        responsible_person: '',
+        maintenance_personnel: '',
         remarks: '',
         plan_type: '定期维保',
         execution_date: '',
@@ -1249,7 +1331,7 @@ export default defineComponent({
           plan_id: planId,
           plan_start_date: formatDateToString(periodInfo.start),
           plan_end_date: formatDateToString(periodInfo.end),
-          responsible_person: projectManager,
+          maintenance_personnel: projectManager,
           remarks: '',
         })
       })
@@ -1462,7 +1544,7 @@ export default defineComponent({
         plan_id: `${projectId}-${String(newNum).padStart(3, '0')}`,
         plan_start_date: '',
         plan_end_date: '',
-        responsible_person: '',
+        maintenance_personnel: '',
         remarks: '',
       })
     }
@@ -1481,8 +1563,11 @@ export default defineComponent({
         check_requirements: '',
         brief_description: '',
         level1_id: '',
+        level1_name: '',
         level2_id: '',
+        level2_name: '',
         level3_id: '',
+        level3_name: '',
       })
     }
 
@@ -1493,16 +1578,10 @@ export default defineComponent({
     }
 
     const importItems = () => {
-      // TODO: 导入事项功能还没实现，需要对接后端接口
       showToast('导入事项功能开发中', 'info')
     }
 
     const loadData = async () => {
-      if (abortController) {
-        abortController.abort()
-      }
-      abortController = new AbortController()
-
       loading.value = true
       try {
         const response = await maintenancePlanService.getAll()
@@ -1667,7 +1746,7 @@ export default defineComponent({
             plan_end_date: formatDateForAPI(plan.plan_end_date),
             execution_date: undefined,
             next_maintenance_date: undefined,
-            responsible_person: plan.responsible_person || '',
+            maintenance_personnel: plan.maintenance_personnel || '',
             responsible_department: formData.client_name,
             contact_info: undefined,
             maintenance_content:
@@ -1694,8 +1773,11 @@ export default defineComponent({
                 ? JSON.stringify(
                     formData.itemList.map((item) => ({
                       level1_id: item.level1_id || '',
+                      level1_name: item.level1_name || '',
                       level2_id: item.level2_id || '',
+                      level2_name: item.level2_name || '',
                       level3_id: item.level3_id || '',
+                      level3_name: item.level3_name || '',
                       inspection_item: item.inspection_item || '',
                       inspection_content: item.inspection_content || '',
                       check_requirements: item.check_requirements || '',
@@ -1791,7 +1873,7 @@ export default defineComponent({
           plan_id: plan.plan_id,
           plan_start_date: formatDateForInput(plan.plan_start_date),
           plan_end_date: formatDateForInput(plan.plan_end_date),
-          responsible_person: plan.responsible_person || '',
+          maintenance_personnel: plan.maintenance_personnel || '',
           remarks: plan.remarks || '',
           plan_type: plan.plan_type || '定期维保',
           execution_date: plan.execution_date ? formatDateForInput(plan.execution_date) : '',
@@ -1811,7 +1893,28 @@ export default defineComponent({
 
       editData.itemList = []
       const firstPlan = item.plans[0]
-      if (firstPlan.maintenance_content) {
+      if (firstPlan.inspection_items) {
+        try {
+          const items = JSON.parse(firstPlan.inspection_items)
+          items.forEach((savedItem: any) => {
+            editData.itemList.push({
+              item_id: savedItem.item_id || '',
+              inspection_item: savedItem.inspection_item || '',
+              inspection_content: savedItem.inspection_content || '',
+              check_requirements: savedItem.check_requirements || '',
+              brief_description: savedItem.brief_description || '',
+              level1_id: savedItem.level1_id || '',
+              level1_name: savedItem.level1_name || '',
+              level2_id: savedItem.level2_id || '',
+              level2_name: savedItem.level2_name || '',
+              level3_id: savedItem.level3_id || '',
+              level3_name: savedItem.level3_name || '',
+            })
+          })
+        } catch (e) {
+          console.error('解析巡检事项失败:', e)
+        }
+      } else if (firstPlan.maintenance_content) {
         const contents = firstPlan.maintenance_content.split('; ')
         const requirements = firstPlan.maintenance_requirements
           ? firstPlan.maintenance_requirements.split('; ')
@@ -1824,8 +1927,11 @@ export default defineComponent({
             check_requirements: requirements[index] || '',
             brief_description: '',
             level1_id: '',
+            level1_name: '',
             level2_id: '',
+            level2_name: '',
             level3_id: '',
+            level3_name: '',
           })
         })
       }
@@ -1860,15 +1966,25 @@ export default defineComponent({
     const handleEditLevel1Change = (index: number) => {
       const item = editData.itemList[index]
       item.level2_id = ''
+      item.level2_name = ''
       item.level3_id = ''
+      item.level3_name = ''
       item.check_requirements = ''
       item.inspection_item = ''
       item.inspection_content = ''
+
+      if (item.level1_id) {
+        const level1Node = level1Nodes.value.find((node) => node.id === item.level1_id)
+        if (level1Node) {
+          item.level1_name = level1Node.label
+        }
+      }
     }
 
     const handleEditLevel2Change = (index: number) => {
       const item = editData.itemList[index]
       item.level3_id = ''
+      item.level3_name = ''
       item.check_requirements = ''
       item.inspection_content = ''
 
@@ -1877,6 +1993,7 @@ export default defineComponent({
         const level2Node = level2Nodes.find((node) => node.id === item.level2_id)
         if (level2Node) {
           item.inspection_item = level2Node.label
+          item.level2_name = level2Node.label
         }
       }
     }
@@ -1891,6 +2008,7 @@ export default defineComponent({
         if (level3Node) {
           item.inspection_content = level3Node.label
           item.check_requirements = level3Node.checkRequirement || ''
+          item.level3_name = level3Node.label
         }
       }
     }
@@ -1903,8 +2021,11 @@ export default defineComponent({
         check_requirements: '',
         brief_description: '',
         level1_id: '',
+        level1_name: '',
         level2_id: '',
+        level2_name: '',
         level3_id: '',
+        level3_name: '',
       })
     }
 
@@ -1924,9 +2045,12 @@ export default defineComponent({
               inspection_content: item.inspection_content || '',
               check_requirements: item.check_requirements || '',
               brief_description: item.brief_description || '',
-              level1_id: '',
-              level2_id: '',
-              level3_id: '',
+              level1_id: item.level1_id || '',
+              level1_name: item.level1_name || '',
+              level2_id: item.level2_id || '',
+              level2_name: item.level2_name || '',
+              level3_id: item.level3_id || '',
+              level3_name: item.level3_name || '',
             }))
             showToast('导入成功', 'success')
           } catch (e) {
@@ -1985,8 +2109,11 @@ export default defineComponent({
             ? JSON.stringify(
                 editData.itemList.map((item) => ({
                   level1_id: item.level1_id || '',
+                  level1_name: item.level1_name || '',
                   level2_id: item.level2_id || '',
+                  level2_name: item.level2_name || '',
                   level3_id: item.level3_id || '',
+                  level3_name: item.level3_name || '',
                   inspection_item: item.inspection_item || '',
                   inspection_content: item.inspection_content || '',
                   check_requirements: item.check_requirements || '',
@@ -2014,7 +2141,7 @@ export default defineComponent({
             next_maintenance_date: plan.next_maintenance_date
               ? formatDateForAPI(plan.next_maintenance_date)
               : undefined,
-            responsible_person: plan.responsible_person || '',
+            maintenance_personnel: plan.maintenance_personnel || '',
             responsible_department: editData.client_name,
             contact_info: undefined,
             maintenance_content: maintenanceContent,
@@ -2119,9 +2246,6 @@ export default defineComponent({
     })
 
     onUnmounted(() => {
-      if (abortController) {
-        abortController.abort()
-      }
       window.removeEventListener('user-changed', handleUserChanged)
       window.removeEventListener('project-info-changed', handleProjectInfoChanged)
     })
@@ -2930,5 +3054,23 @@ export default defineComponent({
 
 .text-center {
   text-align: center;
+}
+
+.selected-text {
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #333;
+  background: #f5f5f5;
+  cursor: pointer;
+  min-height: 24px;
+  line-height: 24px;
+  transition: all 0.15s;
+}
+
+.selected-text:hover {
+  background: #e8e8e8;
+  border-color: #ccc;
 }
 </style>

@@ -581,8 +581,8 @@ export default defineComponent({
           status: searchForm.value.status || undefined,
         })
 
-        if (response.code === 200) {
-          workData.value = response.data.content.map((item: SpotWork) => ({
+        if (response.code === 200 && response.data) {
+          workData.value = (response.data.content || []).map((item: SpotWork) => ({
             id: item.id,
             work_id: item.work_id,
             project_id: item.project_id,
@@ -597,14 +597,13 @@ export default defineComponent({
             remarks: item.remarks || '',
             work_content: item.work_content || '',
             worker_count: item.worker_count || 0,
-            work_days: item.work_days || 0,
             photos:
               typeof item.photos === 'string'
                 ? item.photos.split(',').filter(Boolean)
                 : item.photos || [],
             signature: item.signature || '',
           }))
-          totalElements.value = response.data.totalElements
+          totalElements.value = response.data.totalElements || 0
           totalPages.value = response.data.totalPages || 1
         }
       } catch (error: any) {

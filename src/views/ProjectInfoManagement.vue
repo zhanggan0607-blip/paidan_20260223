@@ -220,7 +220,7 @@
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label">运维人员</label>
+                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
                 <select v-model="formData.project_manager" class="form-input">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person" :value="person">
@@ -441,7 +441,7 @@
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label">运维人员</label>
+                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
                 <select v-model="editData.project_manager" class="form-input">
                   <option value="">请选择</option>
                   <option v-for="person in personnelList" :key="person" :value="person">
@@ -637,8 +637,6 @@ export default defineComponent({
       client_contact_info: '',
     })
 
-    let abortController: AbortController | null = null
-
     const inputMemory = useInputMemory({
       pageName: 'ProjectInfoManagement',
       fields: [
@@ -706,11 +704,6 @@ export default defineComponent({
     }
 
     const loadData = async () => {
-      if (abortController) {
-        abortController.abort()
-      }
-      abortController = new AbortController()
-
       loading.value = true
       try {
         const response = await projectInfoService.getList({
@@ -720,17 +713,14 @@ export default defineComponent({
           client_name: searchForm.clientName || undefined,
         })
 
-        if (response.code === 200) {
-          projectData.value = response.data.content
-          totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+        if (response.code === 200 && response.data) {
+          projectData.value = response.data.content || []
+          totalElements.value = response.data.totalElements ?? 0
+          totalPages.value = response.data.totalPages ?? 0
         } else {
           showToast(response.message || '加载数据失败', 'error')
         }
       } catch (error: any) {
-        if (error instanceof Error && error.name === 'AbortError') {
-          return
-        }
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
       } finally {
         loading.value = false
@@ -770,6 +760,10 @@ export default defineComponent({
       }
       if (!formData.address?.trim()) {
         showToast('请填写客户地址', 'warning')
+        return false
+      }
+      if (!formData.project_manager?.trim()) {
+        showToast('请选择运维人员', 'warning')
         return false
       }
       return true
@@ -927,6 +921,10 @@ export default defineComponent({
         showToast('请填写客户地址', 'warning')
         return false
       }
+      if (!editData.project_manager?.trim()) {
+        showToast('请选择运维人员', 'warning')
+        return false
+      }
       return true
     }
 
@@ -992,6 +990,7 @@ export default defineComponent({
             error.message &&
             error.message.includes('请确认是否级联删除')
           ) {
+            loading.value = false
             showConfirm(error.message + '\n\n是否确认删除项目及其所有关联数据？', async () => {
               loading.value = true
               try {
@@ -1131,9 +1130,6 @@ export default defineComponent({
     })
 
     onUnmounted(() => {
-      if (abortController) {
-        abortController.abort()
-      }
       window.removeEventListener('user-changed', handleUserChanged)
     })
 

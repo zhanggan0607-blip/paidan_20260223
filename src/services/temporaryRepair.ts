@@ -4,9 +4,28 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { TemporaryRepair as TemporaryRepairType, ApiResponse } from '../types/api'
+import type { ApiResponse, PaginatedData } from '@sstcp/shared'
 
-export type TemporaryRepair = TemporaryRepairType
+export interface TemporaryRepair {
+  id: number
+  repair_id: string
+  plan_id?: string
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  client_name?: string
+  maintenance_personnel?: string
+  status: string
+  remarks?: string
+  fault_description?: string
+  solution?: string
+  photos?: string[]
+  signature?: string
+  execution_date?: string
+  created_at: string
+  updated_at: string
+}
 
 export interface TemporaryRepairCreate {
   repair_id: string
@@ -44,20 +63,6 @@ export interface TemporaryRepairUpdate {
   execution_date?: string
 }
 
-export interface TemporaryRepairPaginatedResponse {
-  code: number
-  message: string
-  data: {
-    content: TemporaryRepair[]
-    totalElements: number
-    totalPages: number
-    size: number
-    number: number
-    first: boolean
-    last: boolean
-  }
-}
-
 export const temporaryRepairService = {
   /**
    * 获取临时维修列表（分页）
@@ -68,7 +73,7 @@ export const temporaryRepairService = {
     project_name?: string
     repair_id?: string
     status?: string
-  }): Promise<TemporaryRepairPaginatedResponse> {
+  }): Promise<ApiResponse<PaginatedData<TemporaryRepair>>> {
     return await request.get(API_ENDPOINTS.TEMPORARY_REPAIR.LIST, { params })
   },
 

@@ -17,10 +17,10 @@ NC='\033[0m'
 #===========================================
 # 请修改以下配置信息
 #===========================================
-SERVER_IP=""                          # 服务器公网IP（留空则自动获取）
+SERVER_IP="8.153.93.123"                          # 服务器公网IP（留空则自动获取）
 DOMAIN=""                             # 域名（没有则留空）
-DB_PASSWORD=""                        # PostgreSQL数据库密码（必填）
-SECRET_KEY=""                         # JWT加密密钥(至少32位，留空自动生成)
+DB_PASSWORD="123456"                        # PostgreSQL数据库密码（必填）
+SECRET_KEY="Lily421020"                         # JWT加密密钥(至少32位，留空自动生成)
 ALIYUN_ACCESS_KEY_ID=""               # 阿里云AccessKey ID（必填）
 ALIYUN_ACCESS_KEY_SECRET=""           # 阿里云AccessKey Secret（必填）
 #===========================================

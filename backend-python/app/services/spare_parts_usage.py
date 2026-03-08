@@ -1,7 +1,8 @@
-from typing import List, Optional, Union
-from fastapi import HTTPException, status
 from datetime import datetime
+
 from sqlalchemy.orm import Session
+
+from app.exceptions import NotFoundException
 from app.models.spare_parts_usage import SparePartsUsage
 from app.repositories.spare_parts_usage import SparePartsUsageRepository
 from app.schemas.spare_parts import SparePartsUsageCreate, SparePartsUsageUpdate
@@ -11,32 +12,29 @@ from app.utils.date_utils import parse_datetime
 class SparePartsUsageService:
     def __init__(self, db: Session):
         self.repository = SparePartsUsageRepository(db)
-    
-    def _parse_date(self, date_value: Union[str, datetime, None]) -> Optional[datetime]:
+
+    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
         return parse_datetime(date_value)
-    
+
     def get_all(
-        self, 
-        page: int = 0, 
-        size: int = 10, 
-        user: Optional[str] = None,
-        product: Optional[str] = None,
-        project: Optional[str] = None,
-        status_filter: Optional[str] = None
-    ) -> tuple[List[SparePartsUsage], int]:
+        self,
+        page: int = 0,
+        size: int = 10,
+        user: str | None = None,
+        product: str | None = None,
+        project: str | None = None,
+        status_filter: str | None = None
+    ) -> tuple[list[SparePartsUsage], int]:
         return self.repository.find_all(
             page, size, user, product, project, status_filter
         )
-    
+
     def get_by_id(self, id: int) -> SparePartsUsage:
         usage = self.repository.find_by_id(id)
         if not usage:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="领用记录不存在"
-            )
+            raise NotFoundException("领用记录不存在")
         return usage
-    
+
     def create(self, dto: SparePartsUsageCreate) -> SparePartsUsage:
         usage = SparePartsUsage(
             product_name=dto.product_name,
@@ -49,12 +47,12 @@ class SparePartsUsageService:
             project_id=dto.project_id,
             project_name=dto.project_name
         )
-        
+
         return self.repository.create(usage)
-    
+
     def update(self, id: int, dto: SparePartsUsageUpdate) -> SparePartsUsage:
         existing_usage = self.get_by_id(id)
-        
+
         if dto.product_name is not None:
             existing_usage.product_name = dto.product_name
         if dto.brand is not None:
@@ -73,9 +71,9 @@ class SparePartsUsageService:
             existing_usage.project_id = dto.project_id
         if dto.project_name is not None:
             existing_usage.project_name = dto.project_name
-        
+
         return self.repository.update(existing_usage)
-    
+
     def delete(self, id: int) -> None:
         usage = self.get_by_id(id)
         self.repository.delete(usage)

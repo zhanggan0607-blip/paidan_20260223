@@ -4,9 +4,32 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { PeriodicInspection as PeriodicInspectionType, ApiResponse } from '../types/api'
+import type { ApiResponse, PaginatedData } from '@sstcp/shared'
 
-export type PeriodicInspection = PeriodicInspectionType
+export interface PeriodicInspection {
+  id: number
+  inspection_id: string
+  plan_id?: string
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  client_contact_position?: string
+  address?: string
+  maintenance_personnel?: string
+  status: string
+  filled_count?: number
+  total_count?: number
+  execution_result?: string
+  remarks?: string
+  signature?: string
+  photos?: string
+  created_at: string
+  updated_at: string
+}
 
 export interface PeriodicInspectionCreate {
   inspection_id: string
@@ -42,40 +65,29 @@ export interface PeriodicInspectionUpdate {
   signature?: string
 }
 
-export interface PeriodicInspectionPaginatedResponse {
-  code: number
-  message: string
-  data: {
-    content: PeriodicInspection[]
-    totalElements: number
-    totalPages: number
-    size: number
-    number: number
-    first: boolean
-    last: boolean
-  }
-}
-
 export const periodicInspectionService = {
   /**
    * 获取定期巡检列表（分页）
    */
-  async getList(params?: {
-    page?: number
-    size?: number
-    project_name?: string
-    client_name?: string
-    inspection_id?: string
-    status?: string
-  }): Promise<PeriodicInspectionPaginatedResponse> {
-    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.LIST, { params })
+  async getList(
+    params?: {
+      page?: number
+      size?: number
+      project_name?: string
+      client_name?: string
+      inspection_id?: string
+      status?: string
+    },
+    signal?: AbortSignal
+  ): Promise<ApiResponse<PaginatedData<PeriodicInspection>>> {
+    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.LIST, { params, signal })
   },
 
   /**
    * 获取定期巡检详情
    */
-  async getById(id: number): Promise<ApiResponse<PeriodicInspection>> {
-    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id))
+  async getById(id: number, signal?: AbortSignal): Promise<ApiResponse<PeriodicInspection>> {
+    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.DETAIL(id), { signal })
   },
 
   /**
@@ -105,7 +117,7 @@ export const periodicInspectionService = {
   /**
    * 获取所有定期巡检（不分页）
    */
-  async getAll(): Promise<ApiResponse<PeriodicInspection[]>> {
-    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.ALL)
+  async getAll(signal?: AbortSignal): Promise<ApiResponse<PeriodicInspection[]>> {
+    return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.ALL, { signal })
   },
 }

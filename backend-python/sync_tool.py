@@ -14,7 +14,10 @@ import re
 import argparse
 import time
 import os
+import logging
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 # 服务器配置
 SSH_HOST = '8.153.93.123'
@@ -152,14 +155,15 @@ def sync_table_via_binary_copy(ssh, conn, table):
                 cur.execute(stmt)
                 conn.commit()
                 count += 1
-            except:
+            except Exception as e:
                 conn.rollback()
+                logger.error(f"同步表 {table} 时发生错误: {str(e)}")
     
     # 重置序列
     try:
         cur.execute(f"SELECT setval('{table}_id_seq', (SELECT COALESCE(MAX(id), 1) FROM {table}))")
         conn.commit()
-    except:
+    except Exception:
         pass
     
     cur.close()
@@ -183,7 +187,7 @@ def sync_table_via_file(ssh, conn, table):
     sftp = ssh.open_sftp()
     try:
         sftp.get(remote_file, local_file)
-    except:
+    except Exception:
         return 0
     finally:
         sftp.close()
@@ -210,7 +214,7 @@ def sync_table_via_file(ssh, conn, table):
             cur.execute(stmt)
             conn.commit()
             count += 1
-        except:
+        except Exception:
             conn.rollback()
     
     if count == 0:
@@ -221,14 +225,14 @@ def sync_table_via_file(ssh, conn, table):
                 cur.execute(stmt)
                 conn.commit()
                 count += 1
-            except:
+            except Exception:
                 conn.rollback()
     
     # 重置序列
     try:
         cur.execute(f"SELECT setval('{table}_id_seq', (SELECT COALESCE(MAX(id), 1) FROM {table}))")
         conn.commit()
-    except:
+    except Exception:
         pass
     
     cur.close()
@@ -236,7 +240,7 @@ def sync_table_via_file(ssh, conn, table):
     # 清理本地文件
     try:
         os.remove(local_file)
-    except:
+    except Exception:
         pass
     
     return count

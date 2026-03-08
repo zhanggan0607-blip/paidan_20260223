@@ -137,6 +137,7 @@ const handleConfirm = async () => {
   const from = route.query.from as string
   const type = route.query.type as string
   const inspectionId = route.query.inspectionId as string
+  const signatureType = route.query.signatureType as string
 
   if (type === 'periodic-inspection' && inspectionId) {
     showLoadingToast({ message: '保存签名...', forbidClick: true })
@@ -162,7 +163,12 @@ const handleConfirm = async () => {
     if (type === 'periodic-inspection') {
       localStorage.setItem('periodic_inspection_signature', signatureData.value)
     } else if (type === 'temporary-repair') {
-      localStorage.setItem('temporary_repair_signature', signatureData.value)
+      // 根据签字类型保存到不同的 localStorage key
+      if (signatureType === 'customer') {
+        localStorage.setItem('temporary_repair_customer_signature', signatureData.value)
+      } else {
+        localStorage.setItem('temporary_repair_signature', signatureData.value)
+      }
     } else if (type === 'temporary-repair-create') {
       localStorage.setItem('temporary_repair_create_signature', signatureData.value)
     } else if (type === 'spot-work') {

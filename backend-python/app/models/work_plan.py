@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 
 
 class WorkPlan(Base, SoftDeleteMixin):
     __tablename__ = "work_plan"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), unique=True, nullable=False, comment="计划编号")
     plan_name = Column(String(200), comment="计划名称")
@@ -24,9 +25,9 @@ class WorkPlan(Base, SoftDeleteMixin):
     remarks = Column(Text, comment="备注")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     project = relationship("ProjectInfo", back_populates="work_plans")
-    
+
     __table_args__ = (
         Index('idx_work_plan_id', 'plan_id'),
         Index('idx_work_plan_type', 'plan_type'),
@@ -37,7 +38,7 @@ class WorkPlan(Base, SoftDeleteMixin):
         Index('idx_work_plan_start_date', 'plan_start_date'),
         {'comment': '工作计划表（统一管理定期巡检、临时维修、零星用工）'}
     )
-    
+
     def to_dict(self):
         project_name = self.project_name
         client_name = self.client_name
@@ -52,7 +53,7 @@ class WorkPlan(Base, SoftDeleteMixin):
             client_contact_info = self.project.client_contact_info or ''
             address = self.project.address or ''
             client_contact_position = self.project.client_contact_position or ''
-        
+
         return {
             'id': self.id,
             'plan_id': self.plan_id,

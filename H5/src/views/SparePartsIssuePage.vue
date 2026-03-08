@@ -21,7 +21,7 @@ const stockList = ref<SparePartsStock[]>([])
 const projectList = ref<ProjectInfo[]>([])
 
 const showIssuePopup = ref(false)
-const selectedStock = ref<SparePartsStock | null>(null)
+const selectedStockId = ref<number | null>(null)
 const issueForm = ref({
   projectId: '',
   projectName: '',
@@ -29,11 +29,16 @@ const issueForm = ref({
 })
 
 const filteredStockList = computed(() => {
-  return stockList.value.filter((item) => (item.quantity || item.stock || 0) > 0)
+  return stockList.value.filter((item) => (item.stock || 0) > 0)
+})
+
+const selectedStock = computed(() => {
+  if (!selectedStockId.value) return null
+  return stockList.value.find((item) => item.id === selectedStockId.value) || null
 })
 
 const maxQuantity = computed(() => {
-  return selectedStock.value?.quantity || 1
+  return selectedStock.value?.stock || 1
 })
 
 /**
@@ -84,14 +89,6 @@ const fetchProjectList = async () => {
 }
 
 /**
- * 选择库存产品
- */
-const handleSelectStock = (item: SparePartsStock) => {
-  selectedStock.value = item
-  issueForm.value.quantity = 1
-}
-
-/**
  * 提交领用
  */
 const handleSubmitIssue = async () => {
@@ -136,7 +133,7 @@ const handleSubmitIssue = async () => {
     if (response.code === 200) {
       showSuccessToast('领用成功')
       showIssuePopup.value = false
-      selectedStock.value = null
+      selectedStockId.value = null
       issueForm.value = {
         projectId: '',
         projectName: '',
@@ -167,6 +164,7 @@ const handleUserChanged = () => {
 
 onMounted(() => {
   fetchIssueList()
+  fetchStockList()
   fetchProjectList()
 })
 </script>
@@ -237,38 +235,32 @@ onMounted(() => {
         </div>
 
         <div class="popup-body">
-          <div class="section-title">选择产品</div>
-          <div class="stock-list">
-            <div
-              v-for="item in filteredStockList"
-              :key="item.id"
-              class="stock-item"
-              :class="{ selected: selectedStock?.id === item.id }"
-              @click="handleSelectStock(item)"
-            >
-              <div class="stock-name">{{ item.productName }}</div>
-              <div class="stock-info">
-                <span v-if="item.brand">{{ item.brand }}</span>
-                <span v-if="item.model">{{ item.model }}</span>
-                <span class="stock-quantity">库存: {{ item.quantity }}{{ item.unit }}</span>
-              </div>
-            </div>
-            <van-empty v-if="filteredStockList.length === 0" description="暂无库存" />
-          </div>
-
-          <div class="section-title">领用信息</div>
           <van-cell-group inset>
+            <van-field label="选择产品" placeholder="请选择产品" required>
+              <template #input>
+                <select
+                  v-model="selectedStockId"
+                  class="stock-select"
+                  @change="issueForm.quantity = 1"
+                >
+                  <option :value="null">请选择产品</option>
+                  <option v-for="item in filteredStockList" :key="item.id" :value="item.id">
+                    {{ item.productName }} {{ item.brand ? `(${item.brand})` : '' }} - 库存:
+                    {{ item.stock }}{{ item.unit }}
+                  </option>
+                </select>
+              </template>
+            </van-field>
             <van-field
               :model-value="selectedStock?.productName || ''"
               label="产品名称"
               placeholder="请选择产品"
               readonly
-              required
             />
             <van-field :model-value="selectedStock?.brand || ''" label="品牌" readonly />
             <van-field :model-value="selectedStock?.model || ''" label="产品型号" readonly />
             <van-field :model-value="selectedStock?.unit || ''" label="单位" readonly />
-            <van-field :model-value="selectedStock?.quantity || 0" label="库存数量" readonly />
+            <van-field :model-value="selectedStock?.stock || 0" label="库存数量" readonly />
             <van-field label="领用数量" required>
               <template #input>
                 <van-stepper
@@ -422,61 +414,14 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.section-title {
-  padding: 12px 16px 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #323233;
-  background: #f7f8fa;
-}
-
-.stock-list {
-  max-height: 250px;
-  overflow-y: auto;
-  padding: 0 12px;
-  background: #fff;
-}
-
-.stock-item {
-  padding: 12px;
-  border-bottom: 1px solid #ebedf0;
-  cursor: pointer;
-}
-
-.stock-item.selected {
-  background: #e8f4ff;
-  border-left: 3px solid #1989fa;
-}
-
-.stock-item:last-child {
-  border-bottom: none;
-}
-
-.stock-name {
-  font-weight: 500;
-  color: #323233;
-  margin-bottom: 4px;
-}
-
-.stock-info {
-  font-size: 12px;
-  color: #969799;
-  display: flex;
-  gap: 8px;
-}
-
-.stock-quantity {
-  color: #1989fa;
-  font-weight: 500;
-}
-
 .popup-footer {
   padding: 16px;
   flex-shrink: 0;
   border-top: 1px solid #ebedf0;
 }
 
-.project-select {
+.project-select,
+.stock-select {
   width: 100%;
   padding: 8px 0;
   border: none;

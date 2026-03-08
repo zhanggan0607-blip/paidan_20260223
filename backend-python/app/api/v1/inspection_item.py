@@ -1,10 +1,12 @@
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import Optional
+
 from app.database import get_db
-from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate, InspectionItem
-from app.services.inspection_item import InspectionItemService
+from app.dependencies import UserInfo, get_manager_user
 from app.schemas.common import ApiResponse, PaginatedResponse
+from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate
+from app.services.inspection_item import InspectionItemService
 
 router = APIRouter(prefix="/inspection-item", tags=["巡检事项管理"])
 
@@ -28,7 +30,7 @@ def get_all_inspection_items(
 def get_inspection_item_list(
     page: int = 0,
     size: int = 10,
-    keyword: Optional[str] = None,
+    keyword: str | None = None,
     db: Session = Depends(get_db)
 ):
     service = InspectionItemService(db)
@@ -69,21 +71,31 @@ def get_inspection_item_by_id(
 @router.post("", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def create_inspection_item(
     item_data: InspectionItemCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
 ):
+    """
+    创建巡检事项
+    需要管理员或部门经理权限
+    """
     service = InspectionItemService(db)
     try:
         item = service.create_item(item_data)
         return ApiResponse(code=200, message="创建成功", data=item.to_dict())
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 @router.put("/{id}", response_model=ApiResponse)
 def update_inspection_item(
     id: int,
     item_data: InspectionItemUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
 ):
+    """
+    更新巡检事项
+    需要管理员或部门经理权限
+    """
     service = InspectionItemService(db)
     try:
         item = service.update_item(id, item_data)
@@ -91,13 +103,18 @@ def update_inspection_item(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="巡检事项不存在")
         return ApiResponse(code=200, message="更新成功", data=item.to_dict())
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 @router.delete("/{id}", response_model=ApiResponse)
 def delete_inspection_item(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
 ):
+    """
+    删除巡检事项
+    需要管理员或部门经理权限
+    """
     service = InspectionItemService(db)
     success = service.delete_item(id)
     if not success:

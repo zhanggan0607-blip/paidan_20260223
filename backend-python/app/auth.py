@@ -1,11 +1,18 @@
+"""
+认证模块
+提供JWT Token生成和验证功能
+
+安全说明：
+- 所有认证必须通过JWT Token完成
+- 密码使用bcrypt加密存储
+"""
 from datetime import datetime, timedelta
-from typing import Optional, Dict
-from urllib.parse import unquote
+
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import Depends, HTTPException, status, Request
-from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.orm import Session
+
 from app.config import get_settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -18,14 +25,44 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    """
+    验证明文密码与哈希密码是否匹配
+
+    Args:
+        plain_password: 明文密码
+        hashed_password: 哈希密码
+
+    Returns:
+        是否匹配
+    """
+    truncated_password = plain_password[:72]
+    return pwd_context.verify(truncated_password, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    """
+    生成密码的哈希值
+
+    Args:
+        password: 明文密码
+
+    Returns:
+        哈希密码
+    """
+    truncated_password = password[:72]
+    return pwd_context.hash(truncated_password)
 
 
 def create_access_token(data: dict) -> str:
+    """
+    创建JWT访问令牌
+
+    Args:
+        data: 要编码的数据
+
+    Returns:
+        JWT Token字符串
+    """
     to_encode = data.copy()
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
@@ -33,7 +70,16 @@ def create_access_token(data: dict) -> str:
     return encoded_jwt
 
 
-async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> Optional[Dict]:
+async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict | None:
+    """
+    从JWT Token获取当前用户信息（可选认证）
+
+    Args:
+        token: JWT Token
+
+    Returns:
+        用户信息字典，未认证返回None
+    """
     if not token:
         return None
     try:
@@ -43,10 +89,22 @@ async def get_current_user(token: Optional[str] = Depends(oauth2_scheme)) -> Opt
         return None
 
 
-async def get_current_user_required(token: str = Depends(oauth2_scheme)) -> Dict:
+async def get_current_user_required(token: str = Depends(oauth2_scheme)) -> dict:
+    """
+    从JWT Token获取当前用户信息（必须认证）
+
+    Args:
+        token: JWT Token
+
+    Returns:
+        用户信息字典
+
+    Raises:
+        HTTPException: 未认证时抛出401异常
+    """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="未登录或登录已过期，请重新登录",
         headers={"WWW-Authenticate": "Bearer"},
     )
     if not token:
@@ -54,41 +112,39 @@ async def get_current_user_required(token: str = Depends(oauth2_scheme)) -> Dict
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError:
-        raise credentials_exception
+    except JWTError as e:
+        raise credentials_exception from e
 
 
-def get_current_user_from_headers(request: Request) -> Optional[Dict]:
-    user_name = request.headers.get('X-User-Name')
-    user_role = request.headers.get('X-User-Role')
-    
-    if user_name:
-        return {
-            'sub': unquote(user_name),
-            'name': unquote(user_name),
-            'role': unquote(user_role) if user_role else '运维人员'
-        }
-    return None
-
-
-async def get_current_admin_user(request: Request, current_user: Optional[Dict] = Depends(get_current_user)) -> Dict:
+async def get_current_admin_user(
+    request: Request,
+    current_user: dict | None = Depends(get_current_user)
+) -> dict:
     """
     获取当前管理员用户，非管理员会抛出403异常
+
+    Args:
+        request: FastAPI请求对象
+        current_user: 当前用户信息
+
+    Returns:
+        用户信息字典
+
+    Raises:
+        HTTPException: 未认证抛出401，权限不足抛出403
     """
-    user_info = current_user or get_current_user_from_headers(request)
-    
-    if not user_info:
+    if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="未登录",
+            detail="未登录或登录已过期",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    role = user_info.get('role', '')
+
+    role = current_user.get('role', '')
     if role not in ['管理员', '部门经理', '主管']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="权限不足，需要管理员权限"
         )
-    
-    return user_info
+
+    return current_user

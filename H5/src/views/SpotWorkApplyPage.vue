@@ -243,6 +243,7 @@ const handleWorkerEntry = () => {
       projectName: applyFormData.value.projectName,
       workDateStart: applyFormData.value.workDateStart,
       workDateEnd: applyFormData.value.workDateEnd,
+      from: route.fullPath,
     },
   })
 }
@@ -312,13 +313,7 @@ const handleSubmit = async () => {
       signature.value = ''
       localStorage.removeItem('spot_work_apply_signature')
 
-      // 提交成功后切换到"待确认"tab
-      const pendingConfirmTabIndex = tabs.value.findIndex((tab) => tab.key === '待确认')
-      if (pendingConfirmTabIndex !== -1) {
-        activeTab.value = pendingConfirmTabIndex
-        // 刷新待确认列表
-        fetchWorkList()
-      }
+      goBack()
     } else {
       showFailToast(response.message || '提交失败')
     }

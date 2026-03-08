@@ -1,18 +1,19 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Union, List, Any
-from datetime import datetime
-from app.config import PersonnelConfig
-from app.schemas.common import ApiResponse, PaginatedResponse
 import re
+from datetime import datetime
+
+from pydantic import BaseModel, Field, field_validator
+
+from app.config import PersonnelConfig
+
 
 class PersonnelBase(BaseModel):
     name: str = Field(..., max_length=50, description="姓名")
     gender: str = Field(..., max_length=10, description="性别")
-    phone: Optional[str] = Field(None, max_length=20, description="联系电话")
-    department: Optional[str] = Field(None, max_length=100, description="所属部门")
+    phone: str | None = Field(None, max_length=20, description="联系电话")
+    department: str | None = Field(None, max_length=100, description="所属部门")
     role: str = Field("运维人员", max_length=20, description="角色")
-    address: Optional[str] = Field(None, max_length=200, description="地址")
-    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    address: str | None = Field(None, max_length=200, description="地址")
+    remarks: str | None = Field(None, max_length=500, description="备注")
 
     @field_validator('gender')
     @classmethod
@@ -33,63 +34,64 @@ class PersonnelBase(BaseModel):
 class PersonnelCreate(PersonnelBase):
     @field_validator('phone')
     @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+    def validate_phone(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        
+
         if not v or not v.strip():
             raise ValueError('联系电话不能为空')
-        
+
         phone = v.strip()
-        
+
         phone_pattern = r'^1[3-9]\d{9}$'
         if not re.match(phone_pattern, phone):
             raise ValueError('请输入有效的手机号码')
-        
+
         return phone
     name: str = Field(..., max_length=50, description="姓名")
     gender: str = Field(..., max_length=10, description="性别")
-    phone: Optional[str] = Field(None, max_length=20, description="联系电话")
-    department: Optional[str] = Field(None, max_length=100, description="所属部门")
+    phone: str | None = Field(None, max_length=20, description="联系电话")
+    department: str | None = Field(None, max_length=100, description="所属部门")
     role: str = Field("运维人员", max_length=20, description="角色")
-    address: Optional[str] = Field(None, max_length=200, description="地址")
-    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    address: str | None = Field(None, max_length=200, description="地址")
+    remarks: str | None = Field(None, max_length=500, description="备注")
 
 class PersonnelUpdate(BaseModel):
-    name: Optional[str] = Field(None, max_length=50, description="姓名")
-    gender: Optional[str] = Field(None, max_length=10, description="性别")
-    phone: Optional[str] = Field(None, max_length=20, description="联系电话")
-    department: Optional[str] = Field(None, max_length=100, description="所属部门")
-    role: Optional[str] = Field(None, max_length=20, description="角色")
-    address: Optional[str] = Field(None, max_length=200, description="地址")
-    remarks: Optional[str] = Field(None, max_length=500, description="备注")
+    name: str | None = Field(None, max_length=50, description="姓名")
+    gender: str | None = Field(None, max_length=10, description="性别")
+    phone: str | None = Field(None, max_length=20, description="联系电话")
+    department: str | None = Field(None, max_length=100, description="所属部门")
+    role: str | None = Field(None, max_length=20, description="角色")
+    address: str | None = Field(None, max_length=200, description="地址")
+    remarks: str | None = Field(None, max_length=500, description="备注")
 
     @field_validator('phone')
     @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+    def validate_phone(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        
+
         if not v or not v.strip():
             raise ValueError('联系电话不能为空')
-        
+
         phone = v.strip()
-        
+
         phone_pattern = r'^1[3-9]\d{9}$'
         if not re.match(phone_pattern, phone):
             raise ValueError('请输入有效的手机号码')
-        
+
         return phone
 
 class PersonnelResponse(BaseModel):
     id: int
     name: str
     gender: str
-    phone: Optional[str]
-    department: Optional[str]
+    phone: str | None
+    department: str | None
     role: str
-    address: Optional[str]
-    remarks: Optional[str]
+    address: str | None
+    remarks: str | None
+    last_login_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
 

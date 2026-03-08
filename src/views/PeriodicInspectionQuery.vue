@@ -543,15 +543,18 @@ export default defineComponent({
 
       loading.value = true
       try {
-        const response = await periodicInspectionService.getList({
-          page: currentPage.value,
-          size: pageSize.value,
-          project_name: searchForm.projectName || undefined,
-          client_name: searchForm.clientName || undefined,
-        })
+        const response = await periodicInspectionService.getList(
+          {
+            page: currentPage.value,
+            size: pageSize.value,
+            project_name: searchForm.projectName || undefined,
+            client_name: searchForm.clientName || undefined,
+          },
+          abortController.signal
+        )
 
-        if (response.code === 200) {
-          inspectionData.value = response.data.content.map((item: PeriodicInspection) => ({
+        if (response.code === 200 && response.data) {
+          inspectionData.value = (response.data.content || []).map((item: PeriodicInspection) => ({
             id: item.id,
             inspection_id: item.inspection_id,
             project_id: item.project_id,
@@ -571,8 +574,8 @@ export default defineComponent({
             created_at: item.created_at,
             updated_at: item.updated_at,
           }))
-          totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+          totalElements.value = response.data.totalElements ?? 0
+          totalPages.value = response.data.totalPages ?? 0
         } else {
           showToast(response.message || '加载数据失败', 'error')
         }

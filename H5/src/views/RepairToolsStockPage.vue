@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
@@ -11,9 +11,43 @@ const { goBack } = useNavigation()
 const loading = ref(false)
 const stockList = ref<RepairToolsStock[]>([])
 
+const filterKeyword = ref('')
+const filterCategory = ref('')
+
+const existingToolNames = computed(() => {
+  const names = new Set<string>()
+  stockList.value.forEach((item) => {
+    if (item.tool_name) {
+      names.add(item.tool_name)
+    }
+  })
+  return Array.from(names).sort()
+})
+
+const filteredStockList = computed(() => {
+  let result = stockList.value
+  if (filterKeyword.value) {
+    const keyword = filterKeyword.value.toLowerCase()
+    result = result.filter(
+      (item) =>
+        item.tool_name?.toLowerCase().includes(keyword) ||
+        item.tool_id?.toLowerCase().includes(keyword) ||
+        item.specification?.toLowerCase().includes(keyword)
+    )
+  }
+  if (filterCategory.value) {
+    result = result.filter((item) => item.category === filterCategory.value)
+  }
+  return result.sort((a, b) => {
+    const aStock = a.stock || 0
+    const bStock = b.stock || 0
+    if (aStock === 0 && bStock !== 0) return -1
+    if (aStock !== 0 && bStock === 0) return 1
+    return 0
+  })
+})
+
 const showAddPopup = ref(false)
-const showRestockPopup = ref(false)
-const isEdit = ref(false)
 
 const addForm = ref({
   id: 0,
@@ -27,13 +61,24 @@ const addForm = ref({
   remark: '',
 })
 
-const restockForm = ref({
-  id: 0,
-  tool_name: '',
-  current_stock: 0,
-  quantity: 1,
-  remark: '',
-})
+/**
+ * 监听工具名称变化，自动填充已有工具的信息
+ */
+watch(
+  () => addForm.value.tool_name,
+  (newName) => {
+    if (newName && existingToolNames.value.includes(newName)) {
+      const existingTool = stockList.value.find((item) => item.tool_name === newName)
+      if (existingTool) {
+        addForm.value.category = existingTool.category || ''
+        addForm.value.specification = existingTool.specification || ''
+        addForm.value.unit = existingTool.unit || ''
+        addForm.value.min_stock = existingTool.min_stock || 0
+        addForm.value.location = existingTool.location || ''
+      }
+    }
+  }
+)
 
 const categoryList = ['电动工具', '手动工具', '测量工具', '焊接工具', '起重工具', '其他']
 
@@ -60,7 +105,6 @@ const fetchStockList = async () => {
  * 新增工具
  */
 const handleAdd = () => {
-  isEdit.value = false
   addForm.value = {
     id: 0,
     tool_name: '',
@@ -76,26 +120,7 @@ const handleAdd = () => {
 }
 
 /**
- * 编辑工具
- */
-const handleEdit = (item: RepairToolsStock) => {
-  isEdit.value = true
-  addForm.value = {
-    id: item.id,
-    tool_name: item.tool_name,
-    category: item.category || '',
-    specification: item.specification || '',
-    unit: item.unit,
-    stock: item.stock || 0,
-    min_stock: item.min_stock || 0,
-    location: item.location || '',
-    remark: '',
-  }
-  showAddPopup.value = true
-}
-
-/**
- * 提交新增/编辑
+ * 提交新增
  */
 const handleSubmitAdd = async () => {
   if (!addForm.value.tool_name || !addForm.value.category || !addForm.value.unit) {
@@ -107,15 +132,10 @@ const handleSubmitAdd = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
 
   try {
-    let response
-    if (isEdit.value) {
-      response = await repairToolsService.updateStock(addForm.value.id, addForm.value)
-    } else {
-      response = await repairToolsService.createStock(addForm.value)
-    }
+    const response = await repairToolsService.createStock(addForm.value)
 
     if (response.code === 200) {
-      showSuccessToast(isEdit.value ? '编辑成功' : '新增成功')
+      showSuccessToast('新增成功')
       showAddPopup.value = false
       fetchStockList()
     } else {
@@ -124,54 +144,6 @@ const handleSubmitAdd = async () => {
   } catch (error) {
     console.error('Failed to submit:', error)
     showFailToast('操作失败，请重试')
-  } finally {
-    loading.value = false
-    closeToast()
-  }
-}
-
-/**
- * 入库
- */
-const handleRestock = (item: RepairToolsStock) => {
-  restockForm.value = {
-    id: item.id,
-    tool_name: item.tool_name,
-    current_stock: item.stock || 0,
-    quantity: 1,
-    remark: '',
-  }
-  showRestockPopup.value = true
-}
-
-/**
- * 提交入库
- */
-const handleSubmitRestock = async () => {
-  if (!restockForm.value.quantity || restockForm.value.quantity < 1) {
-    showFailToast('请输入有效的入库数量')
-    return
-  }
-
-  loading.value = true
-  showLoadingToast({ message: '提交中...', forbidClick: true })
-
-  try {
-    const response = await repairToolsService.restock(restockForm.value.id, {
-      quantity: restockForm.value.quantity,
-      remark: restockForm.value.remark,
-    })
-
-    if (response.code === 200) {
-      showSuccessToast('入库成功')
-      showRestockPopup.value = false
-      fetchStockList()
-    } else {
-      showFailToast(response.message || '入库失败')
-    }
-  } catch (error) {
-    console.error('Failed to restock:', error)
-    showFailToast('入库失败，请重试')
   } finally {
     loading.value = false
     closeToast()
@@ -213,13 +185,27 @@ onMounted(() => {
     </van-nav-bar>
 
     <div class="action-bar">
+      <van-search
+        v-model="filterKeyword"
+        placeholder="搜索工具名称/编号/规格"
+        shape="round"
+        class="search-input"
+      />
+      <van-field v-model="filterCategory" label="" placeholder="分类筛选" class="category-filter">
+        <template #input>
+          <select v-model="filterCategory" class="category-select-filter">
+            <option value="">全部分类</option>
+            <option v-for="cat in categoryList" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
+        </template>
+      </van-field>
       <van-button type="primary" size="small" @click="handleAdd"> 新增入库 </van-button>
     </div>
 
     <van-pull-refresh v-model="loading" @refresh="fetchStockList">
       <van-list :loading="loading" :finished="true">
         <div class="stock-list">
-          <div v-for="item in stockList" :key="item.id" class="stock-card">
+          <div v-for="item in filteredStockList" :key="item.id" class="stock-card">
             <div class="card-header">
               <span class="tool-name">{{ item.tool_name }}</span>
               <span :class="['stock-badge', getStockClass(item)]"> 库存: {{ item.stock }} </span>
@@ -254,29 +240,37 @@ onMounted(() => {
                 <span class="value">{{ formatDate(item.last_stock_time) }}</span>
               </div>
             </div>
-            <div class="card-footer">
-              <van-button size="small" @click="handleEdit(item)">编辑</van-button>
-              <van-button type="primary" size="small" @click="handleRestock(item)">入库</van-button>
-            </div>
           </div>
         </div>
-        <van-empty v-if="!loading && stockList.length === 0" description="暂无工具库存" />
+        <van-empty v-if="!loading && filteredStockList.length === 0" description="暂无工具库存" />
       </van-list>
     </van-pull-refresh>
 
     <van-popup v-model:show="showAddPopup" position="bottom" round :style="{ height: '80%' }">
       <div class="popup-content">
         <div class="popup-header">
-          <span class="popup-title">{{ isEdit ? '编辑工具' : '新增工具入库' }}</span>
+          <span class="popup-title">新增工具入库</span>
           <van-icon name="cross" @click="showAddPopup = false" />
         </div>
         <van-cell-group inset>
           <van-field
             v-model="addForm.tool_name"
             label="工具名称"
-            placeholder="请输入工具名称"
+            placeholder="请输入或选择工具名称"
             required
-          />
+          >
+            <template #input>
+              <input
+                v-model="addForm.tool_name"
+                list="toolNames"
+                placeholder="请输入或选择工具名称"
+                class="datalist-input"
+              />
+              <datalist id="toolNames">
+                <option v-for="name in existingToolNames" :key="name" :value="name" />
+              </datalist>
+            </template>
+          </van-field>
           <van-field v-model="addForm.category" label="工具分类" placeholder="请选择分类" required>
             <template #input>
               <select v-model="addForm.category" class="category-select">
@@ -320,38 +314,6 @@ onMounted(() => {
         </div>
       </div>
     </van-popup>
-
-    <van-popup v-model:show="showRestockPopup" position="bottom" round :style="{ height: '50%' }">
-      <div class="popup-content">
-        <div class="popup-header">
-          <span class="popup-title">工具入库</span>
-          <van-icon name="cross" @click="showRestockPopup = false" />
-        </div>
-        <van-cell-group inset>
-          <van-field :model-value="restockForm.tool_name" label="工具名称" disabled />
-          <van-field :model-value="restockForm.current_stock" label="当前库存" disabled />
-          <van-field
-            v-model="restockForm.quantity"
-            type="number"
-            label="入库数量"
-            placeholder="请输入入库数量"
-            required
-          />
-          <van-field
-            v-model="restockForm.remark"
-            label="备注"
-            placeholder="请输入备注"
-            type="textarea"
-            rows="2"
-          />
-        </van-cell-group>
-        <div class="popup-footer">
-          <van-button type="primary" block :loading="loading" @click="handleSubmitRestock">
-            确认入库
-          </van-button>
-        </div>
-      </div>
-    </van-popup>
   </div>
 </template>
 
@@ -365,6 +327,30 @@ onMounted(() => {
   padding: 12px 16px;
   background: #fff;
   border-bottom: 1px solid #ebedf0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.search-input {
+  padding: 0 !important;
+}
+
+.category-filter {
+  padding: 0 !important;
+}
+
+.category-select-filter {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  font-size: 14px;
+  background: transparent;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .stock-list {
@@ -436,14 +422,6 @@ onMounted(() => {
   word-break: break-all;
 }
 
-.card-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-  border-top: 1px solid #ebedf0;
-}
-
 .nav-left {
   display: flex;
   align-items: center;
@@ -481,6 +459,15 @@ onMounted(() => {
   border: none;
   font-size: 14px;
   background: transparent;
+}
+
+.datalist-input {
+  width: 100%;
+  padding: 8px 0;
+  border: none;
+  font-size: 14px;
+  background: transparent;
+  outline: none;
 }
 
 :deep(.van-cell-group--inset) {

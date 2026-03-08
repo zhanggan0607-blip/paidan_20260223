@@ -130,7 +130,7 @@ def sync_database():
     finally:
         try:
             ssh.close()
-        except:
+        except Exception:
             pass
 
 if __name__ == '__main__':

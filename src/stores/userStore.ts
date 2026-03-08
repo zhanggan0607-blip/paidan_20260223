@@ -6,7 +6,6 @@ import {
   isAdminRole,
   canShowMenu,
 } from '../config/permission'
-import onlineUserService from '../services/onlineUser'
 
 export interface User {
   id: number
@@ -15,6 +14,7 @@ export interface User {
   department?: string
   email?: string
   phone?: string
+  must_change_password?: boolean
 }
 
 const TOKEN_KEY = 'token'
@@ -22,7 +22,6 @@ const USER_KEY = 'user'
 
 const currentUser = ref<User | null>(null)
 const token = ref<string | null>(null)
-let heartbeatInterval: number | null = null
 
 const loadStoredUser = () => {
   const storedToken = localStorage.getItem(TOKEN_KEY)
@@ -41,26 +40,6 @@ const loadStoredUser = () => {
   }
 }
 
-const startHeartbeat = () => {
-  stopHeartbeat()
-  onlineUserService.sendHeartbeat('pc').catch(() => {})
-  heartbeatInterval = window.setInterval(
-    () => {
-      if (token.value) {
-        onlineUserService.sendHeartbeat('pc').catch(() => {})
-      }
-    },
-    1 * 60 * 1000
-  )
-}
-
-const stopHeartbeat = () => {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval)
-    heartbeatInterval = null
-  }
-}
-
 loadStoredUser()
 
 export const userStore = {
@@ -76,9 +55,6 @@ export const userStore = {
   },
 
   setUser: (user: User) => {
-    if (currentUser.value && currentUser.value.id !== user.id) {
-      onlineUserService.logout(currentUser.value.id, 'pc').catch(() => {})
-    }
     currentUser.value = user
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
@@ -87,14 +63,9 @@ export const userStore = {
   setToken: (newToken: string) => {
     token.value = newToken
     localStorage.setItem(TOKEN_KEY, newToken)
-    startHeartbeat()
   },
 
   clearUser: () => {
-    stopHeartbeat()
-    if (currentUser.value) {
-      onlineUserService.logout(currentUser.value.id, 'pc').catch(() => {})
-    }
     currentUser.value = null
     token.value = null
     localStorage.removeItem(TOKEN_KEY)

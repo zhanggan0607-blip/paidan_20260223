@@ -1,15 +1,16 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Index
-from sqlalchemy.sql import func
+
+from sqlalchemy import BigInteger, Column, DateTime, Index, String
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
-from datetime import datetime
 
 
 class ProjectInfo(Base):
     __tablename__ = "project_info"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
-    project_id = Column(String(50), nullable=False, unique=True, comment="项目编号")
+    project_id = Column(String(50), unique=True, nullable=False, comment="项目编号")
     project_name = Column(String(200), nullable=False, comment="项目名称")
     completion_date = Column(DateTime, nullable=False, comment="开始日期")
     maintenance_end_date = Column(DateTime, nullable=False, comment="结束日期")
@@ -17,13 +18,13 @@ class ProjectInfo(Base):
     client_name = Column(String(100), nullable=False, comment="客户单位名称")
     address = Column(String(200), nullable=False, comment="客户地址")
     project_abbr = Column(String(10), comment="项目简称")
-    project_manager = Column(String(50), comment="运维人员")
+    project_manager = Column(String(50), nullable=False, comment="运维人员")
     client_contact = Column(String(50), comment="客户联系人")
     client_contact_position = Column(String(20), comment="客户联系人职位")
     client_contact_info = Column(String(50), comment="客户联系方式")
-    created_at = Column(DateTime, comment="创建时间")
-    updated_at = Column(DateTime, comment="更新时间")
-    
+    created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+
     temporary_repairs = relationship("TemporaryRepair", back_populates="project", passive_deletes=True)
     spot_works = relationship("SpotWork", back_populates="project", passive_deletes=True)
     maintenance_plans = relationship("MaintenancePlan", back_populates="project", passive_deletes=True)
@@ -31,14 +32,14 @@ class ProjectInfo(Base):
     work_plans = relationship("WorkPlan", back_populates="project", passive_deletes=True)
     maintenance_logs = relationship("MaintenanceLog", back_populates="project", passive_deletes=True)
     weekly_reports = relationship("WeeklyReport", back_populates="project", passive_deletes=True)
-    
+
     __table_args__ = (
         Index('idx_project_info_id', 'project_id'),
         Index('idx_project_info_client_name', 'client_name'),
         Index('idx_project_info_project_name', 'project_name'),
         {'comment': '项目信息表'}
     )
-    
+
     def to_dict(self):
         return {
             'id': self.id,

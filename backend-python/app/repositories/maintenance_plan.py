@@ -1,9 +1,10 @@
-from typing import List, Optional
-from datetime import datetime, timedelta
-from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import or_, and_
-from app.models.maintenance_plan import MaintenancePlan
 import logging
+from datetime import datetime, timedelta
+
+from sqlalchemy import and_
+from sqlalchemy.orm import Session, joinedload
+
+from app.models.maintenance_plan import MaintenancePlan
 
 logger = logging.getLogger(__name__)
 
@@ -11,12 +12,12 @@ logger = logging.getLogger(__name__)
 class MaintenancePlanRepository:
     def __init__(self, db: Session):
         self._db = db
-    
+
     @property
     def db(self):
         return self._db
 
-    def find_by_id(self, id: int) -> Optional[MaintenancePlan]:
+    def find_by_id(self, id: int) -> MaintenancePlan | None:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.id == id,
@@ -26,7 +27,7 @@ class MaintenancePlanRepository:
             logger.error(f"查询维保计划失败 (id={id}): {str(e)}")
             raise
 
-    def find_by_plan_id(self, plan_id: str) -> Optional[MaintenancePlan]:
+    def find_by_plan_id(self, plan_id: str) -> MaintenancePlan | None:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.plan_id == plan_id,
@@ -46,21 +47,33 @@ class MaintenancePlanRepository:
             logger.error(f"检查维保计划是否存在失败 (plan_id={plan_id}): {str(e)}")
             raise
 
+    def find_by_plan_id_include_deleted(self, plan_id: str) -> MaintenancePlan | None:
+        """
+        根据计划编号查找维保计划（包括软删除的记录）
+        """
+        try:
+            return self.db.query(MaintenancePlan).filter(
+                MaintenancePlan.plan_id == plan_id
+            ).first()
+        except Exception as e:
+            logger.error(f"查询维保计划（含已删除）失败 (plan_id={plan_id}): {str(e)}")
+            raise
+
     def find_all(
         self,
         page: int = 0,
         size: int = 10,
-        plan_name: Optional[str] = None,
-        project_id: Optional[str] = None,
-        equipment_name: Optional[str] = None,
-        plan_status: Optional[str] = None,
-        status: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None,
-        project_name: Optional[str] = None,
-        client_name: Optional[str] = None,
-        plan_type: Optional[str] = None,
-        maintenance_personnel_filter: Optional[str] = None
-    ) -> tuple[List[MaintenancePlan], int]:
+        plan_name: str | None = None,
+        project_id: str | None = None,
+        equipment_name: str | None = None,
+        plan_status: str | None = None,
+        status: str | None = None,
+        maintenance_personnel: str | None = None,
+        project_name: str | None = None,
+        client_name: str | None = None,
+        plan_type: str | None = None,
+        maintenance_personnel_filter: str | None = None
+    ) -> tuple[list[MaintenancePlan], int]:
         try:
             query = self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.is_deleted == False
@@ -92,7 +105,7 @@ class MaintenancePlanRepository:
 
             if plan_type:
                 query = query.filter(MaintenancePlan.plan_type == plan_type)
-            
+
             if maintenance_personnel_filter:
                 query = query.filter(MaintenancePlan.maintenance_personnel == maintenance_personnel_filter)
 
@@ -104,7 +117,7 @@ class MaintenancePlanRepository:
             logger.error(f"查询维保计划列表失败: {str(e)}")
             raise
 
-    def find_all_unpaginated(self) -> List[MaintenancePlan]:
+    def find_all_unpaginated(self) -> list[MaintenancePlan]:
         try:
             return self.db.query(MaintenancePlan).options(
                 joinedload(MaintenancePlan.project)
@@ -115,7 +128,7 @@ class MaintenancePlanRepository:
             logger.error(f"查询所有维保计划失败: {str(e)}")
             raise
 
-    def find_by_project_id_list(self, project_id: str) -> List[MaintenancePlan]:
+    def find_by_project_id_list(self, project_id: str) -> list[MaintenancePlan]:
         try:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id == project_id,
@@ -129,7 +142,7 @@ class MaintenancePlanRepository:
         self,
         start_date: datetime,
         end_date: datetime
-    ) -> List[MaintenancePlan]:
+    ) -> list[MaintenancePlan]:
         try:
             return self.db.query(MaintenancePlan).filter(
                 and_(
@@ -142,7 +155,7 @@ class MaintenancePlanRepository:
             logger.error(f"查询日期范围内维保计划失败: {str(e)}")
             raise
 
-    def find_upcoming_maintenance(self, days: int = 7) -> List[MaintenancePlan]:
+    def find_upcoming_maintenance(self, days: int = 7) -> list[MaintenancePlan]:
         try:
             start_date = datetime.now()
             end_date = start_date + timedelta(days=days)
@@ -186,7 +199,7 @@ class MaintenancePlanRepository:
     def soft_delete(self, maintenance_plan: MaintenancePlan, user_id: int = None) -> None:
         """
         软删除维保计划
-        
+
         Args:
             maintenance_plan: 要删除的维保计划对象
             user_id: 执行删除的用户ID
@@ -211,7 +224,7 @@ class MaintenancePlanRepository:
             logger.error(f"删除维保计划失败: {str(e)}")
             raise
 
-    def update_status(self, id: int, status: str) -> Optional[MaintenancePlan]:
+    def update_status(self, id: int, status: str) -> MaintenancePlan | None:
         try:
             maintenance_plan = self.find_by_id(id)
             if maintenance_plan:
@@ -224,7 +237,7 @@ class MaintenancePlanRepository:
             logger.error(f"更新维保计划执行状态失败: {str(e)}")
             raise
 
-    def update_completion_rate(self, id: int, rate: int) -> Optional[MaintenancePlan]:
+    def update_completion_rate(self, id: int, rate: int) -> MaintenancePlan | None:
         try:
             maintenance_plan = self.find_by_id(id)
             if maintenance_plan:

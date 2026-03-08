@@ -2,11 +2,12 @@
 工单操作日志Repository
 提供工单操作日志数据访问方法
 """
-from typing import List, Optional
+import logging
+
 from sqlalchemy.orm import Session
+
 from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.repositories.base import BaseRepository
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -16,22 +17,22 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
     工单操作日志Repository
     继承BaseRepository，复用通用CRUD方法
     """
-    
+
     def __init__(self, db: Session):
         super().__init__(db, WorkOrderOperationLog)
 
     def find_by_work_order(
-        self, 
-        work_order_type: str, 
+        self,
+        work_order_type: str,
         work_order_id: int
-    ) -> List[WorkOrderOperationLog]:
+    ) -> list[WorkOrderOperationLog]:
         """
         根据工单类型和ID查询操作日志
-        
+
         Args:
             work_order_type: 工单类型 (periodic_inspection/temporary_repair/spot_work)
             work_order_id: 工单ID
-            
+
         Returns:
             操作日志列表，按创建时间升序排列
         """
@@ -45,17 +46,17 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
             raise
 
     def find_by_work_order_no(
-        self, 
-        work_order_type: str, 
+        self,
+        work_order_type: str,
         work_order_no: str
-    ) -> List[WorkOrderOperationLog]:
+    ) -> list[WorkOrderOperationLog]:
         """
         根据工单类型和编号查询操作日志
-        
+
         Args:
             work_order_type: 工单类型
             work_order_no: 工单编号
-            
+
         Returns:
             操作日志列表，按创建时间升序排列
         """
@@ -76,12 +77,12 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
         operator_name: str,
         operation_type_code: str,
         operation_type_name: str,
-        operator_id: Optional[int] = None,
-        operation_remark: Optional[str] = None
+        operator_id: int | None = None,
+        operation_remark: str | None = None
     ) -> WorkOrderOperationLog:
         """
         创建操作日志
-        
+
         Args:
             work_order_type: 工单类型
             work_order_id: 工单ID
@@ -91,7 +92,7 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
             operation_type_name: 操作类型名称
             operator_id: 操作人员ID (可选)
             operation_remark: 操作备注 (可选)
-            
+
         Returns:
             创建的操作日志记录
         """
@@ -120,12 +121,12 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
         operator_name: str,
         operation_type_code: str,
         operation_type_name: str,
-        operator_id: Optional[int] = None,
-        operation_remark: Optional[str] = None
+        operator_id: int | None = None,
+        operation_remark: str | None = None
     ) -> WorkOrderOperationLog:
         """
         添加操作日志（使用flush而非commit，用于事务中）
-        
+
         Args:
             work_order_type: 工单类型
             work_order_id: 工单ID
@@ -135,7 +136,7 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
             operation_type_name: 操作类型名称
             operator_id: 操作人员ID (可选)
             operation_remark: 操作备注 (可选)
-            
+
         Returns:
             创建的操作日志记录
         """

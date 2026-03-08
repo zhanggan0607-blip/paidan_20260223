@@ -1,5 +1,10 @@
 class BusinessException(Exception):
-    """业务异常基类"""
+    """
+    业务异常基类
+
+    所有业务逻辑异常都应继承此类
+    全局异常处理器会统一处理此类异常
+    """
     def __init__(self, message: str, code: int = 500):
         self.message = message
         self.code = code

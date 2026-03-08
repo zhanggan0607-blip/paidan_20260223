@@ -1,10 +1,11 @@
-import time
-from collections import defaultdict
-from fastapi import Request, HTTPException, status
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import JSONResponse
 import logging
 import threading
+import time
+from collections import defaultdict
+
+from fastapi import Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _cleanup_old_requests(self, client_id: str, current_time: float):
         minute_ago = current_time - 60
         hour_ago = current_time - 3600
-        
+
         self.request_counts[client_id]["minute"] = [
             t for t in self.request_counts[client_id]["minute"] if t > minute_ago
         ]
@@ -40,18 +41,18 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def _cleanup_inactive_clients(self, current_time: float):
         if current_time - self._last_cleanup < self._cleanup_interval:
             return
-        
+
         self._last_cleanup = current_time
         hour_ago = current_time - 3600
         inactive_clients = []
-        
+
         for client_id, counts in self.request_counts.items():
             if not counts["hour"] or max(counts["hour"]) < hour_ago:
                 inactive_clients.append(client_id)
-        
+
         for client_id in inactive_clients:
             del self.request_counts[client_id]
-        
+
         if inactive_clients:
             logger.debug(f"Cleaned up {len(inactive_clients)} inactive clients from rate limiter")
 
@@ -64,7 +65,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path in ["/health", "/", "/docs", "/redoc", "/openapi.json"]:
             return await call_next(request)
-        
+
         if request.method == "OPTIONS":
             return await call_next(request)
 

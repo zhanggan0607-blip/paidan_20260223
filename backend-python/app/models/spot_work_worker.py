@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Text, ForeignKey
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, String
 from sqlalchemy.sql import func
-from sqlalchemy.orm import relationship
+
 from app.database import Base
 
 
@@ -10,7 +9,7 @@ class SpotWorkWorker(Base):
     施工人员信息
     """
     __tablename__ = "spot_work_worker"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     spot_work_id = Column(BigInteger, ForeignKey('spot_work.id', ondelete='CASCADE'), nullable=True, index=True, comment="关联用工单ID")
     project_id = Column(String(50), nullable=False, index=True, comment="项目编号")
@@ -28,7 +27,7 @@ class SpotWorkWorker(Base):
     id_card_back = Column(String(500), comment="身份证反面照片URL")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     def to_dict(self):
         return {
             'id': self.id,

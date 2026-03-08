@@ -38,6 +38,14 @@ const tabs = computed(() => {
 const currentTab = computed(() => tabs.value[activeTab.value])
 const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
 
+/**
+ * 获取工单列表
+ * 排序规则：
+ * 1. 执行中tab中，所有角色只能看到自己的工单
+ * 2. 审批tab中，显示其他人提交的待确认工单
+ * 3. 待确认tab中，显示自己提交的待确认工单
+ * 4. 时间最近的排最上面
+ */
 const fetchWorkList = async () => {
   if (!userReady.value) return
   loading.value = true
@@ -46,9 +54,33 @@ const fetchWorkList = async () => {
     const response = await spotWorkService.getList({ page: 0, size: 100 })
     if (response.code === 200) {
       const allItems = response.data?.content || response.data?.items || []
-      const filteredItems = allItems.filter((item: any) =>
+      const currentUserName = userStore.getUser()?.name || ''
+      const isInProgressTab = currentTab.value?.key === '执行中'
+      const isApprovalTab = currentTab.value?.key === '审批'
+      const isPendingConfirmTab = currentTab.value?.key === '待确认'
+
+      let filteredItems = allItems.filter((item: any) =>
         currentTab.value?.statuses.includes(item.status)
       )
+
+      if (isInProgressTab) {
+        filteredItems = filteredItems.filter(
+          (item: any) => item.maintenance_personnel === currentUserName
+        )
+      }
+
+      if (isApprovalTab) {
+        filteredItems = filteredItems.filter(
+          (item: any) => item.maintenance_personnel !== currentUserName
+        )
+      }
+
+      if (isPendingConfirmTab) {
+        filteredItems = filteredItems.filter(
+          (item: any) => item.maintenance_personnel === currentUserName
+        )
+      }
+
       workList.value = filteredItems.sort((a: any, b: any) => {
         const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
         const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
@@ -69,14 +101,6 @@ const handleView = (item: any) => {
 
 const handleBack = () => {
   goBack()
-}
-
-/**
- * 处理审批操作
- * @param item 工单数据
- */
-const handleApprove = (item: any) => {
-  router.push(`/spot-work/${item.id}?tab=${activeTab.value}&mode=approve`)
 }
 
 const handleUserReady = (_user: User) => {
@@ -174,14 +198,6 @@ onActivated(() => {
                   </div>
                 </div>
                 <div class="card-footer">
-                  <van-button
-                    v-if="currentTab?.key === '审批'"
-                    type="success"
-                    size="small"
-                    @click="handleApprove(item)"
-                  >
-                    审批
-                  </van-button>
                   <van-button type="primary" size="small" @click="handleView(item)">
                     查看
                   </van-button>

@@ -1,46 +1,71 @@
-from typing import List, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import or_, and_
-from app.models.project_info import ProjectInfo
-from datetime import datetime
+"""
+项目信息Repository
+提供项目信息数据访问操作
+"""
 import logging
+
+from sqlalchemy.orm import Session
+
+from app.models.project_info import ProjectInfo
+from app.repositories.base import BaseRepository
 
 logger = logging.getLogger(__name__)
 
 
-class ProjectInfoRepository:
+class ProjectInfoRepository(BaseRepository[ProjectInfo]):
+    """
+    项目信息Repository
+    继承BaseRepository，复用通用CRUD操作
+    """
+
     def __init__(self, db: Session):
-        self.db = db
+        super().__init__(db, ProjectInfo)
 
-    def find_by_id(self, id: int) -> Optional[ProjectInfo]:
-        try:
-            return self.db.query(ProjectInfo).filter(ProjectInfo.id == id).first()
-        except Exception as e:
-            logger.error(f"查询项目信息失败 (id={id}): {str(e)}")
-            raise
+    def find_by_project_id(self, project_id: str) -> ProjectInfo | None:
+        """
+        根据项目编号查询项目信息
 
-    def find_by_project_id(self, project_id: str) -> Optional[ProjectInfo]:
-        try:
-            return self.db.query(ProjectInfo).filter(ProjectInfo.project_id == project_id).first()
-        except Exception as e:
-            logger.error(f"查询项目信息失败 (project_id={project_id}): {str(e)}")
-            raise
+        Args:
+            project_id: 项目编号
+
+        Returns:
+            项目信息，未找到返回None
+        """
+        return self.find_by_field('project_id', project_id)
 
     def exists_by_project_id(self, project_id: str) -> bool:
-        try:
-            return self.db.query(ProjectInfo).filter(ProjectInfo.project_id == project_id).first() is not None
-        except Exception as e:
-            logger.error(f"检查项目信息是否存在失败 (project_id={project_id}): {str(e)}")
-            raise
+        """
+        检查项目编号是否存在
+
+        Args:
+            project_id: 项目编号
+
+        Returns:
+            是否存在
+        """
+        return self.exists_by_field('project_id', project_id)
 
     def find_all(
         self,
         page: int = 0,
         size: int = 10,
-        project_name: Optional[str] = None,
-        client_name: Optional[str] = None,
-        project_ids: Optional[List[str]] = None
-    ) -> tuple[List[ProjectInfo], int]:
+        project_name: str | None = None,
+        client_name: str | None = None,
+        project_ids: list[str] | None = None
+    ) -> tuple[list[ProjectInfo], int]:
+        """
+        分页查询项目信息列表
+
+        Args:
+            page: 页码
+            size: 每页数量
+            project_name: 项目名称（模糊查询）
+            client_name: 客户名称（模糊查询）
+            project_ids: 项目编号列表（精确筛选）
+
+        Returns:
+            (项目列表, 总数)
+        """
         try:
             query = self.db.query(ProjectInfo)
 
@@ -49,7 +74,7 @@ class ProjectInfoRepository:
 
             if client_name:
                 query = query.filter(ProjectInfo.client_name.like(f"%{client_name}%"))
-            
+
             if project_ids:
                 query = query.filter(ProjectInfo.project_id.in_(project_ids))
 
@@ -60,7 +85,16 @@ class ProjectInfoRepository:
             logger.error(f"查询项目信息列表失败: {str(e)}")
             raise
 
-    def find_all_unpaginated(self, project_ids: Optional[List[str]] = None) -> List[ProjectInfo]:
+    def find_all_unpaginated(self, project_ids: list[str] | None = None) -> list[ProjectInfo]:
+        """
+        查询所有项目信息（不分页）
+
+        Args:
+            project_ids: 项目编号列表（精确筛选）
+
+        Returns:
+            项目列表
+        """
         try:
             query = self.db.query(ProjectInfo)
             if project_ids:
@@ -68,40 +102,4 @@ class ProjectInfoRepository:
             return query.order_by(ProjectInfo.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有项目信息失败: {str(e)}")
-            raise
-
-    def create(self, project_info: ProjectInfo) -> ProjectInfo:
-        try:
-            now = datetime.now()
-            project_info.created_at = now
-            project_info.updated_at = now
-            logger.info(f"📥 [Repository] 准备插入数据: id={project_info.id}, project_id={project_info.project_id}")
-            self.db.add(project_info)
-            self.db.commit()
-            self.db.refresh(project_info)
-            logger.info(f"✅ [Repository] 数据库插入成功: id={project_info.id}, project_id={project_info.project_id}")
-            return project_info
-        except Exception as e:
-            logger.error(f"❌ [Repository] 数据库插入失败: {str(e)}")
-            self.db.rollback()
-            logger.error(f"创建项目信息失败: {str(e)}")
-            raise
-
-    def update(self, project_info: ProjectInfo) -> ProjectInfo:
-        try:
-            self.db.commit()
-            self.db.refresh(project_info)
-            return project_info
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"更新项目信息失败: {str(e)}")
-            raise
-
-    def delete(self, project_info: ProjectInfo) -> None:
-        try:
-            self.db.delete(project_info)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"删除项目信息失败: {str(e)}")
             raise

@@ -27,7 +27,7 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">+ 新增人员</button>
+        <button class="btn btn-add" @click="handleOpenModal">+ 新增人员</button>
       </div>
     </div>
 
@@ -41,6 +41,7 @@
             <th>部门</th>
             <th>角色</th>
             <th>联系电话</th>
+            <th>最后登录时间</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -56,6 +57,7 @@
             <td>{{ item.department || '-' }}</td>
             <td :class="getRoleClass(item.role)">{{ item.role }}</td>
             <td>{{ item.phone || '-' }}</td>
+            <td>{{ item.last_login_at ? formatDate(item.last_login_at) : '-' }}</td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
               <a
@@ -81,44 +83,50 @@
     <div class="pagination-section">
       <div class="pagination-info">共 {{ totalElements }} 条记录</div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="prevPage">
           &lt;
         </button>
         <button
-          v-for="page in totalPages"
+          v-for="page in displayedPages"
           :key="page"
           class="page-btn page-num"
           :class="{ active: page === currentPage + 1 }"
-          @click="currentPage = page - 1"
+          @click="goToPage(page - 1)"
         >
           {{ page }}
         </button>
         <button
           class="page-btn page-nav"
           :disabled="currentPage >= totalPages - 1"
-          @click="currentPage++"
+          @click="nextPage"
         >
           &gt;
         </button>
-        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
-          <option value="10">10 条 / 页</option>
-          <option value="20">20 条 / 页</option>
-          <option value="50">50 条 / 页</option>
+        <select v-model.number="pageSize" class="page-select" @change="handlePageSizeChange">
+          <option :value="10">10 条 / 页</option>
+          <option :value="20">20 条 / 页</option>
+          <option :value="50">50 条 / 页</option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+          <input
+            v-model.number="jumpPage"
+            type="number"
+            class="page-input"
+            min="1"
+            :max="totalPages"
+          />
           <span>页</span>
           <button class="page-btn page-go" @click="handleJump">Go</button>
         </div>
       </div>
     </div>
 
-    <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+    <div v-if="isModalOpen" class="modal-overlay" @click.self="handleCloseModal">
       <div class="modal-container">
         <div class="modal-header">
           <h3 class="modal-title">{{ isEditMode ? '编辑人员' : '新增人员' }}</h3>
-          <button class="modal-close" @click="closeModal">×</button>
+          <button class="modal-close" @click="handleCloseModal">×</button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
@@ -198,7 +206,7 @@
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeModal">取消</button>
+          <button class="btn btn-cancel" @click="handleCloseModal">取消</button>
           <button class="btn btn-save" :disabled="saving" @click="handleSave">
             {{ saving ? '保存中...' : '保存' }}
           </button>
@@ -227,6 +235,12 @@
                 <label class="form-label">联系电话</label>
                 <div class="form-value">{{ viewData.phone || '-' }}</div>
               </div>
+              <div class="form-item">
+                <label class="form-label">最后登录时间</label>
+                <div class="form-value">
+                  {{ viewData.last_login_at ? formatDate(viewData.last_login_at) : '-' }}
+                </div>
+              </div>
             </div>
             <div class="form-column">
               <div class="form-item">
@@ -249,10 +263,6 @@
               </div>
             </div>
           </div>
-          <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
-          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
@@ -263,16 +273,7 @@
 </template>
 
 <script lang="ts">
-import {
-  defineComponent,
-  reactive,
-  ref,
-  computed,
-  watch,
-  onMounted,
-  onUnmounted,
-  watchEffect,
-} from 'vue'
+import { defineComponent, reactive, ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import {
   personnelService,
@@ -285,10 +286,8 @@ import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
 import { useInputMemory } from '../utils/inputMemory'
+import { useToast, usePageState, useAbortController } from '../composables'
 
-// TODO: 人员管理页面 - 后续考虑加入批量导入功能
-// FIXME: 权限控制逻辑分散在多个地方，需要统一管理
-// TODO: 手机号验证正则表达式应该抽到公共配置
 export default defineComponent({
   name: 'PersonnelManagement',
   components: {
@@ -302,25 +301,27 @@ export default defineComponent({
       department: '',
     })
 
+    const { toast, success, error, warning } = useToast()
+    const {
+      loading,
+      saving,
+      isModalOpen,
+      isViewModalOpen,
+      isEditMode,
+      editingId,
+      openModal,
+      closeModal,
+      openViewModal,
+      closeViewModal,
+    } = usePageState()
+    const { createController, abort, isAbortError } = useAbortController()
+
     const currentPage = ref(0)
     const pageSize = ref(10)
     const jumpPage = ref(1)
-    const loading = ref(false)
-    const saving = ref(false)
-    const isModalOpen = ref(false)
-    const isViewModalOpen = ref(false)
-    const isEditMode = ref(false)
-    const editingId = ref<number | null>(null)
-
     const personnelData = ref<Personnel[]>([])
     const totalElements = ref(0)
     const totalPages = ref(0)
-
-    const toast = reactive({
-      visible: false,
-      message: '',
-      type: 'success' as 'success' | 'error' | 'warning' | 'info',
-    })
 
     const formData = reactive({
       name: '',
@@ -331,8 +332,6 @@ export default defineComponent({
       address: '',
       remarks: '',
     })
-
-    let abortController: AbortController | null = null
 
     const inputMemory = useInputMemory({
       pageName: 'PersonnelManagement',
@@ -360,29 +359,39 @@ export default defineComponent({
       role: '',
       address: '',
       remarks: '',
+      last_login_at: '',
     })
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
+    const displayedPages = computed(() => {
+      const pages: number[] = []
+      const maxVisible = 5
+      let start = Math.max(0, currentPage.value - Math.floor(maxVisible / 2))
+      const end = Math.min(totalPages.value, start + maxVisible)
+      if (end - start < maxVisible) {
+        start = Math.max(0, end - maxVisible)
+      }
+      for (let i = start; i < end; i++) {
+        pages.push(i + 1)
+      }
+      return pages
+    })
 
-    /**
-     * 显示Toast提示消息
-     * @param message 提示消息内容
-     * @param type 提示类型：success/error/warning/info
-     */
-    const showToast = (
-      message: string,
-      type: 'success' | 'error' | 'warning' | 'info' = 'success'
-    ) => {
-      toast.message = message
-      toast.type = type
-      toast.visible = true
+    const formatDate = (dateStr: string): string => {
+      if (!dateStr) return '-'
+      try {
+        const date = new Date(dateStr)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        return `${year}-${month}-${day} ${hours}:${minutes}`
+      } catch {
+        return dateStr
+      }
     }
 
-    /**
-     * 根据角色获取对应的CSS类名
-     * @param role 角色名称
-     * @returns CSS类名字符串
-     */
     const getRoleClass = (role: string) => {
       switch (role) {
         case '管理员':
@@ -398,12 +407,6 @@ export default defineComponent({
       }
     }
 
-    /**
-     * 判断当前用户是否有权限编辑指定人员
-     * 管理员可编辑所有人员，部门经理只能编辑本部门人员
-     * @param item 人员信息
-     * @returns 是否有编辑权限
-     */
     const canEdit = (item: Personnel) => {
       if (currentUserRole.value === '管理员') {
         return true
@@ -414,129 +417,76 @@ export default defineComponent({
       return false
     }
 
-    /**
-     * 判断当前用户是否有权限删除指定人员
-     * 只有管理员可以删除人员
-     * @param item 人员信息
-     * @returns 是否有删除权限
-     */
     const canDelete = (_item: Personnel) => {
-      if (currentUserRole.value === '管理员') {
-        return true
-      }
-      return false
+      return currentUserRole.value === '管理员'
     }
 
-    /**
-     * 判断当前用户是否可以编辑角色字段
-     * 只有管理员可以修改人员角色
-     * @returns 是否有编辑角色的权限
-     */
     const canEditRole = () => {
       return currentUserRole.value === '管理员'
     }
 
-    /**
-     * 加载人员列表数据
-     * 根据当前页码、每页大小和搜索条件从后端获取数据
-     * 支持请求取消，避免重复请求
-     */
     const loadData = async () => {
-      if (abortController) {
-        abortController.abort()
-      }
-      abortController = new AbortController()
+      const controller = createController()
 
       loading.value = true
       try {
-        const response = await personnelService.getList({
-          page: currentPage.value,
-          size: pageSize.value,
-          name: searchForm.name || undefined,
-          department: searchForm.department || undefined,
-          current_user_role: currentUserRole.value,
-          current_user_department: currentUserDepartment.value || undefined,
-        })
+        const response = await personnelService.getList(
+          {
+            page: currentPage.value,
+            size: pageSize.value,
+            name: searchForm.name || undefined,
+            department: searchForm.department || undefined,
+            current_user_role: currentUserRole.value,
+            current_user_department: currentUserDepartment.value || undefined,
+          },
+          controller.signal
+        )
 
-        if (response.code === 200) {
-          personnelData.value = response.data.content
-          totalElements.value = response.data.totalElements
-          totalPages.value = response.data.totalPages
+        if (response.code === 200 && response.data) {
+          personnelData.value = response.data.content || []
+          totalElements.value = response.data.totalElements ?? 0
+          totalPages.value = response.data.totalPages ?? 0
         } else {
-          showToast(response.message || '加载数据失败', 'error')
+          error(response.message || '加载数据失败')
         }
-      } catch (error: any) {
-        if (error instanceof Error && error.name === 'AbortError') {
+      } catch (err) {
+        if (isAbortError(err)) {
           return
         }
-        showToast(error.message || '加载数据失败，请检查网络连接', 'error')
+        error(err instanceof Error ? err.message : '加载数据失败，请检查网络连接')
       } finally {
         loading.value = false
       }
     }
 
-    /**
-     * 处理搜索按钮点击事件
-     * 重置页码并重新加载数据
-     */
     const handleSearch = () => {
       currentPage.value = 0
       loadData()
     }
 
-    /**
-     * 校验表单数据
-     * 检查必填字段和手机号格式
-     * @returns 表单是否有效
-     */
     const checkFormValid = (): boolean => {
       if (!formData.name?.trim()) {
-        showToast('请填写姓名', 'warning')
+        warning('请填写姓名')
         return false
       }
       if (!formData.gender?.trim()) {
-        showToast('请选择性别', 'warning')
+        warning('请选择性别')
         return false
       }
       if (!formData.role?.trim()) {
-        showToast('请选择角色', 'warning')
+        warning('请选择角色')
         return false
       }
       if (formData.phone && formData.phone.trim()) {
         const phonePattern = /^1[3-9]\d{9}$/
         if (!phonePattern.test(formData.phone.trim())) {
-          showToast('请输入有效的手机号码', 'warning')
+          warning('请输入有效的手机号码')
           return false
         }
       }
       return true
     }
 
-    /**
-     * 打开新增人员弹窗
-     * 重置表单并加载输入记忆
-     */
-    const openModal = () => {
-      resetForm()
-      isEditMode.value = false
-      inputMemory.loadMemory()
-      isModalOpen.value = true
-    }
-
-    /**
-     * 关闭人员编辑弹窗
-     * 新增模式下保存输入记忆
-     */
-    const closeModal = () => {
-      if (!isEditMode.value) {
-        inputMemory.saveMemory(formData)
-      }
-      isModalOpen.value = false
-    }
-
-    /**
-     * 重置表单数据为默认值
-     */
     const resetForm = () => {
       formData.name = ''
       formData.gender = ''
@@ -547,10 +497,19 @@ export default defineComponent({
       formData.remarks = ''
     }
 
-    /**
-     * 保存人员信息
-     * 根据编辑模式调用创建或更新接口
-     */
+    const handleOpenModal = () => {
+      resetForm()
+      inputMemory.loadMemory()
+      openModal()
+    }
+
+    const handleCloseModal = () => {
+      if (!isEditMode.value) {
+        inputMemory.saveMemory(formData)
+      }
+      closeModal()
+    }
+
     const handleSave = async () => {
       if (!checkFormValid()) {
         return
@@ -572,11 +531,11 @@ export default defineComponent({
           const response = await personnelService.update(editingId.value, updateData)
 
           if (response.code === 200) {
-            showToast('更新成功', 'success')
-            closeModal()
+            success('更新成功')
+            handleCloseModal()
             await loadData()
           } else {
-            showToast(response.message || '更新失败', 'error')
+            error(response.message || '更新失败')
           }
         } else {
           const createData: PersonnelCreate = {
@@ -592,25 +551,21 @@ export default defineComponent({
           const response = await personnelService.create(createData)
 
           if (response.code === 200) {
-            showToast('创建成功', 'success')
-            closeModal()
+            success('创建成功')
+            handleCloseModal()
             await loadData()
           } else {
-            showToast(response.message || '创建失败', 'error')
+            error(response.message || '创建失败')
           }
         }
-      } catch (error: any) {
-        console.error('保存失败:', error)
-        showToast(error.message || '保存失败，请检查网络连接', 'error')
+      } catch (err) {
+        console.error('保存失败:', err)
+        error(err instanceof Error ? err.message : '保存失败，请检查网络连接')
       } finally {
         saving.value = false
       }
     }
 
-    /**
-     * 查看人员详情
-     * @param item 人员信息
-     */
     const handleView = (item: Personnel) => {
       viewData.id = item.id
       viewData.name = item.name
@@ -620,14 +575,10 @@ export default defineComponent({
       viewData.role = item.role
       viewData.address = item.address || ''
       viewData.remarks = item.remarks || ''
-      isViewModalOpen.value = true
+      viewData.last_login_at = item.last_login_at || ''
+      openViewModal()
     }
 
-    /**
-     * 编辑人员信息
-     * 将人员数据填充到表单并打开编辑弹窗
-     * @param item 人员信息
-     */
     const handleEdit = (item: Personnel) => {
       editingId.value = item.id
       formData.name = item.name
@@ -637,22 +588,9 @@ export default defineComponent({
       formData.role = item.role
       formData.address = item.address || ''
       formData.remarks = item.remarks || ''
-      isEditMode.value = true
-      isModalOpen.value = true
+      openModal(item.id)
     }
 
-    /**
-     * 关闭查看详情弹窗
-     */
-    const closeViewModal = () => {
-      isViewModalOpen.value = false
-    }
-
-    /**
-     * 删除人员
-     * 弹出确认框，确认后调用删除接口
-     * @param item 人员信息
-     */
     const handleDelete = async (item: Personnel) => {
       try {
         await ElMessageBox.confirm('确定要删除该人员吗？', '提示', {
@@ -665,48 +603,63 @@ export default defineComponent({
         const response = await personnelService.delete(item.id)
 
         if (response.code === 200) {
-          showToast('删除成功', 'success')
+          success('删除成功')
           await loadData()
         } else {
-          showToast(response.message || '删除失败', 'error')
+          error(response.message || '删除失败')
         }
-      } catch (error: any) {
-        if (error !== 'cancel') {
-          console.error('删除失败:', error)
-          showToast(error.message || '删除失败，请检查网络连接', 'error')
+      } catch (err) {
+        if (err !== 'cancel') {
+          console.error('删除失败:', err)
+          error(err instanceof Error ? err.message : '删除失败，请检查网络连接')
         }
       } finally {
         loading.value = false
       }
     }
 
-    /**
-     * 跳转到指定页码
-     */
     const handleJump = () => {
-      const page = parseInt(jumpPage.value.toString())
-      if (page >= 1 && page <= totalPages.value) {
-        currentPage.value = page - 1
+      const page = jumpPage.value - 1
+      if (page >= 0 && page < totalPages.value) {
+        currentPage.value = page
       }
     }
 
-    /**
-     * 处理每页大小变更
-     * 重置页码并重新加载数据
-     */
     const handlePageSizeChange = () => {
       currentPage.value = 0
       loadData()
     }
 
-    watchEffect((onCleanup) => {
-      const unwatch = watch(currentPage, () => {
-        loadData()
-      })
-      onCleanup(() => {
-        unwatch()
-      })
+    const goToPage = (page: number) => {
+      if (page >= 0 && page < totalPages.value) {
+        currentPage.value = page
+      }
+    }
+
+    const nextPage = () => {
+      if (currentPage.value < totalPages.value - 1) {
+        currentPage.value++
+      }
+    }
+
+    const prevPage = () => {
+      if (currentPage.value > 0) {
+        currentPage.value--
+      }
+    }
+
+    watch(currentPage, () => {
+      loadData()
     })
+
+    const handleUserChanged = () => {
+      const user = userStore.getUser()
+      if (user) {
+        currentUserRole.value = user.role
+        currentUserDepartment.value = user.department || ''
+      }
+      loadData()
+    }
 
     onMounted(() => {
       const user = userStore.getUser()
@@ -719,24 +672,9 @@ export default defineComponent({
     })
 
     onUnmounted(() => {
-      if (abortController) {
-        abortController.abort()
-      }
+      abort()
       window.removeEventListener('user-changed', handleUserChanged)
     })
-
-    /**
-     * 处理用户变更事件
-     * 当用户信息发生变化时更新当前用户角色和部门
-     */
-    const handleUserChanged = () => {
-      const user = userStore.getUser()
-      if (user) {
-        currentUserRole.value = user.role
-        currentUserDepartment.value = user.department || ''
-      }
-      loadData()
-    }
 
     return {
       searchForm,
@@ -747,6 +685,7 @@ export default defineComponent({
       jumpPage,
       totalElements,
       startIndex,
+      displayedPages,
       isModalOpen,
       isViewModalOpen,
       isEditMode,
@@ -757,8 +696,8 @@ export default defineComponent({
       toast,
       currentUserRole,
       currentUserDepartment,
-      openModal,
-      closeModal,
+      handleOpenModal,
+      handleCloseModal,
       handleSave,
       handleView,
       handleEdit,
@@ -767,7 +706,11 @@ export default defineComponent({
       handlePageSizeChange,
       closeViewModal,
       handleSearch,
+      goToPage,
+      nextPage,
+      prevPage,
       getRoleClass,
+      formatDate,
       canEdit,
       canDelete,
       canEditRole,

@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Text, Index, ForeignKey, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 
 
 class MaintenanceLog(Base, SoftDeleteMixin):
     __tablename__ = "maintenance_log"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     log_id = Column(String(50), unique=True, nullable=False, comment="日志编号")
     project_id = Column(String(50), ForeignKey('project_info.project_id', ondelete='CASCADE'), nullable=False, comment="项目编号")
@@ -22,9 +23,9 @@ class MaintenanceLog(Base, SoftDeleteMixin):
     created_by = Column(String(100), comment="创建人")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     project = relationship("ProjectInfo", back_populates="maintenance_logs")
-    
+
     __table_args__ = (
         Index('idx_maintenance_log_id', 'log_id'),
         Index('idx_maintenance_log_project_id', 'project_id'),
@@ -35,7 +36,7 @@ class MaintenanceLog(Base, SoftDeleteMixin):
         Index('idx_maintenance_log_status', 'status'),
         {'comment': '维保日志表'}
     )
-    
+
     def to_dict(self):
         return {
             'id': self.id,

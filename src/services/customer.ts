@@ -60,16 +60,19 @@ export const customerService = {
   /**
    * 获取客户列表（分页）
    */
-  async getList(params: CustomerListParams): Promise<ApiResponse<CustomerListResponse>> {
-    const response = await request.get(API_ENDPOINTS.CUSTOMER.LIST, { params })
+  async getList(
+    params: CustomerListParams,
+    signal?: AbortSignal
+  ): Promise<ApiResponse<CustomerListResponse>> {
+    const response = await request.get(API_ENDPOINTS.CUSTOMER.LIST, { params, signal })
     return response as unknown as ApiResponse<CustomerListResponse>
   },
 
   /**
    * 获取客户详情
    */
-  async getById(id: number): Promise<ApiResponse<Customer>> {
-    const response = await request.get(API_ENDPOINTS.CUSTOMER.DETAIL(id))
+  async getById(id: number, signal?: AbortSignal): Promise<ApiResponse<Customer>> {
+    const response = await request.get(API_ENDPOINTS.CUSTOMER.DETAIL(id), { signal })
     return response as unknown as ApiResponse<Customer>
   },
 

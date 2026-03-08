@@ -21,7 +21,7 @@ const toolStockList = ref<RepairToolsStock[]>([])
 const projectList = ref<ProjectInfo[]>([])
 
 const showIssuePopup = ref(false)
-const selectedTool = ref<RepairToolsStock | null>(null)
+const selectedToolId = ref<number | null>(null)
 const issueForm = ref({
   projectId: '',
   projectName: '',
@@ -31,6 +31,11 @@ const issueForm = ref({
 
 const filteredToolList = computed(() => {
   return toolStockList.value.filter((item) => (item.stock || 0) > 0)
+})
+
+const selectedTool = computed(() => {
+  if (!selectedToolId.value) return null
+  return toolStockList.value.find((item) => item.id === selectedToolId.value) || null
 })
 
 const maxQuantity = computed(() => {
@@ -85,14 +90,6 @@ const fetchProjectList = async () => {
 }
 
 /**
- * 选择工具
- */
-const handleSelectTool = (item: RepairToolsStock) => {
-  selectedTool.value = item
-  issueForm.value.quantity = 1
-}
-
-/**
  * 提交领用
  */
 const handleSubmitIssue = async () => {
@@ -136,7 +133,7 @@ const handleSubmitIssue = async () => {
     if (response.code === 200) {
       showSuccessToast('领用成功')
       showIssuePopup.value = false
-      selectedTool.value = null
+      selectedToolId.value = null
       issueForm.value = {
         projectId: '',
         projectName: '',
@@ -176,6 +173,7 @@ const handleUserChanged = () => {
 
 onMounted(() => {
   fetchIssueList()
+  fetchToolStockList()
   fetchProjectList()
 })
 </script>
@@ -248,33 +246,27 @@ onMounted(() => {
         </div>
 
         <div class="popup-body">
-          <div class="section-title">选择工具</div>
-          <div class="tool-list">
-            <div
-              v-for="item in filteredToolList"
-              :key="item.id"
-              class="tool-item"
-              :class="{ selected: selectedTool?.id === item.id }"
-              @click="handleSelectTool(item)"
-            >
-              <div class="tool-name">{{ item.tool_name }}</div>
-              <div class="tool-info">
-                <span v-if="item.tool_id">{{ item.tool_id }}</span>
-                <span v-if="item.specification">{{ item.specification }}</span>
-                <span class="tool-stock">库存: {{ item.stock }}</span>
-              </div>
-            </div>
-            <van-empty v-if="filteredToolList.length === 0" description="暂无库存" />
-          </div>
-
-          <div class="section-title">领用信息</div>
           <van-cell-group inset>
+            <van-field label="选择工具" placeholder="请选择工具" required>
+              <template #input>
+                <select
+                  v-model="selectedToolId"
+                  class="tool-select"
+                  @change="issueForm.quantity = 1"
+                >
+                  <option :value="null">请选择工具</option>
+                  <option v-for="item in filteredToolList" :key="item.id" :value="item.id">
+                    {{ item.tool_name }} {{ item.specification ? `(${item.specification})` : '' }} -
+                    库存: {{ item.stock }}
+                  </option>
+                </select>
+              </template>
+            </van-field>
             <van-field
               :model-value="selectedTool?.tool_name || ''"
               label="工具名称"
               placeholder="请选择工具"
               readonly
-              required
             />
             <van-field :model-value="selectedTool?.tool_id || ''" label="工具编号" readonly />
             <van-field :model-value="selectedTool?.specification || ''" label="规格型号" readonly />
@@ -451,61 +443,14 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.section-title {
-  padding: 12px 16px 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #323233;
-  background: #f7f8fa;
-}
-
-.tool-list {
-  max-height: 250px;
-  overflow-y: auto;
-  padding: 0 12px;
-  background: #fff;
-}
-
-.tool-item {
-  padding: 12px;
-  border-bottom: 1px solid #ebedf0;
-  cursor: pointer;
-}
-
-.tool-item.selected {
-  background: #e8f4ff;
-  border-left: 3px solid #1989fa;
-}
-
-.tool-item:last-child {
-  border-bottom: none;
-}
-
-.tool-item .tool-name {
-  font-weight: 500;
-  color: #323233;
-  margin-bottom: 4px;
-}
-
-.tool-info {
-  font-size: 12px;
-  color: #969799;
-  display: flex;
-  gap: 8px;
-}
-
-.tool-stock {
-  color: #1989fa;
-  font-weight: 500;
-}
-
 .popup-footer {
   padding: 16px;
   flex-shrink: 0;
   border-top: 1px solid #ebedf0;
 }
 
-.project-select {
+.project-select,
+.tool-select {
   width: 100%;
   padding: 8px 0;
   border: none;

@@ -208,14 +208,15 @@ export interface Customer {
 
 /**
  * OCR身份证识别结果
+ * 注意：后端返回的字段名为驼峰命名
  */
 export interface IDCardOCRResult {
   name: string
   gender: string
   nationality: string
-  birth_date: string
+  birthDate: string
   address: string
-  id_card_number: string
-  issuing_authority?: string
-  valid_period?: string
+  idCardNumber: string
+  issuingAuthority?: string
+  validPeriod?: string
 }

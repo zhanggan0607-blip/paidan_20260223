@@ -1,11 +1,10 @@
-from typing import Optional, List
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+
 from app.database import get_db
 from app.models.operation_type import OperationType
-from app.schemas.periodic_inspection import ApiResponse
-
+from app.schemas.common import ApiResponse
 
 router = APIRouter(prefix="/operation-type", tags=["Operation Type"])
 
@@ -13,22 +12,22 @@ router = APIRouter(prefix="/operation-type", tags=["Operation Type"])
 class OperationTypeCreate(BaseModel):
     type_code: str
     type_name: str
-    color_code: Optional[str] = None
-    sort_order: Optional[int] = 0
-    is_active: Optional[int] = 1
+    color_code: str | None = None
+    sort_order: int | None = 0
+    is_active: int | None = 1
 
 
 class OperationTypeUpdate(BaseModel):
-    type_code: Optional[str] = None
-    type_name: Optional[str] = None
-    color_code: Optional[str] = None
-    sort_order: Optional[int] = None
-    is_active: Optional[int] = None
+    type_code: str | None = None
+    type_name: str | None = None
+    color_code: str | None = None
+    sort_order: int | None = None
+    is_active: int | None = None
 
 
 @router.get("", response_model=ApiResponse)
 def get_operation_types(
-    is_active: Optional[int] = Query(None, description="是否启用: 1启用, 0禁用"),
+    is_active: int | None = Query(None, description="是否启用: 1启用, 0禁用"),
     db: Session = Depends(get_db)
 ):
     """
@@ -37,7 +36,7 @@ def get_operation_types(
     query = db.query(OperationType)
     if is_active is not None:
         query = query.filter(OperationType.is_active == is_active)
-    
+
     items = query.order_by(OperationType.sort_order.asc(), OperationType.id.asc()).all()
     return ApiResponse.success([item.to_dict() for item in items])
 
@@ -73,7 +72,7 @@ def create_operation_type(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"操作类型编码 '{dto.type_code}' 已存在"
         )
-    
+
     item = OperationType(
         type_code=dto.type_code,
         type_name=dto.type_name,
@@ -102,7 +101,7 @@ def update_operation_type(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"操作类型 '{type_code}' 不存在"
         )
-    
+
     if dto.type_code is not None:
         item.type_code = dto.type_code
     if dto.type_name is not None:
@@ -113,7 +112,7 @@ def update_operation_type(
         item.sort_order = dto.sort_order
     if dto.is_active is not None:
         item.is_active = dto.is_active
-    
+
     db.commit()
     db.refresh(item)
     return ApiResponse.success(item.to_dict(), "更新成功")
@@ -133,7 +132,7 @@ def delete_operation_type(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"操作类型 '{type_code}' 不存在"
         )
-    
+
     item.is_active = 0
     db.commit()
     return ApiResponse.success(None, "删除成功")
@@ -153,7 +152,7 @@ def init_default_operation_types(
         {"type_code": "approve", "type_name": "审批通过", "color_code": "#07c160", "sort_order": 4},
         {"type_code": "reject", "type_name": "审批退回", "color_code": "#ee0a24", "sort_order": 5},
     ]
-    
+
     created_count = 0
     for type_data in default_types:
         existing = db.query(OperationType).filter(OperationType.type_code == type_data["type_code"]).first()
@@ -167,6 +166,6 @@ def init_default_operation_types(
             )
             db.add(item)
             created_count += 1
-    
+
     db.commit()
     return ApiResponse.success({"created_count": created_count}, f"初始化完成，新增 {created_count} 条记录")

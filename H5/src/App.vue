@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import { onMounted, ref } from 'vue'
-import { useUserStore } from './stores/user'
+import { userStore } from './stores/userStore'
 import { dingtalkService } from './services/dingtalk'
 import { showLoadingToast, closeToast, showToast } from 'vant'
 
-const userStore = useUserStore()
 const isInitialized = ref(false)
 
 onMounted(async () => {
-  if (userStore.isLoggedIn) {
+  if (userStore.isLoggedIn()) {
     isInitialized.value = true
     return
   }
 
   if (dingtalkService.isInDingTalk()) {
-    const toast = showLoadingToast({
+    showLoadingToast({
       message: '钉钉登录中...',
       forbidClick: true,
       duration: 0,

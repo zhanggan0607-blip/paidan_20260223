@@ -54,17 +54,18 @@
                   <th>运维人员</th>
                   <th>领用时间</th>
                   <th>单位</th>
+                  <th>状态</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="10" class="loading-cell">
+                  <td colspan="11" class="loading-cell">
                     <div class="loading-spinner"></div>
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="dataList.length === 0">
-                  <td colspan="10" class="empty-cell">暂无数据</td>
+                  <td colspan="11" class="empty-cell">暂无数据</td>
                 </tr>
                 <tr
                   v-for="(item, index) in dataList"
@@ -74,14 +75,24 @@
                 >
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.project_id }}</td>
-                  <td>{{ item.project_name }}</td>
-                  <td>{{ item.product_name }}</td>
+                  <td>{{ item.projectName }}</td>
+                  <td>{{ item.productName }}</td>
                   <td>{{ item.brand }}</td>
                   <td>{{ item.model }}</td>
                   <td>{{ item.quantity }}</td>
-                  <td>{{ item.user_name }}</td>
-                  <td>{{ item.issue_time }}</td>
+                  <td>{{ item.userName }}</td>
+                  <td>{{ item.issueTime }}</td>
                   <td>{{ item.unit }}</td>
+                  <td>
+                    <span
+                      :class="[
+                        'status-badge',
+                        item.status === '待归还' ? 'status-pending' : 'status-completed',
+                      ]"
+                    >
+                      {{ item.status || '已使用' }}
+                    </span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -165,7 +176,7 @@
                   class="product-option"
                   @click="selectProduct(stock)"
                 >
-                  <span class="product-name">{{ stock.product_name }}</span>
+                  <span class="product-name">{{ stock.productName }}</span>
                   <span class="product-spec"
                     >{{ stock.brand || '-' }} / {{ stock.model || '-' }}</span
                   >
@@ -180,7 +191,7 @@
               </div>
             </div>
             <div v-if="selectedProduct" class="selected-product-info">
-              已选择: {{ selectedProduct.product_name }} ({{ selectedProduct.brand || '无品牌' }} /
+              已选择: {{ selectedProduct.productName }} ({{ selectedProduct.brand || '无品牌' }} /
               {{ selectedProduct.model || '无型号' }}) - 库存: {{ selectedProduct.quantity }}
             </div>
           </div>
@@ -250,14 +261,15 @@ import { userStore } from '@/stores/userStore'
 interface SparePartsIssueItem {
   id: number
   project_id: string
-  project_name: string
-  product_name: string
+  projectName: string
+  productName: string
   brand: string
   model: string
   quantity: number
-  user_name: string
-  issue_time: string
+  userName: string
+  issueTime: string
   unit: string
+  status: string
 }
 
 /**
@@ -265,7 +277,7 @@ interface SparePartsIssueItem {
  */
 interface SparePartsStock {
   id: number
-  product_name: string
+  productName: string
   brand: string
   model: string
   quantity: number
@@ -369,7 +381,7 @@ export default defineComponent({
       return stockList.value.filter(
         (s) =>
           s.quantity > 0 &&
-          (s.product_name.toLowerCase().includes(keyword) ||
+          (s.productName.toLowerCase().includes(keyword) ||
             (s.brand && s.brand.toLowerCase().includes(keyword)) ||
             (s.model && s.model.toLowerCase().includes(keyword)))
       )
@@ -435,7 +447,12 @@ export default defineComponent({
           params: { page: 0, pageSize: 500 },
         })) as unknown as PaginatedResponse<SparePartsStock>
         if (response && response.code === 200 && response.data) {
-          stockList.value = response.data.items || response.data.content || []
+          const items = response.data.items || response.data.content || []
+          stockList.value = items.sort((a, b) => {
+            if (a.quantity === 0 && b.quantity !== 0) return -1
+            if (a.quantity !== 0 && b.quantity === 0) return 1
+            return 0
+          })
         }
       } catch (error) {
         console.error('加载库存列表失败:', error)
@@ -497,7 +514,7 @@ export default defineComponent({
         formData.value.quantity = stock.quantity
       }
       showProductDropdown.value = false
-      productSearchKeyword.value = stock.product_name
+      productSearchKeyword.value = stock.productName
     }
 
     /**
@@ -561,8 +578,8 @@ export default defineComponent({
      * 处理提交
      */
     const handleSubmit = async () => {
-      if (!formData.value.product_id || !formData.value.quantity) {
-        alert('请填写必填项')
+      if (!selectedProduct.value || !formData.value.quantity) {
+        alert('请选择产品并填写领用数量')
         return
       }
 
@@ -570,16 +587,20 @@ export default defineComponent({
       try {
         const project = projectList.value.find((p) => p.project_id === formData.value.project_id)
 
+        const now = new Date()
+        const issue_time = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+
         const response = (await apiClient.post('/spare-parts/usage', {
-          product_name: selectedProduct.value?.product_name,
-          brand: selectedProduct.value?.brand,
-          model: selectedProduct.value?.model,
+          product_name: selectedProduct.value.productName,
+          brand: selectedProduct.value.brand,
+          model: selectedProduct.value.model,
           quantity: formData.value.quantity,
-          unit: selectedProduct.value?.unit,
+          unit: selectedProduct.value.unit,
           user_name: userStore.getUser()?.name,
           project_id: formData.value.project_id || null,
           project_name: project?.project_name || null,
-          remark: formData.value.remark,
+          remark: formData.value.remark || null,
+          issue_time: issue_time,
         })) as unknown as ApiResponse<any>
 
         if (response && response.code === 200) {
@@ -1200,5 +1221,23 @@ export default defineComponent({
 
 .action-delete:hover {
   color: #d32f2f;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-pending {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.status-completed {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 </style>

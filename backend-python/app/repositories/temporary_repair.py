@@ -2,11 +2,12 @@
 临时维修Repository
 提供临时维修数据访问方法
 """
-from typing import List, Optional
+import logging
+
 from sqlalchemy.orm import Session, joinedload
+
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.base import BaseRepository
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
     临时维修Repository
     继承BaseRepository，复用通用CRUD方法
     """
-    
+
     def __init__(self, db: Session):
         super().__init__(db, TemporaryRepair)
 
@@ -24,15 +25,15 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
         self,
         page: int = 0,
         size: int = 10,
-        project_name: Optional[str] = None,
-        repair_id: Optional[str] = None,
-        status: Optional[str] = None,
-        maintenance_personnel: Optional[str] = None,
-        client_name: Optional[str] = None
-    ) -> tuple[List[TemporaryRepair], int]:
+        project_name: str | None = None,
+        repair_id: str | None = None,
+        status: str | None = None,
+        maintenance_personnel: str | None = None,
+        client_name: str | None = None
+    ) -> tuple[list[TemporaryRepair], int]:
         """
         分页查询临时维修列表
-        
+
         Args:
             page: 页码
             size: 每页数量
@@ -41,7 +42,7 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             status: 状态
             maintenance_personnel: 运维人员
             client_name: 客户名称（模糊查询）
-            
+
         Returns:
             (维修单列表, 总数)
         """
@@ -58,10 +59,10 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
 
             if status:
                 query = query.filter(TemporaryRepair.status == status)
-            
+
             if maintenance_personnel:
                 query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
-            
+
             if client_name:
                 query = query.filter(TemporaryRepair.client_name.like(f'%{client_name}%'))
 
@@ -73,13 +74,13 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             logger.error(f"查询临时维修列表失败: {str(e)}")
             raise
 
-    def find_by_id(self, id: int) -> Optional[TemporaryRepair]:
+    def find_by_id(self, id: int) -> TemporaryRepair | None:
         """
         根据ID查询临时维修
-        
+
         Args:
             id: 维修单ID
-            
+
         Returns:
             维修单对象，未找到返回None
         """
@@ -94,13 +95,13 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             logger.error(f"查询临时维修失败 (id={id}): {str(e)}")
             raise
 
-    def find_by_repair_id(self, repair_id: str) -> Optional[TemporaryRepair]:
+    def find_by_repair_id(self, repair_id: str) -> TemporaryRepair | None:
         """
         根据维修单编号查询
-        
+
         Args:
             repair_id: 维修单编号
-            
+
         Returns:
             维修单对象，未找到返回None
         """
@@ -118,11 +119,11 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
     def exists_by_repair_id(self, repair_id: str, include_deleted: bool = False) -> bool:
         """
         检查维修单编号是否存在
-        
+
         Args:
             repair_id: 维修单编号
             include_deleted: 是否包含已删除的记录
-            
+
         Returns:
             是否存在
         """
@@ -140,7 +141,7 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
     def soft_delete(self, repair: TemporaryRepair, user_id: int = None) -> None:
         """
         软删除临时维修单
-        
+
         Args:
             repair: 要删除的维修单对象
             user_id: 执行删除的用户ID
@@ -153,10 +154,10 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             logger.error(f"软删除临时维修失败: {str(e)}")
             raise
 
-    def find_all_unpaginated(self) -> List[TemporaryRepair]:
+    def find_all_unpaginated(self) -> list[TemporaryRepair]:
         """
         查询所有临时维修（不分页）
-        
+
         Returns:
             维修单列表
         """

@@ -1,12 +1,11 @@
-from typing import Optional, List
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.database import get_db
-from app.models.work_order_operation_log import WorkOrderOperationLog
-from app.models.operation_type import OperationType
-from app.schemas.periodic_inspection import ApiResponse
 
+from app.database import get_db
+from app.models.operation_type import OperationType
+from app.models.work_order_operation_log import WorkOrderOperationLog
+from app.schemas.common import ApiResponse
 
 router = APIRouter(prefix="/work-order-operation-log", tags=["Work Order Operation Log"])
 
@@ -16,9 +15,9 @@ class OperationLogCreate(BaseModel):
     work_order_id: int
     work_order_no: str
     operator_name: str
-    operator_id: Optional[int] = None
+    operator_id: int | None = None
     operation_type_code: str
-    operation_remark: Optional[str] = None
+    operation_remark: str | None = None
 
 
 @router.post("", response_model=ApiResponse)
@@ -33,13 +32,13 @@ def create_operation_log(
         OperationType.type_code == dto.operation_type_code,
         OperationType.is_active == 1
     ).first()
-    
+
     if not operation_type:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"操作类型 '{dto.operation_type_code}' 不存在或已禁用"
         )
-    
+
     log = WorkOrderOperationLog(
         work_order_type=dto.work_order_type,
         work_order_id=dto.work_order_id,
@@ -70,7 +69,7 @@ def get_operation_logs(
         WorkOrderOperationLog.work_order_type == work_order_type,
         WorkOrderOperationLog.work_order_id == work_order_id
     ).order_by(WorkOrderOperationLog.created_at.asc()).all()
-    
+
     result = []
     for log in logs:
         log_dict = log.to_dict()
@@ -80,7 +79,7 @@ def get_operation_logs(
         if operation_type:
             log_dict['color_code'] = operation_type.color_code
         result.append(log_dict)
-    
+
     return ApiResponse.success(result)
 
 
@@ -97,7 +96,7 @@ def get_operation_logs_by_no(
         WorkOrderOperationLog.work_order_type == work_order_type,
         WorkOrderOperationLog.work_order_no == work_order_no
     ).order_by(WorkOrderOperationLog.created_at.asc()).all()
-    
+
     result = []
     for log in logs:
         log_dict = log.to_dict()
@@ -107,5 +106,5 @@ def get_operation_logs_by_no(
         if operation_type:
             log_dict['color_code'] = operation_type.color_code
         result.append(log_dict)
-    
+
     return ApiResponse.success(result)

@@ -14,6 +14,7 @@ export interface Personnel {
   role?: string
   address?: string
   remarks?: string
+  last_login_at?: string
   created_at?: string
   updated_at?: string
 }

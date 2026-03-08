@@ -102,11 +102,12 @@ export const API_ENDPOINTS = {
   },
 
   SPARE_PARTS_STOCK: {
-    LIST: '/spare-parts/stock',
-    DETAIL: (id: number) => `/spare-parts/stock/${id}`,
-    ALL: '/spare-parts/stock',
-    INBOUND_RECORDS: '/spare-parts/inbound',
-    INBOUND: '/spare-parts/inbound',
+    LIST: '/spare-parts-stock/stock',
+    DETAIL: (id: number) => `/spare-parts-stock/stock/${id}`,
+    ALL: '/spare-parts-stock/stock',
+    INBOUND_RECORDS: '/spare-parts-stock/inbound-records',
+    INBOUND: '/spare-parts-stock/inbound',
+    PRODUCTS: '/spare-parts-stock/products',
   },
 
   SPARE_PARTS_USAGE: {

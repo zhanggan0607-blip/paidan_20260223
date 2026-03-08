@@ -506,11 +506,17 @@ export default defineComponent({
       try {
         const project = projectList.value.find((p) => p.project_id === formData.value.project_id)
 
-        const response = (await apiClient.post('/repair-tools/issue', {
+        const submitData = {
           ...formData.value,
+          user_id: formData.value.user_id ? Number(formData.value.user_id) : null,
           user_name: userStore.getUser()?.name,
           project_name: project?.project_name || null,
-        })) as unknown as ApiResponse<any>
+        }
+
+        const response = (await apiClient.post(
+          '/repair-tools/issue',
+          submitData
+        )) as unknown as ApiResponse<any>
         if (response && response.code === 200) {
           alert('领用成功')
           closeAddModal()

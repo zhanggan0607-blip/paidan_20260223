@@ -1,10 +1,24 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import Layout from '@/components/Layout.vue'
+import { userStore } from '@/stores/userStore'
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/login',
+    name: 'Login',
+    component: () => import('@/views/LoginPage.vue'),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: () => import('@/views/ChangePasswordPage.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/',
     component: Layout,
+    meta: { requiresAuth: true },
     children: [
       {
         path: '',
@@ -121,7 +135,31 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((_to, _from, next) => {
+router.beforeEach((to, _from, next) => {
+  const token = userStore.getToken()
+  const user = userStore.getUser()
+  const requiresAuth = to.meta.requiresAuth !== false
+
+  if (requiresAuth && !token) {
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  if (to.path === '/login' && token && user) {
+    next({ path: '/' })
+    return
+  }
+
+  if (
+    token &&
+    user &&
+    (user as { must_change_password?: boolean }).must_change_password &&
+    to.path !== '/change-password'
+  ) {
+    next({ name: 'ChangePassword' })
+    return
+  }
+
   next()
 })
 

@@ -2,11 +2,12 @@
 巡检记录Repository
 提供巡检记录数据访问方法
 """
-from typing import List, Optional
+import logging
+
 from sqlalchemy.orm import Session
+
 from app.models.periodic_inspection_record import PeriodicInspectionRecord
 from app.repositories.base import BaseRepository
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -16,17 +17,17 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
     巡检记录Repository
     继承BaseRepository，复用通用CRUD方法
     """
-    
+
     def __init__(self, db: Session):
         super().__init__(db, PeriodicInspectionRecord)
 
-    def find_by_inspection_id(self, inspection_id: str) -> List[PeriodicInspectionRecord]:
+    def find_by_inspection_id(self, inspection_id: str) -> list[PeriodicInspectionRecord]:
         """
         根据巡检单编号查询所有记录
-        
+
         Args:
             inspection_id: 巡检单编号
-            
+
         Returns:
             巡检记录列表
         """
@@ -39,17 +40,17 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
             raise
 
     def find_by_inspection_id_and_item_id(
-        self, 
-        inspection_id: str, 
+        self,
+        inspection_id: str,
         item_id: str
-    ) -> Optional[PeriodicInspectionRecord]:
+    ) -> PeriodicInspectionRecord | None:
         """
         根据巡检单编号和事项ID查询记录
-        
+
         Args:
             inspection_id: 巡检单编号
             item_id: 事项ID
-            
+
         Returns:
             巡检记录，未找到返回None
         """
@@ -65,10 +66,10 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
     def delete_by_inspection_id(self, inspection_id: str) -> int:
         """
         删除指定巡检单的所有记录
-        
+
         Args:
             inspection_id: 巡检单编号
-            
+
         Returns:
             删除的记录数量
         """
@@ -84,34 +85,34 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
             raise
 
     def upsert(
-        self, 
+        self,
         inspection_id: str,
         item_id: str,
-        item_name: Optional[str] = None,
-        inspection_item: Optional[str] = None,
-        inspection_content: Optional[str] = None,
-        check_content: Optional[str] = None,
-        brief_description: Optional[str] = None,
-        equipment_name: Optional[str] = None,
-        equipment_location: Optional[str] = None,
+        item_name: str | None = None,
+        inspection_item: str | None = None,
+        inspection_content: str | None = None,
+        check_content: str | None = None,
+        brief_description: str | None = None,
+        equipment_name: str | None = None,
+        equipment_location: str | None = None,
         inspected: bool = False,
-        photos: Optional[str] = None,
-        inspection_result: Optional[str] = None
+        photos: str | None = None,
+        inspection_result: str | None = None
     ) -> PeriodicInspectionRecord:
         """
         创建或更新巡检记录
-        
+
         Args:
             inspection_id: 巡检单编号
             item_id: 事项ID
             其他参数: 记录字段
-            
+
         Returns:
             创建或更新后的记录
         """
         try:
             existing = self.find_by_inspection_id_and_item_id(inspection_id, item_id)
-            
+
             if existing:
                 if item_name is not None:
                     existing.item_name = item_name

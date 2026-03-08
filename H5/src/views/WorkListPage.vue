@@ -47,38 +47,50 @@ const pageTitle = computed(() => currentTab.value?.title || '工单列表')
 const displayList = computed(() => {
   const tabKey = currentTab.value?.key
   if (tabKey === 'overdue') {
-    return overdueList.value.map((item) => ({
-      id: parseInt(item.id),
-      uniqueKey: `overdue-${item.id}`,
-      projectName: item.projectName,
-      planStartDate: item.planStartDate,
-      planEndDate: item.planEndDate,
-      status: item.workOrderStatus,
-      planType: item.workOrderType,
-      workOrderNo: item.workOrderNo,
-      overdueDays: item.overdueDays,
-      daysRemaining: item.daysRemaining,
-      clientName: item.customerName,
-      totalCount: undefined,
-      filledCount: undefined,
-    }))
+    return overdueList.value
+      .map((item, index) => ({
+        id: parseInt(item.id),
+        uniqueKey: `overdue-${item.id}-${item.workOrderType}-${index}`,
+        projectName: item.projectName,
+        planStartDate: item.planStartDate,
+        planEndDate: item.planEndDate,
+        status: item.workOrderStatus,
+        planType: item.workOrderType,
+        workOrderNo: item.workOrderNo,
+        overdueDays: item.overdueDays,
+        daysRemaining: item.daysRemaining,
+        clientName: item.customerName,
+        totalCount: undefined,
+        filledCount: undefined,
+      }))
+      .sort((a, b) => {
+        const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
+        const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
+        return dateA - dateB
+      })
   }
   if (tabKey === 'expiring') {
-    return expiringList.value.map((item) => ({
-      id: parseInt(item.id),
-      uniqueKey: `expiring-${item.id}`,
-      projectName: item.projectName,
-      planStartDate: item.planStartDate,
-      planEndDate: item.planEndDate,
-      status: item.workOrderStatus,
-      planType: item.workOrderType,
-      workOrderNo: item.workOrderNo,
-      overdueDays: item.overdueDays,
-      daysRemaining: item.daysRemaining,
-      clientName: item.customerName,
-      totalCount: undefined,
-      filledCount: undefined,
-    }))
+    return expiringList.value
+      .map((item, index) => ({
+        id: parseInt(item.id),
+        uniqueKey: `expiring-${item.id}-${item.workOrderType}-${index}`,
+        projectName: item.projectName,
+        planStartDate: item.planStartDate,
+        planEndDate: item.planEndDate,
+        status: item.workOrderStatus,
+        planType: item.workOrderType,
+        workOrderNo: item.workOrderNo,
+        overdueDays: item.overdueDays,
+        daysRemaining: item.daysRemaining,
+        clientName: item.customerName,
+        totalCount: undefined,
+        filledCount: undefined,
+      }))
+      .sort((a, b) => {
+        const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
+        const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
+        return dateA - dateB
+      })
   }
   return workList.value
 })
@@ -191,10 +203,13 @@ const fetchWorkList = async () => {
       case 'periodic': {
         const response = await periodicInspectionService.getList({ page: 0, size: 1000 })
         if (response.code === 200) {
-          items = (response.data?.items || response.data?.content || []).map((item: any) => ({
-            ...item,
-            planType: '定期巡检',
-          }))
+          const validStatuses = ['执行中', '待确认', '已退回']
+          items = (response.data?.items || response.data?.content || [])
+            .filter((item: any) => validStatuses.includes(item.status))
+            .map((item: any) => ({
+              ...item,
+              planType: '定期巡检',
+            }))
         }
         break
       }
@@ -202,10 +217,13 @@ const fetchWorkList = async () => {
       case 'repair': {
         const response = await temporaryRepairService.getList({ page: 0, size: 1000 })
         if (response.code === 200) {
-          items = (response.data?.items || response.data?.content || []).map((item: any) => ({
-            ...item,
-            planType: '临时维修',
-          }))
+          const validStatuses = ['执行中', '待确认', '已退回']
+          items = (response.data?.items || response.data?.content || [])
+            .filter((item: any) => validStatuses.includes(item.status))
+            .map((item: any) => ({
+              ...item,
+              planType: '临时维修',
+            }))
         }
         break
       }
@@ -213,29 +231,38 @@ const fetchWorkList = async () => {
       case 'spot': {
         const response = await spotWorkService.getList({ page: 0, size: 1000 })
         if (response.code === 200) {
-          items = (response.data?.items || response.data?.content || []).map((item: any) => ({
-            ...item,
-            planType: '零星用工',
-          }))
+          const validStatuses = ['执行中', '待确认', '已退回']
+          items = (response.data?.items || response.data?.content || [])
+            .filter((item: any) => validStatuses.includes(item.status))
+            .map((item: any) => ({
+              ...item,
+              planType: '零星用工',
+            }))
         }
         break
       }
     }
 
-    workList.value = items.map((item: any) => ({
-      id: item.id,
-      uniqueKey: `${item.planType}-${item.id}`,
-      projectName: item.project_name || item.projectName,
-      planStartDate: item.plan_start_date || item.planStartDate,
-      planEndDate: item.plan_end_date || item.planEndDate,
-      status: item.status,
-      planType: item.planType,
-      workOrderNo: item.inspection_id || item.repair_id || item.work_id,
-      clientName: item.client_name || item.clientName,
-      totalCount: item.total_count,
-      filledCount: item.filled_count,
-      updatedAt: item.updated_at,
-    }))
+    workList.value = items
+      .map((item: any) => ({
+        id: item.id,
+        uniqueKey: `${item.planType}-${item.id}`,
+        projectName: item.project_name || item.projectName,
+        planStartDate: item.plan_start_date || item.planStartDate,
+        planEndDate: item.plan_end_date || item.planEndDate,
+        status: item.status,
+        planType: item.planType,
+        workOrderNo: item.inspection_id || item.repair_id || item.work_id,
+        clientName: item.client_name || item.clientName,
+        totalCount: item.total_count,
+        filledCount: item.filled_count,
+        updatedAt: item.updated_at,
+      }))
+      .sort((a, b) => {
+        const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
+        const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
+        return dateA - dateB
+      })
   } catch (error) {
     console.error('Failed to fetch work list:', error)
   } finally {
@@ -278,6 +305,10 @@ const handleItemClick = (item: any) => {
   }
 }
 
+const handleUserReady = (_user: User) => {
+  fetchWorkList()
+}
+
 const handleUserChanged = (_user: User) => {
   fetchWorkList()
 }
@@ -286,9 +317,7 @@ const handleBack = () => {
   goBack()
 }
 
-onMounted(() => {
-  fetchWorkList()
-})
+onMounted(() => {})
 
 watch(type, () => {
   fetchWorkList()
@@ -305,7 +334,7 @@ watch(type, () => {
         </div>
       </template>
       <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
+        <UserSelector @ready="handleUserReady" @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 
@@ -356,7 +385,7 @@ watch(type, () => {
               <div v-if="currentTab.key === 'periodic'" class="info-row">
                 <span class="label">填写内容</span>
                 <span class="value highlight"
-                  >共{{ item.totalCount || 5 }}项（已填写 {{ item.filledCount || 0 }} 项）</span
+                  >共{{ item.totalCount ?? 0 }}项（已填写 {{ item.filledCount ?? 0 }} 项）</span
                 >
               </div>
               <div v-if="currentTab.key === 'completed'" class="info-row">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { spotWorkService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
@@ -9,6 +9,7 @@ import { useNavigation } from '../composables/useNavigation'
 import type { ProjectInfo } from '../types/models'
 
 const router = useRouter()
+const route = useRoute()
 const { goBack } = useNavigation()
 
 const formData = ref({
@@ -93,6 +94,7 @@ const handleWorkerEntry = () => {
       projectName: formData.value.projectName,
       workDateStart: formData.value.workDateStart,
       workDateEnd: formData.value.workDateEnd,
+      from: route.fullPath,
     },
   })
 }

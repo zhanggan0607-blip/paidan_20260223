@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
-from sqlalchemy.sql import func
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
+
 
 class InspectionItem(Base):
     __tablename__ = 'inspection_item'
@@ -17,9 +19,9 @@ class InspectionItem(Base):
     sort_order = Column(Integer, default=0, comment='排序')
     created_at = Column(DateTime(timezone=True), server_default=func.now(), comment='创建时间')
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment='更新时间')
-    
+
     children = relationship("InspectionItem", backref="parent", remote_side=[id])
-    
+
     def to_dict(self):
         return {
             'id': self.id,

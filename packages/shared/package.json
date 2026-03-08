@@ -69,7 +69,6 @@
   },
   "devDependencies": {
     "@types/crypto-js": "^4.2.2",
-    "openapi-typescript": "^7.0.0",
     "typescript": "^5.6.0"
   },
   "peerDependencies": {

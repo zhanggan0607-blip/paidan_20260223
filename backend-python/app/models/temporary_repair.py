@@ -1,13 +1,14 @@
-from sqlalchemy import Column, BigInteger, String, DateTime, Integer, Index, ForeignKey, Text, Boolean
-from sqlalchemy.sql import func
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 from app.models.mixins import SoftDeleteMixin
 
 
 class TemporaryRepair(Base, SoftDeleteMixin):
     __tablename__ = "temporary_repair"
-    
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     repair_id = Column(String(50), unique=True, nullable=False, comment="维修单编号")
     plan_id = Column(String(50), ForeignKey('maintenance_plan.plan_id', ondelete='CASCADE'), nullable=True, index=True, comment="关联维保计划编号")
@@ -30,10 +31,10 @@ class TemporaryRepair(Base, SoftDeleteMixin):
     actual_completion_date = Column(DateTime, comment="实际完成时间")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
-    
+
     project = relationship("ProjectInfo", back_populates="temporary_repairs")
     maintenance_plan = relationship("MaintenancePlan", back_populates="temporary_repairs")
-    
+
     __table_args__ = (
         Index('idx_temp_repair_id', 'repair_id'),
         Index('idx_temp_project_id', 'project_id'),
@@ -43,7 +44,7 @@ class TemporaryRepair(Base, SoftDeleteMixin):
         Index('idx_temp_plan_start_date', 'plan_start_date'),
         {'comment': '临时维修单表'}
     )
-    
+
     def to_dict(self):
         project_name = self.project_name
         client_name = self.client_name
@@ -58,7 +59,7 @@ class TemporaryRepair(Base, SoftDeleteMixin):
             client_contact_info = self.project.client_contact_info or ''
             address = self.project.address or ''
             client_contact_position = self.project.client_contact_position or ''
-        
+
         import json
         photos = []
         if self.photos:
@@ -66,7 +67,7 @@ class TemporaryRepair(Base, SoftDeleteMixin):
                 photos = json.loads(self.photos)
             except (json.JSONDecodeError, TypeError):
                 photos = []
-        
+
         return {
             'id': self.id,
             'repair_id': self.repair_id,
