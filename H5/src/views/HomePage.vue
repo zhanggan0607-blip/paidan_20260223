@@ -287,48 +287,56 @@ const handleCardClick = (card: { route: string }) => {
 
 <template>
   <div class="home-page">
-    <div class="content">
-      <div class="statistics-section">
-        <van-grid :column-num="2" :border="false">
-          <van-grid-item
-            v-for="card in statCards"
-            :key="card.key"
-            :class="{ 'stat-item-highlight': card.value > 0 }"
-            @click="handleCardClick(card)"
-          >
-            <template #text>
-              <div class="stat-card">
-                <div
-                  class="stat-value"
-                  :style="{ color: card.color }"
-                  :class="{ 'has-value': card.value > 0 }"
-                >
-                  {{ card.value }}
-                  <van-badge v-if="card.showBadge" dot class="overdue-badge" />
-                </div>
-                <div class="stat-label">{{ card.label }}</div>
-                <div class="stat-year">{{ card.year }}</div>
-              </div>
-            </template>
-          </van-grid-item>
-        </van-grid>
-      </div>
+    <van-nav-bar fixed placeholder>
+      <template #right>
+        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
+      </template>
+    </van-nav-bar>
 
-      <div class="actions-section">
-        <van-grid :column-num="2" :border="false">
-          <van-grid-item
-            v-for="action in quickActions"
-            :key="action.key"
-            :text="action.label"
-            @click="handleQuickAction(action)"
-          >
-            <template #icon>
-              <van-icon :name="action.icon" :color="action.color" size="32" />
-            </template>
-          </van-grid-item>
-        </van-grid>
+    <van-pull-refresh v-model="loading" @refresh="fetchStatistics">
+      <div class="content">
+        <div class="statistics-section">
+          <van-grid :column-num="2" :border="false">
+            <van-grid-item
+              v-for="card in statCards"
+              :key="card.key"
+              :class="{ 'stat-item-highlight': card.value > 0 }"
+              @click="handleCardClick(card)"
+            >
+              <template #text>
+                <div class="stat-card">
+                  <div
+                    class="stat-value"
+                    :style="{ color: card.color }"
+                    :class="{ 'has-value': card.value > 0 }"
+                  >
+                    {{ card.value }}
+                    <van-badge v-if="card.showBadge" dot class="overdue-badge" />
+                  </div>
+                  <div class="stat-label">{{ card.label }}</div>
+                  <div class="stat-year">{{ card.year }}</div>
+                </div>
+              </template>
+            </van-grid-item>
+          </van-grid>
+        </div>
+
+        <div class="actions-section">
+          <van-grid :column-num="2" :border="false">
+            <van-grid-item
+              v-for="action in quickActions"
+              :key="action.key"
+              :text="action.label"
+              @click="handleQuickAction(action)"
+            >
+              <template #icon>
+                <van-icon :name="action.icon" :color="action.color" size="32" />
+              </template>
+            </van-grid-item>
+          </van-grid>
+        </div>
       </div>
-    </div>
+    </van-pull-refresh>
   </div>
 </template>
 
