@@ -3,13 +3,17 @@
  * 首页组件
  * 展示工单统计信息和快捷操作入口
  */
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workPlanService } from '../services'
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 
 const router = useRouter()
+
+onMounted(() => {
+  fetchStatistics()
+})
 
 /** 统计数据接口 */
 interface Statistics {
@@ -283,12 +287,6 @@ const handleCardClick = (card: { route: string }) => {
 
 <template>
   <div class="home-page">
-    <van-nav-bar title="SSTCP维保系统" fixed placeholder>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
-      </template>
-    </van-nav-bar>
-
     <div class="content">
       <div class="statistics-section">
         <van-grid :column-num="2" :border="false">
@@ -342,7 +340,6 @@ const handleCardClick = (card: { route: string }) => {
 
 .content {
   padding: 12px;
-  padding-top: 0;
 }
 
 .actions-section {

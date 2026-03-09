@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { showSuccessToast, showLoadingToast, closeToast, showToast } from 'vant'
+import { showSuccessToast, showLoadingToast, closeToast, showFailToast } from 'vant'
 import { authService, personnelService, onlineUserService } from '../services'
 import { userStore, type User } from '../stores/userStore'
 
@@ -114,15 +114,9 @@ const selectUser = async (user: User) => {
     showSuccessToast(`已切换到用户: ${user.name}`)
     emit('userChanged', user)
   } else if (loginResult === 'password_changed') {
-    showToast({
-      message: `${user.name} 已修改密码，无法自动登录`,
-      position: 'top',
-    })
+    showFailToast(`${user.name} 已修改密码，无法自动登录`)
   } else {
-    showToast({
-      message: '登录失败，请重试',
-      position: 'top',
-    })
+    showFailToast('登录失败，请重试')
   }
 }
 

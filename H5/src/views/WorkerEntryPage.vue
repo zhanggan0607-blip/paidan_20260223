@@ -146,9 +146,9 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
           if (side === 'front') {
             if (ocrData.name) currentWorker.value.name = ocrData.name
             if (ocrData.gender) currentWorker.value.gender = ocrData.gender
-            if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
+            if (ocrData.birth_date) currentWorker.value.birthDate = ocrData.birth_date
             if (ocrData.address) currentWorker.value.address = ocrData.address
-            const idCardNum = ocrData.idCardNumber
+            const idCardNum = ocrData.id_card_number
             if (idCardNum) {
               currentWorker.value.idCardNumber = idCardNum
               const validation = validateIdCard(idCardNum)
@@ -159,15 +159,15 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
               }
             }
           } else {
-            const issuingAuth = ocrData.issuingAuthority
-            const validPeriod = ocrData.validPeriod
+            const issuingAuth = ocrData.issuing_authority
+            const validPeriod = ocrData.valid_period
             if (issuingAuth) currentWorker.value.issuingAuthority = issuingAuth
             if (validPeriod) currentWorker.value.validPeriod = validPeriod
           }
 
-          if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
+          if (side === 'front' && !ocrData.name && !ocrData.id_card_number) {
             showFailToast('身份证识别失败，请确保图片清晰')
-          } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
+          } else if (side === 'back' && !ocrData.issuing_authority && !ocrData.valid_period) {
             showFailToast('身份证反面识别失败，请确保图片清晰')
           }
         } else if (ocrResponse.code !== 200) {

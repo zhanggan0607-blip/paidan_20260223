@@ -7,7 +7,6 @@ import {
   showSuccessToast,
   showFailToast,
   showConfirmDialog,
-  showToast,
   showImagePreview,
 } from 'vant'
 import {
@@ -23,6 +22,7 @@ import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
+import { copyOrderId } from '../utils/clipboard'
 
 const router = useRouter()
 const route = useRoute()
@@ -153,19 +153,6 @@ const handleBackToList = () => {
 }
 
 /**
- * 复制工单编号到剪贴板
- * @param orderId 工单编号
- */
-const copyOrderId = async (orderId: string) => {
-  try {
-    await navigator.clipboard.writeText(orderId)
-    showToast('工单编号已复制')
-  } catch {
-    showToast('复制失败')
-  }
-}
-
-/**
  * 根据工单编号长度计算字体大小
  * @param workId 工单编号
  * @returns 字体大小(px)
@@ -219,8 +206,10 @@ const fetchDetail = async () => {
     console.error('Failed to fetch detail:', error)
     if (error?.status === 403) {
       errorMessage.value = '您没有权限查看此工单'
+    } else if (error?.status === 404) {
+      errorMessage.value = '工单不存在或已被删除'
     } else {
-      errorMessage.value = '加载失败'
+      errorMessage.value = error?.message || '加载失败'
     }
     showFailToast(errorMessage.value)
   } finally {
@@ -414,7 +403,7 @@ const handleInspection = async (system: InspectionSystem) => {
   }
 
   if (!isEditable.value) {
-    showToast('当前工单状态不可编辑')
+    showFailToast('当前工单状态不可编辑')
     return
   }
 
@@ -600,7 +589,7 @@ const handleApprovePass = async () => {
   if (!detail.value?.id) return
 
   if (isSubmitting.value) {
-    showToast('正在处理中，请勿重复提交')
+    showFailToast('正在处理中，请勿重复提交')
     return
   }
 
@@ -642,7 +631,7 @@ const handleApproveReject = async () => {
   if (!detail.value?.id) return
 
   if (isSubmitting.value) {
-    showToast('正在处理中，请勿重复提交')
+    showFailToast('正在处理中，请勿重复提交')
     return
   }
 
@@ -768,14 +757,6 @@ const handleUserReady = async (_user: User) => {
 }
 
 onMounted(async () => {
-  if (userStore.isLoggedIn()) {
-    const user = userStore.getUser()
-    if (user) {
-      await fetchDetail()
-      await fetchInspectionItems()
-      loadSignature()
-    }
-  }
 })
 
 onActivated(() => {

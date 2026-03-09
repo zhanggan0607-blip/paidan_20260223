@@ -7,7 +7,6 @@ import {
   showSuccessToast,
   showFailToast,
   showConfirmDialog,
-  showToast,
 } from 'vant'
 import { temporaryRepairService, uploadService, operationLogService } from '../services'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
@@ -16,6 +15,7 @@ import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
+import { copyOrderId } from '../utils/clipboard'
 import type { TemporaryRepair } from '../types/models'
 
 const router = useRouter()
@@ -62,19 +62,6 @@ const canSubmit = computed(() => {
 
 const handleBackToList = () => {
   goBack()
-}
-
-/**
- * 复制工单编号到剪贴板
- * @param orderId 工单编号
- */
-const copyOrderId = async (orderId: string) => {
-  try {
-    await navigator.clipboard.writeText(orderId)
-    showToast('工单编号已复制')
-  } catch {
-    showToast('复制失败')
-  }
 }
 
 /**

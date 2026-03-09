@@ -4,7 +4,6 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   showLoadingToast,
   closeToast,
-  showToast,
   showSuccessToast,
   showFailToast,
   showConfirmDialog,
@@ -14,6 +13,7 @@ import { formatDate, formatDateTime, processPhoto, getCurrentLocation } from '@s
 import UserSelector from '../components/UserSelector.vue'
 import { userStore, type User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
+import { copyOrderId } from '../utils/clipboard'
 import type { ProjectInfo } from '../types/models'
 
 const router = useRouter()
@@ -122,18 +122,6 @@ const getWorkIdFontSize = (workId: string) => {
   if (len <= 35) return 9
   if (len <= 40) return 8
   return 7
-}
-
-/**
- * 复制工单编号到剪贴板
- */
-const copyOrderId = async (orderId: string) => {
-  try {
-    await navigator.clipboard.writeText(orderId)
-    showToast('工单编号已复制')
-  } catch {
-    showToast('复制失败')
-  }
 }
 
 /**

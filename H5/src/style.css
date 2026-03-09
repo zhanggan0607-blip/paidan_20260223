@@ -54,3 +54,20 @@ html, body {
 .nav-left span {
   color: var(--van-nav-bar-icon-color, #1989fa);
 }
+
+.van-toast {
+  background-color: rgba(50, 50, 50, 0.88) !important;
+  color: #fff !important;
+}
+
+.van-toast__text {
+  color: #fff !important;
+}
+
+.van-toast--success {
+  background-color: rgba(50, 50, 50, 0.88) !important;
+}
+
+.van-toast--fail {
+  background-color: rgba(50, 50, 50, 0.88) !important;
+}

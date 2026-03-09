@@ -2,7 +2,33 @@
  * 剪贴板工具函数
  * 统一管理复制相关功能
  */
-import { showToast } from 'vant'
+import { showSuccessToast, showFailToast } from 'vant'
+
+/**
+ * 使用传统方式复制文本（备用方案）
+ * @param text 要复制的文本
+ */
+const fallbackCopyText = (text: string): boolean => {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  
+  textArea.style.position = 'fixed'
+  textArea.style.left = '-9999px'
+  textArea.style.top = '-9999px'
+  
+  document.body.appendChild(textArea)
+  textArea.focus()
+  textArea.select()
+  
+  try {
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    return successful
+  } catch {
+    document.body.removeChild(textArea)
+    return false
+  }
+}
 
 /**
  * 复制文本到剪贴板
@@ -16,12 +42,27 @@ export const copyToClipboard = async (
   failMessage: string = '复制失败'
 ): Promise<boolean> => {
   try {
-    await navigator.clipboard.writeText(text)
-    showToast(successMessage)
-    return true
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      showSuccessToast(successMessage)
+      return true
+    } else {
+      const success = fallbackCopyText(text)
+      if (success) {
+        showSuccessToast(successMessage)
+      } else {
+        showFailToast(failMessage)
+      }
+      return success
+    }
   } catch {
-    showToast(failMessage)
-    return false
+    const success = fallbackCopyText(text)
+    if (success) {
+      showSuccessToast(successMessage)
+    } else {
+      showFailToast(failMessage)
+    }
+    return success
   }
 }
 

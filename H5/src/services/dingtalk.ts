@@ -81,7 +81,7 @@ export const dingtalkService = {
         if ((window as any).dd) {
           const dd = (window as any).dd
           dd.runtime.permission.requestAuthCode({
-            clientId: 'dingkplrtxi1tj9ozmh7',
+            clientId: import.meta.env.VITE_DINGTALK_CLIENT_ID || '',
             onSuccess: (result: { code: string }) => {
               resolve(result.code)
             },

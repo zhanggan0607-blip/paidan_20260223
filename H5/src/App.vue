@@ -3,7 +3,7 @@ import { RouterView } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { userStore } from './stores/userStore'
 import { dingtalkService } from './services/dingtalk'
-import { showLoadingToast, closeToast, showToast } from 'vant'
+import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 
 const isInitialized = ref(false)
 
@@ -27,22 +27,13 @@ onMounted(async () => {
       if (response.code === 200 && response.data) {
         userStore.setToken(response.data.access_token)
         userStore.setUser(response.data.user)
-        showToast({
-          message: '登录成功',
-          type: 'success',
-        })
+        showSuccessToast('登录成功')
       } else {
-        showToast({
-          message: response.message || '钉钉登录失败',
-          type: 'fail',
-        })
+        showFailToast(response.message || '钉钉登录失败')
       }
     } catch (error: any) {
       console.error('钉钉免登失败:', error)
-      showToast({
-        message: error.message || '钉钉登录失败，请刷新重试',
-        type: 'fail',
-      })
+      showFailToast(error.message || '钉钉登录失败，请刷新重试')
     } finally {
       closeToast()
     }
