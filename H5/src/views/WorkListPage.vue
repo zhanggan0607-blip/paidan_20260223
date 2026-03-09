@@ -11,8 +11,6 @@ import {
 } from '../services'
 import { formatDate, getWorkIdFontSize, getStatusType, getDisplayStatus } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
-import UserSelector from '../components/UserSelector.vue'
-import { type User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 import type { OverdueAlertItem } from '../types/models'
 
@@ -305,19 +303,13 @@ const handleItemClick = (item: any) => {
   }
 }
 
-const handleUserReady = (_user: User) => {
-  fetchWorkList()
-}
-
-const handleUserChanged = (_user: User) => {
-  fetchWorkList()
-}
-
 const handleBack = () => {
   goBack()
 }
 
-onMounted(() => {})
+onMounted(() => {
+  fetchWorkList()
+})
 
 watch(type, () => {
   fetchWorkList()
@@ -326,15 +318,12 @@ watch(type, () => {
 
 <template>
   <div class="work-list-page">
-    <van-nav-bar :title="pageTitle" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @ready="handleUserReady" @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

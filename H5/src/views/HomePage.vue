@@ -6,8 +6,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workPlanService } from '../services'
-import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
+import { userStore } from '../stores/userStore'
 
 const router = useRouter()
 
@@ -59,24 +58,6 @@ const fetchStatistics = async () => {
   } finally {
     loading.value = false
   }
-}
-
-/**
- * 处理用户切换事件
- * 切换用户后重新获取统计数据
- * @param _user 切换后的用户信息
- */
-const handleUserChanged = (_user: User) => {
-  fetchStatistics()
-}
-
-/**
- * 处理用户加载完成事件
- * 用户加载完成后获取统计数据
- * @param _user 加载完成的用户信息
- */
-const handleUserReady = (_user: User) => {
-  fetchStatistics()
 }
 
 const currentYear = new Date().getFullYear()
@@ -287,12 +268,6 @@ const handleCardClick = (card: { route: string }) => {
 
 <template>
   <div class="home-page">
-    <van-nav-bar fixed placeholder>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
-      </template>
-    </van-nav-bar>
-
     <van-pull-refresh v-model="loading" @refresh="fetchStatistics">
       <div class="content">
         <div class="statistics-section">

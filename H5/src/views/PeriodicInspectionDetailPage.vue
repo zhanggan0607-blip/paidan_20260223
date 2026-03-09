@@ -18,8 +18,7 @@ import {
 } from '../services'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
-import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
+import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import { copyOrderId } from '../utils/clipboard'
@@ -750,13 +749,15 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   }
 }
 
-const handleUserReady = async (_user: User) => {
-  await fetchDetail()
-  await fetchInspectionItems()
-  loadSignature()
-}
-
 onMounted(async () => {
+  if (userStore.isLoggedIn()) {
+    const user = userStore.getUser()
+    if (user) {
+      await fetchDetail()
+      await fetchInspectionItems()
+      loadSignature()
+    }
+  }
 })
 
 onActivated(() => {
@@ -766,15 +767,12 @@ onActivated(() => {
 
 <template>
   <div class="periodic-inspection-detail">
-    <van-nav-bar title="定期巡检单" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBackToList">
       <template #left>
-        <div class="nav-left" @click="handleBackToList">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @ready="handleUserReady" />
       </template>
     </van-nav-bar>
 

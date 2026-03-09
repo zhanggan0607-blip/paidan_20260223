@@ -76,6 +76,8 @@ import type { MenuItem } from '@/types'
 import { userStore } from '@/stores/userStore'
 import api from '@/utils/api'
 
+const HEARTBEAT_INTERVAL = 2 * 60 * 1000
+
 export default defineComponent({
   name: 'Layout',
   setup() {
@@ -85,6 +87,7 @@ export default defineComponent({
     const activeMenu = ref<string>('project-info')
     const isFullscreenMode = ref(false)
     const showUserMenu = ref(false)
+    let heartbeatTimer: number | null = null
 
     const setFullscreenMode = (value: boolean) => {
       isFullscreenMode.value = value
@@ -108,6 +111,27 @@ export default defineComponent({
     const canShowMenu = (menuId: string): boolean => {
       if (!userStore.getUser()) return false
       return userStore.canShowMenu(menuId)
+    }
+
+    const sendHeartbeat = async () => {
+      try {
+        await api.post('/online/heartbeat', { device_type: 'pc' })
+      } catch {
+        // 忽略心跳错误
+      }
+    }
+
+    const startHeartbeat = () => {
+      stopHeartbeat()
+      sendHeartbeat()
+      heartbeatTimer = window.setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
+    }
+
+    const stopHeartbeat = () => {
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer)
+        heartbeatTimer = null
+      }
     }
 
     const menuItems: MenuItem[] = [
@@ -258,10 +282,12 @@ export default defineComponent({
 
     onMounted(() => {
       document.addEventListener('click', handleClickOutside)
+      startHeartbeat()
     })
 
     onUnmounted(() => {
       document.removeEventListener('click', handleClickOutside)
+      stopHeartbeat()
     })
 
     return {

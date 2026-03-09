@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showImagePreview } from 'vant'
 import { weeklyReportService } from '../services'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import type { WeeklyReport, OperationLog } from '../types/models'
 
@@ -154,15 +153,12 @@ onMounted(() => {
 
 <template>
   <div class="weekly-report-detail-page">
-    <van-nav-bar title="部门周报详情" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector />
       </template>
     </van-nav-bar>
 

@@ -9,7 +9,6 @@ import {
   showConfirmDialog,
 } from 'vant'
 import { spotWorkService, ocrService, uploadService } from '../services'
-import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { validateIdCard } from '../utils/idCardValidator'
@@ -428,15 +427,12 @@ onMounted(() => {
 
 <template>
   <div class="worker-entry-page">
-    <van-nav-bar title="施工人员录入" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBack()">
       <template #left>
-        <div class="nav-left" @click="handleBack()">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector />
       </template>
     </van-nav-bar>
 

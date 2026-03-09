@@ -11,8 +11,7 @@ import {
 import { temporaryRepairService, uploadService, operationLogService } from '../services'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
-import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
+import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import { copyOrderId } from '../utils/clipboard'
@@ -367,29 +366,6 @@ const handleApproveReject = async () => {
 }
 
 /**
- * 用户选择器准备就绪回调
- * @param _user 用户信息
- */
-const handleUserReady = async (_user: User) => {
-  await fetchDetail()
-  loadSignature()
-}
-
-onMounted(async () => {
-  if (userStore.isLoggedIn()) {
-    const user = userStore.getUser()
-    if (user) {
-      await fetchDetail()
-      loadSignature()
-    }
-  }
-})
-
-onActivated(() => {
-  loadSignature()
-})
-
-/**
  * 记录操作日志
  * @param operationTypeCode 操作类型编码
  * @param operationRemark 操作备注
@@ -418,19 +394,30 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
     console.error('Failed to add operation log:', error)
   }
 }
+
+onMounted(async () => {
+  if (userStore.isLoggedIn()) {
+    const user = userStore.getUser()
+    if (user) {
+      await fetchDetail()
+      loadSignature()
+    }
+  }
+})
+
+onActivated(() => {
+  loadSignature()
+})
 </script>
 
 <template>
   <div class="temporary-repair-detail">
-    <van-nav-bar title="临时维修单" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBackToList">
       <template #left>
-        <div class="nav-left" @click="handleBackToList">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @ready="handleUserReady" />
       </template>
     </van-nav-bar>
 

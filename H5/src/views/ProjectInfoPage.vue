@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
 import { projectInfoService, customerService } from '../services'
 import SearchInput from '../components/SearchInput.vue'
-import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables'
 import type { Customer, ProjectInfo } from '../types/models'
 
@@ -251,16 +250,15 @@ onMounted(() => {
 
 <template>
   <div class="project-info-page">
-    <van-nav-bar :title="isEdit ? '编辑项目信息' : '新增项目信息'" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
       </template>
       <template #right>
-        <UserSelector />
-        <van-icon v-if="isEdit" name="delete-o" style="margin-left: 12px" @click="handleDelete" />
+        <van-icon v-if="isEdit" name="delete-o" @click="handleDelete" />
       </template>
     </van-nav-bar>
 

@@ -9,7 +9,6 @@ import {
 } from 'vant'
 import { sparePartsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 import type { SparePartsUsage, SparePartsStock, ProjectInfo } from '../types/models'
@@ -157,11 +156,6 @@ const handleBack = () => {
   goBack()
 }
 
-const handleUserChanged = () => {
-  fetchIssueList()
-  fetchProjectList()
-}
-
 onMounted(() => {
   fetchIssueList()
   fetchStockList()
@@ -171,15 +165,12 @@ onMounted(() => {
 
 <template>
   <div class="spare-parts-issue-page">
-    <van-nav-bar title="备品备件领用" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

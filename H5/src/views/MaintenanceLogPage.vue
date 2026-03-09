@@ -5,7 +5,6 @@ import { showLoadingToast, closeToast } from 'vant'
 import { maintenanceLogService } from '../services'
 import type { MaintenanceLog } from '../types/models'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 
@@ -98,10 +97,6 @@ const handleBack = () => {
   goBack()
 }
 
-const handleUserChanged = () => {
-  fetchLogList()
-}
-
 onMounted(() => {
   fetchLogList()
 })
@@ -113,15 +108,12 @@ onActivated(() => {
 
 <template>
   <div class="maintenance-log-page">
-    <van-nav-bar :title="pageTitle" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

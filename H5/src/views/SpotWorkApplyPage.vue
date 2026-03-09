@@ -10,8 +10,7 @@ import {
 } from 'vant'
 import { spotWorkService, projectInfoService, uploadService } from '../services'
 import { formatDate, formatDateTime, processPhoto, getCurrentLocation } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
+import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 import { copyOrderId } from '../utils/clipboard'
 import type { ProjectInfo } from '../types/models'
@@ -329,17 +328,6 @@ const handleApprove = (item: any) => {
   router.push(`/spot-work/${item.id}?tab=${activeTab.value}&mode=approve`)
 }
 
-const handleUserReady = (_user: User) => {
-  userReady.value = true
-  fetchProjectList()
-  fetchWorkList()
-}
-
-const handleUserChanged = (_user: User) => {
-  fetchProjectList()
-  fetchWorkList()
-}
-
 const projectColumns = computed(() => {
   return projectList.value.map((p) => ({
     text: p.project_name,
@@ -472,7 +460,9 @@ const loadSignature = () => {
 }
 
 onMounted(() => {
+  userReady.value = true
   fetchProjectList()
+  fetchWorkList()
   loadSignature()
   const tabParam = route.query.tab
   if (tabParam !== undefined && tabParam !== null) {
@@ -491,15 +481,12 @@ onActivated(() => {
 
 <template>
   <div class="spot-work-apply-page">
-    <van-nav-bar title="申报用工" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
       </template>
     </van-nav-bar>
 

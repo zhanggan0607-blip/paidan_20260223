@@ -1,15 +1,43 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { userStore } from './stores/userStore'
 import { dingtalkService } from './services/dingtalk'
+import { onlineUserService } from './services/onlineUser'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 
 const isInitialized = ref(false)
+let heartbeatTimer: number | null = null
+const HEARTBEAT_INTERVAL = 2 * 60 * 1000
+
+const sendHeartbeat = async () => {
+  const user = userStore.getUser()
+  if (!user || !userStore.isLoggedIn()) return
+
+  try {
+    await onlineUserService.heartbeat('h5', user.id, user.name)
+  } catch {
+    // 忽略心跳错误
+  }
+}
+
+const startHeartbeat = () => {
+  stopHeartbeat()
+  sendHeartbeat()
+  heartbeatTimer = window.setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
+}
+
+const stopHeartbeat = () => {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer)
+    heartbeatTimer = null
+  }
+}
 
 onMounted(async () => {
   if (userStore.isLoggedIn()) {
     isInitialized.value = true
+    startHeartbeat()
     return
   }
 
@@ -28,6 +56,7 @@ onMounted(async () => {
         userStore.setToken(response.data.access_token)
         userStore.setUser(response.data.user)
         showSuccessToast('登录成功')
+        startHeartbeat()
       } else {
         showFailToast(response.message || '钉钉登录失败')
       }
@@ -40,6 +69,10 @@ onMounted(async () => {
   }
 
   isInitialized.value = true
+})
+
+onUnmounted(() => {
+  stopHeartbeat()
 })
 </script>
 

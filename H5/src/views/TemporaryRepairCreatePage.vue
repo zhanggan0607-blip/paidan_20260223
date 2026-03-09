@@ -4,8 +4,6 @@ import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { projectInfoService, temporaryRepairService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
-import type { User } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 import type { ProjectInfo } from '../types/models'
 
@@ -173,15 +171,6 @@ const handleBack = () => {
   goBack()
 }
 
-const handleUserReady = (_user: User) => {
-  userReady.value = true
-  fetchProjectList()
-}
-
-const handleUserChanged = (_user: User) => {
-  fetchProjectList()
-}
-
 const projectColumns = computed(() => {
   return projectList.value.map((p) => ({
     text: p.project_name,
@@ -194,21 +183,19 @@ const projectColumns = computed(() => {
 })
 
 onMounted(() => {
+  userReady.value = true
   fetchProjectList()
 })
 </script>
 
 <template>
   <div class="temporary-repair-create-page">
-    <van-nav-bar title="新增临时维修单" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
       </template>
     </van-nav-bar>
 

@@ -3,7 +3,6 @@ import { ref, onMounted } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { weeklyReportService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
 
 const { goBack } = useNavigation()
@@ -109,15 +108,12 @@ onMounted(() => {
 
 <template>
   <div class="weekly-report-fill-page">
-    <van-nav-bar title="部门周报填报" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector />
       </template>
     </van-nav-bar>
 

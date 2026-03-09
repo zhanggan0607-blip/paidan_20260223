@@ -9,7 +9,6 @@ import {
 } from 'vant'
 import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
 import type { RepairToolsUsage } from '../types/models'
 
@@ -122,10 +121,6 @@ const handleBack = () => {
   goBack()
 }
 
-const handleUserChanged = () => {
-  fetchIssueList()
-}
-
 onMounted(() => {
   fetchIssueList()
 })
@@ -133,15 +128,12 @@ onMounted(() => {
 
 <template>
   <div class="repair-tools-return-page">
-    <van-nav-bar title="维修工具归还" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

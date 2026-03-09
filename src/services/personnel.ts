@@ -18,6 +18,8 @@ export interface Personnel {
   last_login_at?: string
   created_at: string
   updated_at: string
+  is_online?: boolean
+  device_type?: 'pc' | 'h5' | null
 }
 
 export interface PersonnelCreate {

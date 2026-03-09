@@ -42,6 +42,7 @@
             <th>角色</th>
             <th>联系电话</th>
             <th>最后登录时间</th>
+            <th>状态</th>
             <th>操作</th>
           </tr>
         </thead>
@@ -58,6 +59,21 @@
             <td :class="getRoleClass(item.role)">{{ item.role }}</td>
             <td>{{ item.phone || '-' }}</td>
             <td>{{ item.last_login_at ? formatDate(item.last_login_at) : '-' }}</td>
+            <td class="status-cell">
+              <span
+                class="status-badge"
+                :class="{
+                  'status-online': item.is_online,
+                  'status-offline': !item.is_online,
+                }"
+              >
+                <span class="status-dot"></span>
+                <span class="status-text">{{ item.is_online ? '在线' : '离线' }}</span>
+                <span v-if="item.is_online && item.device_type" class="device-type">
+                  ({{ item.device_type === 'pc' ? '电脑端' : '手机端' }})
+                </span>
+              </span>
+            </td>
             <td class="action-cell">
               <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
               <a
@@ -648,6 +664,24 @@ export default defineComponent({
       }
     }
 
+    let refreshTimer: ReturnType<typeof setInterval> | null = null
+
+    const startOnlineStatusRefresh = () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer)
+      }
+      refreshTimer = setInterval(() => {
+        loadData()
+      }, 30000)
+    }
+
+    const stopOnlineStatusRefresh = () => {
+      if (refreshTimer) {
+        clearInterval(refreshTimer)
+        refreshTimer = null
+      }
+    }
+
     watch(currentPage, () => {
       loadData()
     })
@@ -668,11 +702,13 @@ export default defineComponent({
         currentUserDepartment.value = user.department || ''
       }
       loadData()
+      startOnlineStatusRefresh()
       window.addEventListener('user-changed', handleUserChanged)
     })
 
     onUnmounted(() => {
       abort()
+      stopOnlineStatusRefresh()
       window.removeEventListener('user-changed', handleUserChanged)
     })
 
@@ -841,7 +877,7 @@ export default defineComponent({
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px;
+  min-width: 1400px;
 }
 
 .data-table thead {
@@ -924,6 +960,67 @@ export default defineComponent({
 .role-material {
   color: #ff9800;
   font-weight: 600;
+}
+
+.status-cell {
+  white-space: nowrap;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-online {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-online .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4caf50;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-offline {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.status-offline .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f44336;
+}
+
+.status-text {
+  font-weight: 500;
+}
+
+.device-type {
+  font-size: 12px;
+  color: #666;
+  margin-left: 2px;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
 }
 
 .pagination-section {

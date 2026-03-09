@@ -13,8 +13,7 @@ import { formatDate, getWorkIdFontSize, processPhoto, getCurrentLocation } from 
 import { WORK_STATUS } from '../config/constants'
 import { copyOrderId } from '../utils/clipboard'
 import { useNavigation } from '../composables'
-import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
+import { userStore } from '../stores/userStore'
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import type { SpotWork, SpotWorkWorker } from '../types/models'
 
@@ -386,15 +385,6 @@ const handleApproveReject = async () => {
   }
 }
 
-/**
- * 用户选择器准备就绪回调
- * @param _user 用户信息
- */
-const handleUserReady = async (_user: User) => {
-  await fetchDetail()
-  loadSignature()
-}
-
 onMounted(async () => {
   if (userStore.isLoggedIn()) {
     const user = userStore.getUser()
@@ -438,15 +428,12 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 
 <template>
   <div class="spot-work-detail">
-    <van-nav-bar title="零星用工单" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBackToList">
       <template #left>
-        <div class="nav-left" @click="handleBackToList">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @ready="handleUserReady" />
       </template>
     </van-nav-bar>
 

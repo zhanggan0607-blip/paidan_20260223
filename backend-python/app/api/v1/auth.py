@@ -3,10 +3,12 @@
 包含登录、登出、获取用户信息、修改密码等功能
 """
 from datetime import datetime
+import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.auth import (
@@ -18,6 +20,7 @@ from app.auth import (
 from app.database import get_db
 from app.dependencies import UserInfo
 from app.dependencies import get_current_user_required as get_user_info
+from app.models.online_user import OnlineUser
 from app.models.personnel import Personnel
 from app.schemas.common import ApiResponse
 
@@ -53,8 +56,55 @@ def update_last_login(db: Session, user: Personnel):
     db.commit()
 
 
+def get_client_ip(request: Request) -> str:
+    """获取客户端IP地址"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def record_online_status(db: Session, user: Personnel, device_type: str, ip_address: str):
+    """
+    记录用户在线状态
+    @param db: 数据库会话
+    @param user: 用户对象
+    @param device_type: 设备类型 (pc/h5)
+    @param ip_address: IP地址
+    """
+    now = datetime.utcnow()
+    device_type = device_type if device_type in ["pc", "h5"] else "pc"
+    
+    existing = db.query(OnlineUser).filter(
+        and_(
+            OnlineUser.user_id == user.id,
+            OnlineUser.is_active == True
+        )
+    ).first()
+    
+    if existing:
+        existing.last_activity = now
+        existing.login_time = now
+        existing.ip_address = ip_address
+        existing.device_type = device_type
+    else:
+        online_user = OnlineUser(
+            user_id=user.id,
+            user_name=user.name,
+            department=user.department,
+            role=user.role,
+            login_time=now,
+            last_activity=now,
+            ip_address=ip_address,
+            device_type=device_type,
+            is_active=True
+        )
+        db.add(online_user)
+
+
 @router.post("/login", response_model=ApiResponse)
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -95,6 +145,10 @@ def login(
         db.commit()
 
     update_last_login(db, user)
+    
+    ip_address = get_client_ip(request)
+    record_online_status(db, user, "pc", ip_address)
+    db.commit()
 
     access_token = create_access_token(
         data={
@@ -126,6 +180,7 @@ def login(
 @router.post("/login-json", response_model=ApiResponse)
 def login_json(
     login_req: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """
@@ -163,6 +218,10 @@ def login_json(
         db.commit()
 
     update_last_login(db, user)
+    
+    ip_address = get_client_ip(request)
+    record_online_status(db, user, login_req.device_type, ip_address)
+    db.commit()
 
     access_token = create_access_token(
         data={
@@ -192,10 +251,26 @@ def login_json(
 
 
 @router.post("/logout", response_model=ApiResponse)
-async def logout():
+async def logout(
+    current_user: UserInfo = Depends(get_user_info),
+    db: Session = Depends(get_db)
+):
     """
     用户登出接口
+    更新用户在线状态为离线
     """
+    if current_user.is_authenticated and current_user.id:
+        existing = db.query(OnlineUser).filter(
+            and_(
+                OnlineUser.user_id == current_user.id,
+                OnlineUser.is_active == True
+            )
+        ).first()
+        
+        if existing:
+            existing.is_active = False
+            db.commit()
+    
     return ApiResponse(
         code=200,
         message="登出成功",

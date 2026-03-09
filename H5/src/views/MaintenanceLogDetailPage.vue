@@ -5,7 +5,6 @@ import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'v
 import { maintenanceLogService } from '../services'
 import type { MaintenanceLog, OperationLog } from '../types/models'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables'
 
 const route = useRoute()
@@ -146,15 +145,12 @@ onActivated(() => {
 
 <template>
   <div class="maintenance-log-detail-page">
-    <van-nav-bar title="维保日志详情" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector />
       </template>
     </van-nav-bar>
 

@@ -2,7 +2,6 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { sparePartsService } from '../services'
-import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
 import { userStore } from '../stores/userStore'
 import type { SparePartsStock } from '../types/models'
@@ -150,10 +149,6 @@ const handleBack = () => {
   goBack()
 }
 
-const handleUserChanged = () => {
-  fetchStockList()
-}
-
 /**
  * 打开入库弹窗
  */
@@ -175,15 +170,12 @@ onMounted(() => {
 
 <template>
   <div class="spare-parts-stock-page">
-    <van-nav-bar title="备品备件入库" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

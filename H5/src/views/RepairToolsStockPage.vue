@@ -3,7 +3,6 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { useNavigation } from '../composables/useNavigation'
 import type { RepairToolsStock } from '../types/models'
 
@@ -161,10 +160,6 @@ const handleBack = () => {
   goBack()
 }
 
-const handleUserChanged = () => {
-  fetchStockList()
-}
-
 onMounted(() => {
   fetchStockList()
 })
@@ -172,15 +167,12 @@ onMounted(() => {
 
 <template>
   <div class="repair-tools-stock-page">
-    <van-nav-bar title="维修工具库存" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

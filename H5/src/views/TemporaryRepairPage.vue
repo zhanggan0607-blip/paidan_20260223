@@ -13,8 +13,7 @@ import {
   APPROVAL_TAB,
 } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
-import UserSelector from '../components/UserSelector.vue'
-import { userStore, type User } from '../stores/userStore'
+import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 
 const router = useRouter()
@@ -135,16 +134,9 @@ const handleTabChange = () => {
   fetchWorkList()
 }
 
-const handleUserReady = (_user: User) => {
+onMounted(() => {
   userReady.value = true
   fetchWorkList()
-}
-
-const handleUserChanged = (_user: User) => {
-  fetchWorkList()
-}
-
-onMounted(() => {
   const tabParam = route.query.tab
   if (tabParam !== undefined && tabParam !== null) {
     const tabIndex = parseInt(tabParam as string, 10)
@@ -163,16 +155,11 @@ onActivated(() => {
 
 <template>
   <div class="temporary-repair-page">
-    <van-nav-bar title="临时维修" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
-        </div>
-      </template>
-      <template #right>
-        <div class="nav-right">
-          <UserSelector @user-changed="handleUserChanged" @ready="handleUserReady" />
         </div>
       </template>
     </van-nav-bar>

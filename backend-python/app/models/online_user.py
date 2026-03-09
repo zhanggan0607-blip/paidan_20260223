@@ -1,5 +1,4 @@
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, Index, String
-from sqlalchemy.sql import func
 
 from app.database import Base
 
@@ -17,8 +16,6 @@ class OnlineUser(Base):
     ip_address = Column(String(50), comment="IP地址")
     device_type = Column(String(20), default="h5", comment="设备类型(pc/h5)")
     is_active = Column(Boolean, default=True, comment="是否在线")
-    created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
 
     __table_args__ = (
         Index('idx_online_user_user_id', 'user_id'),
@@ -38,6 +35,4 @@ class OnlineUser(Base):
             'ip_address': self.ip_address,
             'device_type': self.device_type,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

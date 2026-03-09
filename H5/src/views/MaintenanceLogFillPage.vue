@@ -10,7 +10,6 @@ import {
 import { maintenanceLogService, projectInfoService, uploadService } from '../services'
 import type { ProjectInfo } from '../types/models'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
 
@@ -266,15 +265,12 @@ onMounted(() => {
 
 <template>
   <div class="maintenance-log-fill-page">
-    <van-nav-bar :title="pageTitle" fixed placeholder>
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
-        <div class="nav-left" @click="handleBack">
+        <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector />
       </template>
     </van-nav-bar>
 

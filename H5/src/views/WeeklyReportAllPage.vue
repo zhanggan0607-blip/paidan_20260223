@@ -8,7 +8,6 @@ import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { weeklyReportService } from '../services'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import UserSelector from '../components/UserSelector.vue'
 import type { WeeklyReport } from '../types/models'
 
 const router = useRouter()
@@ -79,10 +78,6 @@ const handleBack = () => {
   router.push('/')
 }
 
-const handleUserChanged = () => {
-  fetchReportList()
-}
-
 onMounted(() => {
   fetchReportList()
 })
@@ -90,15 +85,12 @@ onMounted(() => {
 
 <template>
   <div class="weekly-report-all-page">
-    <van-nav-bar title="查看部门周报" fixed placeholder @click-left="handleBack">
+    <van-nav-bar fixed placeholder @click-left="handleBack">
       <template #left>
         <div class="nav-left">
           <van-icon name="arrow-left" />
           <span>返回</span>
         </div>
-      </template>
-      <template #right>
-        <UserSelector @user-changed="handleUserChanged" />
       </template>
     </van-nav-bar>
 

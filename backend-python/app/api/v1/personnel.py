@@ -1,9 +1,13 @@
 
+from datetime import datetime, timedelta
+
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import UserInfo, get_manager_user
+from app.models.online_user import OnlineUser
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.personnel import (
     PersonnelCreate,
@@ -12,6 +16,48 @@ from app.schemas.personnel import (
 from app.services.personnel import PersonnelService
 
 router = APIRouter(prefix="/personnel", tags=["Personnel Management"])
+
+ONLINE_TIMEOUT_MINUTES = 5
+
+
+def _get_online_status_map(db: Session, user_ids: list[int]) -> dict:
+    """
+    获取用户在线状态映射
+    @param db: 数据库会话
+    @param user_ids: 用户ID列表
+    @return: {user_id: {"is_online": bool, "device_type": str}} 映射
+    
+    超时机制：如果用户 last_activity 超过 ONLINE_TIMEOUT_MINUTES 分钟没有更新，
+    则认为用户已离线，自动更新 is_active 为 False
+    """
+    timeout_threshold = datetime.utcnow() - timedelta(minutes=ONLINE_TIMEOUT_MINUTES)
+    
+    online_users = db.query(OnlineUser).filter(
+        and_(
+            OnlineUser.user_id.in_(user_ids),
+            OnlineUser.is_active == True
+        )
+    ).all()
+    
+    result = {}
+    for ou in online_users:
+        if ou.last_activity and ou.last_activity < timeout_threshold:
+            ou.is_active = False
+            continue
+        
+        if ou.user_id not in result:
+            result[ou.user_id] = {
+                "is_online": True,
+                "device_type": ou.device_type
+            }
+        else:
+            if ou.device_type == "pc":
+                result[ou.user_id]["device_type"] = "pc"
+    
+    if online_users:
+        db.commit()
+    
+    return result
 
 
 @router.get("/all/list", response_model=ApiResponse)
@@ -45,6 +91,7 @@ def get_personnel_list(
     分页获取人员列表
 
     支持按姓名、部门模糊查询，并根据当前用户角色进行权限过滤
+    包含用户在线状态和设备类型信息
 
     Args:
         page: 页码，从0开始
@@ -62,7 +109,18 @@ def get_personnel_list(
         page=page, size=size, name=name, department=department,
         current_user_role=current_user_role, current_user_department=current_user_department
     )
-    items_dict = [item.to_dict() for item in items]
+    
+    user_ids = [item.id for item in items]
+    online_status_map = _get_online_status_map(db, user_ids) if user_ids else {}
+    
+    items_dict = []
+    for item in items:
+        item_dict = item.to_dict()
+        online_info = online_status_map.get(item.id, {"is_online": False, "device_type": None})
+        item_dict["is_online"] = online_info["is_online"]
+        item_dict["device_type"] = online_info["device_type"]
+        items_dict.append(item_dict)
+    
     return PaginatedResponse.success(items_dict, total, page, size)
 
 
