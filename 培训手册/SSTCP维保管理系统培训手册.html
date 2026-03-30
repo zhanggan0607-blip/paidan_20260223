@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSTCP维保管理系统培训手册</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Microsoft YaHei", "SimSun", Arial, sans-serif;
+            line-height: 1.8;
+            color: #333;
+            background: #fff;
+        }
+        
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 0 auto;
+            background: white;
+            page-break-after: always;
+        }
+        
+        .cover {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            height: 257mm;
+        }
+        
+        .cover h1 {
+            font-size: 36px;
+            color: #1a5fb4;
+            margin-bottom: 30px;
+            border-bottom: 4px solid #1a5fb4;
+            padding-bottom: 20px;
+        }
+        
+        .cover .subtitle {
+            font-size: 20px;
+            color: #666;
+            margin-bottom: 50px;
+        }
+        
+        .cover .info {
+            font-size: 16px;
+            color: #888;
+            margin-top: 80px;
+        }
+        
+        .cover .version {
+            font-size: 14px;
+            color: #999;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            font-size: 28px;
+            color: #1a5fb4;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a5fb4;
+        }
+        
+        h2 {
+            font-size: 22px;
+            color: #26a269;
+            margin: 30px 0 15px 0;
+            padding-left: 15px;
+            border-left: 4px solid #26a269;
+        }
+        
+        h3 {
+            font-size: 18px;
+            color: #e66100;
+            margin: 20px 0 10px 0;
+        }
+        
+        h4 {
+            font-size: 16px;
+            color: #333;
+            margin: 15px 0 10px 0;
+        }
+        
+        p {
+            margin-bottom: 15px;
+            text-indent: 2em;
+        }
+        
+        .no-indent {
+            text-indent: 0;
+        }
+        
+        ul, ol {
+            margin: 15px 0 15px 40px;
+        }
+        
+        li {
+            margin-bottom: 8px;
+        }
+        
+        .toc {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .toc h2 {
+            border: none;
+            padding-left: 0;
+            margin-bottom: 20px;
+        }
+        
+        .toc ul {
+            list-style: none;
+            margin: 0;
+        }
+        
+        .toc li {
+            padding: 8px 0;
+            border-bottom: 1px dashed #ddd;
+        }
+        
+        .toc a {
+            color: #1a5fb4;
+            text-decoration: none;
+        }
+        
+        .toc .sub-item {
+            padding-left: 20px;
+            color: #666;
+        }
+        
+        .highlight-box {
+            background: #e8f4f8;
+            border: 1px solid #1a5fb4;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .tip-box {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .error-box {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .image-placeholder {
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            color: #666;
+            margin: 15px 0;
+        }
+        
+        .image-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        
+        th {
+            background: #1a5fb4;
+            color: white;
+        }
+        
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        
+        .role-table th {
+            background: #26a269;
+        }
+        
+        .step-list {
+            counter-reset: step-counter;
+            list-style: none;
+            margin-left: 0;
+        }
+        
+        .step-list li {
+            counter-increment: step-counter;
+            margin-bottom: 15px;
+            padding-left: 40px;
+            position: relative;
+        }
+        
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 28px;
+            height: 28px;
+            background: #1a5fb4;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 28px;
+            font-weight: bold;
+        }
+        
+        .page-number {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+        
+        .module-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 15px 0;
+        }
+        
+        .module-card h3 {
+            color: white;
+            margin-top: 0;
+        }
+        
+        .module-card p {
+            margin-bottom: 0;
+        }
+        
+        /* 流程图样式 */
+        .flow-chart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .flow-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+            flex-wrap: wrap;
+        }
+        
+        .flow-step {
+            background: #1a5fb4;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 100px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .flow-step.success {
+            background: #26a269;
+        }
+        
+        .flow-step.warning {
+            background: #e66100;
+        }
+        
+        .flow-step.danger {
+            background: #dc3545;
+        }
+        
+        .flow-step.info {
+            background: #17a2b8;
+        }
+        
+        .flow-arrow {
+            font-size: 24px;
+            color: #1a5fb4;
+            margin: 0 10px;
+        }
+        
+        .flow-arrow-down {
+            font-size: 24px;
+            color: #1a5fb4;
+            margin: 5px 0;
+        }
+        
+        .flow-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 20px;
+        }
+        
+        .flow-condition {
+            background: #ffc107;
+            color: #333;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: 500;
+            transform: rotate(0deg);
+            margin: 10px 0;
+            border: 2px solid #e0a800;
+        }
+        
+        /* 业务逻辑图样式 */
+        .logic-diagram {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .logic-title {
+            text-align: center;
+            font-weight: bold;
+            color: #1a5fb4;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1a5fb4;
+        }
+        
+        .logic-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            margin: 10px 0;
+        }
+        
+        .logic-box {
+            flex: 1;
+            margin: 0 5px;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .logic-box.role {
+            background: #e3f2fd;
+            border: 2px solid #1976d2;
+        }
+        
+        .logic-box.action {
+            background: #e8f5e9;
+            border: 2px solid #4caf50;
+        }
+        
+        .logic-box.result {
+            background: #fff3e0;
+            border: 2px solid #ff9800;
+        }
+        
+        .logic-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .logic-box ul {
+            margin: 0;
+            padding-left: 15px;
+            text-align: left;
+            font-size: 13px;
+        }
+        
+        /* 截图示例样式 */
+        .screenshot {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            background: #fafafa;
+        }
+        
+        .screenshot-header {
+            background: #e0e0e0;
+            padding: 8px 15px;
+            border-radius: 4px 4px 0 0;
+            margin: -10px -10px 10px -10px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .screenshot-content {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            min-height: 100px;
+        }
+        
+        .screenshot-annotation {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fff8e1;
+            border-left: 3px solid #ffc107;
+            font-size: 13px;
+        }
+        
+        .annotation-number {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #ffc107;
+            color: #333;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 5px;
+        }
+        
+        /* 表单示例样式 */
+        .form-example {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            background: #fff;
+        }
+        
+        .form-example-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .form-example-label {
+            width: 120px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .form-example-value {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+        
+        .form-example-value.required {
+            background: #fff3e0;
+            border-color: #ff9800;
+        }
+        
+        .form-example-value.readonly {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        /* 按钮示例 */
+        .btn-example {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .btn-example.primary {
+            background: #1a5fb4;
+            color: white;
+        }
+        
+        .btn-example.success {
+            background: #26a269;
+            color: white;
+        }
+        
+        .btn-example.warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .btn-example.danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-example.default {
+            background: #fff;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+        
+        /* 状态标签 */
+        .status-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .status-tag.pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+        
+        .status-tag.progress {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        .status-tag.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-tag.danger {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        /* 时间线样式 */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            margin: 20px 0;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #1a5fb4;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding-bottom: 20px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: #1a5fb4;
+            border-radius: 50%;
+            border: 2px solid #fff;
+        }
+        
+        .timeline-item.success::before {
+            background: #26a269;
+        }
+        
+        .timeline-item.warning::before {
+            background: #ff9800;
+        }
+        
+        .timeline-item.danger::before {
+            background: #dc3545;
+        }
+        
+        .timeline-time {
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .timeline-content {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        
+        @media print {
+            .page {
+                margin: 0;
+                padding: 15mm;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 封面 -->
+    <div class="page">
+        <div class="cover">
+            <h1>SSTCP维保管理系统</h1>
+            <div class="subtitle">培训手册</div>
+            <div class="info">
+                <p>适用于：管理员、部门经理、材料员、运维人员</p>
+            </div>
+            <div class="version">
+                <p>版本：V2.0</p>
+                <p>编制日期：2026年2月</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 目录 -->
+    <div class="page">
+        <h1>目 录</h1>
+        <div class="toc">
+            <ul>
+                <li><a href="#chapter1">第一章 系统概述</a></li>
+                <li class="sub-item">1.1 系统简介</li>
+                <li class="sub-item">1.2 系统架构</li>
+                <li class="sub-item">1.3 用户角色与权限</li>
+                <li class="sub-item">1.4 功能模块概览</li>
+                
+                <li><a href="#chapter2">第二章 系统登录</a></li>
+                <li class="sub-item">2.1 电脑端登录</li>
+                <li class="sub-item">2.2 手机端登录</li>
+                <li class="sub-item">2.3 密码修改</li>
+                
+                <li><a href="#chapter3">第三章 电脑端操作指南</a></li>
+                <li class="sub-item">3.1 项目信息管理</li>
+                <li class="sub-item">3.2 人员管理</li>
+                <li class="sub-item">3.3 维保计划管理</li>
+                <li class="sub-item">3.4 巡检事项管理</li>
+                <li class="sub-item">3.5 工单管理</li>
+                <li class="sub-item">3.6 备品备件管理</li>
+                <li class="sub-item">3.7 维修工具管理</li>
+                <li class="sub-item">3.8 数据统计</li>
+                <li class="sub-item">3.9 超期预警</li>
+                
+                <li><a href="#chapter4">第四章 手机端操作指南</a></li>
+                <li class="sub-item">4.1 手机端首页</li>
+                <li class="sub-item">4.2 定期巡检</li>
+                <li class="sub-item">4.3 临时维修</li>
+                <li class="sub-item">4.4 零星用工</li>
+                <li class="sub-item">4.5 签字确认</li>
+                <li class="sub-item">4.6 维保日志</li>
+                <li class="sub-item">4.7 备品备件领用</li>
+                <li class="sub-item">4.8 维修工具管理</li>
+                
+                <li><a href="#chapter5">第五章 业务流程说明</a></li>
+                <li class="sub-item">5.1 维保计划完整流程</li>
+                <li class="sub-item">5.2 工单审批流程</li>
+                <li class="sub-item">5.3 零星用工流程</li>
+                <li class="sub-item">5.4 备品备件管理流程</li>
+                
+                <li><a href="#chapter6">第六章 常见问题解答</a></li>
+                
+                <li><a href="#chapter7">第七章 附录</a></li>
+            </ul>
+        </div>
+        
+        <h2>文档说明</h2>
+        <p>本培训手册旨在帮助用户快速掌握SSTCP维保管理系统的使用方法。手册包含系统概述、登录方式、各功能模块操作指南、业务流程说明及常见问题解答等内容。</p>
+        
+        <div class="highlight-box">
+            <h4>📖 阅读建议</h4>
+            <ul>
+                <li><strong>管理员和部门经理</strong>：重点阅读第三章电脑端操作指南和第五章业务流程说明</li>
+                <li><strong>运维人员</strong>：重点阅读第四章手机端操作指南</li>
+                <li><strong>材料员</strong>：重点阅读备品备件和维修工具相关章节</li>
+            </ul>
+        </div>
+        
+        <div class="warning-box">
+            <h4>⚠️ 重要提示</h4>
+            <ul>
+                <li>所有删除操作均为非物理删除（软删除），数据可恢复</li>
+                <li>删除前会弹出确认提示，请仔细阅读后确认</li>
+                <li>照片只能通过拍照上传，不支持从图库选择</li>
+                <li>签字时请将手机横屏进行签名</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 第一章 系统概述 -->
+    <div class="page">
+        <h1 id="chapter1">第一章 系统概述</h1>
+        
+        <h2>1.1 系统简介</h2>
+        <p>SSTCP维保管理系统是一套专业的设施设备维护保养管理平台，旨在提高维保工作效率，规范维保流程，实现维保工作的数字化、智能化管理。系统支持电脑端和手机端两种访问方式，满足不同场景下的使用需求。</p>
+        
+        <div class="module-card">
+            <h3>系统核心价值</h3>
+            <p>✓ 规范维保流程 &nbsp;&nbsp; ✓ 提高工作效率 &nbsp;&nbsp; ✓ 数据实时同步 &nbsp;&nbsp; ✓ 移动办公便捷</p>
+        </div>
+        
+        <h2>1.2 系统架构</h2>
+        <p>系统采用B/S架构，支持电脑端和手机端两种访问方式：</p>
+        <table>
+            <tr>
+                <th>访问方式</th>
+                <th>访问地址</th>
+                <th>适用人员</th>
+                <th>主要功能</th>
+            </tr>
+            <tr>
+                <td>电脑端</td>
+                <td>http://www.sstcp.top/</td>
+                <td>管理员、部门经理、材料员</td>
+                <td>数据管理、计划制定、审批、统计</td>
+            </tr>
+            <tr>
+                <td>手机端</td>
+                <td>http://www.sstcp.top/h5/</td>
+                <td>运维人员、部门经理</td>
+                <td>工单执行、现场填报、签字确认</td>
+            </tr>
+        </table>
+        
+        <h2>1.3 用户角色与权限</h2>
+        <table class="role-table">
+            <tr>
+                <th>角色</th>
+                <th>主要权限</th>
+                <th>电脑端功能</th>
+                <th>手机端功能</th>
+            </tr>
+            <tr>
+                <td><strong>管理员</strong></td>
+                <td>全部权限</td>
+                <td>系统管理、人员管理、数据统计、全部业务操作</td>
+                <td>全部功能</td>
+            </tr>
+            <tr>
+                <td><strong>部门经理</strong></td>
+                <td>部门管理权限</td>
+                <td>维保计划制定、工单审批、巡检事项维护、周报管理</td>
+                <td>审批、周报填报、工单查看</td>
+            </tr>
+            <tr>
+                <td><strong>材料员</strong></td>
+                <td>物资管理权限</td>
+                <td>备品备件入库、领用管理、维修工具管理</td>
+                <td>库存查看</td>
+            </tr>
+            <tr>
+                <td><strong>运维人员</strong></td>
+                <td>执行权限</td>
+                <td>个人工单查看</td>
+                <td>工单执行、巡检填报、维保日志填写、签字确认</td>
+            </tr>
+        </table>
+        
+        <h2>1.4 功能模块概览</h2>
+        
+        <h3>1.4.1 电脑端功能模块</h3>
+        <div class="logic-diagram">
+            <div class="logic-title">电脑端功能架构</div>
+            <div class="logic-row">
+                <div class="logic-box role">
+                    <h4>基础数据管理</h4>
+                    <ul>
+                        <li>项目信息管理</li>
+                        <li>人员管理</li>
+                        <li>客户管理</li>
+                        <li>数据字典</li>
+                    </ul>
+                </div>
+                <div class="logic-box action">
+                    <h4>业务管理</h4>
+                    <ul>
+                        <li>维保计划管理</li>
+                        <li>巡检事项管理</li>
+                        <li>工单管理</li>
+                        <li>维保日志</li>
+                    </ul>
+                </div>
+                <div class="logic-box result">
+                    <h4>物资管理</h4>
+                    <ul>
+                        <li>备品备件管理</li>
+                        <li>维修工具管理</li>
+                        <li>入库/领用/归还</li>
+                        <li>库存查询</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="logic-row">
+                <div class="logic-box role">
+                    <h4>统计分析</h4>
+                    <ul>
+                        <li>数据统计</li>
+                        <li>超期预警</li>
+                        <li>临期提醒</li>
+                    </ul>
+                </div>
+                <div class="logic-box action">
+                    <h4>周报管理</h4>
+                    <ul>
+                        <li>部门周报填报</li>
+                        <li>周报查询</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <h3>1.4.2 手机端功能模块</h3>
+        <div class="logic-diagram">
+            <div class="logic-title">手机端功能架构</div>
+            <div class="logic-row">
+                <div class="logic-box role">
+                    <h4>工单执行</h4>
+                    <ul>
+                        <li>定期巡检</li>
+                        <li>临时维修</li>
+                        <li>零星用工</li>
+                    </ul>
+                </div>
+                <div class="logic-box action">
+                    <h4>日常记录</h4>
+                    <ul>
+                        <li>维保日志填报</li>
+                        <li>部门周报</li>
+                        <li>签字确认</li>
+                    </ul>
+                </div>
+                <div class="logic-box result">
+                    <h4>物资操作</h4>
+                    <ul>
+                        <li>备品备件领用</li>
+                        <li>维修工具领用</li>
+                        <li>维修工具归还</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 第二章 系统登录 -->
+    <div class="page">
+        <h1 id="chapter2">第二章 系统登录</h1>
+        
+        <h2>2.1 电脑端登录</h2>
+        
+        <h3>2.1.1 登录步骤</h3>
+        <ol class="step-list">
+            <li>打开浏览器（推荐使用Chrome、Edge浏览器）</li>
+            <li>在地址栏输入系统地址：<strong>http://www.sstcp.top/</strong></li>
+            <li>进入登录页面，输入用户名和密码</li>
+            <li>点击"登录"按钮进入系统</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 登录页面示例</div>
+            <div class="screenshot-content">
+                <div style="text-align: center; padding: 30px; background: #f5f5f5; border-radius: 8px;">
+                    <div style="font-size: 24px; color: #1a5fb4; margin-bottom: 20px;">SSTCP维保管理系统</div>
+                    <div style="display: inline-block; text-align: left; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #666;">用户名</label>
+                            <input type="text" style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="请输入用户名">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 5px; color: #666;">密码</label>
+                            <input type="password" style="width: 200px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="请输入密码">
+                        </div>
+                        <button style="width: 100%; padding: 10px; background: #1a5fb4; color: #fff; border: none; border-radius: 4px; cursor: pointer;">登 录</button>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 用户名：输入您的姓名或系统分配的账号<br>
+                <span class="annotation-number">2</span> 密码：初始密码为手机号后6位
+            </div>
+        </div>
+        
+        <h3>2.1.2 默认账号信息</h3>
+        <table>
+            <tr>
+                <th>用户名</th>
+                <th>初始密码</th>
+                <th>角色</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>管理员账号</td>
+                <td>管理员设置</td>
+                <td>管理员</td>
+                <td>拥有系统全部权限</td>
+            </tr>
+            <tr>
+                <td>员工姓名</td>
+                <td>手机号后6位</td>
+                <td>根据分配</td>
+                <td>首次登录后请修改密码</td>
+            </tr>
+        </table>
+        
+        <div class="warning-box">
+            <h4>⚠️ 安全提示</h4>
+            <p>首次登录后请及时修改默认密码，确保账号安全。密码建议包含字母、数字和特殊字符，长度不少于8位。</p>
+        </div>
+        
+        <h2>2.2 手机端登录</h2>
+        
+        <h3>2.2.1 登录步骤</h3>
+        <ol class="step-list">
+            <li>打开手机浏览器（推荐使用Chrome、Safari或微信内置浏览器）</li>
+            <li>在地址栏输入：<strong>http://www.sstcp.top/h5/</strong></li>
+            <li>或扫描下方二维码直接访问</li>
+            <li>输入用户名和密码登录系统</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 手机端首页示例</div>
+            <div class="screenshot-content">
+                <div style="max-width: 375px; margin: 0 auto; background: #f5f7fa; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #1a5fb4; color: #fff; padding: 15px; text-align: center; font-size: 18px;">SSTCP维保系统</div>
+                    <div style="padding: 15px;">
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px;">
+                            <div style="background: #fff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 24px; color: #ff976a; font-weight: bold;">5</div>
+                                <div style="font-size: 12px; color: #666;">临期工单</div>
+                            </div>
+                            <div style="background: #fff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 24px; color: #ee0a24; font-weight: bold;">2</div>
+                                <div style="font-size: 12px; color: #666;">超期工单</div>
+                            </div>
+                            <div style="background: #fff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 24px; color: #07c160; font-weight: bold;">128</div>
+                                <div style="font-size: 12px; color: #666;">已完成</div>
+                            </div>
+                            <div style="background: #fff; padding: 15px; border-radius: 8px; text-align: center;">
+                                <div style="font-size: 24px; color: #1989fa; font-weight: bold;">15</div>
+                                <div style="font-size: 12px; color: #666;">定期巡检单</div>
+                            </div>
+                        </div>
+                        <div style="background: #fff; border-radius: 8px; padding: 15px;">
+                            <div style="font-size: 14px; color: #666; margin-bottom: 10px;">快捷操作</div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
+                                <div><div style="font-size: 24px;">📋</div><div style="font-size: 11px;">定期巡检</div></div>
+                                <div><div style="font-size: 24px;">🔧</div><div style="font-size: 11px;">临时维修</div></div>
+                                <div><div style="font-size: 24px;">👷</div><div style="font-size: 11px;">申报用工</div></div>
+                                <div><div style="font-size: 24px;">📝</div><div style="font-size: 11px;">维保日志</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 统计卡片：显示各类工单数量，点击可查看详情<br>
+                <span class="annotation-number">2</span> 快捷操作：常用功能入口，方便快速操作
+            </div>
+        </div>
+        
+        <h2>2.3 密码修改</h2>
+        <p>登录系统后，建议及时修改初始密码。密码修改步骤如下：</p>
+        <ol class="step-list">
+            <li>点击右上角用户头像或用户名</li>
+            <li>选择"修改密码"选项</li>
+            <li>输入原密码和新密码</li>
+            <li>点击"确认"完成修改</li>
+        </ol>
+        
+        <div class="tip-box">
+            <h4>💡 密码设置建议</h4>
+            <ul>
+                <li>密码长度不少于8位</li>
+                <li>建议包含大小写字母、数字和特殊字符</li>
+                <li>不要使用生日、手机号等容易猜测的信息</li>
+                <li>定期更换密码，保障账号安全</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 第三章 电脑端操作指南 -->
+    <div class="page">
+        <h1 id="chapter3">第三章 电脑端操作指南</h1>
+        
+        <h2>3.1 项目信息管理</h2>
+        <p>项目信息管理是系统的基础模块，用于维护项目的基本信息，为后续维保计划制定和工单生成提供数据支撑。</p>
+        
+        <h3>3.1.1 功能入口</h3>
+        <p>点击左侧菜单"项目信息管理"进入项目列表页面。</p>
+        
+        <h3>3.1.2 新增项目</h3>
+        <ol class="step-list">
+            <li>在项目列表页面，点击右上角"<span style="color: #2E7D32;">+ 新增项目信息</span>"按钮</li>
+            <li>在弹出的表单中填写项目基本信息</li>
+            <li>填写完成后点击"保存"按钮</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 新增项目信息表单</div>
+            <div class="screenshot-content">
+                <div class="form-example">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 项目名称</div>
+                            <div class="form-example-value required">请输入项目名称</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 项目编号</div>
+                            <div class="form-example-value required">请输入项目编号</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 项目开始日期</div>
+                            <div class="form-example-value required">2026-02-24</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 项目结束日期</div>
+                            <div class="form-example-value required">2027-02-24</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 维保频率</div>
+                            <div class="form-example-value required">每月 ▼</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 客户单位</div>
+                            <div class="form-example-value required">选择已有客户 或 手动输入</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 客户联系人</div>
+                            <div class="form-example-value required">请输入联系人姓名</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 客户联系方式</div>
+                            <div class="form-example-value required">请输入联系电话</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 客户地址</div>
+                            <div class="form-example-value required">请输入客户地址</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label">运维人员</div>
+                            <div class="form-example-value">请选择 ▼</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right; margin-top: 15px;">
+                        <span class="btn-example default">取消</span>
+                        <span class="btn-example primary">保存</span>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 带 <span style="color: red;">*</span> 的为必填项<br>
+                <span class="annotation-number">2</span> 客户单位可选择已有客户或手动输入<br>
+                <span class="annotation-number">3</span> 选择已有客户后，联系人、地址等信息会自动填充
+            </div>
+        </div>
+        
+        <h3>3.1.3 项目信息字段说明</h3>
+        <table>
+            <tr>
+                <th>字段名称</th>
+                <th>是否必填</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>项目名称</td>
+                <td style="color: red;">是</td>
+                <td>项目的名称，建议包含客户简称和项目类型</td>
+            </tr>
+            <tr>
+                <td>项目编号</td>
+                <td style="color: red;">是</td>
+                <td>项目的唯一标识，用于生成工单编号</td>
+            </tr>
+            <tr>
+                <td>项目开始日期</td>
+                <td style="color: red;">是</td>
+                <td>维保服务开始日期</td>
+            </tr>
+            <tr>
+                <td>项目结束日期</td>
+                <td style="color: red;">是</td>
+                <td>维保服务结束日期，截止时间为当日23:59:59</td>
+            </tr>
+            <tr>
+                <td>维保频率</td>
+                <td style="color: red;">是</td>
+                <td>每天/每周/每月/每季度/每半年</td>
+            </tr>
+            <tr>
+                <td>客户单位</td>
+                <td style="color: red;">是</td>
+                <td>可选择已有客户或手动输入</td>
+            </tr>
+            <tr>
+                <td>运维人员</td>
+                <td>否</td>
+                <td>指定项目负责人，选择后会同步到维保计划</td>
+            </tr>
+        </table>
+        
+        <h3>3.1.4 编辑和删除项目</h3>
+        <p>在项目列表中，每行数据末尾有操作按钮：</p>
+        <ul>
+            <li><span style="color: #2E7D32;">查看</span>：查看项目详细信息，不可编辑</li>
+            <li><span style="color: #2196F3;">编辑</span>：修改项目信息</li>
+            <li><span style="color: #D32F2F;">删除</span>：删除项目（软删除，会弹出确认提示）</li>
+        </ul>
+        
+        <div class="warning-box">
+            <h4>⚠️ 删除注意事项</h4>
+            <p>删除项目前，系统会检查是否有关联数据（维保计划、工单等）。如果存在关联数据，会提示是否级联删除。所有删除操作均为非物理删除，数据可恢复。</p>
+        </div>
+    </div>
+    
+    <div class="page">
+        <h2>3.2 人员管理</h2>
+        <p>人员管理模块用于维护系统用户信息，包括新增、编辑、删除人员等操作。</p>
+        
+        <h3>3.2.1 新增人员</h3>
+        <ol class="step-list">
+            <li>点击左侧菜单"人员管理"进入人员列表页面</li>
+            <li>点击"新增"按钮</li>
+            <li>填写人员信息（姓名、性别、手机号、部门、角色等）</li>
+            <li>点击"保存"完成新增</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 人员信息表单</div>
+            <div class="screenshot-content">
+                <div class="form-example">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 姓名</div>
+                            <div class="form-example-value required">请输入姓名</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 手机号</div>
+                            <div class="form-example-value required">请输入手机号</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label"><span style="color: red;">*</span> 角色</div>
+                            <div class="form-example-value required">运维人员 ▼</div>
+                        </div>
+                        <div class="form-example-row">
+                            <div class="form-example-label">部门</div>
+                            <div class="form-example-value">请选择部门 ▼</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 姓名：将作为登录用户名<br>
+                <span class="annotation-number">2</span> 手机号：后6位将作为初始密码
+            </div>
+        </div>
+        
+        <div class="tip-box">
+            <h4>💡 自动生成登录账号</h4>
+            <p>新增人员后，系统会自动生成登录账号：</p>
+            <ul>
+                <li><strong>用户名</strong>：人员姓名</li>
+                <li><strong>初始密码</strong>：手机号后6位</li>
+            </ul>
+            <p>例如：姓名"张三"，手机号"13812345678"，则用户名为"张三"，初始密码为"345678"</p>
+        </div>
+        
+        <h2>3.3 维保计划管理</h2>
+        <p>维保计划管理是系统的核心模块，用于制定和管理维保计划，包括定期巡检计划和临时维修计划。</p>
+        
+        <h3>3.3.1 维保计划流程图</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">基础信息维护</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">计划制定</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">事项选择</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">计划下发</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step">工单生成</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">工单执行</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">工单提交</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step success">审批通过</div>
+            </div>
+        </div>
+        
+        <h3>3.3.2 制定维保计划</h3>
+        <ol class="step-list">
+            <li>点击左侧菜单"维保计划管理"</li>
+            <li>点击"<span style="color: #2E7D32;">+ 新增维保计划</span>"按钮</li>
+            <li>在弹出的表单中选择项目（支持搜索）</li>
+            <li>系统自动根据项目信息生成计划列表</li>
+            <li>选择巡检事项或维修事项</li>
+            <li>指定执行人员</li>
+            <li>点击"保存"完成计划制定</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 维保计划表单</div>
+            <div class="screenshot-content">
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #1a5fb4;">基础信息</div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <div><span style="color: red;">*</span> 项目名称: <span style="background: #fff; padding: 2px 8px; border-radius: 4px;">请选择或搜索项目 ▼</span></div>
+                        <div>项目编号: <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px; color: #666;">自动带出</span></div>
+                        <div>维保频率: <span style="background: #f0f0f0; padding: 2px 8px; border-radius: 4px; color: #666;">自动带出</span></div>
+                    </div>
+                </div>
+                <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; margin-bottom: 10px; padding-bottom: 5px; border-bottom: 2px solid #1a5fb4;">维保计划</div>
+                    <table style="width: 100%; font-size: 12px;">
+                        <tr style="background: #e0e0e0;">
+                            <th>工单编号</th>
+                            <th>计划开始日期</th>
+                            <th>计划结束日期</th>
+                            <th>运维人员</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                        <tr>
+                            <td><input type="text" style="width: 100px;" value="PRJ001-001"></td>
+                            <td><input type="date" style="width: 100px;"></td>
+                            <td><input type="date" style="width: 100px;"></td>
+                            <td><select style="width: 80px;"><option>张三</option></select></td>
+                            <td><input type="text" style="width: 80px;"></td>
+                            <td><a href="#" style="color: red;">删除</a></td>
+                        </tr>
+                    </table>
+                    <div style="margin-top: 10px;"><span class="btn-example success" style="font-size: 12px; padding: 4px 12px;">+ 添加</span></div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 选择项目后，项目编号、维保频率等信息自动带出<br>
+                <span class="annotation-number">2</span> 系统根据维保频率自动生成计划列表<br>
+                <span class="annotation-number">3</span> 可手动添加或删除计划
+            </div>
+        </div>
+        
+        <h3>3.3.3 计划下发</h3>
+        <div class="warning-box">
+            <h4>⚠️ 下发规则</h4>
+            <ul>
+                <li>计划需要在<strong>开始日期前5天内</strong>才能下发</li>
+                <li>下发后系统自动生成对应的工单</li>
+                <li>下发后不可修改计划内容</li>
+                <li>如需修改，需先撤回计划</li>
+            </ul>
+        </div>
+        
+        <p>下发操作：在计划列表中，符合条件的计划会显示"下发"按钮，点击即可下发。</p>
+    </div>
+    
+    <div class="page">
+        <h2>3.4 巡检事项管理</h2>
+        <p>巡检事项管理用于维护定期巡检的检查项目，由<strong>部门经理</strong>负责维护。</p>
+        
+        <h3>3.4.1 巡检事项结构</h3>
+        <p>巡检事项采用三级结构：巡查类 → 巡查项 → 巡查内容</p>
+        
+        <div class="logic-diagram">
+            <div class="logic-title">巡检事项层级结构</div>
+            <div style="display: flex; justify-content: space-around; align-items: flex-start;">
+                <div style="text-align: center;">
+                    <div style="background: #e3f2fd; padding: 10px 20px; border-radius: 8px; border: 2px solid #1976d2; margin-bottom: 10px;">
+                        <strong>一级：巡查类</strong>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">如：电气系统、给排水系统</div>
+                </div>
+                <div style="font-size: 24px; color: #1a5fb4;">→</div>
+                <div style="text-align: center;">
+                    <div style="background: #e8f5e9; padding: 10px 20px; border-radius: 8px; border: 2px solid #4caf50; margin-bottom: 10px;">
+                        <strong>二级：巡查项</strong>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">如：配电柜、水泵</div>
+                </div>
+                <div style="font-size: 24px; color: #1a5fb4;">→</div>
+                <div style="text-align: center;">
+                    <div style="background: #fff3e0; padding: 10px 20px; border-radius: 8px; border: 2px solid #ff9800; margin-bottom: 10px;">
+                        <strong>三级：巡查内容</strong>
+                    </div>
+                    <div style="font-size: 12px; color: #666;">如：检查接线、检查运行状态</div>
+                </div>
+            </div>
+        </div>
+        
+        <h3>3.4.2 新增巡检事项</h3>
+        <ol class="step-list">
+            <li>点击左侧菜单"巡检事项管理"</li>
+            <li>点击"新增"按钮</li>
+            <li>选择或创建巡查类、巡查项、巡查内容</li>
+            <li>填写检查要求和检查标准</li>
+            <li>点击"保存"完成新增</li>
+        </ol>
+        
+        <h2>3.5 工单管理</h2>
+        <p>工单管理模块用于查看和管理各类工单，包括定期巡检工单、临时维修工单和零星用工单。</p>
+        
+        <h3>3.5.1 工单类型与编号规则</h3>
+        <table>
+            <tr>
+                <th>工单类型</th>
+                <th>编号前缀</th>
+                <th>编号格式</th>
+                <th>示例</th>
+            </tr>
+            <tr>
+                <td>定期巡检单</td>
+                <td>XJ</td>
+                <td>前缀-项目编号-年月日</td>
+                <td>XJ-PRJ001-20260224</td>
+            </tr>
+            <tr>
+                <td>临时维修单</td>
+                <td>WX</td>
+                <td>前缀-项目编号-年月日</td>
+                <td>WX-PRJ002-20260224</td>
+            </tr>
+            <tr>
+                <td>零星用工单</td>
+                <td>YG</td>
+                <td>前缀-项目编号-年月日</td>
+                <td>YG-PRJ003-20260224</td>
+            </tr>
+        </table>
+        
+        <h3>3.5.2 工单状态说明</h3>
+        <table>
+            <tr>
+                <th>状态</th>
+                <th>说明</th>
+                <th>可执行操作</th>
+            </tr>
+            <tr>
+                <td><span class="status-tag pending">未开始</span></td>
+                <td>工单已生成，等待执行</td>
+                <td>查看、开始执行</td>
+            </tr>
+            <tr>
+                <td><span class="status-tag progress">执行中</span></td>
+                <td>正在执行工单</td>
+                <td>查看、继续填写、提交</td>
+            </tr>
+            <tr>
+                <td><span class="status-tag progress">待审批</span></td>
+                <td>已提交，等待审批</td>
+                <td>查看</td>
+            </tr>
+            <tr>
+                <td><span class="status-tag danger">已退回</span></td>
+                <td>审批不通过，需修改</td>
+                <td>查看、修改、重新提交</td>
+            </tr>
+            <tr>
+                <td><span class="status-tag success">已完成</span></td>
+                <td>审批通过，流程结束</td>
+                <td>查看</td>
+            </tr>
+        </table>
+        
+        <h2>3.6 备品备件管理</h2>
+        <p>备品备件管理模块用于管理备品备件的入库、领用和库存查询。</p>
+        
+        <h3>3.6.1 功能结构</h3>
+        <div class="logic-diagram">
+            <div class="logic-title">备品备件管理流程</div>
+            <div class="flow-chart" style="background: transparent; padding: 0;">
+                <div class="flow-row">
+                    <div class="flow-step info">入库管理</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step">库存管理</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step warning">领用管理</div>
+                    <div class="flow-arrow">→</div>
+                    <div class="flow-step success">使用记录</div>
+                </div>
+            </div>
+        </div>
+        
+        <h3>3.6.2 备品备件入库</h3>
+        <ol class="step-list">
+            <li>点击左侧菜单"备品备件管理"→"入库管理"</li>
+            <li>点击"新增入库"按钮</li>
+            <li>填写备品备件信息（名称、规格型号、数量、供应商等）</li>
+            <li>点击"保存"完成入库</li>
+        </ol>
+        
+        <h3>3.6.3 备品备件领用</h3>
+        <ol class="step-list">
+            <li>点击"领用管理"</li>
+            <li>点击"新增领用"按钮</li>
+            <li>选择要领用的备品备件</li>
+            <li>填写领用数量和用途说明</li>
+            <li>点击"保存"完成领用</li>
+        </ol>
+        
+        <div class="tip-box">
+            <h4>💡 库存提醒</h4>
+            <p>系统会自动监控库存数量，当库存低于安全库存时会显示预警提示。可在"库存管理"页面查看当前库存状态。</p>
+        </div>
+        
+        <h2>3.7 维修工具管理</h2>
+        <p>维修工具管理模块用于管理维修工具的入库、领用、归还和库存查询。</p>
+        
+        <h3>3.7.1 维修工具领用与归还</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">选择工具</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">填写用途</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step warning">领用确认</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">使用中</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step success">归还确认</div>
+            </div>
+        </div>
+        
+        <p>维修工具领用后，需要在规定时间内归还。归还时需要确认工具状态，如有损坏需要备注说明。</p>
+        
+        <h2>3.8 数据统计</h2>
+        <p>数据统计模块提供各类统计数据和图表，帮助管理层了解维保工作情况。</p>
+        
+        <h3>3.8.1 统计内容</h3>
+        <table>
+            <tr>
+                <th>统计类型</th>
+                <th>统计内容</th>
+                <th>用途</th>
+            </tr>
+            <tr>
+                <td>工单完成情况</td>
+                <td>各类型工单完成数量、完成率</td>
+                <td>评估工作效率</td>
+            </tr>
+            <tr>
+                <td>巡检完成率</td>
+                <td>定期巡检完成情况统计</td>
+                <td>监督巡检执行</td>
+            </tr>
+            <tr>
+                <td>维修工时统计</td>
+                <td>维修工单耗时统计</td>
+                <td>分析维修效率</td>
+            </tr>
+            <tr>
+                <td>备品备件消耗</td>
+                <td>备品备件领用、消耗统计</td>
+                <td>物资管理决策</td>
+            </tr>
+            <tr>
+                <td>人员工作量</td>
+                <td>各人员工单数量、完成情况</td>
+                <td>绩效考核参考</td>
+            </tr>
+        </table>
+        
+        <h2>3.9 超期预警</h2>
+        <p>超期预警模块用于显示未按时完成的工单和即将到期的维保计划，提醒相关人员及时处理。</p>
+        
+        <h3>3.9.1 预警类型</h3>
+        <table>
+            <tr>
+                <th>预警类型</th>
+                <th>触发条件</th>
+                <th>处理建议</th>
+            </tr>
+            <tr>
+                <td><span class="status-tag danger">超期工单</span></td>
+                <td>超过计划完成日期仍未完成</td>
+                <td>立即处理或申请延期</td>
+            </tr>
+            <tr>
+                <td><span class="status-tag pending">即将到期</span></td>
+                <td>距离计划完成日期不足2天</td>
+                <td>加快执行进度</td>
+            </tr>
+            <tr>
+                <td><span class="status-tag progress">待审批</span></td>
+                <td>已提交等待审批的工单</td>
+                <td>及时审批</td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- 第四章 手机端操作指南 -->
+    <div class="page">
+        <h1 id="chapter4">第四章 手机端操作指南</h1>
+        
+        <h2>4.1 手机端首页</h2>
+        <p>手机端首页显示当前用户的待办事项和快捷入口，方便运维人员快速处理工单。</p>
+        
+        <h3>4.1.1 首页功能区域</h3>
+        <div class="screenshot">
+            <div class="screenshot-header">📸 手机端首页布局</div>
+            <div class="screenshot-content">
+                <div style="max-width: 375px; margin: 0 auto; background: #f5f7fa; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #1a5fb4; color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 18px;">SSTCP维保系统</span>
+                        <span style="background: rgba(255,255,255,0.2); padding: 5px 10px; border-radius: 15px; font-size: 12px;">张三 ▼</span>
+                    </div>
+                    <div style="padding: 15px;">
+                        <div style="background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <div style="font-size: 14px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">工单统计</div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+                                <div>
+                                    <div style="font-size: 24px; color: #ff976a; font-weight: bold;">5</div>
+                                    <div style="font-size: 11px; color: #999;">临期工单</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 24px; color: #ee0a24; font-weight: bold;">2</div>
+                                    <div style="font-size: 11px; color: #999;">超期工单</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 24px; color: #07c160; font-weight: bold;">128</div>
+                                    <div style="font-size: 11px; color: #999;">已完成</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="background: #fff; border-radius: 8px; padding: 15px;">
+                            <div style="font-size: 14px; color: #666; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">快捷操作</div>
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; text-align: center;">
+                                <div style="padding: 10px;">
+                                    <div style="font-size: 28px; color: #1989fa;">📋</div>
+                                    <div style="font-size: 11px; color: #333; margin-top: 5px;">定期巡检</div>
+                                </div>
+                                <div style="padding: 10px;">
+                                    <div style="font-size: 28px; color: #ff976a;">🔧</div>
+                                    <div style="font-size: 11px; color: #333; margin-top: 5px;">临时维修</div>
+                                </div>
+                                <div style="padding: 10px;">
+                                    <div style="font-size: 28px; color: #07c160;">👷</div>
+                                    <div style="font-size: 11px; color: #333; margin-top: 5px;">申报用工</div>
+                                </div>
+                                <div style="padding: 10px;">
+                                    <div style="font-size: 28px; color: #7232dd;">📝</div>
+                                    <div style="font-size: 11px; color: #333; margin-top: 5px;">维保日志</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 用户切换：点击可切换当前操作用户<br>
+                <span class="annotation-number">2</span> 工单统计：点击可查看对应类型的工单列表<br>
+                <span class="annotation-number">3</span> 快捷操作：常用功能入口
+            </div>
+        </div>
+        
+        <h2>4.2 定期巡检</h2>
+        <p>定期巡检模块用于运维人员执行定期巡检工单。</p>
+        
+        <h3>4.2.1 执行巡检工单流程</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">选择工单</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">查看事项</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">逐项检查</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step">拍照上传</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">填写结果</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">签字确认</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step success">提交工单</div>
+            </div>
+        </div>
+        
+        <h3>4.2.2 详细操作步骤</h3>
+        <ol class="step-list">
+            <li>点击首页"定期巡检"或底部"工单"菜单</li>
+            <li>在工单列表中选择待执行的巡检工单</li>
+            <li>进入工单详情页，查看巡检事项列表</li>
+            <li>点击每个事项进行逐项检查：
+                <ul>
+                    <li>填写检查结果（正常/异常）</li>
+                    <li>填写检查说明</li>
+                    <li>拍照上传现场照片</li>
+                </ul>
+            </li>
+            <li>全部检查完成后，点击"签字确认"按钮</li>
+            <li>横屏进行签名</li>
+            <li>点击"提交"完成工单</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 巡检事项填写页面</div>
+            <div class="screenshot-content">
+                <div style="max-width: 375px; margin: 0 auto; background: #f5f7fa; border-radius: 8px; overflow: hidden;">
+                    <div style="background: #fff; padding: 15px; border-bottom: 1px solid #eee;">
+                        <div style="font-size: 16px; font-weight: bold;">巡检事项 (3/5)</div>
+                        <div style="font-size: 12px; color: #999; margin-top: 5px;">已完成 3 项，剩余 2 项</div>
+                        <div style="background: #e0e0e0; height: 6px; border-radius: 3px; margin-top: 10px;">
+                            <div style="background: #07c160; height: 100%; width: 60%; border-radius: 3px;"></div>
+                        </div>
+                    </div>
+                    <div style="padding: 15px;">
+                        <div style="background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 500;">配电柜检查</div>
+                                    <div style="font-size: 12px; color: #999;">检查接线是否松动</div>
+                                </div>
+                                <span class="status-tag success">已检查</span>
+                            </div>
+                        </div>
+                        <div style="background: #fff; border-radius: 8px; padding: 15px; margin-bottom: 10px; border: 2px solid #1989fa;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: 500;">水泵运行检查</div>
+                                    <div style="font-size: 12px; color: #999;">检查运行状态和声音</div>
+                                </div>
+                                <span class="status-tag pending">待检查</span>
+                            </div>
+                            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #eee;">
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 12px; color: #666;">检查结果</label>
+                                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                        <label style="display: flex; align-items: center;"><input type="radio" name="result" checked> 正常</label>
+                                        <label style="display: flex; align-items: center;"><input type="radio" name="result"> 异常</label>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 12px; color: #666;">检查说明</label>
+                                    <textarea style="width: 100%; margin-top: 5px; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" rows="2" placeholder="请输入检查说明"></textarea>
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: #666;">现场照片</label>
+                                    <div style="display: flex; gap: 10px; margin-top: 5px;">
+                                        <div style="width: 60px; height: 60px; background: #f5f5f5; border: 1px dashed #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px;">📷</div>
+                                        <div style="width: 60px; height: 60px; background: #e8f5e9; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 24px;">🖼️</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 进度条显示当前检查进度<br>
+                <span class="annotation-number">2</span> 已检查的事项显示绿色标签<br>
+                <span class="annotation-number">3</span> 当前检查的事项有蓝色边框<br>
+                <span class="annotation-number">4</span> 照片只能通过拍照上传，会自动添加水印
+            </div>
+        </div>
+        
+        <h3>4.2.3 照片水印说明</h3>
+        <div class="highlight-box">
+            <h4>📷 照片水印规则</h4>
+            <p>上传的照片会自动添加水印，包含以下信息：</p>
+            <ul>
+                <li><strong>拍摄人员</strong>：当前操作人员姓名</li>
+                <li><strong>拍摄时间</strong>：年-月-日 时:分:秒</li>
+                <li><strong>拍摄地点</strong>：经纬度坐标（如果可获取）</li>
+            </ul>
+        </div>
+        
+        <div class="warning-box">
+            <h4>⚠️ 照片上传注意事项</h4>
+            <ul>
+                <li>照片<strong>只能通过拍照上传</strong>，不支持从图库选择</li>
+                <li>照片会自动压缩到500K左右</li>
+                <li>缩略图为正方形，取中间部分</li>
+                <li>删除照片时会提示"是否要删除，新增的图片会重新打水印"</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="page">
+        <h2>4.3 临时维修</h2>
+        <p>临时维修模块用于运维人员执行临时维修工单。</p>
+        
+        <h3>4.3.1 执行维修工单流程</h3>
+        <ol class="step-list">
+            <li>点击首页"临时维修"菜单</li>
+            <li>选择待执行的维修工单</li>
+            <li>查看维修内容和要求</li>
+            <li>填写维修过程和结果</li>
+            <li>拍照上传维修前后照片</li>
+            <li>点击"签字确认"进行签名</li>
+            <li>点击"提交"完成工单</li>
+        </ol>
+        
+        <h2>4.4 零星用工</h2>
+        <p>零星用工模块用于申报和管理零星用工工单。</p>
+        
+        <h3>4.4.1 零星用工流程图</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">申报用工</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">录入人员</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">身份证识别</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step">班组签字</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">用户签字</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step success">提交审批</div>
+            </div>
+        </div>
+        
+        <h3>4.4.2 申报用工步骤</h3>
+        <ol class="step-list">
+            <li>点击首页"申报用工"按钮</li>
+            <li>填写用工信息：
+                <ul>
+                    <li>选择项目</li>
+                    <li>填写用工原因</li>
+                    <li>填写用工人数</li>
+                    <li>选择用工时间</li>
+                </ul>
+            </li>
+            <li>录入施工人员信息：
+                <ul>
+                    <li>点击"拍照识别"拍摄身份证正面</li>
+                    <li>系统自动识别并填充姓名、身份证号</li>
+                    <li>确认信息无误后保存</li>
+                </ul>
+            </li>
+            <li>班组签字确认（需要工人签字）</li>
+            <li>用户签字（不强制）</li>
+            <li>点击"提交"完成申报</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 身份证识别功能</div>
+            <div class="screenshot-content">
+                <div style="max-width: 375px; margin: 0 auto; background: #f5f7fa; border-radius: 8px; overflow: hidden; padding: 15px;">
+                    <div style="background: #fff; border-radius: 8px; padding: 15px;">
+                        <div style="font-weight: bold; margin-bottom: 15px;">施工人员信息</div>
+                        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                            <div style="flex: 1;">
+                                <div style="margin-bottom: 10px;">
+                                    <label style="font-size: 12px; color: #666;">姓名</label>
+                                    <input type="text" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;" value="张三">
+                                </div>
+                                <div>
+                                    <label style="font-size: 12px; color: #666;">身份证号</label>
+                                    <input type="text" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;" value="110101199001011234">
+                                </div>
+                            </div>
+                            <div style="width: 100px; height: 70px; background: #f5f5f5; border: 1px dashed #ddd; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                <span style="font-size: 20px;">📷</span>
+                                <span style="font-size: 10px; color: #999;">拍照识别</span>
+                            </div>
+                        </div>
+                        <div style="font-size: 12px; color: #999; background: #fff8e1; padding: 10px; border-radius: 4px;">
+                            💡 提示：点击右侧相机图标拍摄身份证正面，系统将自动识别并填充信息
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 点击拍照识别按钮拍摄身份证正面<br>
+                <span class="annotation-number">2</span> 系统使用阿里云OCR服务自动识别<br>
+                <span class="annotation-number">3</span> 识别结果自动填充到表单中
+            </div>
+        </div>
+        
+        <div class="highlight-box">
+            <h4>📋 零星用工注意事项</h4>
+            <ul>
+                <li>需要录入施工人员信息（支持身份证识别）</li>
+                <li>班组签字需要工人签字确认</li>
+                <li>用户签字不强制要求</li>
+                <li>不展示计划用工字段</li>
+                <li>需要拍摄身份证正反面照片</li>
+            </ul>
+        </div>
+        
+        <h2>4.5 签字确认</h2>
+        <p>部分工单需要签字确认，签字时请将手机横屏进行签名。</p>
+        
+        <h3>4.5.1 签字操作步骤</h3>
+        <ol class="step-list">
+            <li>工单填写完成后，点击"签字确认"按钮</li>
+            <li>系统自动切换为横屏模式</li>
+            <li>在签名区域进行签名</li>
+            <li>如需重新签名，点击"清除"按钮</li>
+            <li>签名完成后，点击"确认"保存签名</li>
+        </ol>
+        
+        <div class="screenshot">
+            <div class="screenshot-header">📸 签字页面（横屏）</div>
+            <div class="screenshot-content">
+                <div style="background: #f5f7fa; border-radius: 8px; overflow: hidden; transform: rotate(0deg);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; background: #fff; border-bottom: 1px solid #eee;">
+                        <span style="font-size: 18px;">←</span>
+                        <span style="font-weight: bold;">签字确认</span>
+                        <span style="width: 18px;"></span>
+                    </div>
+                    <div style="padding: 20px;">
+                        <div style="background: #fff; border: 2px dashed #ddd; border-radius: 8px; height: 150px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                            <span style="color: #999;">请在此区域签名</span>
+                        </div>
+                        <div style="text-align: center; color: #999; font-size: 12px; margin-bottom: 15px;">请在上方区域横向签名</div>
+                        <div style="display: flex; justify-content: center; gap: 30px;">
+                            <span class="btn-example default">清除</span>
+                            <span class="btn-example primary">确认</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screenshot-annotation">
+                <span class="annotation-number">1</span> 签字页面会自动切换为横屏<br>
+                <span class="annotation-number">2</span> 在白色区域进行签名<br>
+                <span class="annotation-number">3</span> 点击"清除"可重新签名
+            </div>
+        </div>
+        
+        <h2>4.6 维保日志</h2>
+        <p>维保日志模块用于运维人员填写日常维保日志。</p>
+        
+        <h3>4.6.1 填写日志步骤</h3>
+        <ol class="step-list">
+            <li>点击首页"新报维保日志"菜单</li>
+            <li>选择项目和日期</li>
+            <li>填写日志内容</li>
+            <li>拍照上传相关照片（可选）</li>
+            <li>点击"保存"完成填报</li>
+        </ol>
+        
+        <h2>4.7 备品备件领用</h2>
+        <p>备品备件领用模块用于运维人员申请领用备品备件。</p>
+        
+        <h3>4.7.1 领用申请步骤</h3>
+        <ol class="step-list">
+            <li>点击首页"备品备件领用"菜单</li>
+            <li>查看当前库存列表</li>
+            <li>选择要领用的备品备件</li>
+            <li>填写领用数量和用途</li>
+            <li>点击"提交"完成申请</li>
+        </ol>
+        
+        <h2>4.8 维修工具管理</h2>
+        <p>维修工具管理模块用于运维人员领用和归还维修工具。</p>
+        
+        <h3>4.8.1 工具领用</h3>
+        <ol class="step-list">
+            <li>点击"维修工具领用"菜单</li>
+            <li>查看可领用的工具列表</li>
+            <li>选择要领用的工具</li>
+            <li>填写领用用途</li>
+            <li>点击"提交"完成领用</li>
+        </ol>
+        
+        <h3>4.8.2 工具归还</h3>
+        <ol class="step-list">
+            <li>点击"维修工具归还"菜单</li>
+            <li>查看当前领用的工具列表</li>
+            <li>选择要归还的工具</li>
+            <li>确认工具状态（正常/损坏）</li>
+            <li>如有损坏，填写损坏说明</li>
+            <li>点击"确认归还"完成归还</li>
+        </ol>
+    </div>
+    
+    <!-- 第五章 业务流程说明 -->
+    <div class="page">
+        <h1 id="chapter5">第五章 业务流程说明</h1>
+        
+        <h2>5.1 维保计划完整流程</h2>
+        
+        <h3>5.1.1 流程概览</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">基础信息维护</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">计划制定</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">事项选择</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step warning">计划下发</div>
+                <div class="flow-arrow">←</div>
+                <div class="flow-step">工单生成</div>
+                <div class="flow-arrow">←</div>
+                <div class="flow-step">执行填写</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step">提交工单</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">主管审批</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step success">流程结束</div>
+            </div>
+        </div>
+        
+        <h3>5.1.2 详细流程说明</h3>
+        <table>
+            <tr>
+                <th>步骤</th>
+                <th>操作人</th>
+                <th>操作内容</th>
+                <th>系统行为</th>
+            </tr>
+            <tr>
+                <td>1. 基础信息维护</td>
+                <td>管理员/部门经理</td>
+                <td>维护项目信息、人员信息、客户信息</td>
+                <td>保存基础数据，供后续流程使用</td>
+            </tr>
+            <tr>
+                <td>2. 计划制定</td>
+                <td>管理员/部门经理</td>
+                <td>选择项目，设置计划周期</td>
+                <td>根据维保频率自动生成计划列表</td>
+            </tr>
+            <tr>
+                <td>3. 事项选择</td>
+                <td>管理员/部门经理</td>
+                <td>选择巡检事项或维修事项</td>
+                <td>关联事项到计划</td>
+            </tr>
+            <tr>
+                <td>4. 计划下发</td>
+                <td>管理员/部门经理</td>
+                <td>在开始日期前5天内下发</td>
+                <td>自动生成工单，推送通知</td>
+            </tr>
+            <tr>
+                <td>5. 工单执行</td>
+                <td>运维人员</td>
+                <td>执行工单，填写结果，拍照上传</td>
+                <td>保存执行记录，添加水印</td>
+            </tr>
+            <tr>
+                <td>6. 工单提交</td>
+                <td>运维人员</td>
+                <td>签字确认后提交</td>
+                <td>更新状态为"待审批"</td>
+            </tr>
+            <tr>
+                <td>7. 主管审批</td>
+                <td>部门经理</td>
+                <td>审批工单内容</td>
+                <td>通过则结束，不通过则退回</td>
+            </tr>
+        </table>
+        
+        <h2>5.2 工单审批流程</h2>
+        
+        <h3>5.2.1 审批流程图</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">提交工单</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-condition">审批判断</div>
+            </div>
+            <div class="flow-row" style="margin-top: 20px;">
+                <div class="flow-branch">
+                    <div class="flow-arrow-down">↓ 通过</div>
+                    <div class="flow-step success">流程结束</div>
+                </div>
+                <div class="flow-branch">
+                    <div class="flow-arrow-down">↓ 不通过</div>
+                    <div class="flow-step danger">退回修改</div>
+                    <div class="flow-arrow-down">↓</div>
+                    <div class="flow-step">重新提交</div>
+                    <div class="flow-arrow-down">↓</div>
+                    <div class="flow-step">再次审批</div>
+                </div>
+            </div>
+        </div>
+        
+        <h3>5.2.2 退回工单处理</h3>
+        <div class="warning-box">
+            <h4>⚠️ 退回工单注意事项</h4>
+            <ul>
+                <li>退回的工单会保留修改痕迹</li>
+                <li>部门经理需填写退回原因</li>
+                <li>运维人员收到退回通知后需修改并重新提交</li>
+                <li>所有操作记录可在操作日志中查看</li>
+            </ul>
+        </div>
+        
+        <h2>5.3 零星用工流程</h2>
+        
+        <h3>5.3.1 零星用工完整流程</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step">申报用工</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">录入人员信息</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">身份证识别</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step">班组签字</div>
+                <div class="flow-arrow">←</div>
+                <div class="flow-step">用户签字(可选)</div>
+                <div class="flow-arrow">←</div>
+                <div class="flow-step">提交审批</div>
+            </div>
+        </div>
+        
+        <h3>5.3.2 零星用工特殊说明</h3>
+        <table>
+            <tr>
+                <th>项目</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>施工人员信息</td>
+                <td>必须录入，支持身份证拍照自动识别</td>
+            </tr>
+            <tr>
+                <td>身份证照片</td>
+                <td>需要拍摄正反面</td>
+            </tr>
+            <tr>
+                <td>班组签字</td>
+                <td>必须，需要工人签字确认</td>
+            </tr>
+            <tr>
+                <td>用户签字</td>
+                <td>不强制，可选</td>
+            </tr>
+            <tr>
+                <td>计划用工字段</td>
+                <td>不展示</td>
+            </tr>
+        </table>
+        
+        <h2>5.4 备品备件管理流程</h2>
+        
+        <h3>5.4.1 备品备件流转流程</h3>
+        <div class="flow-chart">
+            <div class="flow-row">
+                <div class="flow-step info">采购入库</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">库存管理</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step warning">领用申请</div>
+            </div>
+            <div class="flow-arrow-down">↓</div>
+            <div class="flow-row">
+                <div class="flow-step">审批确认</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step success">出库使用</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">使用记录</div>
+            </div>
+        </div>
+        
+        <h3>5.4.2 库存预警机制</h3>
+        <div class="highlight-box">
+            <h4>📦 库存预警规则</h4>
+            <ul>
+                <li>当库存数量低于安全库存时，系统显示预警</li>
+                <li>临期备品备件会在"临期提醒"中显示</li>
+                <li>超期备品备件会在"超期预警"中显示</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 第六章 常见问题解答 -->
+    <div class="page">
+        <h1 id="chapter6">第六章 常见问题解答</h1>
+        
+        <h2>6.1 登录问题</h2>
+        
+        <div class="error-box">
+            <h4>Q1：忘记密码怎么办？</h4>
+            <p>请联系管理员重置密码，重置后密码将恢复为手机号后6位。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q2：登录后页面空白怎么办？</h4>
+            <p>请尝试以下操作：</p>
+            <ol>
+                <li>清除浏览器缓存（按Ctrl+Shift+Delete）</li>
+                <li>更换浏览器（推荐使用Chrome、Edge）</li>
+                <li>检查网络连接是否正常</li>
+                <li>尝试使用无痕模式访问</li>
+            </ol>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q3：手机端无法访问怎么办？</h4>
+            <p>请检查以下事项：</p>
+            <ol>
+                <li>确认访问地址正确：http://www.sstcp.top/h5/</li>
+                <li>检查手机网络连接</li>
+                <li>尝试使用其他浏览器（Chrome、Safari）</li>
+                <li>清除浏览器缓存后重试</li>
+            </ol>
+        </div>
+        
+        <h2>6.2 工单问题</h2>
+        
+        <div class="error-box">
+            <h4>Q4：工单提交后可以修改吗？</h4>
+            <p>工单提交后，在审批前可以撤回修改。审批通过后不可修改。如需修改已审批通过的工单，请联系管理员。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q5：工单被退回怎么办？</h4>
+            <p>工单被退回后，会显示退回原因。请根据退回原因修改工单内容后重新提交。退回的工单会保留修改痕迹。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q6：照片上传失败怎么办？</h4>
+            <p>请检查以下事项：</p>
+            <ul>
+                <li>确保使用手机拍照，不支持从图库选择</li>
+                <li>检查手机是否授权相机权限</li>
+                <li>检查网络连接是否正常</li>
+                <li>尝试重新拍照上传</li>
+            </ul>
+        </div>
+        
+        <h2>6.3 计划问题</h2>
+        
+        <div class="error-box">
+            <h4>Q7：为什么无法下发计划？</h4>
+            <p>计划需要在开始日期前5天内才能下发。请检查计划开始日期是否符合要求。</p>
+            <p>例如：计划开始日期为2026年3月1日，则在2026年2月24日之后才能下发。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q8：计划下发后可以修改吗？</h4>
+            <p>计划下发后不可修改。如需修改，请联系管理员撤回计划后修改。</p>
+        </div>
+        
+        <h2>6.4 其他问题</h2>
+        
+        <div class="error-box">
+            <h4>Q9：如何查看操作记录？</h4>
+            <p>系统会自动记录所有操作日志，包括工单的创建、修改、审批等操作。管理员可在后台查看操作日志。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q10：数据可以导出吗？</h4>
+            <p>部分数据支持导出Excel格式，请在相应页面点击"导出"按钮。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q11：手机端提示"权限不足"怎么办？</h4>
+            <p>请联系管理员确认您的账号角色和权限设置。不同角色有不同的功能权限。</p>
+        </div>
+        
+        <div class="error-box">
+            <h4>Q12：签字页面无法横屏怎么办？</h4>
+            <p>请检查以下事项：</p>
+            <ul>
+                <li>确保手机未锁定屏幕方向</li>
+                <li>在手机设置中开启自动旋转屏幕</li>
+                <li>手动将手机横屏后刷新页面</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 第七章 附录 -->
+    <div class="page">
+        <h1 id="chapter7">第七章 附录</h1>
+        
+        <h2>7.1 系统配置要求</h2>
+        
+        <h3>7.1.1 电脑端</h3>
+        <table>
+            <tr>
+                <th>项目</th>
+                <th>要求</th>
+            </tr>
+            <tr>
+                <td>浏览器</td>
+                <td>Chrome 80+、Edge 80+、Firefox 75+、Safari 13+</td>
+            </tr>
+            <tr>
+                <td>分辨率</td>
+                <td>1920×1080或更高（推荐）</td>
+            </tr>
+            <tr>
+                <td>网络</td>
+                <td>稳定的网络连接</td>
+            </tr>
+            <tr>
+                <td>操作系统</td>
+                <td>Windows 10/11、macOS 10.15+</td>
+            </tr>
+        </table>
+        
+        <h3>7.1.2 手机端</h3>
+        <table>
+            <tr>
+                <th>项目</th>
+                <th>要求</th>
+            </tr>
+            <tr>
+                <td>操作系统</td>
+                <td>Android 8.0+、iOS 12.0+</td>
+            </tr>
+            <tr>
+                <td>浏览器</td>
+                <td>Chrome、Safari、微信内置浏览器</td>
+            </tr>
+            <tr>
+                <td>权限</td>
+                <td>相机权限、位置权限（用于照片水印）</td>
+            </tr>
+            <tr>
+                <td>屏幕</td>
+                <td>支持横屏模式（用于签字）</td>
+            </tr>
+        </table>
+        
+        <h2>7.2 快捷键说明</h2>
+        <table>
+            <tr>
+                <th>快捷键</th>
+                <th>功能</th>
+                <th>适用场景</th>
+            </tr>
+            <tr>
+                <td>Ctrl + S</td>
+                <td>保存当前表单</td>
+                <td>编辑页面</td>
+            </tr>
+            <tr>
+                <td>Ctrl + F</td>
+                <td>搜索</td>
+                <td>列表页面</td>
+            </tr>
+            <tr>
+                <td>Esc</td>
+                <td>关闭弹窗</td>
+                <td>弹窗打开时</td>
+            </tr>
+            <tr>
+                <td>F5</td>
+                <td>刷新页面</td>
+                <td>任意页面</td>
+            </tr>
+            <tr>
+                <td>Ctrl + Shift + Delete</td>
+                <td>清除浏览器缓存</td>
+                <td>浏览器</td>
+            </tr>
+        </table>
+        
+        <h2>7.3 技术支持</h2>
+        <p>如遇到系统使用问题，请通过以下方式获取帮助：</p>
+        <table>
+            <tr>
+                <th>项目</th>
+                <th>地址</th>
+            </tr>
+            <tr>
+                <td>电脑端地址</td>
+                <td>http://www.sstcp.top/</td>
+            </tr>
+            <tr>
+                <td>手机端地址</td>
+                <td>http://www.sstcp.top/h5/</td>
+            </tr>
+            <tr>
+                <td>API文档</td>
+                <td>http://www.sstcp.top/api/docs</td>
+            </tr>
+        </table>
+        
+        <h2>7.4 版本更新记录</h2>
+        <table>
+            <tr>
+                <th>版本</th>
+                <th>日期</th>
+                <th>更新内容</th>
+            </tr>
+            <tr>
+                <td>V2.0</td>
+                <td>2026-02-24</td>
+                <td>完善培训手册，增加详细流程图和操作说明</td>
+            </tr>
+            <tr>
+                <td>V1.0</td>
+                <td>2026-02-01</td>
+                <td>初始版本发布</td>
+            </tr>
+        </table>
+        
+        <h2>7.5 术语表</h2>
+        <table>
+            <tr>
+                <th>术语</th>
+                <th>说明</th>
+            </tr>
+            <tr>
+                <td>维保计划</td>
+                <td>根据项目信息制定的维护保养计划</td>
+            </tr>
+            <tr>
+                <td>工单</td>
+                <td>维保计划下发后生成的执行单据</td>
+            </tr>
+            <tr>
+                <td>巡检事项</td>
+                <td>定期巡检需要检查的项目</td>
+            </tr>
+            <tr>
+                <td>零星用工</td>
+                <td>临时性的用工申请单据</td>
+            </tr>
+            <tr>
+                <td>软删除</td>
+                <td>数据标记为删除但实际保留，可恢复</td>
+            </tr>
+            <tr>
+                <td>水印</td>
+                <td>照片上自动添加的拍摄信息</td>
+            </tr>
+        </table>
+        
+        <div class="page-number">
+            <p>- 培训手册结束 -</p>
+            <p style="margin-top: 10px;">SSTCP维保管理系统 V2.0 | 2026年2月</p>
+        </div>
+    </div>
+</body>
+</html>

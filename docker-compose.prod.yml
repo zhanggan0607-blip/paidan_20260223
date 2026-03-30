@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend-python
+    container_name: sstcp-backend
+    restart: always
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-postgres}:${DB_PASSWORD:-changeme}@${DB_HOST:-localhost}:${DB_PORT:-5432}/${DB_NAME:-tq}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      DEBUG: ${DEBUG:-False}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID:-}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET:-}
+      ALIYUN_OCR_REGION_ID: ${ALIYUN_OCR_REGION_ID:-cn-shanghai}
+      DINGTALK_AGENT_ID: ${DINGTALK_AGENT_ID:-}
+      DINGTALK_APP_KEY: ${DINGTALK_APP_KEY:-}
+      DINGTALK_APP_SECRET: ${DINGTALK_APP_SECRET:-}
+    volumes:
+      - uploads_data:/app/uploads
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend-pc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sstcp-frontend-pc
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  frontend-h5:
+    build:
+      context: .
+      dockerfile: H5/Dockerfile
+    container_name: sstcp-frontend-h5
+    restart: always
+    ports:
+      - "81:80"
+    depends_on:
+      - backend
+
+volumes:
+  uploads_data:

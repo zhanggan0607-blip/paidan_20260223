@@ -1,0 +1,3110 @@
+<template>
+  <div class="maintenance-plan-management">
+    <LoadingSpinner :visible="loading" text="加载中..." />
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+
+    <div class="search-section">
+      <div class="search-form">
+        <div class="search-row">
+          <div class="search-item">
+            <label class="search-label">项目名称：</label>
+            <SearchInput
+              v-model="searchForm.projectName"
+              field-key="MaintenancePlanManagement_projectName"
+              placeholder="请输入项目名称"
+              @input="handleSearch"
+            />
+          </div>
+          <div class="search-item">
+            <label class="search-label">客户名称：</label>
+            <SearchInput
+              v-model="searchForm.clientName"
+              field-key="MaintenancePlanManagement_clientName"
+              placeholder="请输入客户名称"
+              @input="handleSearch"
+            />
+          </div>
+        </div>
+      </div>
+      <div class="search-actions">
+        <button class="btn btn-add" @click="openModal">+ 新增维保计划</button>
+      </div>
+    </div>
+
+    <div class="table-section">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>序号</th>
+            <th>项目编号</th>
+            <th>项目名称</th>
+            <th>开始日期</th>
+            <th>结束日期</th>
+            <th>维保计划数</th>
+            <th>客户单位</th>
+            <th>地址</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(item, index) in planData"
+            :key="item.project_id"
+            :class="{ 'even-row': index % 2 === 0 }"
+          >
+            <td>{{ startIndex + index + 1 }}</td>
+            <td>{{ item.project_id }}</td>
+            <td>{{ item.project_name }}</td>
+            <td>{{ formatDate(item.plan_start_date) }}</td>
+            <td>{{ formatDate(item.plan_end_date) }}</td>
+            <td>{{ item.plan_count }}</td>
+            <td>{{ item.client_name || '-' }}</td>
+            <td>{{ item.address || '-' }}</td>
+            <td class="action-cell">
+              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)"
+                >编辑计划</a
+              >
+              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
+                >删除</a
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination-section">
+      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+      <div class="pagination-controls">
+        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+          &lt;
+        </button>
+        <button
+          v-for="page in totalPages"
+          :key="page"
+          class="page-btn page-num"
+          :class="{ active: page === currentPage + 1 }"
+          @click="currentPage = page - 1"
+        >
+          {{ page }}
+        </button>
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage >= totalPages - 1"
+          @click="currentPage++"
+        >
+          &gt;
+        </button>
+        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
+          <option value="10">10 条 / 页</option>
+          <option value="20">20 条 / 页</option>
+          <option value="50">50 条 / 页</option>
+        </select>
+        <div class="page-jump">
+          <span>跳至</span>
+          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+          <span>页</span>
+          <button class="page-btn page-go" @click="handleJump">Go</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+      <div class="modal-container modal-large">
+        <div class="modal-header">
+          <h3 class="modal-title">{{ editingId !== null ? '编辑维保计划' : '新增维保计划' }}</h3>
+          <button class="modal-close" @click="closeModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="section-title">基础信息</div>
+          <div class="form-grid">
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <el-select
+                  v-model="formData.selectedProjectId"
+                  placeholder="请选择或搜索项目"
+                  filterable
+                  size="default"
+                  style="width: 100%"
+                  @change="handleProjectChange"
+                >
+                  <el-option
+                    v-for="project in projectList"
+                    :key="project.id"
+                    :label="project.project_name"
+                    :value="project.id"
+                  />
+                </el-select>
+              </div>
+              <div class="form-item">
+                <label class="form-label">维保频率</label>
+                <input
+                  v-model="formData.maintenance_period"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目地址</label>
+                <input
+                  v-model="formData.address"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">项目编号</label>
+                <input
+                  v-model="formData.project_id"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目结束日期</label>
+                <input
+                  v-model="formData.maintenance_end_date"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户单位</label>
+                <input
+                  v-model="formData.client_name"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="section-title">维保计划</div>
+          <div class="table-section-inner">
+            <table class="inner-table">
+              <thead>
+                <tr>
+                  <th>工单编号</th>
+                  <th>计划开始日期</th>
+                  <th>计划结束日期</th>
+                  <th>运维人员</th>
+                  <th>备注</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(plan, index) in formData.planList" :key="index">
+                  <td>
+                    <input
+                      v-model="plan.plan_id"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
+                  </td>
+                  <td>
+                    <input v-model="plan.plan_start_date" type="date" class="table-input" />
+                  </td>
+                  <td>
+                    <input v-model="plan.plan_end_date" type="date" class="table-input" />
+                  </td>
+                  <td>
+                    <select v-model="plan.maintenance_personnel" class="table-input">
+                      <option value="">请选择</option>
+                      <option v-for="person in personnelList" :key="person" :value="person">
+                        {{ person }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      v-model="plan.remarks"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
+                  </td>
+                  <td class="action-cell">
+                    <a href="#" class="action-link action-delete" @click.prevent="removePlan(index)"
+                      >删除</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-actions">
+              <button class="btn btn-add-small" @click="addPlan">添加</button>
+            </div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="section-title">维保事项</div>
+          <div class="table-section-inner">
+            <table class="inner-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px">事项编号</th>
+                  <th>巡查类</th>
+                  <th>巡查项</th>
+                  <th>巡查内容</th>
+                  <th>检查要求</th>
+                  <th>简要说明</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in formData.itemList" :key="index">
+                  <td>
+                    <input
+                      type="text"
+                      class="table-input table-input-readonly"
+                      :value="index + 1"
+                      readonly
+                    />
+                  </td>
+                  <td>
+                    <div v-if="item.level1_name" class="selected-text" @click="clearLevel1(item)">
+                      {{ item.level1_name }}
+                    </div>
+                    <el-select
+                      v-else
+                      v-model="item.level1_id"
+                      placeholder="选择巡查类"
+                      size="small"
+                      style="width: 100%"
+                      @change="handleLevel1Change(index)"
+                    >
+                      <el-option
+                        v-for="node in level1Nodes"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
+                  </td>
+                  <td>
+                    <div v-if="item.level2_name" class="selected-text" @click="clearLevel2(item)">
+                      {{ item.level2_name }}
+                    </div>
+                    <el-select
+                      v-else
+                      v-model="item.level2_id"
+                      placeholder="选择巡查项"
+                      size="small"
+                      style="width: 100%"
+                      :disabled="!item.level1_id"
+                      @change="handleLevel2Change(index)"
+                    >
+                      <el-option
+                        v-for="node in getLevel2Nodes(item.level1_id)"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
+                  </td>
+                  <td>
+                    <div v-if="item.level3_name" class="selected-text" @click="clearLevel3(item)">
+                      {{ item.level3_name }}
+                    </div>
+                    <el-select
+                      v-else
+                      v-model="item.level3_id"
+                      placeholder="选择巡查内容"
+                      size="small"
+                      style="width: 100%"
+                      :disabled="!item.level2_id"
+                      @change="handleLevel3Change(index)"
+                    >
+                      <el-option
+                        v-for="node in getLevel3Nodes(item.level1_id, item.level2_id)"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
+                  </td>
+                  <td>
+                    <el-input
+                      v-model="item.check_requirements"
+                      placeholder="自动带出"
+                      size="small"
+                      readonly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      v-model="item.brief_description"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
+                  </td>
+                  <td class="action-cell">
+                    <a href="#" class="action-link action-delete" @click.prevent="removeItem(index)"
+                      >删除</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-actions">
+              <button class="btn btn-add-small" @click="addItem">添加行</button>
+              <button class="btn btn-add-small" @click="importItems">导入事项</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-cancel" @click="closeModal">取消</button>
+          <button class="btn btn-save" :disabled="saving" @click="handleSave">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3 class="modal-title">查看维保计划</h3>
+          <button class="modal-close" @click="closeViewModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="viewPlanList.length > 1" class="view-plan-pagination">
+            <span class="view-plan-info"
+              >计划 {{ currentViewPlanIndex + 1 }} / {{ viewPlanList.length }}</span
+            >
+            <div class="view-plan-nav">
+              <button
+                class="view-plan-btn"
+                :disabled="currentViewPlanIndex === 0"
+                @click="prevViewPlan"
+              >
+                &lt; 上一条
+              </button>
+              <button
+                class="view-plan-btn"
+                :disabled="currentViewPlanIndex >= viewPlanList.length - 1"
+                @click="nextViewPlan"
+              >
+                下一条 &gt;
+              </button>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">项目名称</label>
+                <div class="form-value">{{ viewData.project_name || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">计划开始日期</label>
+                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">工单类型</label>
+                <div class="form-value">{{ viewData.plan_type || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">执行日期</label>
+                <div class="form-value">{{ formatDate(viewData.execution_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">下次维保日期</label>
+                <div class="form-value">
+                  {{ formatDate(viewData.next_maintenance_date) || '-' }}
+                </div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">负责部门</label>
+                <div class="form-value">{{ viewData.responsible_department || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">完成率</label>
+                <div class="form-value">{{ viewData.completion_rate || 0 }}%</div>
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">项目编号</label>
+                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">计划结束日期</label>
+                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">工单编号</label>
+                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">执行状态</label>
+                <div class="form-value">{{ viewData.status || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">运维人员</label>
+                <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">联系方式</label>
+                <div class="form-value">{{ viewData.contact_info || '-' }}</div>
+              </div>
+              <div class="form-item">
+                <label class="form-label">计划状态</label>
+                <div class="form-value">{{ viewData.plan_status || '-' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">维保内容</label>
+            <div class="form-value form-value-textarea">
+              {{ viewData.maintenance_content || '-' }}
+            </div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">维保要求</label>
+            <div class="form-value form-value-textarea">
+              {{ viewData.maintenance_requirements || '-' }}
+            </div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">维保标准</label>
+            <div class="form-value form-value-textarea">
+              {{ viewData.maintenance_standard || '-' }}
+            </div>
+          </div>
+          <div class="form-item-full">
+            <label class="form-label">备注</label>
+            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
+      <div class="modal-container modal-large">
+        <div class="modal-header">
+          <h3 class="modal-title">编辑维保计划</h3>
+          <button class="modal-close" @click="closeEditModal">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="section-title">基础信息</div>
+          <div class="form-grid">
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <el-select
+                  v-model="editData.selectedProjectId"
+                  placeholder="请选择或搜索项目"
+                  filterable
+                  size="default"
+                  style="width: 100%"
+                  @change="handleEditProjectChange"
+                >
+                  <el-option
+                    v-for="project in projectList"
+                    :key="project.id"
+                    :label="project.project_name"
+                    :value="project.id"
+                  />
+                </el-select>
+              </div>
+              <div class="form-item">
+                <label class="form-label">维保频率</label>
+                <input
+                  v-model="editData.maintenance_period"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目地址</label>
+                <input
+                  v-model="editData.address"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+            </div>
+            <div class="form-column">
+              <div class="form-item">
+                <label class="form-label">项目编号</label>
+                <input
+                  v-model="editData.project_id"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">项目结束日期</label>
+                <input
+                  v-model="editData.maintenance_end_date"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+              <div class="form-item">
+                <label class="form-label">客户单位</label>
+                <input
+                  v-model="editData.client_name"
+                  type="text"
+                  class="form-input form-input-readonly"
+                  readonly
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="section-title">维保计划（共 {{ editData.planList.length }} 条）</div>
+          <div class="table-section-inner">
+            <table class="inner-table">
+              <thead>
+                <tr>
+                  <th style="width: 50px">序号</th>
+                  <th>工单编号</th>
+                  <th>计划开始日期</th>
+                  <th>计划结束日期</th>
+                  <th>运维人员</th>
+                  <th>备注</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(plan, index) in editData.planList" :key="plan.id || index">
+                  <td class="text-center">{{ index + 1 }}</td>
+                  <td>
+                    <input
+                      v-model="plan.plan_id"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
+                  </td>
+                  <td>
+                    <input v-model="plan.plan_start_date" type="date" class="table-input" />
+                  </td>
+                  <td>
+                    <input v-model="plan.plan_end_date" type="date" class="table-input" />
+                  </td>
+                  <td>
+                    <select v-model="plan.maintenance_personnel" class="table-input">
+                      <option value="">请选择</option>
+                      <option v-for="person in personnelList" :key="person" :value="person">
+                        {{ person }}
+                      </option>
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      v-model="plan.remarks"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
+                  </td>
+                  <td class="action-cell">
+                    <a
+                      href="#"
+                      class="action-link action-delete"
+                      @click.prevent="deleteEditPlan(index)"
+                      >删除</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-actions">
+              <button class="btn btn-add-small" @click="addEditPlan">添加</button>
+            </div>
+          </div>
+
+          <div class="section-divider"></div>
+
+          <div class="section-title">维保事项</div>
+          <div class="table-section-inner">
+            <table class="inner-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px">事项编号</th>
+                  <th>巡查类</th>
+                  <th>巡查项</th>
+                  <th>巡查内容</th>
+                  <th>检查要求</th>
+                  <th>简要说明</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(item, index) in editData.itemList" :key="index">
+                  <td>
+                    <input
+                      type="text"
+                      class="table-input table-input-readonly"
+                      :value="index + 1"
+                      readonly
+                    />
+                  </td>
+                  <td>
+                    <div
+                      v-if="item.level1_name"
+                      class="selected-text"
+                      @click="clearEditLevel1(item)"
+                    >
+                      {{ item.level1_name }}
+                    </div>
+                    <el-select
+                      v-else
+                      v-model="item.level1_id"
+                      placeholder="选择巡查类"
+                      size="small"
+                      style="width: 100%"
+                      @change="handleEditLevel1Change(index)"
+                    >
+                      <el-option
+                        v-for="node in level1Nodes"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
+                  </td>
+                  <td>
+                    <div
+                      v-if="item.level2_name"
+                      class="selected-text"
+                      @click="clearEditLevel2(item)"
+                    >
+                      {{ item.level2_name }}
+                    </div>
+                    <el-select
+                      v-else
+                      v-model="item.level2_id"
+                      placeholder="选择巡查项"
+                      size="small"
+                      style="width: 100%"
+                      :disabled="!item.level1_id"
+                      @change="handleEditLevel2Change(index)"
+                    >
+                      <el-option
+                        v-for="node in getLevel2Nodes(item.level1_id)"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
+                  </td>
+                  <td>
+                    <div
+                      v-if="item.level3_name"
+                      class="selected-text"
+                      @click="clearEditLevel3(item)"
+                    >
+                      {{ item.level3_name }}
+                    </div>
+                    <el-select
+                      v-else
+                      v-model="item.level3_id"
+                      placeholder="选择巡查内容"
+                      size="small"
+                      style="width: 100%"
+                      :disabled="!item.level2_id"
+                      @change="handleEditLevel3Change(index)"
+                    >
+                      <el-option
+                        v-for="node in getLevel3Nodes(item.level1_id, item.level2_id)"
+                        :key="node.id"
+                        :label="node.label"
+                        :value="node.id"
+                      />
+                    </el-select>
+                  </td>
+                  <td>
+                    <el-input
+                      v-model="item.check_requirements"
+                      placeholder="自动带出"
+                      size="small"
+                      readonly
+                    />
+                  </td>
+                  <td>
+                    <input
+                      v-model="item.brief_description"
+                      type="text"
+                      class="table-input"
+                      placeholder="请输入"
+                    />
+                  </td>
+                  <td class="action-cell">
+                    <a
+                      href="#"
+                      class="action-link action-delete"
+                      @click.prevent="removeEditItem(index)"
+                      >删除</a
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="table-actions">
+              <button class="btn btn-add-small" @click="addEditItem">添加行</button>
+              <button class="btn btn-add-small" @click="importEditItems">导入事项</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-cancel" @click="closeEditModal">取消</button>
+          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
+            {{ saving ? '保存中...' : '保存' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <ConfirmDialog
+      :visible="confirmDialog.visible"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      @confirm="handleConfirm"
+      @cancel="handleCancelConfirm"
+    />
+  </div>
+</template>
+
+<script lang="ts">
+import {
+  defineComponent,
+  reactive,
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  watchEffect,
+} from 'vue'
+import { ElSelect, ElOption, ElInput } from 'element-plus'
+import {
+  maintenancePlanService,
+  type MaintenancePlan,
+  type MaintenancePlanCreate,
+  type MaintenancePlanUpdate,
+} from '../services/maintenancePlan'
+import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
+import { personnelService } from '../services/personnel'
+import { dictionaryService, dictionaryTypes, type Dictionary } from '../services/dictionary'
+import {
+  inspectionItemService,
+  type InspectionItem as ApiInspectionItem,
+} from '../services/inspectionItem'
+import LoadingSpinner from '../components/LoadingSpinner.vue'
+import Toast from '../components/Toast.vue'
+import ConfirmDialog from '../components/ConfirmDialog.vue'
+import SearchInput from '../components/SearchInput.vue'
+import { useInputMemory } from '../utils/inputMemory'
+import { formatDate as formatDateUtil, formatDateForInput } from '../config/constants'
+
+// TODO: 这个文件太长了，需要拆分组件
+// FIXME: 维保周期生成的逻辑需要优化，每天的情况数据量太大
+interface InspectionTreeNode {
+  id: string
+  label: string
+  level: number
+  checkRequirement?: string
+  checkStandard?: string
+  children?: InspectionTreeNode[]
+}
+
+interface AggregatedPlanData {
+  project_id: string
+  project_name: string
+  plan_start_date: string
+  plan_end_date: string
+  plan_count: number
+  client_name: string
+  address: string
+  plans: MaintenancePlan[]
+}
+
+export default defineComponent({
+  name: 'MaintenancePlanManagement',
+  components: {
+    LoadingSpinner,
+    Toast,
+    ConfirmDialog,
+    SearchInput,
+    ElSelect,
+    ElOption,
+    ElInput,
+  },
+  setup() {
+    const searchForm = reactive({
+      projectName: '',
+      clientName: '',
+    })
+
+    const currentPage = ref(0)
+    const pageSize = ref(10)
+    const jumpPage = ref(1)
+    const loading = ref(false)
+    const saving = ref(false)
+    const isModalOpen = ref(false)
+    const isViewModalOpen = ref(false)
+    const isEditModalOpen = ref(false)
+    const editingId = ref<number | null>(null)
+
+    const planData = ref<AggregatedPlanData[]>([])
+    const totalElements = ref(0)
+    const totalPages = ref(0)
+    const projectList = ref<ProjectInfo[]>([])
+    const personnelList = ref<string[]>([])
+    const planTypeOptions = ref<Dictionary[]>([])
+    const planStatusOptions = ref<Dictionary[]>([])
+    const executionStatusOptions = ref<Dictionary[]>([])
+
+    const toast = reactive({
+      visible: false,
+      message: '',
+      type: 'success' as 'success' | 'error' | 'warning' | 'info',
+    })
+
+    const confirmDialog = reactive({
+      visible: false,
+      title: '确认',
+      message: '',
+    })
+
+    let pendingConfirmAction: (() => void) | null = null
+
+    const showConfirm = (message: string, onConfirm: () => void) => {
+      confirmDialog.message = message
+      pendingConfirmAction = onConfirm
+      confirmDialog.visible = true
+    }
+
+    const handleConfirm = async () => {
+      confirmDialog.visible = false
+      if (pendingConfirmAction) {
+        const action = pendingConfirmAction
+        pendingConfirmAction = null
+        try {
+          await action()
+        } catch (error) {
+          console.error('确认操作执行失败:', error)
+        }
+      }
+    }
+
+    const handleCancelConfirm = () => {
+      confirmDialog.visible = false
+      pendingConfirmAction = null
+    }
+
+    const loadPersonnel = async () => {
+      try {
+        const response = await personnelService.getAll()
+        if (response.code === 200 && response.data) {
+          personnelList.value = response.data.map((p) => p.name)
+        }
+      } catch (error) {
+        console.error('加载人员选项失败:', error)
+      }
+    }
+
+    const loadDictionary = async () => {
+      try {
+        const [planTypeRes, planStatusRes, executionStatusRes] = await Promise.all([
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_PLAN_TYPE),
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_PLAN_STATUS),
+          dictionaryService.getByType(dictionaryTypes.MAINTENANCE_EXECUTION_STATUS),
+        ])
+
+        if (planTypeRes.code === 200 && planTypeRes.data) {
+          planTypeOptions.value = planTypeRes.data
+        }
+        if (planStatusRes.code === 200 && planStatusRes.data) {
+          planStatusOptions.value = planStatusRes.data
+        }
+        if (executionStatusRes.code === 200 && executionStatusRes.data) {
+          executionStatusOptions.value = executionStatusRes.data
+        }
+      } catch (error) {
+        console.error('加载字典数据失败:', error)
+      }
+    }
+
+    interface PlanItem {
+      plan_id: string
+      plan_start_date: string
+      plan_end_date: string
+      maintenance_personnel: string
+      remarks: string
+    }
+
+    interface InspectionItem {
+      item_id: string
+      inspection_item: string
+      inspection_content: string
+      check_requirements: string
+      brief_description: string
+      level1_id: string
+      level1_name: string
+      level2_id: string
+      level2_name: string
+      level3_id: string
+      level3_name: string
+    }
+
+    const formData = reactive({
+      selectedProjectId: '' as number | string,
+      project_id: '',
+      address: '',
+      maintenance_period: '',
+      maintenance_end_date: '',
+      client_name: '',
+      planList: [] as PlanItem[],
+      itemList: [] as InspectionItem[],
+    })
+
+    const inspectionTreeData = ref<InspectionTreeNode[]>([])
+
+    const inputMemory = useInputMemory({
+      pageName: 'MaintenancePlanManagement',
+      fields: ['selectedProjectId'],
+      onRestore: (data) => {
+        if (data.selectedProjectId) {
+          formData.selectedProjectId = data.selectedProjectId
+        }
+      },
+    })
+
+    const transformInspectionTree = (items: ApiInspectionItem[]): InspectionTreeNode[] => {
+      return items.map((item) => ({
+        id: String(item.id),
+        label: item.item_name,
+        level: item.level,
+        checkRequirement: item.check_content || undefined,
+        checkStandard: item.check_standard || undefined,
+        children: item.children ? transformInspectionTree(item.children) : undefined,
+      }))
+    }
+
+    const loadInspectionTree = async () => {
+      try {
+        const response = await inspectionItemService.getTree()
+        if (response.code === 200 && response.data) {
+          inspectionTreeData.value = transformInspectionTree(response.data)
+        }
+      } catch (error) {
+        console.error('加载巡检事项树失败:', error)
+      }
+    }
+
+    const level1Nodes = computed(() => {
+      return inspectionTreeData.value.filter((node) => node.level === 1)
+    })
+
+    const getLevel2Nodes = (level1Id: string) => {
+      const level1Node = inspectionTreeData.value.find((node) => node.id === level1Id)
+      return level1Node?.children || []
+    }
+
+    const getLevel3Nodes = (level1Id: string, level2Id: string) => {
+      const level2Nodes = getLevel2Nodes(level1Id)
+      const level2Node = level2Nodes.find((node) => node.id === level2Id)
+      return level2Node?.children || []
+    }
+
+    const handleLevel1Change = (index: number) => {
+      const item = formData.itemList[index]
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+
+      if (item.level1_id) {
+        const level1Node = level1Nodes.value.find((node) => node.id === item.level1_id)
+        if (level1Node) {
+          item.level1_name = level1Node.label
+        }
+      }
+    }
+
+    const clearLevel1 = (item: any) => {
+      item.level1_id = ''
+      item.level1_name = ''
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearLevel2 = (item: any) => {
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearLevel3 = (item: any) => {
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_content = ''
+    }
+
+    const clearEditLevel1 = (item: any) => {
+      item.level1_id = ''
+      item.level1_name = ''
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearEditLevel2 = (item: any) => {
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+    }
+
+    const clearEditLevel3 = (item: any) => {
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_content = ''
+    }
+
+    const handleLevel2Change = (index: number) => {
+      const item = formData.itemList[index]
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_content = ''
+
+      if (item.level1_id && item.level2_id) {
+        const level2Nodes = getLevel2Nodes(item.level1_id)
+        const level2Node = level2Nodes.find((node) => node.id === item.level2_id)
+        if (level2Node) {
+          item.inspection_item = level2Node.label
+          item.level2_name = level2Node.label
+        }
+      }
+    }
+
+    const handleLevel3Change = (index: number) => {
+      const item = formData.itemList[index]
+      item.check_requirements = ''
+
+      if (item.level1_id && item.level2_id && item.level3_id) {
+        const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
+        const level3Node = level3Nodes.find((node) => node.id === item.level3_id)
+        if (level3Node) {
+          item.inspection_content = level3Node.label
+          item.check_requirements = level3Node.checkRequirement || ''
+          item.level3_name = level3Node.label
+        }
+      }
+    }
+
+    const viewData = reactive({
+      id: 0,
+      plan_id: '',
+      project_id: '',
+      project_name: '',
+      plan_type: '',
+      plan_start_date: '',
+      plan_end_date: '',
+      execution_date: '',
+      next_maintenance_date: '',
+      maintenance_personnel: '',
+      responsible_department: '',
+      contact_info: '',
+      maintenance_content: '',
+      maintenance_requirements: '',
+      maintenance_standard: '',
+      plan_status: '',
+      status: '',
+      completion_rate: 0,
+      remarks: '',
+    })
+
+    const viewPlanList = ref<MaintenancePlan[]>([])
+    const currentViewPlanIndex = ref(0)
+
+    const updateViewData = (plan: MaintenancePlan) => {
+      viewData.id = plan.id
+      viewData.plan_id = plan.plan_id
+      viewData.project_id = plan.project_id
+      viewData.project_name = plan.project_name || ''
+      viewData.plan_type = plan.plan_type
+      viewData.plan_start_date = plan.plan_start_date
+      viewData.plan_end_date = plan.plan_end_date
+      viewData.execution_date = plan.execution_date || ''
+      viewData.next_maintenance_date = plan.next_maintenance_date || ''
+      viewData.maintenance_personnel = plan.maintenance_personnel || ''
+      viewData.responsible_department = plan.responsible_department || ''
+      viewData.contact_info = plan.contact_info || ''
+      viewData.maintenance_content = plan.maintenance_content
+      viewData.maintenance_requirements = plan.maintenance_requirements || ''
+      viewData.maintenance_standard = plan.maintenance_standard || ''
+      viewData.plan_status = plan.plan_status
+      viewData.status = plan.status
+      viewData.completion_rate = plan.completion_rate || 0
+      viewData.remarks = plan.remarks || ''
+    }
+
+    const prevViewPlan = () => {
+      if (currentViewPlanIndex.value > 0) {
+        currentViewPlanIndex.value--
+        updateViewData(viewPlanList.value[currentViewPlanIndex.value])
+      }
+    }
+
+    const nextViewPlan = () => {
+      if (currentViewPlanIndex.value < viewPlanList.value.length - 1) {
+        currentViewPlanIndex.value++
+        updateViewData(viewPlanList.value[currentViewPlanIndex.value])
+      }
+    }
+
+    const editData = reactive({
+      selectedProjectId: undefined as number | undefined,
+      project_id: '',
+      plan_name: '',
+      maintenance_period: '',
+      address: '',
+      maintenance_end_date: '',
+      client_name: '',
+      planList: [] as {
+        id: number
+        plan_id: string
+        plan_start_date: string
+        plan_end_date: string
+        maintenance_personnel: string
+        remarks: string
+        plan_type: string
+        execution_date: string
+        next_maintenance_date: string
+        responsible_department: string
+        contact_info: string
+        plan_status: string
+        status: string
+        completion_rate: number
+        maintenance_content: string
+        maintenance_requirements: string
+        maintenance_standard: string
+      }[],
+      itemList: [] as {
+        item_id: string
+        inspection_item: string
+        inspection_content: string
+        check_requirements: string
+        brief_description: string
+        level1_id: string
+        level1_name: string
+        level2_id: string
+        level2_name: string
+        level3_id: string
+        level3_name: string
+      }[],
+    })
+
+    const deleteEditPlan = (index: number) => {
+      showConfirm('请确认是否要删除该维保计划？', async () => {
+        const plan = editData.planList[index]
+        try {
+          const response = await maintenancePlanService.delete(plan.id)
+          if (response.code === 200) {
+            showToast('删除成功', 'success')
+            editData.planList.splice(index, 1)
+            if (editData.planList.length === 0) {
+              closeEditModal()
+              await loadData()
+            }
+          }
+        } catch (err: any) {
+          showToast(err.message || '删除失败', 'error')
+        }
+      })
+    }
+
+    const addEditPlan = () => {
+      const newPlanId = `PLAN-${Date.now()}`
+      editData.planList.push({
+        id: 0,
+        plan_id: newPlanId,
+        plan_start_date: '',
+        plan_end_date: '',
+        maintenance_personnel: '',
+        remarks: '',
+        plan_type: '定期维保',
+        execution_date: '',
+        next_maintenance_date: '',
+        responsible_department: '',
+        contact_info: '',
+        plan_status: '执行中',
+        status: '未开始',
+        completion_rate: 0,
+        maintenance_content: '',
+        maintenance_requirements: '',
+        maintenance_standard: '',
+      })
+    }
+
+    const startIndex = computed(() => currentPage.value * pageSize.value)
+
+    const showToast = (
+      message: string,
+      type: 'success' | 'error' | 'warning' | 'info' = 'success'
+    ) => {
+      toast.message = message
+      toast.type = type
+      toast.visible = true
+    }
+
+    const formatDate = (dateStr: string) => {
+      return formatDateUtil(dateStr)
+    }
+
+    const formatDateForAPI = (dateStr: string) => {
+      if (!dateStr) return ''
+      const date = new Date(dateStr)
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}T00:00:00`
+    }
+
+    const loadProjectList = async () => {
+      try {
+        const response = await projectInfoService.getAll()
+        if (response.code === 200) {
+          projectList.value = response.data
+        }
+      } catch (error) {
+        console.error('加载项目列表失败:', error)
+      }
+    }
+
+    const handleProjectChange = () => {
+      const selectedProject = projectList.value.find((p) => p.id === formData.selectedProjectId)
+      if (selectedProject) {
+        formData.project_id = selectedProject.project_id
+        formData.address = selectedProject.address
+        formData.maintenance_period = selectedProject.maintenance_period
+        formData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date)
+        formData.client_name = selectedProject.client_name
+
+        const projectManager = (selectedProject as any).project_manager || ''
+        formData.planList = generatePlanList(
+          selectedProject.project_id,
+          new Date(selectedProject.completion_date),
+          new Date(selectedProject.maintenance_end_date),
+          selectedProject.maintenance_period,
+          projectManager
+        )
+      }
+    }
+
+    const generatePlanList = (
+      projectId: string,
+      startDate: Date,
+      endDate: Date,
+      period: string,
+      projectManager: string = ''
+    ): PlanItem[] => {
+      const list: PlanItem[] = []
+      const planPeriods = generateMaintenancePeriods(startDate, endDate, period)
+
+      planPeriods.forEach((periodInfo, index) => {
+        const planId = `${projectId}-${String(index + 1).padStart(3, '0')}`
+        list.push({
+          plan_id: planId,
+          plan_start_date: formatDateToString(periodInfo.start),
+          plan_end_date: formatDateToString(periodInfo.end),
+          maintenance_personnel: projectManager,
+          remarks: '',
+        })
+      })
+
+      return list
+    }
+
+    interface PeriodInfo {
+      start: Date
+      end: Date
+    }
+
+    const generateMaintenancePeriods = (
+      projStart: Date,
+      projEnd: Date,
+      period: string
+    ): PeriodInfo[] => {
+      if (period === '每天') {
+        return generateDailyPeriods(projStart, projEnd)
+      } else if (period === '每周') {
+        return generateWeeklyPeriods(projStart, projEnd)
+      } else if (period === '每月') {
+        return generateMonthlyPeriods(projStart, projEnd)
+      } else if (period === '每季度') {
+        return generateQuarterlyPeriods(projStart, projEnd)
+      } else if (period === '每半年') {
+        return generateHalfYearlyPeriods(projStart, projEnd)
+      }
+
+      return generateMonthlyPeriods(projStart, projEnd)
+    }
+
+    const generateDailyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      // FIXME: 每天维保的情况下，如果项目周期长，会生成大量数据
+      // 后续考虑改成按需生成或者限制最大数量
+      const periods: PeriodInfo[] = []
+      let currentDate = new Date(projStart)
+
+      while (currentDate <= projEnd) {
+        periods.push({
+          start: new Date(currentDate),
+          end: new Date(currentDate),
+        })
+        currentDate.setDate(currentDate.getDate() + 1)
+      }
+
+      return periods
+    }
+
+    const generateWeeklyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+
+      while (currentStart <= projEnd) {
+        const dayOfWeek = currentStart.getDay()
+        const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+        const daysToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek
+
+        const weekStart = new Date(currentStart)
+        weekStart.setDate(weekStart.getDate() + daysToMonday)
+        if (weekStart < projStart) {
+          weekStart.setTime(projStart.getTime())
+        }
+
+        const weekEnd = new Date(currentStart)
+        weekEnd.setDate(weekEnd.getDate() + daysToSunday)
+        if (weekEnd > projEnd) {
+          weekEnd.setTime(projEnd.getTime())
+        }
+
+        periods.push({
+          start: new Date(weekStart),
+          end: new Date(weekEnd),
+        })
+
+        const nextWeekStart = new Date(currentStart)
+        nextWeekStart.setDate(nextWeekStart.getDate() + (7 - dayOfWeek) + 1)
+        currentStart = nextWeekStart
+      }
+
+      return periods
+    }
+
+    const generateMonthlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+
+      while (currentStart <= projEnd) {
+        const year = currentStart.getFullYear()
+        const month = currentStart.getMonth()
+
+        const monthStart = new Date(year, month, 1)
+        if (monthStart < projStart) {
+          monthStart.setTime(projStart.getTime())
+        }
+
+        const monthEnd = new Date(year, month + 1, 0)
+        if (monthEnd > projEnd) {
+          monthEnd.setTime(projEnd.getTime())
+        }
+
+        periods.push({
+          start: new Date(monthStart),
+          end: new Date(monthEnd),
+        })
+
+        currentStart = new Date(year, month + 1, 1)
+      }
+
+      return periods
+    }
+
+    const generateQuarterlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+
+      while (currentStart <= projEnd) {
+        const year = currentStart.getFullYear()
+        const month = currentStart.getMonth()
+        const quarter = Math.floor(month / 3)
+
+        const quarterStartMonth = quarter * 3
+        const quarterEndMonth = quarterStartMonth + 2
+
+        const quarterStart = new Date(year, quarterStartMonth, 1)
+        if (quarterStart < projStart) {
+          quarterStart.setTime(projStart.getTime())
+        }
+
+        const quarterEnd = new Date(year, quarterEndMonth + 1, 0)
+        if (quarterEnd > projEnd) {
+          quarterEnd.setTime(projEnd.getTime())
+        }
+
+        periods.push({
+          start: new Date(quarterStart),
+          end: new Date(quarterEnd),
+        })
+
+        currentStart = new Date(year, quarterEndMonth + 1, 1)
+      }
+
+      return periods
+    }
+
+    const generateHalfYearlyPeriods = (projStart: Date, projEnd: Date): PeriodInfo[] => {
+      const periods: PeriodInfo[] = []
+      let currentStart = new Date(projStart)
+
+      while (currentStart <= projEnd) {
+        const year = currentStart.getFullYear()
+        const month = currentStart.getMonth()
+        const half = month < 6 ? 0 : 1
+
+        let halfStart: Date, halfEnd: Date
+
+        if (half === 0) {
+          halfStart = new Date(year, 0, 1)
+          halfEnd = new Date(year, 6, 0)
+        } else {
+          halfStart = new Date(year, 6, 1)
+          halfEnd = new Date(year, 12, 0)
+        }
+
+        if (halfStart < projStart) {
+          halfStart.setTime(projStart.getTime())
+        }
+        if (halfEnd > projEnd) {
+          halfEnd.setTime(projEnd.getTime())
+        }
+
+        periods.push({
+          start: new Date(halfStart),
+          end: new Date(halfEnd),
+        })
+
+        if (half === 0) {
+          currentStart = new Date(year, 6, 1)
+        } else {
+          currentStart = new Date(year + 1, 0, 1)
+        }
+      }
+
+      return periods
+    }
+
+    const formatDateToString = (date: Date): string => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+
+    const addPlan = () => {
+      const projectId = formData.project_id || 'PRJ'
+      let newNum = 1
+
+      if (formData.planList.length > 0) {
+        const lastPlan = formData.planList[formData.planList.length - 1]
+        if (lastPlan && lastPlan.plan_id) {
+          const parts = lastPlan.plan_id.split('-')
+          const lastNum = parseInt(parts[parts.length - 1])
+          if (!isNaN(lastNum)) {
+            newNum = lastNum + 1
+          }
+        }
+      }
+
+      formData.planList.push({
+        plan_id: `${projectId}-${String(newNum).padStart(3, '0')}`,
+        plan_start_date: '',
+        plan_end_date: '',
+        maintenance_personnel: '',
+        remarks: '',
+      })
+    }
+
+    const removePlan = (index: number) => {
+      showConfirm('确定要删除该计划吗？', () => {
+        formData.planList.splice(index, 1)
+      })
+    }
+
+    const addItem = () => {
+      formData.itemList.push({
+        item_id: '',
+        inspection_item: '',
+        inspection_content: '',
+        check_requirements: '',
+        brief_description: '',
+        level1_id: '',
+        level1_name: '',
+        level2_id: '',
+        level2_name: '',
+        level3_id: '',
+        level3_name: '',
+      })
+    }
+
+    const removeItem = (index: number) => {
+      showConfirm('确定要删除该事项吗？', () => {
+        formData.itemList.splice(index, 1)
+      })
+    }
+
+    const importItems = () => {
+      showToast('导入事项功能开发中', 'info')
+    }
+
+    const loadData = async () => {
+      loading.value = true
+      try {
+        const response = await maintenancePlanService.getAll()
+
+        if (response.code === 200 && response.data) {
+          const projectMap = new Map<
+            string,
+            {
+              project_id: string
+              project_name: string
+              plan_start_date: string
+              plan_end_date: string
+              plan_count: number
+              client_name: string
+              address: string
+              plans: MaintenancePlan[]
+            }
+          >()
+
+          response.data.forEach((plan: MaintenancePlan) => {
+            const existing = projectMap.get(plan.project_id)
+            if (existing) {
+              existing.plan_count++
+              existing.plans.push(plan)
+              if (plan.plan_start_date < existing.plan_start_date) {
+                existing.plan_start_date = plan.plan_start_date
+              }
+              if (plan.plan_end_date > existing.plan_end_date) {
+                existing.plan_end_date = plan.plan_end_date
+              }
+            } else {
+              projectMap.set(plan.project_id, {
+                project_id: plan.project_id,
+                project_name: plan.project_name || plan.plan_name,
+                plan_start_date: plan.plan_start_date,
+                plan_end_date: plan.plan_end_date,
+                plan_count: 1,
+                client_name: (plan as any).client_name || '',
+                address: (plan as any).address || '',
+                plans: [plan],
+              })
+            }
+          })
+
+          let items = Array.from(projectMap.values())
+
+          if (searchForm.projectName) {
+            items = items.filter((item) =>
+              item.project_name.toLowerCase().includes(searchForm.projectName.toLowerCase())
+            )
+          }
+
+          if (searchForm.clientName) {
+            items = items.filter((item) =>
+              item.client_name.toLowerCase().includes(searchForm.clientName.toLowerCase())
+            )
+          }
+
+          totalElements.value = items.length
+          totalPages.value = Math.ceil(items.length / pageSize.value) || 1
+
+          const start = currentPage.value * pageSize.value
+          const end = start + pageSize.value
+          planData.value = items.slice(start, end)
+        } else {
+          showToast(response.message || '加载数据失败', 'error')
+        }
+      } catch (error: any) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          return
+        }
+        showToast(error.message || '加载数据失败，请检查网络连接', 'error')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const handleSearch = () => {
+      currentPage.value = 0
+      loadData()
+    }
+
+    const checkFormValid = (): boolean => {
+      if (!formData.selectedProjectId) {
+        showToast('请选择项目', 'warning')
+        return false
+      }
+      if (formData.planList.length === 0) {
+        showToast('请至少添加一条维保计划', 'warning')
+        return false
+      }
+      const firstPlan = formData.planList[0]
+      if (!firstPlan.plan_start_date) {
+        showToast('请填写计划开始日期', 'warning')
+        return false
+      }
+      if (!firstPlan.plan_end_date) {
+        showToast('请填写计划结束日期', 'warning')
+        return false
+      }
+      return true
+    }
+
+    const openModal = () => {
+      resetForm()
+      loadProjectList()
+      inputMemory.loadMemory()
+      isModalOpen.value = true
+    }
+
+    const closeModal = () => {
+      if (editingId.value === null) {
+        inputMemory.saveMemory({ selectedProjectId: formData.selectedProjectId })
+      }
+      isModalOpen.value = false
+      editingId.value = null
+    }
+
+    const resetForm = () => {
+      formData.selectedProjectId = ''
+      formData.project_id = ''
+      formData.address = ''
+      formData.maintenance_period = ''
+      formData.maintenance_end_date = ''
+      formData.client_name = ''
+      formData.planList = []
+      formData.itemList = []
+    }
+
+    const handleSave = async () => {
+      if (!checkFormValid()) {
+        return
+      }
+
+      saving.value = true
+      try {
+        const selectedProject = projectList.value.find((p) => p.id === formData.selectedProjectId)
+        if (!selectedProject) {
+          showToast('请选择项目', 'error')
+          return
+        }
+
+        let successCount = 0
+        let failCount = 0
+
+        for (const plan of formData.planList) {
+          if (!plan.plan_start_date || !plan.plan_end_date) {
+            failCount++
+            continue
+          }
+
+          const planData: MaintenancePlanCreate = {
+            plan_id: plan.plan_id || '',
+            plan_name: selectedProject.project_name,
+            project_id: formData.project_id,
+            plan_type: '定期维保',
+            equipment_id: 'EQ001',
+            equipment_name: '默认设备',
+            equipment_model: undefined,
+            equipment_location: formData.address,
+            plan_start_date: formatDateForAPI(plan.plan_start_date),
+            plan_end_date: formatDateForAPI(plan.plan_end_date),
+            execution_date: undefined,
+            next_maintenance_date: undefined,
+            maintenance_personnel: plan.maintenance_personnel || '',
+            responsible_department: formData.client_name,
+            contact_info: undefined,
+            maintenance_content:
+              formData.itemList.length > 0
+                ? formData.itemList
+                    .map((item) => item.inspection_content)
+                    .filter(Boolean)
+                    .join('; ')
+                : '常规维保',
+            maintenance_requirements:
+              formData.itemList.length > 0
+                ? formData.itemList
+                    .map((item) => item.check_requirements)
+                    .filter(Boolean)
+                    .join('; ')
+                : undefined,
+            maintenance_standard: undefined,
+            plan_status: '执行中',
+            status: '未开始',
+            completion_rate: 0,
+            remarks: plan.remarks,
+            inspection_items:
+              formData.itemList.length > 0
+                ? JSON.stringify(
+                    formData.itemList.map((item) => ({
+                      level1_id: item.level1_id || '',
+                      level1_name: item.level1_name || '',
+                      level2_id: item.level2_id || '',
+                      level2_name: item.level2_name || '',
+                      level3_id: item.level3_id || '',
+                      level3_name: item.level3_name || '',
+                      inspection_item: item.inspection_item || '',
+                      inspection_content: item.inspection_content || '',
+                      check_requirements: item.check_requirements || '',
+                      brief_description: item.brief_description || '',
+                    }))
+                  )
+                : undefined,
+          }
+
+          try {
+            let response
+            if (editingId.value !== null) {
+              response = await maintenancePlanService.update(editingId.value, planData)
+              editingId.value = null
+            } else {
+              response = await maintenancePlanService.create(planData)
+            }
+
+            if (response.code === 200 || response.code === 201) {
+              successCount++
+            } else {
+              failCount++
+            }
+          } catch (err: any) {
+            failCount++
+          }
+        }
+
+        if (successCount > 0) {
+          showToast(
+            `成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`,
+            'success'
+          )
+          closeModal()
+          resetForm()
+          editingId.value = null
+
+          currentPage.value = 0
+          await loadData()
+        } else {
+          showToast('保存失败，请检查数据', 'error')
+        }
+      } catch (error: any) {
+        showToast(error.message || '操作失败，请检查网络连接', 'error')
+      } finally {
+        saving.value = false
+      }
+    }
+
+    const handleView = (item: AggregatedPlanData) => {
+      if (item.plans && item.plans.length > 0) {
+        viewPlanList.value = item.plans
+        currentViewPlanIndex.value = 0
+        updateViewData(item.plans[0])
+      } else {
+        viewPlanList.value = []
+        currentViewPlanIndex.value = 0
+      }
+      isViewModalOpen.value = true
+    }
+
+    const handleEdit = async (item: AggregatedPlanData) => {
+      if (!item.plans || item.plans.length === 0) {
+        showToast('没有可编辑的计划', 'warning')
+        return
+      }
+
+      if (projectList.value.length === 0) {
+        await loadProjectList()
+      }
+
+      const project = projectList.value.find((p) => p.project_id === item.project_id)
+
+      editData.selectedProjectId = project ? project.id : undefined
+      editData.project_id = item.project_id
+      editData.plan_name = item.project_name
+
+      if (project) {
+        editData.maintenance_period = project.maintenance_period || ''
+        editData.address = project.address || ''
+        editData.maintenance_end_date = formatDate(project.maintenance_end_date)
+        editData.client_name = project.client_name || ''
+      } else {
+        editData.maintenance_period = ''
+        editData.address = item.address || ''
+        editData.maintenance_end_date = ''
+        editData.client_name = item.client_name || ''
+      }
+
+      editData.planList = item.plans.map((plan: MaintenancePlan) => {
+        return {
+          id: plan.id,
+          plan_id: plan.plan_id,
+          plan_start_date: formatDateForInput(plan.plan_start_date),
+          plan_end_date: formatDateForInput(plan.plan_end_date),
+          maintenance_personnel: plan.maintenance_personnel || '',
+          remarks: plan.remarks || '',
+          plan_type: plan.plan_type || '定期维保',
+          execution_date: plan.execution_date ? formatDateForInput(plan.execution_date) : '',
+          next_maintenance_date: plan.next_maintenance_date
+            ? formatDateForInput(plan.next_maintenance_date)
+            : '',
+          responsible_department: plan.responsible_department || '',
+          contact_info: plan.contact_info || '',
+          plan_status: plan.plan_status || '执行中',
+          status: plan.status || '未开始',
+          completion_rate: plan.completion_rate || 0,
+          maintenance_content: plan.maintenance_content || '',
+          maintenance_requirements: plan.maintenance_requirements || '',
+          maintenance_standard: plan.maintenance_standard || '',
+        }
+      })
+
+      editData.itemList = []
+      const firstPlan = item.plans[0]
+      if (firstPlan.inspection_items) {
+        try {
+          const items = JSON.parse(firstPlan.inspection_items)
+          items.forEach((savedItem: any) => {
+            editData.itemList.push({
+              item_id: savedItem.item_id || '',
+              inspection_item: savedItem.inspection_item || '',
+              inspection_content: savedItem.inspection_content || '',
+              check_requirements: savedItem.check_requirements || '',
+              brief_description: savedItem.brief_description || '',
+              level1_id: savedItem.level1_id || '',
+              level1_name: savedItem.level1_name || '',
+              level2_id: savedItem.level2_id || '',
+              level2_name: savedItem.level2_name || '',
+              level3_id: savedItem.level3_id || '',
+              level3_name: savedItem.level3_name || '',
+            })
+          })
+        } catch (e) {
+          console.error('解析巡检事项失败:', e)
+        }
+      } else if (firstPlan.maintenance_content) {
+        const contents = firstPlan.maintenance_content.split('; ')
+        const requirements = firstPlan.maintenance_requirements
+          ? firstPlan.maintenance_requirements.split('; ')
+          : []
+        contents.forEach((content: string, index: number) => {
+          editData.itemList.push({
+            item_id: '',
+            inspection_item: '',
+            inspection_content: content,
+            check_requirements: requirements[index] || '',
+            brief_description: '',
+            level1_id: '',
+            level1_name: '',
+            level2_id: '',
+            level2_name: '',
+            level3_id: '',
+            level3_name: '',
+          })
+        })
+      }
+
+      editingId.value = editData.planList[0].id
+
+      isEditModalOpen.value = true
+    }
+
+    const closeViewModal = () => {
+      isViewModalOpen.value = false
+      viewPlanList.value = []
+      currentViewPlanIndex.value = 0
+    }
+
+    const closeEditModal = () => {
+      isEditModalOpen.value = false
+      editingId.value = null
+    }
+
+    const handleEditProjectChange = () => {
+      const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
+      if (selectedProject) {
+        editData.project_id = selectedProject.project_id
+        editData.address = selectedProject.address || ''
+        editData.maintenance_period = selectedProject.maintenance_period || ''
+        editData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date)
+        editData.client_name = selectedProject.client_name || ''
+      }
+    }
+
+    const handleEditLevel1Change = (index: number) => {
+      const item = editData.itemList[index]
+      item.level2_id = ''
+      item.level2_name = ''
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_item = ''
+      item.inspection_content = ''
+
+      if (item.level1_id) {
+        const level1Node = level1Nodes.value.find((node) => node.id === item.level1_id)
+        if (level1Node) {
+          item.level1_name = level1Node.label
+        }
+      }
+    }
+
+    const handleEditLevel2Change = (index: number) => {
+      const item = editData.itemList[index]
+      item.level3_id = ''
+      item.level3_name = ''
+      item.check_requirements = ''
+      item.inspection_content = ''
+
+      if (item.level1_id && item.level2_id) {
+        const level2Nodes = getLevel2Nodes(item.level1_id)
+        const level2Node = level2Nodes.find((node) => node.id === item.level2_id)
+        if (level2Node) {
+          item.inspection_item = level2Node.label
+          item.level2_name = level2Node.label
+        }
+      }
+    }
+
+    const handleEditLevel3Change = (index: number) => {
+      const item = editData.itemList[index]
+      item.check_requirements = ''
+
+      if (item.level1_id && item.level2_id && item.level3_id) {
+        const level3Nodes = getLevel3Nodes(item.level1_id, item.level2_id)
+        const level3Node = level3Nodes.find((node) => node.id === item.level3_id)
+        if (level3Node) {
+          item.inspection_content = level3Node.label
+          item.check_requirements = level3Node.checkRequirement || ''
+          item.level3_name = level3Node.label
+        }
+      }
+    }
+
+    const addEditItem = () => {
+      editData.itemList.push({
+        item_id: '',
+        inspection_item: '',
+        inspection_content: '',
+        check_requirements: '',
+        brief_description: '',
+        level1_id: '',
+        level1_name: '',
+        level2_id: '',
+        level2_name: '',
+        level3_id: '',
+        level3_name: '',
+      })
+    }
+
+    const removeEditItem = (index: number) => {
+      editData.itemList.splice(index, 1)
+    }
+
+    const importEditItems = () => {
+      showConfirm('导入事项将覆盖当前事项列表，是否继续？', () => {
+        const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
+        if (selectedProject && (selectedProject as any).inspection_items) {
+          try {
+            const items = JSON.parse((selectedProject as any).inspection_items)
+            editData.itemList = items.map((item: any) => ({
+              item_id: item.item_id || '',
+              inspection_item: item.inspection_item || '',
+              inspection_content: item.inspection_content || '',
+              check_requirements: item.check_requirements || '',
+              brief_description: item.brief_description || '',
+              level1_id: item.level1_id || '',
+              level1_name: item.level1_name || '',
+              level2_id: item.level2_id || '',
+              level2_name: item.level2_name || '',
+              level3_id: item.level3_id || '',
+              level3_name: item.level3_name || '',
+            }))
+            showToast('导入成功', 'success')
+          } catch (e) {
+            showToast('导入失败，数据格式错误', 'error')
+          }
+        } else {
+          showToast('该项目没有预设事项', 'warning')
+        }
+      })
+    }
+
+    const checkEditFormValid = (): boolean => {
+      if (!editData.selectedProjectId) {
+        showToast('请选择项目', 'warning')
+        return false
+      }
+      if (editData.planList.length === 0) {
+        showToast('请至少添加一条维保计划', 'warning')
+        return false
+      }
+      return true
+    }
+
+    const handleUpdate = async () => {
+      if (!checkEditFormValid()) {
+        return
+      }
+
+      saving.value = true
+      try {
+        const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
+        if (!selectedProject) {
+          showToast('请选择项目', 'error')
+          return
+        }
+
+        let successCount = 0
+        let failCount = 0
+
+        const maintenanceContent =
+          editData.itemList.length > 0
+            ? editData.itemList
+                .map((item) => item.inspection_content)
+                .filter(Boolean)
+                .join('; ')
+            : '常规维保'
+        const maintenanceRequirements =
+          editData.itemList.length > 0
+            ? editData.itemList
+                .map((item) => item.check_requirements)
+                .filter(Boolean)
+                .join('; ')
+            : undefined
+        const inspectionItemsJson =
+          editData.itemList.length > 0
+            ? JSON.stringify(
+                editData.itemList.map((item) => ({
+                  level1_id: item.level1_id || '',
+                  level1_name: item.level1_name || '',
+                  level2_id: item.level2_id || '',
+                  level2_name: item.level2_name || '',
+                  level3_id: item.level3_id || '',
+                  level3_name: item.level3_name || '',
+                  inspection_item: item.inspection_item || '',
+                  inspection_content: item.inspection_content || '',
+                  check_requirements: item.check_requirements || '',
+                  brief_description: item.brief_description || '',
+                }))
+              )
+            : undefined
+
+        for (const plan of editData.planList) {
+          if (!plan.plan_start_date || !plan.plan_end_date) {
+            failCount++
+            continue
+          }
+
+          const updateData: MaintenancePlanUpdate = {
+            plan_id: plan.plan_id,
+            plan_name: selectedProject.project_name,
+            project_id: editData.project_id,
+            plan_type: plan.plan_type || '定期维保',
+            equipment_id: 'N/A',
+            equipment_name: 'N/A',
+            plan_start_date: formatDateForAPI(plan.plan_start_date),
+            plan_end_date: formatDateForAPI(plan.plan_end_date),
+            execution_date: plan.execution_date ? formatDateForAPI(plan.execution_date) : undefined,
+            next_maintenance_date: plan.next_maintenance_date
+              ? formatDateForAPI(plan.next_maintenance_date)
+              : undefined,
+            maintenance_personnel: plan.maintenance_personnel || '',
+            responsible_department: editData.client_name,
+            contact_info: undefined,
+            maintenance_content: maintenanceContent,
+            maintenance_requirements: maintenanceRequirements,
+            maintenance_standard: undefined,
+            plan_status: plan.plan_status || '执行中',
+            status: plan.status || '未开始',
+            completion_rate: plan.completion_rate || 0,
+            remarks: plan.remarks,
+            inspection_items: inspectionItemsJson,
+          }
+
+          try {
+            let response
+            if (plan.id && plan.id > 0) {
+              response = await maintenancePlanService.update(plan.id, updateData)
+            } else {
+              response = await maintenancePlanService.create(updateData)
+            }
+
+            if (response.code === 200 || response.code === 201) {
+              successCount++
+            } else {
+              failCount++
+            }
+          } catch (err: any) {
+            failCount++
+          }
+        }
+
+        if (successCount > 0) {
+          showToast(
+            `成功保存 ${successCount} 条维保计划${failCount > 0 ? `，${failCount} 条失败` : ''}`,
+            'success'
+          )
+          closeEditModal()
+          currentPage.value = 0
+          await loadData()
+        } else {
+          showToast('保存失败，请检查数据', 'error')
+        }
+      } catch (error: any) {
+        showToast(error.message || '操作失败，请检查网络连接', 'error')
+      } finally {
+        saving.value = false
+      }
+    }
+
+    const handleDelete = async (item: AggregatedPlanData) => {
+      showConfirm(`确定要删除该项目下的所有维保计划（共 ${item.plan_count} 条）吗？`, async () => {
+        loading.value = true
+        try {
+          if (item.plans && item.plans.length > 0) {
+            for (const plan of item.plans) {
+              await maintenancePlanService.delete(plan.id)
+            }
+          }
+          showToast('删除成功', 'success')
+          await loadData()
+        } catch (error: any) {
+          console.error('删除失败:', error)
+          showToast(error.message || '删除失败，请检查网络连接', 'error')
+        } finally {
+          loading.value = false
+        }
+      })
+    }
+
+    const handleJump = () => {
+      const page = jumpPage.value
+      if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page - 1
+      }
+    }
+
+    const handlePageSizeChange = () => {
+      currentPage.value = 0
+      loadData()
+    }
+
+    watchEffect((onCleanup) => {
+      const unwatch = watch(currentPage, () => {
+        loadData()
+      })
+      onCleanup(() => {
+        unwatch()
+      })
+    })
+
+    const handleProjectInfoChanged = () => {
+      loadProjectList()
+    }
+
+    onMounted(() => {
+      loadData()
+      loadPersonnel()
+      loadDictionary()
+      loadProjectList()
+      loadInspectionTree()
+      window.addEventListener('user-changed', handleUserChanged)
+      window.addEventListener('project-info-changed', handleProjectInfoChanged)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('user-changed', handleUserChanged)
+      window.removeEventListener('project-info-changed', handleProjectInfoChanged)
+    })
+
+    const handleUserChanged = () => {
+      loadData()
+    }
+
+    return {
+      searchForm,
+      planData,
+      currentPage,
+      pageSize,
+      totalPages,
+      jumpPage,
+      totalElements,
+      startIndex,
+      isModalOpen,
+      loading,
+      saving,
+      isViewModalOpen,
+      isEditModalOpen,
+      viewData,
+      viewPlanList,
+      currentViewPlanIndex,
+      prevViewPlan,
+      nextViewPlan,
+      editData,
+      formData,
+      toast,
+      confirmDialog,
+      editingId,
+      projectList,
+      personnelList,
+      planTypeOptions,
+      planStatusOptions,
+      executionStatusOptions,
+      openModal,
+      closeModal,
+      handleSave,
+      handleView,
+      handleEdit,
+      handleDelete,
+      handleConfirm,
+      handleCancelConfirm,
+      handleSearch,
+      handleUpdate,
+      handleJump,
+      handlePageSizeChange,
+      closeViewModal,
+      closeEditModal,
+      formatDate,
+      handleProjectChange,
+      handleEditProjectChange,
+      addPlan,
+      removePlan,
+      addItem,
+      removeItem,
+      importItems,
+      addEditItem,
+      removeEditItem,
+      importEditItems,
+      handleEditLevel1Change,
+      handleEditLevel2Change,
+      handleEditLevel3Change,
+      level1Nodes,
+      getLevel2Nodes,
+      getLevel3Nodes,
+      handleLevel1Change,
+      handleLevel2Change,
+      handleLevel3Change,
+      clearLevel1,
+      clearLevel2,
+      clearLevel3,
+      clearEditLevel1,
+      clearEditLevel2,
+      clearEditLevel3,
+      deleteEditPlan,
+      addEditPlan,
+    }
+  },
+})
+</script>
+
+<style scoped>
+.maintenance-plan-management {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  position: relative;
+}
+
+.search-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.search-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.search-row {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #424242;
+  white-space: nowrap;
+}
+
+.search-input {
+  width: 200px;
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.search-input::placeholder {
+  color: #999;
+}
+
+.search-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 3px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-add {
+  background: #2e7d32;
+  color: #fff;
+}
+
+.btn-add:hover:not(:disabled) {
+  background: #1b5e20;
+}
+
+.btn-search {
+  background: #2196f3;
+  color: #fff;
+}
+
+.btn-search:hover {
+  background: #1976d2;
+}
+
+.table-section {
+  margin-bottom: 20px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+.data-table thead {
+  background: #e0e0e0;
+}
+
+.data-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #d0d0d0;
+  white-space: nowrap;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 14px;
+  color: #616161;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.data-table tbody tr:hover {
+  background: #f5f5f5;
+}
+
+.even-row {
+  background: #fafafa;
+}
+
+.action-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 16px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+  align-items: center;
+}
+
+.action-link {
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.15s;
+}
+
+.action-link:hover {
+  opacity: 0.8;
+}
+
+.action-view {
+  color: #2e7d32;
+}
+
+.action-edit {
+  color: #2196f3;
+}
+
+.action-delete {
+  color: #d32f2f;
+}
+
+.pagination-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.pagination-info {
+  font-size: 14px;
+  color: #666;
+}
+
+.pagination-controls {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  min-width: max-content;
+}
+
+.page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  background: #fff;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-btn:hover:not(:disabled) {
+  border-color: #2196f3;
+  color: #2196f3;
+}
+
+.page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-btn.active {
+  background: #2196f3;
+  color: #fff;
+  border-color: #2196f3;
+}
+
+.page-nav {
+  font-size: 16px;
+}
+
+.page-select {
+  padding: 6px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  cursor: pointer;
+}
+
+.page-jump {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #666;
+}
+
+.page-input {
+  width: 48px;
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  text-align: center;
+  background: #fff;
+}
+
+.page-input:focus {
+  outline: none;
+  border-color: #2196f3;
+}
+
+.page-go {
+  min-width: 40px;
+  height: 28px;
+  padding: 0 8px;
+  background: #2196f3;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.page-go:hover {
+  background: #1976d2;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background: #fff;
+  border-radius: 8px;
+  width: 1000px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.modal-large {
+  width: 1200px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px 40px;
+  align-items: start;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 90px;
+  padding: 4px 0;
+}
+
+.form-item-full {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #424242;
+}
+
+.required {
+  color: #d32f2f;
+  margin-right: 4px;
+}
+
+.form-input {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.form-input::placeholder {
+  color: #999;
+}
+
+.form-textarea {
+  padding: 8px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  background: #fff;
+  transition: border-color 0.15s;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.form-textarea:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.form-textarea::placeholder {
+  color: #999;
+}
+
+.form-value {
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 14px;
+  color: #333;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+}
+
+.form-value-textarea {
+  min-height: 60px;
+  align-items: flex-start;
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn-cancel {
+  background: #fff;
+  color: #666;
+  border: 1px solid #e0e0e0;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #f5f5f5;
+}
+
+.btn-save {
+  background: #2196f3;
+  color: #fff;
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #1976d2;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #2196f3;
+}
+
+.section-divider {
+  height: 1px;
+  background: #e0e0e0;
+  margin: 24px 0;
+}
+
+.table-section-inner {
+  margin-top: 16px;
+}
+
+.inner-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  table-layout: auto;
+}
+
+.inner-table thead {
+  background: #e0e0e0;
+}
+
+.inner-table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #d0d0d0;
+  white-space: nowrap;
+  width: auto;
+}
+
+.inner-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.table-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #333;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.table-input-readonly {
+  background: #f5f5f5;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.table-input:focus {
+  outline: none;
+  border-color: #1976d2;
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.table-input::placeholder {
+  color: #999;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.btn-add-small {
+  padding: 6px 12px;
+  background: #2e7d32;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-add-small:hover {
+  background: #1b5e20;
+}
+
+.form-input-readonly {
+  background: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.view-plan-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #e3f2fd;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.view-plan-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1976d2;
+}
+
+.view-plan-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.view-plan-btn {
+  padding: 6px 16px;
+  border: 1px solid #1976d2;
+  border-radius: 3px;
+  background: #fff;
+  color: #1976d2;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.view-plan-btn:hover:not(:disabled) {
+  background: #1976d2;
+  color: #fff;
+}
+
+.view-plan-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: #ccc;
+  color: #999;
+}
+
+.edit-plan-scroll-container {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.edit-plan-table-wrapper {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.edit-plan-table-wrapper table {
+  margin: 0;
+}
+
+.edit-plan-table-wrapper tbody tr {
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.edit-plan-table-wrapper tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.edit-plan-table-wrapper tbody tr.row-selected {
+  background-color: #e3f2fd;
+}
+
+.edit-plan-table-wrapper tbody tr.row-selected:hover {
+  background-color: #bbdefb;
+}
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  border-top: 1px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.pagination-total {
+  font-size: 13px;
+  color: #666;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-btn {
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: #fff;
+  color: #333;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 32px;
+  text-align: center;
+}
+
+.page-btn:hover:not(:disabled):not(.active) {
+  border-color: #409eff;
+  color: #409eff;
+}
+
+.page-btn.active {
+  background: #409eff;
+  border-color: #409eff;
+  color: #fff;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: #c0c4cc;
+}
+
+.page-btn-nav {
+  padding: 5px 12px;
+}
+
+.page-num {
+  font-weight: 500;
+}
+
+.page-ellipsis {
+  padding: 5px 8px;
+  color: #999;
+  font-size: 12px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.selected-text {
+  padding: 6px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-size: 13px;
+  color: #333;
+  background: #f5f5f5;
+  cursor: pointer;
+  min-height: 24px;
+  line-height: 24px;
+  transition: all 0.15s;
+}
+
+.selected-text:hover {
+  background: #e8e8e8;
+  border-color: #ccc;
+}
+</style>

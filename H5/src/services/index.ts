@@ -1,0 +1,25 @@
+/**
+ * 服务层统一导出
+ * 所有API服务在此统一导出，便于组件引用
+ */
+export { authService } from './auth'
+export { projectInfoService } from './projectInfo'
+export { periodicInspectionService } from './periodicInspection'
+export { temporaryRepairService } from './temporaryRepair'
+export { spotWorkService } from './spotWork'
+export { overdueAlertService } from './overdueAlert'
+export { expiringSoonService } from './expiringSoon'
+export { sparePartsService } from './spareParts'
+export { repairToolsService } from './repairTools'
+export { weeklyReportService } from './weeklyReport'
+export { maintenanceLogService } from './maintenanceLog'
+export { operationLogService } from './operationLog'
+export { ocrService } from './ocr'
+export { uploadService } from './upload'
+export { customerService } from './customer'
+export { inspectionItemService } from './inspectionItem'
+export { maintenancePlanService } from './maintenancePlan'
+export { personnelService } from './personnel'
+export { workPlanService } from './workPlan'
+export { dingtalkService } from './dingtalk'
+export { onlineUserService } from './onlineUser'

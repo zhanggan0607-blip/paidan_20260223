@@ -1,0 +1,17 @@
+{
+  "name": "sstcp-maintenance-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    ".",
+    "H5",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=.",
+    "dev:h5": "npm run dev --workspace=H5",
+    "build": "npm run build --workspace=. && npm run build --workspace=H5",
+    "build:shared": "npm run build --workspace=shared",
+    "clean": "npm run clean --workspace=shared && rm -rf node_modules"
+  }
+}

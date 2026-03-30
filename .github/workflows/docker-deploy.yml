@@ -1,0 +1,98 @@
+name: Docker Build and Deploy
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_BACKEND: ${{ github.repository }}/backend
+  IMAGE_NAME_FRONTEND_PC: ${{ github.repository }}/frontend-pc
+  IMAGE_NAME_FRONTEND_H5: ${{ github.repository }}/frontend-h5
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Backend
+        id: meta-backend
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend-python
+          push: true
+          tags: ${{ steps.meta-backend.outputs.tags }}
+          labels: ${{ steps.meta-backend.outputs.labels }}
+
+      - name: Extract metadata for Frontend PC
+        id: meta-frontend-pc
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND_PC }}
+
+      - name: Build and push Frontend PC
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta-frontend-pc.outputs.tags }}
+          labels: ${{ steps.meta-frontend-pc.outputs.labels }}
+
+      - name: Extract metadata for Frontend H5
+        id: meta-frontend-h5
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND_H5 }}
+
+      - name: Build and push Frontend H5
+        uses: docker/build-push-action@v5
+        with:
+          context: ./H5
+          push: true
+          tags: ${{ steps.meta-frontend-h5.outputs.tags }}
+          labels: ${{ steps.meta-frontend-h5.outputs.labels }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            cd /opt/PAI_DAN_SSTCP
+            
+            echo "Pulling latest images..."
+            docker compose pull
+            
+            echo "Restarting services..."
+            docker compose up -d --remove-orphans
+            
+            echo "Cleaning up old images..."
+            docker image prune -f
+            
+            echo "Deployment completed!"

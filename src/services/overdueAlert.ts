@@ -1,0 +1,50 @@
+/**
+ * 超期预警服务
+ * 提供超期工单查询功能
+ */
+import request from '../api/request'
+import { API_ENDPOINTS } from '../api/endpoints'
+
+export interface OverdueItem {
+  id: string
+  workOrderNo: string
+  project_id: string
+  projectName: string
+  customerName: string
+  workOrderType: string
+  planEndDate: string
+  workOrderStatus: string
+  overdueDays: number
+  executor: string
+}
+
+export interface ApiResponse<T = unknown> {
+  code: number
+  message: string
+  data: T
+}
+
+export interface OverdueAlertResponse {
+  items: OverdueItem[]
+  total: number
+}
+
+export const overdueAlertService = {
+  /**
+   * 获取超期预警列表
+   */
+  async getOverdueAlerts(params?: {
+    project_name?: string
+    client_name?: string
+    work_order_type?: string
+    page?: number
+    size?: number
+  }): Promise<ApiResponse<OverdueAlertResponse>> {
+    const queryParams = {
+      page: 0,
+      size: 1000,
+      ...params,
+    }
+    return await request.get(API_ENDPOINTS.OVERDUE_ALERT.LIST, { params: queryParams })
+  },
+}

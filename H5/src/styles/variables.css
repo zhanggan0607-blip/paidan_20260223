@@ -1,0 +1,60 @@
+:root {
+  --color-primary: #1989fa;
+  --color-primary-light: #4da3ff;
+  --color-primary-dark: #0066cc;
+  
+  --color-success: #07c160;
+  --color-warning: #ff976a;
+  --color-danger: #ee0a24;
+  --color-info: #909399;
+  
+  --color-text-primary: #333333;
+  --color-text-regular: #606266;
+  --color-text-secondary: #909399;
+  --color-text-placeholder: #c0c4cc;
+  
+  --color-bg-page: #f5f7fa;
+  --color-bg-card: #ffffff;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+  
+  --color-border: #e5e5e5;
+  --color-border-light: #ebeef5;
+  
+  --status-overdue-bg: #ffcdd2;
+  --status-overdue-text: #c62828;
+  --status-overdue-border: #ef9a9a;
+  
+  --status-warning-bg: #fff3e0;
+  --status-warning-text: #F57C00;
+  --status-warning-border: #ffcc80;
+  
+  --status-success-bg: #e8f5e9;
+  --status-success-text: #2e7d32;
+  --status-success-border: #a5d6a7;
+  
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-md: 16px;
+  --font-size-lg: 18px;
+  --font-size-xl: 20px;
+  
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  
+  --app-max-width: 375px;
+}
