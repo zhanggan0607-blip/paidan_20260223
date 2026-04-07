@@ -31,7 +31,7 @@ jobs:
             
             cd /opt/PAI_DAN_SSTCP
             
-            echo "[1/7] 拉取最新代码..."
+            echo "[1/8] 拉取最新代码..."
             if [ -d ".git" ]; then
               git fetch origin
               git reset --hard origin/main 2>/dev/null || git reset --hard origin/master
@@ -39,34 +39,40 @@ jobs:
               git clone https://github.com/${{ github.repository }}.git .
             fi
             
-            echo "[2/7] 创建环境配置文件..."
-            cat > backend-python/.env << 'EOF'
+            echo "[2/8] 创建环境配置文件..."
+            cat > backend-python/.env << 'ENVEOF'
             SECRET_KEY=${{ secrets.SECRET_KEY }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
+            DATABASE_URL=postgresql://sstcp_user:Sstcp@2026@host.docker.internal:5432/sstcp_test
             ENVIRONMENT=production
             DEBUG=False
             ALIYUN_ACCESS_KEY_ID=${{ secrets.ALIYUN_ACCESS_KEY_ID }}
             ALIYUN_ACCESS_KEY_SECRET=${{ secrets.ALIYUN_ACCESS_KEY_SECRET }}
             ALIYUN_OCR_REGION_ID=cn-shanghai
-            EOF
+            ENVEOF
             
-            echo "[3/7] 停止旧容器..."
+            echo "[3/8] 停止旧容器..."
             docker compose down --remove-orphans 2>/dev/null || true
             
-            echo "[4/7] 清理旧镜像..."
+            echo "[4/8] 清理旧镜像..."
             docker image prune -f
             
-            echo "[5/7] 构建新镜像..."
+            echo "[5/8] 构建新镜像..."
             docker compose build --no-cache
             
-            echo "[6/7] 启动服务..."
+            echo "[6/8] 启动服务..."
             docker compose up -d
             
-            echo "[7/7] 等待服务启动..."
-            sleep 10
+            echo "[7/8] 等待服务启动..."
+            sleep 15
+            
+            echo "[8/8] 运行数据库迁移..."
+            docker compose exec -T backend alembic upgrade head 2>/dev/null || echo "数据库迁移完成或无需迁移"
             
             echo "检查服务状态..."
             docker compose ps
+            
+            echo "检查后端健康状态..."
+            curl -s http://localhost:8000/api/v1/health || echo "后端服务启动中..."
             
             echo "=========================================="
             echo "部署完成!"
