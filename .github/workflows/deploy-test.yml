@@ -42,7 +42,7 @@ jobs:
             echo "[2/8] 创建环境配置文件..."
             cat > backend-python/.env << 'ENVEOF'
             SECRET_KEY=${{ secrets.SECRET_KEY }}
-            DATABASE_URL=postgresql://sstcp_user:Sstcp@2026@host.docker.internal:5432/sstcp_test
+            DATABASE_URL=postgresql://sstcp_user:123456@host.docker.internal:5432/sstcp_test
             ENVIRONMENT=production
             DEBUG=False
             ALIYUN_ACCESS_KEY_ID=${{ secrets.ALIYUN_ACCESS_KEY_ID }}
