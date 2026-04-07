@@ -7,6 +7,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workPlanService } from '../services'
 import { userStore } from '../stores/userStore'
+import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 
 const router = useRouter()
 
@@ -45,13 +46,26 @@ const hasOverdue = computed(() => statistics.value.overdue > 0)
 /**
  * 获取统计数据
  * 从后端获取工单统计信息
+ * 使用缓存优化性能
  */
-const fetchStatistics = async () => {
+const fetchStatistics = async (forceRefresh = false) => {
   loading.value = true
   try {
+    const cacheKey = CACHE_KEYS.STATISTICS
+    
+    if (!forceRefresh) {
+      const cached = apiCache.get<Statistics>(cacheKey)
+      if (cached) {
+        statistics.value = cached
+        loading.value = false
+        return
+      }
+    }
+    
     const response = await workPlanService.getStatistics()
     if (response.code === 200) {
       statistics.value = response.data
+      apiCache.set(cacheKey, response.data, CACHE_TTL.MEDIUM)
     }
   } catch (error) {
     console.error('Failed to fetch statistics:', error)
@@ -264,11 +278,19 @@ const handleQuickAction = (action: { route: string }) => {
 const handleCardClick = (card: { route: string }) => {
   router.push(card.route)
 }
+
+/**
+ * 处理下拉刷新
+ * 强制刷新数据，跳过缓存
+ */
+const handleRefresh = () => {
+  return fetchStatistics(true)
+}
 </script>
 
 <template>
   <div class="home-page">
-    <van-pull-refresh v-model="loading" @refresh="fetchStatistics">
+    <van-pull-refresh v-model="loading" @refresh="handleRefresh">
       <div class="content">
         <div class="statistics-section">
           <van-grid :column-num="2" :border="false">

@@ -633,10 +633,7 @@ export default defineComponent({
             remarks: item.remarks || '',
             work_content: item.work_content || '',
             worker_count: item.worker_count || 0,
-            photos:
-              typeof item.photos === 'string'
-                ? item.photos.split(',').filter(Boolean)
-                : item.photos || [],
+            photos: Array.isArray(item.photos) ? item.photos : (typeof item.photos === 'string' ? JSON.parse(item.photos) : []),
             signature: item.signature || '',
           }))
           totalElements.value = response.data.totalElements || 0

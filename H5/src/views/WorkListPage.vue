@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import {
@@ -8,10 +8,13 @@ import {
   periodicInspectionService,
   temporaryRepairService,
   spotWorkService,
+  workOrderService,
 } from '../services'
 import { formatDate, getWorkIdFontSize, getStatusType, getDisplayStatus } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import { useNavigation } from '../composables/useNavigation'
+import { useHeartbeatControl } from '../composables/useHeartbeatControl'
+import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 import type { OverdueAlertItem } from '../types/models'
 
 const route = useRoute()
@@ -22,6 +25,11 @@ const loading = ref(false)
 const workList = ref<any[]>([])
 const overdueList = ref<OverdueAlertItem[]>([])
 const expiringList = ref<OverdueAlertItem[]>([])
+
+const currentPage = ref(0)
+const pageSize = 20
+const hasMore = ref(true)
+const total = ref(0)
 
 const type = computed(() => (route.query.type as string) || 'expiring')
 
@@ -62,7 +70,7 @@ const displayList = computed(() => {
       .sort((a, b) => {
         const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
         const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
-        return dateA - dateB
+        return dateB - dateA
       })
   }
   if (tabKey === 'expiring') {
@@ -85,19 +93,31 @@ const displayList = computed(() => {
       .sort((a, b) => {
         const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
         const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
-        return dateA - dateB
+        return dateB - dateA
       })
   }
   return workList.value
 })
 
-const fetchOverdueList = async () => {
+const fetchOverdueList = async (useCache = true) => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
+    const cacheKey = CACHE_KEYS.OVERDUE_ALERT
+    if (useCache) {
+      const cached = apiCache.get<OverdueAlertItem[]>(cacheKey)
+      if (cached) {
+        overdueList.value = cached
+        loading.value = false
+        closeToast()
+        return
+      }
+    }
+    
     const response = await overdueAlertService.getList()
     if (response.code === 200) {
       overdueList.value = response.data?.items || []
+      apiCache.set(cacheKey, overdueList.value, CACHE_TTL.MEDIUM)
     }
   } catch (error) {
     console.error('Failed to fetch overdue list:', error)
@@ -107,13 +127,25 @@ const fetchOverdueList = async () => {
   }
 }
 
-const fetchExpiringList = async () => {
+const fetchExpiringList = async (useCache = true) => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
+    const cacheKey = CACHE_KEYS.EXPIRING_SOON
+    if (useCache) {
+      const cached = apiCache.get<OverdueAlertItem[]>(cacheKey)
+      if (cached) {
+        expiringList.value = cached
+        loading.value = false
+        closeToast()
+        return
+      }
+    }
+    
     const response = await expiringSoonService.getList()
     if (response.code === 200) {
       expiringList.value = response.data?.items || []
+      apiCache.set(cacheKey, expiringList.value, CACHE_TTL.MEDIUM)
     }
   } catch (error) {
     console.error('Failed to fetch expiring list:', error)
@@ -123,81 +155,73 @@ const fetchExpiringList = async () => {
   }
 }
 
-const fetchWorkList = async () => {
+const fetchWorkList = async (isLoadMore = false) => {
   const tabKey = currentTab.value?.key
 
   if (tabKey === 'overdue') {
-    await fetchOverdueList()
+    await fetchOverdueList(!isLoadMore)
     return
   }
 
   if (tabKey === 'expiring') {
-    await fetchExpiringList()
+    await fetchExpiringList(!isLoadMore)
     return
   }
 
+  if (!isLoadMore) {
+    currentPage.value = 0
+    workList.value = []
+    hasMore.value = true
+  }
+
   loading.value = true
-  showLoadingToast({ message: '加载中...', forbidClick: true })
+  if (!isLoadMore) {
+    showLoadingToast({ message: '加载中...', forbidClick: true })
+  }
+  
   try {
     let items: any[] = []
+    let totalCount = 0
 
     switch (tabKey) {
       case 'completed': {
-        const completedStatuses = ['已完成']
-        const currentYear = new Date().getFullYear()
-
-        const [inspectionRes, repairRes, spotRes] = await Promise.all([
-          periodicInspectionService.getList({ page: 0, size: 1000 }),
-          temporaryRepairService.getList({ page: 0, size: 1000 }),
-          spotWorkService.getList({ page: 0, size: 1000 }),
-        ])
-
-        if (inspectionRes.code === 200) {
-          const inspectionItems = inspectionRes.data?.items || inspectionRes.data?.content || []
-          const completedInspections = inspectionItems
-            .filter((item: any) => completedStatuses.includes(item.status))
-            .filter((item: any) => {
-              const completionDate = item.actual_completion_date
-              if (!completionDate) return false
-              return new Date(completionDate).getFullYear() === currentYear
-            })
-          items = items.concat(
-            completedInspections.map((item: any) => ({ ...item, planType: '定期巡检' }))
-          )
-        }
-
-        if (repairRes.code === 200) {
-          const repairItems = repairRes.data?.items || repairRes.data?.content || []
-          const completedRepairs = repairItems
-            .filter((item: any) => completedStatuses.includes(item.status))
-            .filter((item: any) => {
-              const completionDate = item.actual_completion_date
-              if (!completionDate) return false
-              return new Date(completionDate).getFullYear() === currentYear
-            })
-          items = items.concat(
-            completedRepairs.map((item: any) => ({ ...item, planType: '临时维修' }))
-          )
-        }
-
-        if (spotRes.code === 200) {
-          const spotItems = spotRes.data?.items || spotRes.data?.content || []
-          const completedSpotWorks = spotItems
-            .filter((item: any) => completedStatuses.includes(item.status))
-            .filter((item: any) => {
-              const completionDate = item.actual_completion_date
-              if (!completionDate) return false
-              return new Date(completionDate).getFullYear() === currentYear
-            })
-          items = items.concat(
-            completedSpotWorks.map((item: any) => ({ ...item, planType: '零星用工' }))
-          )
+        const cacheKey = `${CACHE_KEYS.WORK_ORDER_COMPLETED}_${currentPage.value}`
+        const cached = apiCache.get<any>(cacheKey)
+        
+        if (cached && !isLoadMore) {
+          items = cached.items
+          totalCount = cached.total
+        } else {
+          const response = await workOrderService.getCompletedThisYear({ 
+            page: currentPage.value, 
+            size: pageSize 
+          })
+          if (response.code === 200) {
+            items = (response.data?.items || []).map((item: any) => ({
+              id: item.id,
+              planType: item.plan_type,
+              project_name: item.project_name,
+              projectName: item.project_name,
+              plan_start_date: item.plan_start_date,
+              planStartDate: item.plan_start_date,
+              plan_end_date: item.plan_end_date,
+              planEndDate: item.plan_end_date,
+              status: item.status,
+              inspection_id: item.order_type_code === 'inspection' ? item.order_id : null,
+              repair_id: item.order_type_code === 'repair' ? item.order_id : null,
+              work_id: item.order_type_code === 'spotwork' ? item.order_id : null,
+              client_name: item.client_name,
+              clientName: item.client_name,
+            }))
+            totalCount = response.data?.total || 0
+            apiCache.set(cacheKey, { items, total: totalCount }, CACHE_TTL.SHORT)
+          }
         }
         break
       }
 
       case 'periodic': {
-        const response = await periodicInspectionService.getList({ page: 0, size: 1000 })
+        const response = await periodicInspectionService.getList({ page: 0, size: 500 })
         if (response.code === 200) {
           const validStatuses = ['执行中', '待确认', '已退回']
           items = (response.data?.items || response.data?.content || [])
@@ -206,12 +230,13 @@ const fetchWorkList = async () => {
               ...item,
               planType: '定期巡检',
             }))
+          totalCount = items.length
         }
         break
       }
 
       case 'repair': {
-        const response = await temporaryRepairService.getList({ page: 0, size: 1000 })
+        const response = await temporaryRepairService.getList({ page: 0, size: 500 })
         if (response.code === 200) {
           const validStatuses = ['执行中', '待确认', '已退回']
           items = (response.data?.items || response.data?.content || [])
@@ -220,12 +245,13 @@ const fetchWorkList = async () => {
               ...item,
               planType: '临时维修',
             }))
+          totalCount = items.length
         }
         break
       }
 
       case 'spot': {
-        const response = await spotWorkService.getList({ page: 0, size: 1000 })
+        const response = await spotWorkService.getList({ page: 0, size: 500 })
         if (response.code === 200) {
           const validStatuses = ['执行中', '待确认', '已退回']
           items = (response.data?.items || response.data?.content || [])
@@ -234,37 +260,55 @@ const fetchWorkList = async () => {
               ...item,
               planType: '零星用工',
             }))
+          totalCount = items.length
         }
         break
       }
     }
 
-    workList.value = items
-      .map((item: any) => ({
-        id: item.id,
-        uniqueKey: `${item.planType}-${item.id}`,
-        projectName: item.project_name || item.projectName,
-        planStartDate: item.plan_start_date || item.planStartDate,
-        planEndDate: item.plan_end_date || item.planEndDate,
-        status: item.status,
-        planType: item.planType,
-        workOrderNo: item.inspection_id || item.repair_id || item.work_id,
-        clientName: item.client_name || item.clientName,
-        totalCount: item.total_count,
-        filledCount: item.filled_count,
-        updatedAt: item.updated_at,
-      }))
-      .sort((a, b) => {
-        const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
-        const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
-        return dateA - dateB
-      })
+    const mappedItems = items.map((item: any) => ({
+      id: item.id,
+      uniqueKey: `${item.planType}-${item.id}`,
+      projectName: item.project_name || item.projectName,
+      planStartDate: item.plan_start_date || item.planStartDate,
+      planEndDate: item.plan_end_date || item.planEndDate,
+      status: item.status,
+      planType: item.planType,
+      workOrderNo: item.inspection_id || item.repair_id || item.work_id,
+      clientName: item.client_name || item.clientName,
+      totalCount: item.total_count,
+      filledCount: item.filled_count,
+      updatedAt: item.updated_at,
+    })).sort((a, b) => {
+      const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
+      const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
+      return dateB - dateA
+    })
+
+    if (tabKey === 'completed') {
+      if (isLoadMore) {
+        workList.value = [...workList.value, ...mappedItems]
+      } else {
+        workList.value = mappedItems
+      }
+      total.value = totalCount
+      hasMore.value = workList.value.length < totalCount
+    } else {
+      workList.value = mappedItems
+      hasMore.value = false
+    }
   } catch (error) {
     console.error('Failed to fetch work list:', error)
   } finally {
     loading.value = false
     closeToast()
   }
+}
+
+const onLoadMore = () => {
+  if (loading.value || !hasMore.value) return
+  currentPage.value++
+  fetchWorkList(true)
 }
 
 const getAlertItem = (id: number, workOrderType?: string): OverdueAlertItem | undefined => {
@@ -313,7 +357,12 @@ const handleBack = () => {
 }
 
 onMounted(() => {
+  useHeartbeatControl.pause()
   fetchWorkList()
+})
+
+onUnmounted(() => {
+  useHeartbeatControl.resume()
 })
 
 watch(type, () => {
@@ -332,8 +381,13 @@ watch(type, () => {
       </template>
     </van-nav-bar>
 
-    <van-pull-refresh v-model="loading" @refresh="fetchWorkList">
-      <van-list :loading="loading" :finished="true">
+    <van-pull-refresh v-model="loading" @refresh="() => fetchWorkList(false)">
+      <van-list 
+        :loading="loading" 
+        :finished="!hasMore"
+        :immediate-check="false"
+        @load="onLoadMore"
+      >
         <div class="work-list">
           <div
             v-for="item in displayList"
@@ -411,6 +465,9 @@ watch(type, () => {
           </div>
         </div>
         <van-empty v-if="!loading && displayList.length === 0" description="暂无数据" />
+        <div v-if="hasMore && currentTab.key === 'completed'" class="load-more-tip">
+          <span>已加载 {{ displayList.length }} / {{ total }} 条</span>
+        </div>
       </van-list>
     </van-pull-refresh>
   </div>
@@ -531,5 +588,12 @@ watch(type, () => {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.load-more-tip {
+  text-align: center;
+  padding: 12px;
+  color: #969799;
+  font-size: 12px;
 }
 </style>

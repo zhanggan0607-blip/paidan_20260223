@@ -760,8 +760,52 @@ export default defineComponent({
       isViewModalOpen.value = false
     }
 
-    const handleExport = (_item: PlanItem) => {
-      showToast('导出功能开发中', 'info')
+    const handleExport = async (item: PlanItem) => {
+      try {
+        const token = localStorage.getItem('token')
+        let exportUrl = ''
+        
+        switch (item.order_type_code) {
+          case 'inspection':
+            exportUrl = `/api/v1/export/periodic-inspection/${item.id}`
+            break
+          case 'repair':
+            exportUrl = `/api/v1/export/temporary-repair/${item.id}`
+            break
+          case 'spotwork':
+            exportUrl = `/api/v1/export/spot-work/${item.id}`
+            break
+          default:
+            showToast('不支持的工单类型', 'error')
+            return
+        }
+
+        const response = await fetch(exportUrl, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          const error = await response.json()
+          showToast(error.detail || error.message || '导出失败', 'error')
+          return
+        }
+
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${item.plan_type}_${item.plan_id}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+        showToast('导出成功', 'success')
+      } catch (error) {
+        console.error('导出失败:', error)
+        showToast('导出失败，请检查网络连接', 'error')
+      }
     }
 
     const handleJump = () => {

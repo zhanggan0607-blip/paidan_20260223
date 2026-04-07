@@ -6,6 +6,7 @@ import { userStore } from './stores/userStore'
 import { dingtalkService } from './services/dingtalk'
 import { onlineUserService } from './services/onlineUser'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
+import { useHeartbeatControl } from './composables/useHeartbeatControl'
 
 const router = useRouter()
 const isInitialized = ref(false)
@@ -13,6 +14,8 @@ let heartbeatTimer: number | null = null
 const HEARTBEAT_INTERVAL = 2 * 60 * 1000
 
 const sendHeartbeat = async () => {
+  if (useHeartbeatControl.isPaused()) return
+  
   const user = userStore.getUser()
   if (!user || !userStore.isLoggedIn()) return
 
@@ -26,7 +29,11 @@ const sendHeartbeat = async () => {
 const startHeartbeat = () => {
   stopHeartbeat()
   sendHeartbeat()
-  heartbeatTimer = window.setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
+  heartbeatTimer = window.setInterval(() => {
+    if (!useHeartbeatControl.isPaused()) {
+      sendHeartbeat()
+    }
+  }, HEARTBEAT_INTERVAL)
 }
 
 const stopHeartbeat = () => {

@@ -286,6 +286,15 @@
         </div>
       </div>
     </div>
+
+    <PdfPreviewModal
+      :visible="showPdfPreview"
+      :data="pdfPreviewData"
+      :operation-logs="pdfPreviewLogs"
+      :photos="pdfPreviewPhotos"
+      @close="closePdfPreview"
+      @export="exportFromPreview"
+    />
   </div>
 </template>
 
@@ -309,6 +318,7 @@ import type { ApiResponse } from '../types/api'
 import LoadingSpinner from '../components/LoadingSpinner.vue'
 import Toast from '../components/Toast.vue'
 import SearchInput from '../components/SearchInput.vue'
+import PdfPreviewModal from '../components/PdfPreviewModal.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '../config/constants'
 import { userStore } from '../stores/userStore'
 
@@ -363,6 +373,7 @@ export default defineComponent({
     LoadingSpinner,
     Toast,
     SearchInput,
+    PdfPreviewModal,
   },
   setup() {
     const route = useRoute()
@@ -419,6 +430,12 @@ export default defineComponent({
 
     const operationLogs = ref<OperationLogItem[]>([])
     const loadingLogs = ref(false)
+
+    const showPdfPreview = ref(false)
+    const pdfPreviewData = ref<any>({})
+    const pdfPreviewLogs = ref<OperationLogItem[]>([])
+    const pdfPreviewPhotos = ref<string[]>([])
+    const pendingExportItem = ref<InspectionItem | null>(null)
 
     const startIndex = computed(() => currentPage.value * pageSize.value)
 
@@ -697,6 +714,84 @@ export default defineComponent({
     }
 
     const handleExport = async (item: InspectionItem) => {
+      pendingExportItem.value = item
+      loading.value = true
+      try {
+        const logsResponse = (await apiClient.get(
+          `/work-order-operation-log?work_order_type=periodic_inspection&work_order_id=${item.id}`
+        )) as unknown as ApiResponse<OperationLogItem[]>
+        if (logsResponse.code === 200) {
+          pdfPreviewLogs.value = logsResponse.data || []
+        }
+
+        const recordsResponse = (await apiClient.get(
+          `/periodic-inspection-record/inspection/${item.inspection_id}`
+        )) as unknown as ApiResponse<InspectionRecord[]>
+        if (recordsResponse.code === 200) {
+          const records = recordsResponse.data || []
+          const allPhotos: string[] = []
+          records.forEach((record) => {
+            if (record.photos && record.photos.length > 0) {
+              allPhotos.push(...record.photos)
+            }
+          })
+          pdfPreviewPhotos.value = allPhotos
+        }
+
+        let remainingTime = '-'
+        try {
+          const projectResponse = await projectInfoService.getAll()
+          if (projectResponse.code === 200 && projectResponse.data) {
+            const project = projectResponse.data.find(
+              (p: ProjectInfo) => p.project_id === item.project_id
+            )
+            if (project) {
+              remainingTime = calculateRemainingTime(project.maintenance_end_date)
+            }
+          }
+        } catch (error) {
+          console.error('获取项目信息失败:', error)
+        }
+
+        pdfPreviewData.value = {
+          id: item.id,
+          inspection_id: item.inspection_id,
+          project_id: item.project_id,
+          project_name: item.project_name,
+          plan_start_date: item.plan_start_date,
+          plan_end_date: item.plan_end_date,
+          client_name: item.client_name,
+          client_contact: item.client_contact,
+          client_contact_info: item.client_contact_info,
+          client_contact_position: item.client_contact_position,
+          address: item.address,
+          maintenance_personnel: item.maintenance_personnel,
+          status: item.status,
+          execution_result: item.execution_result,
+          remarks: item.remarks,
+          signature: item.signature,
+          remainingTime: remainingTime,
+        }
+
+        showPdfPreview.value = true
+      } catch (error) {
+        console.error('加载预览数据失败:', error)
+        showToast('加载预览数据失败', 'error')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    const closePdfPreview = () => {
+      showPdfPreview.value = false
+      pdfPreviewData.value = {}
+      pdfPreviewLogs.value = []
+      pdfPreviewPhotos.value = []
+    }
+
+    const exportFromPreview = async () => {
+      if (!pendingExportItem.value) return
+      const item = pendingExportItem.value
       try {
         const token = localStorage.getItem('token')
         const response = await fetch(`/api/v1/export/periodic-inspection/${item.id}`, {
@@ -721,6 +816,7 @@ export default defineComponent({
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
         showToast('导出成功', 'success')
+        closePdfPreview()
       } catch (error) {
         console.error('导出失败:', error)
         showToast('导出失败，请检查网络连接', 'error')
@@ -908,6 +1004,12 @@ export default defineComponent({
       WORK_STATUS,
       isAdmin,
       isDepartmentManager,
+      showPdfPreview,
+      pdfPreviewData,
+      pdfPreviewLogs,
+      pdfPreviewPhotos,
+      closePdfPreview,
+      exportFromPreview,
     }
   },
 })

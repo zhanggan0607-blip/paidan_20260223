@@ -1,121 +1,38 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
 node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Environment variables - 敏感配置文件
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
 .env
 .env.local
 .env.*.local
-.env.postgresql
-.env.sqlite
-.env.docker
-.env.production
-backend-python/.env
-backend-python/.env.local
-backend-python/.env.production
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-venv/
+*.log
+logs/
+dist/
+build/
 *.egg-info/
 .eggs/
-
-# Test reports and temporary files
-*_test.py
-test_report_*.json
-defects_report.json
-defects_report.md
-
-# Batch files
-*.bat
-
-# Uploads directory
-backend-python/app/uploads/
-
-# IDE and tool directories
-.trae/
-.claude/
-.cursor/
-.windsurf/
-
-# Deployment scripts with credentials
-deploy.sh
-deploy*.sh
-scripts/deploy/*.py
-
-# Scripts with sensitive data (server credentials, API keys)
-scripts/fix_db_config.py
-scripts/check_*.py
-scripts/test_*.py
-scripts/grant_*.py
-scripts/create_*.py
-scripts/restart_*.py
-scripts/start_*.py
-scripts/cleanup_*.py
-scripts/deploy_*.py
-scripts/fix_*.py
-scripts/fix_*.py
-scripts/list_*.py
-scripts/query_*.py
-scripts/reset_*.py
-scripts/migrate_*.py
-scripts/sync_*.py
-scripts/verify_*.py
-scripts/grant_*.py
-scripts/database/*.py
-scripts/service/*.py
-scripts/monitor/*.py
-scripts/migrations/*.py
-backend-python/scripts/*.py
-*.ps1
-temp_ssh.sh
-
-# Root level scripts with sensitive data
-check_*.py
-grant_*.py
-migrate_*.py
-recreate_*.py
-test_*.py
-upload_*.py
-extract_*.py
-patch_*.py
-
-# Backup files
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
 *.bak
-*.backup
-backup_data.json
-
-# SSL certificates
-*.pem
-*.key
-*.crt
-
-# Database dumps
-*.sql
-*.dump
+*.tmp
+*.temp
+backups/
+cleanup_backup/
+*.zip
+*.tar.gz
+*.rar
+.trae/

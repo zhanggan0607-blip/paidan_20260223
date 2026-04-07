@@ -107,7 +107,6 @@ const handleExistingWorkerSelect = async (worker: WorkerInfo) => {
   const checkResponse = await spotWorkService.checkIdCardExists(worker.idCardNumber || '')
   if (checkResponse.code === 200 && checkResponse.data?.exists) {
     const existingInfo = checkResponse.data
-    const isSameProject = existingInfo.project_id === projectId.value
     
     const alreadyInList = workerList.value.some(
       (w) => w.idCardNumber === worker.idCardNumber
@@ -118,9 +117,9 @@ const handleExistingWorkerSelect = async (worker: WorkerInfo) => {
       return
     }
     
-    if (!isSameProject) {
+    if (!existingInfo.can_reuse) {
       showFailToast(
-        `该身份证已在其他项目录入！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}`
+        `该身份证已录入未完成工单！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}\n工单号：${existingInfo.work_id}\n状态：${existingInfo.work_status}`
       )
       return
     }
@@ -268,12 +267,19 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
                 const checkResponse = await spotWorkService.checkIdCardExists(ocrData.idCardNumber)
                 if (checkResponse.code === 200 && checkResponse.data?.exists) {
                   const existingInfo = checkResponse.data
-                  shouldContinue = false
-                  idCardError.value = '该身份证号码已存在，不能重复录入'
-                  showFailToast(
-                    `该身份证已录入！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}`
-                  )
-                  return
+                  
+                  if (!existingInfo.can_reuse) {
+                    shouldContinue = false
+                    idCardError.value = '该身份证号码已存在，不能重复录入'
+                    showFailToast(
+                      `该身份证已录入未完成工单！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}\n工单号：${existingInfo.work_id}\n状态：${existingInfo.work_status}`
+                    )
+                    return
+                  } else {
+                    showSuccessToast(
+                      `该身份证已完成工单，可继续录入\n姓名：${existingInfo.name}\n原工单：${existingInfo.work_id}`
+                    )
+                  }
                 }
               }
             }

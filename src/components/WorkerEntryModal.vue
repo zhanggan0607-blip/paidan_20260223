@@ -377,6 +377,35 @@ export default defineComponent({
               if (ocrData.idCardNumber) {
                 currentWorker.value.idCardNumber = ocrData.idCardNumber
                 handleIdCardChange()
+                
+                try {
+                  const checkResponse = (await apiClient.get(
+                    `/spot-work/workers/check-id-card?id_card_number=${ocrData.idCardNumber}`
+                  )) as unknown as ApiResponse<{
+                    exists: boolean
+                    can_reuse: boolean
+                    name?: string
+                    project_name?: string
+                    work_status?: string
+                    work_id?: string
+                  }>
+                  
+                  if (checkResponse.code === 200 && checkResponse.data?.exists) {
+                    const existingInfo = checkResponse.data
+                    if (!existingInfo.can_reuse) {
+                      idCardError.value = '该身份证号码已存在，不能重复录入'
+                      alert(
+                        `该身份证已录入未完成工单！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}\n工单号：${existingInfo.work_id}\n状态：${existingInfo.work_status}`
+                      )
+                    } else {
+                      alert(
+                        `该身份证已完成工单，可继续录入\n姓名：${existingInfo.name}\n原工单：${existingInfo.work_id}`
+                      )
+                    }
+                  }
+                } catch (checkError) {
+                  console.error('检查身份证失败:', checkError)
+                }
               }
             } else {
               if (ocrData.issuingAuthority)

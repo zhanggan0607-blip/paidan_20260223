@@ -1,0 +1,348 @@
+import logging
+from datetime import date, datetime
+
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+
+from app.config import OverdueAlertConfig
+from app.models.periodic_inspection import PeriodicInspection
+from app.models.spot_work import SpotWork
+from app.models.temporary_repair import TemporaryRepair
+
+logger = logging.getLogger(__name__)
+
+
+class OverdueAlertService:
+    """
+    超期工单提醒服务
+    查询所有计划结束日期已过且状态不是"已完成"的工单
+    使用SQL优化查询性能
+    """
+
+    def __init__(self, db: Session):
+        self.db = db
+
+    def get_overdue_items(
+        self,
+        project_name: str | None = None,
+        client_name: str | None = None,
+        work_order_type: str | None = None,
+        page: int = 0,
+        size: int = 10,
+        maintenance_personnel: str | None = None
+    ) -> tuple[list[dict], int]:
+        """
+        获取超期工单列表
+
+        Args:
+            project_name: 项目名称筛选
+            client_name: 客户名称筛选
+            work_order_type: 工单类型筛选
+            page: 页码
+            size: 每页数量
+            maintenance_personnel: 运维人员筛选
+
+        Returns:
+            tuple: (超期工单列表, 总数)
+        """
+        today = date.today()
+        overdue_items = []
+
+        valid_statuses = OverdueAlertConfig.VALID_STATUSES
+
+        if work_order_type is None or work_order_type == '定期巡检':
+            items = self._get_overdue_periodic_inspections(
+                today=today,
+                valid_statuses=valid_statuses,
+                project_name=project_name,
+                client_name=client_name,
+                maintenance_personnel=maintenance_personnel
+            )
+            overdue_items.extend(items)
+
+        if work_order_type is None or work_order_type == '临时维修':
+            items = self._get_overdue_temporary_repairs(
+                today=today,
+                valid_statuses=valid_statuses,
+                project_name=project_name,
+                client_name=client_name,
+                maintenance_personnel=maintenance_personnel
+            )
+            overdue_items.extend(items)
+
+        if work_order_type is None or work_order_type == '零星用工':
+            items = self._get_overdue_spot_works(
+                today=today,
+                valid_statuses=valid_statuses,
+                project_name=project_name,
+                client_name=client_name,
+                maintenance_personnel=maintenance_personnel
+            )
+            overdue_items.extend(items)
+
+        overdue_items.sort(key=lambda x: x['overdueDays'], reverse=True)
+
+        total = len(overdue_items)
+        start = page * size
+        end = start + size
+        paginated_items = overdue_items[start:end]
+
+        return paginated_items, total
+
+    def _get_plan_end_date(self, record) -> date:
+        """
+        获取计划结束日期，统一转换为date类型
+        """
+        plan_end_date = record.plan_end_date
+        if plan_end_date is None:
+            return None
+        if isinstance(plan_end_date, datetime):
+            return plan_end_date.date()
+        return plan_end_date
+
+    def _get_overdue_periodic_inspections(
+        self,
+        today: date,
+        valid_statuses: list[str],
+        project_name: str | None = None,
+        client_name: str | None = None,
+        maintenance_personnel: str | None = None
+    ) -> list[dict]:
+        """
+        获取超期的定期巡检工单
+        使用SQL优化，只查询需要的字段
+        """
+        try:
+            query = self.db.query(
+                PeriodicInspection.id,
+                PeriodicInspection.inspection_id,
+                PeriodicInspection.project_id,
+                PeriodicInspection.project_name,
+                PeriodicInspection.client_name,
+                PeriodicInspection.plan_end_date,
+                PeriodicInspection.status,
+                PeriodicInspection.maintenance_personnel
+            ).filter(
+                PeriodicInspection.plan_end_date < datetime.combine(today, datetime.min.time()),
+                PeriodicInspection.status.in_(valid_statuses),
+                PeriodicInspection.is_deleted == False
+            )
+
+            if project_name:
+                query = query.filter(PeriodicInspection.project_name.like(f"%{project_name}%"))
+
+            if client_name:
+                query = query.filter(PeriodicInspection.client_name.like(f"%{client_name}%"))
+
+            if maintenance_personnel:
+                query = query.filter(PeriodicInspection.maintenance_personnel == maintenance_personnel)
+
+            inspections = query.all()
+
+            items = []
+            for inspection in inspections:
+                plan_end = inspection.plan_end_date
+                if plan_end is None:
+                    continue
+                if isinstance(plan_end, datetime):
+                    plan_end = plan_end.date()
+                overdue_days = (today - plan_end).days
+                items.append({
+                    'id': str(inspection.id),
+                    'workOrderNo': inspection.inspection_id,
+                    'project_id': inspection.project_id,
+                    'projectName': inspection.project_name,
+                    'customerName': inspection.client_name,
+                    'workOrderType': '定期巡检',
+                    'planEndDate': plan_end.isoformat() if plan_end else None,
+                    'workOrderStatus': inspection.status,
+                    'overdueDays': overdue_days,
+                    'executor': inspection.maintenance_personnel
+                })
+
+            return items
+        except Exception as e:
+            logger.error(f"查询超期定期巡检失败: {str(e)}")
+            return []
+
+    def _get_overdue_temporary_repairs(
+        self,
+        today: date,
+        valid_statuses: list[str],
+        project_name: str | None = None,
+        client_name: str | None = None,
+        maintenance_personnel: str | None = None
+    ) -> list[dict]:
+        """
+        获取超期的临时维修工单
+        使用SQL优化，只查询需要的字段
+        """
+        try:
+            query = self.db.query(
+                TemporaryRepair.id,
+                TemporaryRepair.repair_id,
+                TemporaryRepair.project_id,
+                TemporaryRepair.project_name,
+                TemporaryRepair.client_name,
+                TemporaryRepair.plan_end_date,
+                TemporaryRepair.status,
+                TemporaryRepair.maintenance_personnel
+            ).filter(
+                TemporaryRepair.plan_end_date < datetime.combine(today, datetime.min.time()),
+                TemporaryRepair.status.in_(valid_statuses),
+                TemporaryRepair.is_deleted == False
+            )
+
+            if project_name:
+                query = query.filter(TemporaryRepair.project_name.like(f"%{project_name}%"))
+
+            if client_name:
+                query = query.filter(TemporaryRepair.client_name.like(f"%{client_name}%"))
+
+            if maintenance_personnel:
+                query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
+
+            repairs = query.all()
+
+            items = []
+            for repair in repairs:
+                plan_end = repair.plan_end_date
+                if plan_end is None:
+                    continue
+                if isinstance(plan_end, datetime):
+                    plan_end = plan_end.date()
+                overdue_days = (today - plan_end).days
+                items.append({
+                    'id': str(repair.id),
+                    'workOrderNo': repair.repair_id,
+                    'project_id': repair.project_id,
+                    'projectName': repair.project_name,
+                    'customerName': repair.client_name,
+                    'workOrderType': '临时维修',
+                    'planEndDate': plan_end.isoformat() if plan_end else None,
+                    'workOrderStatus': repair.status,
+                    'overdueDays': overdue_days,
+                    'executor': repair.maintenance_personnel
+                })
+
+            return items
+        except Exception as e:
+            logger.error(f"查询超期临时维修失败: {str(e)}")
+            return []
+
+    def _get_overdue_spot_works(
+        self,
+        today: date,
+        valid_statuses: list[str],
+        project_name: str | None = None,
+        client_name: str | None = None,
+        maintenance_personnel: str | None = None
+    ) -> list[dict]:
+        """
+        获取超期的零星用工工单
+        使用SQL优化，只查询需要的字段
+        """
+        try:
+            query = self.db.query(
+                SpotWork.id,
+                SpotWork.work_id,
+                SpotWork.project_id,
+                SpotWork.project_name,
+                SpotWork.client_name,
+                SpotWork.plan_end_date,
+                SpotWork.status,
+                SpotWork.maintenance_personnel
+            ).filter(
+                SpotWork.plan_end_date < datetime.combine(today, datetime.min.time()),
+                SpotWork.status.in_(valid_statuses),
+                SpotWork.is_deleted == False
+            )
+
+            if project_name:
+                query = query.filter(SpotWork.project_name.like(f"%{project_name}%"))
+
+            if client_name:
+                query = query.filter(SpotWork.client_name.like(f"%{client_name}%"))
+
+            if maintenance_personnel:
+                query = query.filter(SpotWork.maintenance_personnel == maintenance_personnel)
+
+            works = query.all()
+
+            items = []
+            for work in works:
+                plan_end = work.plan_end_date
+                if plan_end is None:
+                    continue
+                if isinstance(plan_end, datetime):
+                    plan_end = plan_end.date()
+                overdue_days = (today - plan_end).days
+                items.append({
+                    'id': str(work.id),
+                    'workOrderNo': work.work_id,
+                    'project_id': work.project_id,
+                    'projectName': work.project_name,
+                    'customerName': work.client_name,
+                    'workOrderType': '零星用工',
+                    'planEndDate': plan_end.isoformat() if plan_end else None,
+                    'workOrderStatus': work.status,
+                    'overdueDays': overdue_days,
+                    'executor': work.maintenance_personnel
+                })
+
+            return items
+        except Exception as e:
+            logger.error(f"查询超期零星用工失败: {str(e)}")
+            return []
+
+    def get_overdue_count(self, maintenance_personnel: str | None = None) -> int:
+        """
+        获取超期工单数量
+        使用SQL COUNT优化性能
+
+        Args:
+            maintenance_personnel: 运维人员筛选
+
+        Returns:
+            int: 超期工单数量
+        """
+        today = date.today()
+        today_datetime = datetime.combine(today, datetime.min.time())
+        valid_statuses = OverdueAlertConfig.VALID_STATUSES
+        
+        total_count = 0
+        
+        inspection_query = self.db.query(func.count(PeriodicInspection.id)).filter(
+            PeriodicInspection.plan_end_date < today_datetime,
+            PeriodicInspection.status.in_(valid_statuses),
+            PeriodicInspection.is_deleted == False
+        )
+        if maintenance_personnel:
+            inspection_query = inspection_query.filter(
+                PeriodicInspection.maintenance_personnel == maintenance_personnel
+            )
+        total_count += inspection_query.scalar() or 0
+        
+        repair_query = self.db.query(func.count(TemporaryRepair.id)).filter(
+            TemporaryRepair.plan_end_date < today_datetime,
+            TemporaryRepair.status.in_(valid_statuses),
+            TemporaryRepair.is_deleted == False
+        )
+        if maintenance_personnel:
+            repair_query = repair_query.filter(
+                TemporaryRepair.maintenance_personnel == maintenance_personnel
+            )
+        total_count += repair_query.scalar() or 0
+        
+        work_query = self.db.query(func.count(SpotWork.id)).filter(
+            SpotWork.plan_end_date < today_datetime,
+            SpotWork.status.in_(valid_statuses),
+            SpotWork.is_deleted == False
+        )
+        if maintenance_personnel:
+            work_query = work_query.filter(
+                SpotWork.maintenance_personnel == maintenance_personnel
+            )
+        total_count += work_query.scalar() or 0
+        
+        return total_count

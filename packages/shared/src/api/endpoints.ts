@@ -80,6 +80,7 @@ export const API_ENDPOINTS = {
   WORK_ORDER: {
     LIST: '/work-order',
     DETAIL: (id: number, type: string) => `/work-order/${id}?type=${type}`,
+    COMPLETED_THIS_YEAR: '/work-order/completed-this-year',
   },
 
   MAINTENANCE_PLAN: {

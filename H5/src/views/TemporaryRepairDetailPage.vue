@@ -442,13 +442,27 @@ const handlePhotoSave = () => {
 }
 
 /**
+ * 获取完整图片URL
+ */
+const getFullImageUrl = (url: string): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  return window.location.origin + url
+}
+
+/**
  * 预览图片
  * @param index 图片索引
  */
 const handlePreviewPhoto = (index: number) => {
+  const fullUrls = currentPhotos.value.map((url) => getFullImageUrl(url))
   showImagePreview({
-    images: currentPhotos.value,
+    images: fullUrls,
     startPosition: index,
+    closeable: true,
+    showIndex: true,
   })
 }
 
@@ -467,7 +481,10 @@ const handleSignature = () => {
  */
 const handleViewSignature = () => {
   if (formData.value.signature) {
-    showImagePreview([formData.value.signature])
+    showImagePreview({
+      images: [getFullImageUrl(formData.value.signature)],
+      closeable: true,
+    })
   } else {
     showFailToast('暂无签字')
   }
