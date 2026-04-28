@@ -197,16 +197,16 @@ onMounted(() => {
 
         <div class="popup-body">
           <van-cell-group inset>
-            <van-field :model-value="selectedItem?.tool_name || ''" label="工具名称" readonly />
-            <van-field
+            <van-field name="工具名称" :model-value="selectedItem?.tool_name || ''" label="工具名称" readonly />
+            <van-field name="规格型号"
               :model-value="selectedItem?.specification || '-'"
               label="规格型号"
               readonly
             />
-            <van-field :model-value="selectedItem?.quantity || 0" label="领用数量" readonly />
-            <van-field :model-value="selectedItem?.return_quantity || 0" label="已归还" readonly />
-            <van-field :model-value="getPendingReturn(selectedItem)" label="待归还" readonly />
-            <van-field label="归还数量" required>
+            <van-field name="领用数量" :model-value="selectedItem?.quantity || 0" label="领用数量" readonly />
+            <van-field name="已归还" :model-value="selectedItem?.return_quantity || 0" label="已归还" readonly />
+            <van-field name="待归还" :model-value="getPendingReturn(selectedItem)" label="待归还" readonly />
+            <van-field name="归还数量" label="归还数量" required>
               <template #input>
                 <van-stepper
                   v-model="returnForm.returnQuantity"
@@ -233,7 +233,7 @@ onMounted(() => {
 <style scoped>
 .repair-tools-return-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .issue-list {
@@ -241,7 +241,7 @@ onMounted(() => {
 }
 
 .issue-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -253,13 +253,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tool-name {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .status-badge {
@@ -270,8 +270,8 @@ onMounted(() => {
 }
 
 .status-pending {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--color-warning-subtle);
+  color: var(--color-accent-dark);
 }
 
 .card-body {
@@ -287,13 +287,13 @@ onMounted(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -301,7 +301,7 @@ onMounted(() => {
 }
 
 .info-row .value.returned {
-  color: #07c160;
+  color: var(--color-success);
   font-weight: 500;
 }
 
@@ -310,7 +310,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .card-footer .van-button {
@@ -321,7 +321,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .popup-content {
@@ -335,7 +335,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
 }
 
@@ -353,7 +353,7 @@ onMounted(() => {
 .popup-footer {
   padding: 16px;
   flex-shrink: 0;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 :deep(.van-pull-refresh) {

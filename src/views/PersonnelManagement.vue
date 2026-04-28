@@ -1,14 +1,22 @@
 <template>
   <div class="personnel-management">
-    <LoadingSpinner :visible="loading" text="加载中..." />
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <LoadingSpinner
+      :visible="loading"
+      text="加载中..."
+    />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
 
     <div class="search-section">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label class="search-label">姓名：</label>
+            <label for="search_name" class="search-label">姓名：</label>
             <SearchInput
+              input-id="search_name"
               v-model="searchForm.name"
               field-key="PersonnelManagement_name"
               placeholder="请输入姓名"
@@ -16,8 +24,9 @@
             />
           </div>
           <div class="search-item">
-            <label class="search-label">部门：</label>
+            <label for="search_部门" class="search-label">部门：</label>
             <SearchInput
+              input-id="search_部门"
               v-model="searchForm.department"
               field-key="PersonnelManagement_department"
               placeholder="请输入部门"
@@ -27,7 +36,12 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="handleOpenModal">+ 新增人员</button>
+        <button
+          class="btn btn-add"
+          @click="handleOpenModal"
+        >
+          + 新增人员
+        </button>
       </div>
     </div>
 
@@ -56,7 +70,9 @@
             <td>{{ item.name }}</td>
             <td>{{ item.gender }}</td>
             <td>{{ item.department || '-' }}</td>
-            <td :class="getRoleClass(item.role)">{{ item.role }}</td>
+            <td :class="getRoleClass(item.role)">
+              {{ item.role }}
+            </td>
             <td>{{ item.phone || '-' }}</td>
             <td>{{ item.last_login_at ? formatDate(item.last_login_at) : '-' }}</td>
             <td class="status-cell">
@@ -67,14 +83,14 @@
                   'status-offline': !getUserOnlineStatus(item.id).is_online,
                 }"
               >
-                <span class="status-dot"></span>
+                <span class="status-dot" />
                 <span class="status-text">{{
                   getUserOnlineStatus(item.id).is_online ? '在线' : '离线'
                 }}</span>
                 <span
                   v-if="
                     getUserOnlineStatus(item.id).is_online &&
-                    getUserOnlineStatus(item.id).device_type
+                      getUserOnlineStatus(item.id).device_type
                   "
                   class="device-type"
                 >
@@ -83,21 +99,23 @@
               </span>
             </td>
             <td class="action-cell">
-              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+              <a
+                href="#"
+                class="action-link action-view"
+                @click.prevent="handleView(item)"
+              >查看</a>
               <a
                 v-if="canEdit(item)"
                 href="#"
                 class="action-link action-edit"
                 @click.prevent="handleEdit(item)"
-                >编辑</a
-              >
+              >编辑</a>
               <a
                 v-if="canDelete(item)"
                 href="#"
                 class="action-link action-delete"
                 @click.prevent="handleDelete(item)"
-                >删除</a
-              >
+              >删除</a>
             </td>
           </tr>
         </tbody>
@@ -105,9 +123,15 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+      <div class="pagination-info">
+        共 {{ totalElements }} 条记录
+      </div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="prevPage">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage === 0"
+          @click="prevPage"
+        >
           &lt;
         </button>
         <button
@@ -126,141 +150,233 @@
         >
           &gt;
         </button>
-        <select v-model.number="pageSize" class="page-select" @change="handlePageSizeChange">
-          <option :value="10">10 条 / 页</option>
-          <option :value="20">20 条 / 页</option>
-          <option :value="50">50 条 / 页</option>
+        <select
+          v-model.number="pageSize"
+          class="page-select"
+          @change="handlePageSizeChange"
+        >
+          <option :value="10">
+            10 条 / 页
+          </option>
+          <option :value="20">
+            20 条 / 页
+          </option>
+          <option :value="50">
+            50 条 / 页
+          </option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
           <input
+            id="jumpPage"
             v-model.number="jumpPage"
+            name="jumpPage"
             type="number"
             class="page-input"
             min="1"
             :max="totalPages"
-          />
+            aria-label="跳转页码"
+          >
           <span>页</span>
-          <button class="page-btn page-go" @click="handleJump">Go</button>
+          <button
+            class="page-btn page-go"
+            @click="handleJump"
+          >
+            Go
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isModalOpen" class="modal-overlay" @click.self="handleCloseModal">
+    <div
+      v-if="isModalOpen"
+      class="modal-overlay"
+      @click.self="handleCloseModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">{{ isEditMode ? '编辑人员' : '新增人员' }}</h3>
-          <button class="modal-close" @click="handleCloseModal">×</button>
+          <h3 class="modal-title">
+            {{ isEditMode ? '编辑人员' : '新增人员' }}
+          </h3>
+          <button
+            class="modal-close"
+            @click="handleCloseModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 姓名 </label>
-                <input
+                <label for="name" class="form-label"> <span class="required">*</span> 姓名 </label>
+                <input id="name"
+                 
                   v-model="formData.name"
+                  name="name"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="50"
-                />
+                  autocomplete="name"
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 性别 </label>
-                <select v-model="formData.gender" class="form-input">
-                  <option value="">请选择</option>
-                  <option value="男">男</option>
-                  <option value="女">女</option>
-                  <option value="其他">其他</option>
+                <label for="gender" class="form-label"> <span class="required">*</span> 性别 </label>
+                <select id="gender" name="gender"
+                  v-model="formData.gender"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option value="男">
+                    男
+                  </option>
+                  <option value="女">
+                    女
+                  </option>
+                  <option value="其他">
+                    其他
+                  </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">联系电话</label>
-                <input
+                <label for="phone" class="form-label">联系电话</label>
+                <input id="phone"
+                 
                   v-model="formData.phone"
-                  type="text"
+                  name="phone"
+                  type="tel"
                   class="form-input"
                   placeholder="请输入手机号码"
                   maxlength="11"
-                />
+                  autocomplete="tel"
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">所属部门</label>
-                <input
+                <label for="department" class="form-label">所属部门</label>
+                <input id="department"
+                 
                   v-model="formData.department"
+                  name="department"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="100"
-                />
+                  autocomplete="organization"
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 角色 </label>
-                <select v-model="formData.role" class="form-input" :disabled="!canEditRole()">
-                  <option value="">请选择</option>
-                  <option value="管理员">管理员</option>
-                  <option value="部门经理">部门经理</option>
-                  <option value="材料员">材料员</option>
-                  <option value="运维人员">运维人员</option>
+                <label for="role" class="form-label"> <span class="required">*</span> 角色 </label>
+                <select id="role" name="role"
+                  v-model="formData.role"
+                  class="form-input"
+                  :disabled="!canEditRole()"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option value="管理员">
+                    管理员
+                  </option>
+                  <option value="部门经理">
+                    部门经理
+                  </option>
+                  <option value="材料员">
+                    材料员
+                  </option>
+                  <option value="运维人员">
+                    运维人员
+                  </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">地址</label>
-                <input
+                <label for="address" class="form-label">地址</label>
+                <input id="address"
+                 
                   v-model="formData.address"
+                  name="address"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="200"
-                />
+                  autocomplete="street-address"
+                >
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="formData.remarks"
               class="form-textarea"
               placeholder="请输入"
               rows="3"
               maxlength="500"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="handleCloseModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleSave">
+          <button
+            class="btn btn-cancel"
+            @click="handleCloseModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleSave"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">查看人员</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            查看人员
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">姓名</label>
-                <div class="form-value">{{ viewData.name || '-' }}</div>
+                <span class="form-label">姓名</span>
+                <div class="form-value">
+                  {{ viewData.name || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">性别</label>
-                <div class="form-value">{{ viewData.gender || '-' }}</div>
+                <span class="form-label">性别</span>
+                <div class="form-value">
+                  {{ viewData.gender || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">联系电话</label>
-                <div class="form-value">{{ viewData.phone || '-' }}</div>
+                <span class="form-label">联系电话</span>
+                <div class="form-value">
+                  {{ viewData.phone || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">最后登录时间</label>
+                <span class="form-label">最后登录时间</span>
                 <div class="form-value">
                   {{ viewData.last_login_at ? formatDate(viewData.last_login_at) : '-' }}
                 </div>
@@ -268,28 +384,42 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">所属部门</label>
-                <div class="form-value">{{ viewData.department || '-' }}</div>
+                <span class="form-label">所属部门</span>
+                <div class="form-value">
+                  {{ viewData.department || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">角色</label>
-                <div class="form-value" :class="getRoleClass(viewData.role)">
+                <span class="form-label">角色</span>
+                <div
+                  class="form-value"
+                  :class="getRoleClass(viewData.role)"
+                >
                   {{ viewData.role || '-' }}
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">地址</label>
-                <div class="form-value">{{ viewData.address || '-' }}</div>
+                <span class="form-label">地址</span>
+                <div class="form-value">
+                  {{ viewData.address || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">备注</label>
-                <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+                <span class="form-label">备注</span>
+                <div class="form-value form-value-textarea">
+                  {{ viewData.remarks || '-' }}
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
@@ -306,10 +436,8 @@ import {
   type PersonnelUpdate,
 } from '../services/personnel'
 import { userStore } from '../stores/userStore'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import Toast from '../components/Toast.vue'
-import SearchInput from '../components/SearchInput.vue'
-import { useInputMemory } from '../utils/inputMemory'
+import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
+import { useInputMemory } from '../utils'
 import { useToast, usePageState, useAbortController } from '../composables'
 import { useOnlineStatusWebSocket } from '../composables/useOnlineStatusWebSocket'
 
@@ -749,7 +877,7 @@ export default defineComponent({
 
 <style scoped>
 .personnel-management {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -762,7 +890,7 @@ export default defineComponent({
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
 }
 
@@ -790,29 +918,29 @@ export default defineComponent({
 .search-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
   white-space: nowrap;
 }
 
 .search-input {
   width: 200px;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .search-actions {
@@ -842,26 +970,26 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #2e7d32;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover:not(:disabled) {
-  background: #1b5e20;
+  background: var(--color-success);
 }
 
 .btn-search {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .table-section {
   margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   overflow-x: auto;
 }
@@ -873,7 +1001,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .data-table th {
@@ -881,8 +1009,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #d0d0d0;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
@@ -890,16 +1018,16 @@ export default defineComponent({
   padding: 12px 16px;
   text-align: left;
   font-size: 14px;
-  color: #616161;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--color-text-regular);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .data-table tbody tr:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .action-cell {
@@ -923,34 +1051,34 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .action-edit {
-  color: #2196f3;
+  color: var(--color-primary);
 }
 
 .action-delete {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .role-admin {
-  color: #d32f2f;
+  color: var(--color-danger);
   font-weight: 600;
 }
 
 .role-manager {
-  color: #1976d2;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
 .role-employee {
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .role-material {
-  color: #ff9800;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
@@ -969,28 +1097,28 @@ export default defineComponent({
 }
 
 .status-online {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .status-online .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #4caf50;
+  background: var(--color-success);
   animation: pulse 1.5s ease-in-out infinite;
 }
 
 .status-offline {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .status-offline .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #f44336;
+  background: var(--color-danger);
 }
 
 .status-text {
@@ -999,7 +1127,7 @@ export default defineComponent({
 
 .device-type {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-left: 2px;
 }
 
@@ -1024,7 +1152,7 @@ export default defineComponent({
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -1041,11 +1169,11 @@ export default defineComponent({
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -1054,8 +1182,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196f3;
-  color: #2196f3;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -1064,9 +1192,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196f3;
-  color: #fff;
-  border-color: #2196f3;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-nav {
@@ -1075,11 +1203,11 @@ export default defineComponent({
 
 .page-select {
   padding: 6px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 
@@ -1088,31 +1216,31 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
   width: 48px;
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: center;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .page-input:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--color-primary);
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
   border: none;
   border-radius: 3px;
   font-size: 12px;
@@ -1121,7 +1249,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .modal-overlay {
@@ -1138,7 +1266,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 1000px;
   max-width: 95vw;
@@ -1152,13 +1280,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -1168,7 +1296,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -1177,7 +1305,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -1214,41 +1342,41 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .required {
-  color: #d32f2f;
+  color: var(--color-danger);
   margin-right: 4px;
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-textarea {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
   resize: vertical;
   font-family: inherit;
@@ -1256,21 +1384,21 @@ export default defineComponent({
 
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-textarea::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -1288,25 +1416,25 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-save {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 </style>

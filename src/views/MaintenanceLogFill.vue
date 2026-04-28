@@ -4,7 +4,9 @@
       <div class="content-area">
         <div class="content-wrapper">
           <div class="page-header">
-            <h2 class="page-title">{{ pageTitle }}</h2>
+            <h2 class="page-title">
+              {{ pageTitle }}
+            </h2>
           </div>
 
           <div class="form-section">
@@ -15,13 +17,15 @@
               <div class="form-card-body">
                 <div class="form-grid">
                   <div class="form-item">
-                    <label class="form-label">项目名称</label>
-                    <select
+                    <label for="projectName" class="form-label">项目名称</label>
+                    <select id="projectName" name="projectName"
                       v-model="formData.projectId"
                       class="form-select"
                       @change="handleProjectChange"
                     >
-                      <option value="">请选择项目</option>
+                      <option value="">
+                        请选择项目
+                      </option>
                       <option
                         v-for="project in projectList"
                         :key="project.project_id"
@@ -32,24 +36,24 @@
                     </select>
                   </div>
                   <div class="form-item">
-                    <label class="form-label">项目编号</label>
-                    <input
+                    <label for="projectId" class="form-label">项目编号</label>
+                    <input id="projectId" name="projectId"
                       v-model="formData.projectId"
                       type="text"
                       class="form-input"
                       readonly
                       disabled
-                    />
+                    >
                   </div>
                   <div class="form-item">
-                    <label class="form-label">填报日期</label>
-                    <input
+                    <label for="reportDate" class="form-label">填报日期</label>
+                    <input id="reportDate" name="reportDate"
                       v-model="formData.logDate"
                       type="date"
                       class="form-input"
                       readonly
                       disabled
-                    />
+                    >
                   </div>
                 </div>
               </div>
@@ -61,32 +65,43 @@
               </div>
               <div class="form-card-body">
                 <div class="form-item full-width">
-                  <label class="form-label"> <span class="required">*</span> 工作内容 </label>
-                  <textarea
+                  <label for="workContent" class="form-label"> <span class="required">*</span> 工作内容 </label>
+                  <textarea id="workContent" name="workContent"
                     v-model="formData.workContent"
                     class="form-textarea"
                     placeholder="请输入工作内容"
                     rows="5"
                     maxlength="800"
                     show-word-limit
-                  ></textarea>
-                  <div class="word-count">{{ formData.workContent.length }}/800</div>
+                  />
+                  <div class="word-count">
+                    {{ formData.workContent.length }}/800
+                  </div>
                 </div>
                 <div class="form-item full-width">
-                  <label class="form-label">备注</label>
-                  <textarea
+                  <label for="remarks" class="form-label">备注</label>
+                  <textarea id="remarks" name="remarks"
                     v-model="formData.remark"
                     class="form-textarea"
                     placeholder="请输入备注"
                     rows="3"
-                  ></textarea>
+                  />
                 </div>
               </div>
             </div>
 
             <div class="form-actions">
-              <button class="btn btn-cancel" @click="handleCancel">取消</button>
-              <button class="btn btn-submit" :disabled="submitting" @click="handleSubmit">
+              <button
+                class="btn btn-cancel"
+                @click="handleCancel"
+              >
+                取消
+              </button>
+              <button
+                class="btn btn-submit"
+                :disabled="submitting"
+                @click="handleSubmit"
+              >
                 {{
                   submitting
                     ? isEditMode
@@ -108,11 +123,11 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import apiClient from '@/utils/api'
+import { request } from '@/api/request'
 import type { ApiResponse } from '@/types/api'
 import { userStore } from '@/stores/userStore'
 import { formatDate } from '@/config/constants'
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElMessage } from 'element-plus'
 
 interface ProjectInfo {
   id: number
@@ -168,7 +183,7 @@ export default defineComponent({
      */
     const fetchProjectList = async () => {
       try {
-        const response = (await apiClient.get('/project-info/all/list')) as unknown as ApiResponse<
+        const response = (await request.get('/project-info/all/list')) as unknown as ApiResponse<
           ProjectInfo[]
         >
         if (response.code === 200) {
@@ -184,7 +199,7 @@ export default defineComponent({
      */
     const checkTodayLog = async () => {
       try {
-        const response = (await apiClient.get(
+        const response = (await request.get(
           '/maintenance-log/today'
         )) as unknown as ApiResponse<MaintenanceLog | null>
         if (response.code === 200 && response.data) {
@@ -216,7 +231,7 @@ export default defineComponent({
      */
     const handleSubmit = async () => {
       if (!formData.value.workContent) {
-        alert('请输入工作内容')
+        ElMessage.warning('请输入工作内容')
         return
       }
 
@@ -230,24 +245,24 @@ export default defineComponent({
           log_date: formData.value.logDate,
           work_content: formData.value.workContent,
           remark: formData.value.remark,
-          images: [],
+          images: [] as any[],
         }
 
         let response
         if (isEditMode.value && editLogId.value) {
-          response = (await apiClient.put(
+          response = (await request.put(
             `/maintenance-log/${editLogId.value}`,
             submitData
           )) as unknown as ApiResponse<null>
         } else {
-          response = (await apiClient.post(
+          response = (await request.post(
             '/maintenance-log',
             submitData
           )) as unknown as ApiResponse<null>
         }
 
         if (response.code === 200) {
-          alert(isEditMode.value ? '修改成功' : '提交成功')
+          ElMessage.success(isEditMode.value ? '修改成功' : '提交成功')
           ElNotification({
             title: '提示',
             message: '日志只可当日可修改',
@@ -259,11 +274,11 @@ export default defineComponent({
             router.back()
           }, 500)
         } else {
-          alert(response.message || '提交失败')
+          ElMessage.error(response.message || '提交失败')
         }
       } catch (error) {
         console.error('Failed to submit:', error)
-        alert('提交失败，请重试')
+        ElMessage.error('提交失败，请重试')
       } finally {
         submitting.value = false
       }
@@ -309,7 +324,7 @@ export default defineComponent({
 <style scoped>
 .maintenance-log-fill-container {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .main-layout {
@@ -321,7 +336,7 @@ export default defineComponent({
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .content-wrapper {
@@ -342,7 +357,7 @@ export default defineComponent({
 .page-title {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -353,7 +368,7 @@ export default defineComponent({
 }
 
 .form-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -361,15 +376,15 @@ export default defineComponent({
 
 .form-card-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #f5f7fa;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-bg-page);
 }
 
 .form-card-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .form-card-body {
@@ -395,11 +410,11 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .required {
-  color: #f44336;
+  color: var(--color-danger);
   margin-right: 2px;
 }
 
@@ -407,7 +422,7 @@ export default defineComponent({
 .form-select,
 .form-textarea {
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   transition: border-color 0.2s;
@@ -417,7 +432,7 @@ export default defineComponent({
 .form-select:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
@@ -429,7 +444,7 @@ export default defineComponent({
 .word-count {
   text-align: right;
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-actions {
@@ -450,17 +465,17 @@ export default defineComponent({
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .btn-cancel:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #42a5f5 100%);
+  color: var(--color-bg-card);
 }
 
 .btn-submit:hover:not(:disabled) {

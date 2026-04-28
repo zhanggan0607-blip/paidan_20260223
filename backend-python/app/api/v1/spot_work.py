@@ -17,9 +17,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import UserInfo, check_data_access, get_current_user_info, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse
-from app.schemas.spot_work import SpotWorkCreate, SpotWorkPartialUpdate, SpotWorkUpdate
+from app.schemas.spot_work import SpotWorkApprove, SpotWorkCreate, SpotWorkPartialUpdate, SpotWorkUpdate
 from app.services.personnel import PersonnelService
 from app.services.spot_work import SpotWorkService
+from app.utils.work_order_id_generator import generate_spot_work_id
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
@@ -59,6 +60,24 @@ class WorkersRequest(BaseModel):
     workers: list[WorkerInfo]
 
 
+@router.get("/generate-id", response_model=ApiResponse)
+def generate_spot_work_id_endpoint(
+    project_id: str = Query(..., description="项目编号"),
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
+):
+    """
+    生成零星用工单编号
+    后端使用数据库序列保证唯一性，避免前端全量拉取数据
+    """
+    work_id = generate_spot_work_id(db, project_id)
+    return ApiResponse(
+        code=200,
+        message="success",
+        data={"work_id": work_id}
+    )
+
+
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_spot_works(
     db: Session = Depends(get_db),
@@ -77,7 +96,7 @@ def get_all_spot_works(
     return ApiResponse(
         code=200,
         message="success",
-        data=[item.to_dict() for item in items]
+        data=[item.to_list_dict() for item in items]
     )
 
 
@@ -350,7 +369,7 @@ def create_spot_work(
 
     return ApiResponse(
         code=200,
-        message="Created successfully",
+        message="创建成功",
         data=work.to_dict()
     )
 
@@ -396,7 +415,7 @@ def update_spot_work(
     work = service.update(id, dto)
     return ApiResponse(
         code=200,
-        message="Updated successfully",
+        message="更新成功",
         data=work.to_dict()
     )
 
@@ -454,7 +473,111 @@ def partial_update_spot_work(
     work = service.partial_update(id, dto)
     return ApiResponse(
         code=200,
-        message="Updated successfully",
+        message="更新成功",
+        data=work.to_dict()
+    )
+
+
+@router.post("/{id}/submit", response_model=ApiResponse)
+def submit_spot_work(
+    id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    提交零星用工工单
+    管理员可提交所有工单，运维人员只能提交自己的工单
+    """
+    service = SpotWorkService(db)
+    existing = service.get_by_id(id)
+
+    if not check_data_access(user_info, existing.maintenance_personnel):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权提交此工单"
+        )
+
+    work = service.partial_update(id, SpotWorkPartialUpdate(status='待确认'), user_info.id, user_info.name)
+    return ApiResponse(
+        code=200,
+        message="提交成功",
+        data=work.to_dict()
+    )
+
+
+@router.post("/{id}/recall", response_model=ApiResponse)
+def recall_spot_work(
+    id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    撤回零星用工工单
+    仅待确认状态可撤回，撤回后状态变为执行中
+    管理员可撤回所有工单，运维人员只能撤回自己的工单
+    """
+    service = SpotWorkService(db)
+    existing = service.get_by_id(id)
+
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="工单不存在"
+        )
+
+    if existing.status != '待确认':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="只有待确认状态的工单才能撤回"
+        )
+
+    if not check_data_access(user_info, existing.maintenance_personnel):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权撤回此工单"
+        )
+
+    work = service.partial_update(id, SpotWorkPartialUpdate(status='执行中'), user_info.id, user_info.name)
+    return ApiResponse(
+        code=200,
+        message="撤回成功",
+        data=work.to_dict()
+    )
+
+
+@router.post("/{id}/approve", response_model=ApiResponse)
+def approve_spot_work(
+    id: int,
+    dto: SpotWorkApprove,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
+):
+    """
+    审批零星用工工单
+    需要管理员或部门经理权限
+    """
+    service = SpotWorkService(db)
+    
+    if dto.approved:
+        work = service.partial_update(id, SpotWorkPartialUpdate(status='已完成'), user_info.id, user_info.name)
+        message = "审批通过"
+    else:
+        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="请输入工单退回原因，至少10个字符"
+            )
+        work = service.partial_update(
+            id, 
+            SpotWorkPartialUpdate(status='已退回', reject_reason=dto.reject_reason), 
+            user_info.id, 
+            user_info.name
+        )
+        message = "已退回"
+
+    return ApiResponse(
+        code=200,
+        message=message,
         data=work.to_dict()
     )
 
@@ -474,6 +597,6 @@ def delete_spot_work(
 
     return ApiResponse(
         code=200,
-        message="Deleted successfully",
+        message="删除成功",
         data=None
     )

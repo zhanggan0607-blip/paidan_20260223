@@ -26,6 +26,7 @@ export interface SpotWork {
   status: string
   remarks?: string
   actual_completion_date?: string
+  reject_reason?: string
   worker_count?: number
   work_days?: number
   workers?: SpotWorkWorker[]
@@ -82,12 +83,12 @@ export interface SpotWorkCreate {
  * 更新零星用工请求
  */
 export interface SpotWorkUpdate {
-  work_id: string
+  work_id?: string
   plan_id?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
+  project_id?: string
+  project_name?: string
+  plan_start_date?: string
+  plan_end_date?: string
   client_name?: string
   client_contact?: string
   client_contact_info?: string
@@ -95,11 +96,12 @@ export interface SpotWorkUpdate {
   work_content?: string
   photos?: string[] | string
   signature?: string
-  status: string
+  status?: string
   remarks?: string
   actual_completion_date?: string
   worker_count?: number
   work_days?: number
+  reject_reason?: string
 }
 
 /**

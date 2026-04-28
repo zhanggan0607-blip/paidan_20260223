@@ -11,12 +11,28 @@
         @touchstart="handleTouchStart"
         @touchmove="handleTouchMove"
         @touchend="stopDrawing"
-      ></canvas>
-      <div v-if="!hasDrawn" class="signature-placeholder">请在此处签名</div>
+      />
+      <div
+        v-if="!hasDrawn"
+        class="signature-placeholder"
+      >
+        请在此处签名
+      </div>
     </div>
     <div class="signature-actions">
-      <button class="btn btn-clear" @click="clearSignature">清除</button>
-      <button class="btn btn-confirm" :disabled="!hasDrawn" @click="confirmSignature">确认</button>
+      <button
+        class="btn btn-clear"
+        @click="clearSignature"
+      >
+        清除
+      </button>
+      <button
+        class="btn btn-confirm"
+        :disabled="!hasDrawn"
+        @click="confirmSignature"
+      >
+        确认
+      </button>
     </div>
   </div>
 </template>
@@ -185,7 +201,7 @@ export default defineComponent({
   width: 100%;
   border: 1px solid #d0d7de;
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-bg-card);
   overflow: hidden;
 }
 
@@ -201,7 +217,7 @@ export default defineComponent({
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 16px;
   pointer-events: none;
 }
@@ -224,22 +240,22 @@ export default defineComponent({
 }
 
 .btn-clear {
-  background: #fff;
-  color: #666;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
   border: 1px solid #d0d7de;
 }
 
 .btn-clear:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-confirm {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-confirm:hover:not(:disabled) {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .btn-confirm:disabled {

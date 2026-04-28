@@ -109,14 +109,14 @@ defineExpose({
 <style scoped>
 .operation-log-container {
   padding: 12px 16px;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .loading-container,
 .empty-container {
   padding: 16px;
   text-align: center;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
@@ -132,7 +132,7 @@ defineExpose({
   top: 8px;
   bottom: 8px;
   width: 1px;
-  background: #ebedf0;
+  background: var(--color-border-light);
 }
 
 .timeline-item {
@@ -151,12 +151,12 @@ defineExpose({
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 2px solid var(--color-bg-card);
   box-shadow: 0 0 0 1px #ebedf0;
 }
 
 .timeline-content {
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   border-radius: 8px;
   padding: 10px 12px;
 }
@@ -171,25 +171,25 @@ defineExpose({
 .operator-name {
   font-size: 14px;
   font-weight: 500;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .operation-type {
   font-size: 12px;
   padding: 2px 8px;
   border-radius: 4px;
-  color: #fff;
+  color: var(--color-bg-card);
 }
 
 .timeline-time {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 
 .timeline-remark {
   margin-top: 6px;
   font-size: 12px;
-  color: #646566;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 </style>

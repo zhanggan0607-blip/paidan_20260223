@@ -7,11 +7,9 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
-    LazyImage: typeof import('./components/LazyImage.vue')['default']
     OperationLogTimeline: typeof import('./components/OperationLogTimeline.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    SearchInput: typeof import('./components/SearchInput.vue')['default']
     VanActionSheet: typeof import('vant/es')['ActionSheet']
     VanBadge: typeof import('vant/es')['Badge']
     VanButton: typeof import('vant/es')['Button']
@@ -21,8 +19,6 @@ declare module 'vue' {
     VanDatePicker: typeof import('vant/es')['DatePicker']
     VanEmpty: typeof import('vant/es')['Empty']
     VanField: typeof import('vant/es')['Field']
-    VanGrid: typeof import('vant/es')['Grid']
-    VanGridItem: typeof import('vant/es')['GridItem']
     VanIcon: typeof import('vant/es')['Icon']
     VanList: typeof import('vant/es')['List']
     VanLoading: typeof import('vant/es')['Loading']

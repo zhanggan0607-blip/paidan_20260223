@@ -13,9 +13,7 @@ export type {
   ApiResponse,
   PaginatedData,
   PaginatedResponse,
-  LegacyPaginatedResponse,
   QueryParams,
-  ListQueryParams,
   ApiError,
   User,
   UserInfo,
@@ -123,6 +121,7 @@ export {
   canViewSpareParts,
   canViewWorkOrder,
   canViewSignature,
+  canDeleteWorkOrder,
   getRoleLevel,
   hasPermission,
   getAllowedPermissions

@@ -1,0 +1,9 @@
+**/node_modules
+.git
+dist
+.trae
+*.md
+.env
+.env.*
+!.env.example
+package-lock.json

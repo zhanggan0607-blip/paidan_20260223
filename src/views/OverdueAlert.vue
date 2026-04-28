@@ -1,14 +1,18 @@
-<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="overdue-alert-page">
-    <LoadingSpinner :visible="loading" text="加载中..." />
+    <LoadingSpinner
+      :visible="loading"
+      text="加载中..."
+    />
     <div class="main-wrapper">
       <div class="content-area">
         <div class="search-section">
           <div class="search-form">
             <div class="search-row">
               <div class="search-item">
-                <label class="search-label">项目名称：</label>
+                <label for="search_projectName" class="search-label">项目名称：</label>
                 <SearchInput
+              input-id="search_projectName"
                   v-model="searchForm.projectName"
                   field-key="OverdueAlert_projectName"
                   placeholder="请输入项目名称"
@@ -16,8 +20,9 @@
                 />
               </div>
               <div class="search-item">
-                <label class="search-label">客户名称：</label>
+                <label for="search_clientName" class="search-label">客户名称：</label>
                 <SearchInput
+              input-id="search_clientName"
                   v-model="searchForm.customerName"
                   field-key="OverdueAlert_customerName"
                   placeholder="请输入客户名称"
@@ -39,39 +44,67 @@
                 <th>工单类型</th>
                 <th>计划结束日期</th>
                 <th>提醒类型</th>
-                <th class="th-overdue-days">已超期（天）</th>
+                <th class="th-overdue-days">
+                  已超期（天）
+                </th>
                 <th>运维人员</th>
                 <th>工单状态</th>
                 <th>操作</th>
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(item, index) in filteredData" :key="item.id" class="table-row">
+              <tr
+                v-for="(item, index) in filteredData"
+                :key="item.id"
+                class="table-row"
+              >
                 <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                 <td>{{ item.workOrderNo }}</td>
                 <td>{{ item.project_id }}</td>
                 <td>{{ item.projectName }}</td>
                 <td>{{ item.workOrderType }}</td>
                 <td>{{ item.planEndDate }}</td>
-                <td class="alert-type">已超期</td>
-                <td class="overdue-days">{{ item.overdueDays }}</td>
+                <td class="alert-type">
+                  已超期
+                </td>
+                <td class="overdue-days">
+                  {{ item.overdueDays }}
+                </td>
                 <td>{{ item.executor }}</td>
                 <td>{{ item.workOrderStatus }}</td>
                 <td class="action-cell">
-                  <a href="#" class="action-link action-view" @click="handleView(item)">查看</a>
+                  <a
+                    href="#"
+                    class="action-link action-view"
+                    @click="handleView(item)"
+                  >查看</a>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div v-if="filteredData.length === 0" class="empty-state">
-            <div class="empty-text">暂无超期数据</div>
+          <div
+            v-if="filteredData.length === 0"
+            class="empty-state"
+          >
+            <div class="empty-text">
+              暂无超期数据
+            </div>
           </div>
         </div>
 
         <div class="pagination-section">
-          <div class="pagination-info">共 {{ filteredAllData.length }} 条记录</div>
-          <div v-if="totalPages > 0" class="pagination-controls">
-            <button class="page-btn" :disabled="currentPage === 1" @click="currentPage--">
+          <div class="pagination-info">
+            共 {{ filteredAllData.length }} 条记录
+          </div>
+          <div
+            v-if="totalPages > 0"
+            class="pagination-controls"
+          >
+            <button
+              class="page-btn"
+              :disabled="currentPage === 1"
+              @click="currentPage--"
+            >
               &lt;
             </button>
             <button
@@ -83,23 +116,41 @@
             >
               {{ page }}
             </button>
-            <button class="page-btn" :disabled="currentPage === totalPages" @click="currentPage++">
+            <button
+              class="page-btn"
+              :disabled="currentPage === totalPages"
+              @click="currentPage++"
+            >
               &gt;
             </button>
-            <select v-model="pageSize" class="page-select">
-              <option value="10">10 条 / 页</option>
-              <option value="20">20 条 / 页</option>
-              <option value="50">50 条 / 页</option>
+            <select
+              id="pageSize"
+              name="pageSize"
+              v-model="pageSize"
+              class="page-select"
+            >
+              <option value="10">
+                10 条 / 页
+              </option>
+              <option value="20">
+                20 条 / 页
+              </option>
+              <option value="50">
+                50 条 / 页
+              </option>
             </select>
             <div class="page-jump">
               <span>跳至</span>
               <input
+                id="jumpPage"
                 v-model="jumpPage"
+                name="jumpPage"
                 type="number"
                 class="page-input"
                 min="1"
                 :max="totalPages || 1"
-              />
+                aria-label="跳转页码"
+              >
               <span>页</span>
             </div>
           </div>
@@ -107,62 +158,98 @@
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">查看工单详情</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            查看工单详情
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.work_order_no || '-' }}</div>
+                <span class="form-label">工单编号</span>
+                <div class="form-value">
+                  {{ viewData.work_order_no || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+                <span class="form-label">项目编号</span>
+                <div class="form-value">
+                  {{ viewData.project_id || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">工单类型</label>
-                <div class="form-value">{{ viewData.work_order_type || '-' }}</div>
+                <span class="form-label">工单类型</span>
+                <div class="form-value">
+                  {{ viewData.work_order_type || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划开始日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
+                <span class="form-label">计划开始日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.plan_start_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户名称</label>
-                <div class="form-value">{{ viewData.client_name || '-' }}</div>
+                <span class="form-label">客户名称</span>
+                <div class="form-value">
+                  {{ viewData.client_name || '-' }}
+                </div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目名称</label>
-                <div class="form-value">{{ viewData.project_name || '-' }}</div>
+                <span class="form-label">项目名称</span>
+                <div class="form-value">
+                  {{ viewData.project_name || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">工单状态</label>
-                <div class="form-value">{{ viewData.status || '-' }}</div>
+                <span class="form-label">工单状态</span>
+                <div class="form-value">
+                  {{ viewData.status || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划结束日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
+                <span class="form-label">计划结束日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.plan_end_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">运维人员</label>
-                <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
+                <span class="form-label">运维人员</span>
+                <div class="form-value">
+                  {{ viewData.maintenance_personnel || '-' }}
+                </div>
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+            <span class="form-label">备注</span>
+            <div class="form-value form-value-textarea">
+              {{ viewData.remarks || '-' }}
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
@@ -176,8 +263,7 @@ import { periodicInspectionService, type PeriodicInspection } from '../services/
 import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
 import { spotWorkService, type SpotWork } from '../services/spotWork'
 import { userStore } from '../stores/userStore'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import SearchInput from '../components/SearchInput.vue'
+import { LoadingSpinner, SearchInput } from '@sstcp/shared'
 
 // TODO: 超期提醒页面 - 考虑加入邮件/短信通知功能
 // FIXME: 数据过滤逻辑在前端实现，数据量大时会有性能问题
@@ -365,8 +451,13 @@ export default defineComponent({
             isViewModalOpen.value = true
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('加载工单详情失败:', error)
+        if (error?.status === 404) {
+          alert('工单不存在或已被删除，请刷新列表后重试')
+        } else {
+          alert(error?.message || '加载工单详情失败')
+        }
       } finally {
         loading.value = false
       }
@@ -411,7 +502,7 @@ export default defineComponent({
 <style scoped>
 .overdue-alert-page {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .main-wrapper {
@@ -431,7 +522,7 @@ export default defineComponent({
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -459,7 +550,7 @@ export default defineComponent({
 .search-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
   white-space: nowrap;
 }
 
@@ -469,8 +560,8 @@ export default defineComponent({
   border: 1px solid #d9d9d9;
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
@@ -481,7 +572,7 @@ export default defineComponent({
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .search-select {
@@ -490,8 +581,8 @@ export default defineComponent({
   border: 1px solid #d9d9d9;
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
@@ -515,17 +606,17 @@ export default defineComponent({
   cursor: pointer;
   transition: all 0.15s;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .table-section {
   margin-bottom: 20px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -537,7 +628,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .data-table th {
@@ -545,8 +636,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #d0d0d0;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .data-table .th-overdue-days {
@@ -557,12 +648,12 @@ export default defineComponent({
   padding: 12px 16px;
   text-align: left;
   font-size: 14px;
-  color: #333;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .table-row:hover {
-  background: #f5f7fa;
+  background: var(--color-bg-page);
 }
 
 .alert-type {
@@ -571,7 +662,7 @@ export default defineComponent({
 }
 
 .overdue-days {
-  background: #fff1f0;
+  background: var(--color-bg-card)1f0;
   color: #f5222d;
   font-weight: 500;
   padding: 4px 8px;
@@ -605,7 +696,7 @@ td.overdue-days {
 }
 
 .action-view {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .empty-state {
@@ -615,7 +706,7 @@ td.overdue-days {
 
 .empty-text {
   font-size: 14px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .pagination-section {
@@ -623,14 +714,14 @@ td.overdue-days {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -649,9 +740,9 @@ td.overdue-days {
   padding: 0 8px;
   border: 1px solid #d9d9d9;
   border-radius: 3px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -660,8 +751,8 @@ td.overdue-days {
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196f3;
-  color: #2196f3;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -670,9 +761,9 @@ td.overdue-days {
 }
 
 .page-btn.active {
-  background: #2196f3;
-  color: #fff;
-  border-color: #2196f3;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-select {
@@ -680,8 +771,8 @@ td.overdue-days {
   border: 1px solid #d9d9d9;
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 
@@ -705,7 +796,7 @@ td.overdue-days {
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 1000px;
   max-width: 95vw;
@@ -719,13 +810,13 @@ td.overdue-days {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -735,7 +826,7 @@ td.overdue-days {
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -744,7 +835,7 @@ td.overdue-days {
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -781,16 +872,16 @@ td.overdue-days {
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -810,7 +901,7 @@ td.overdue-days {
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn {
@@ -825,12 +916,12 @@ td.overdue-days {
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 </style>

@@ -5,8 +5,9 @@
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label class="search-label">项目名称：</label>
+              <label for="search_projectName" class="search-label">项目名称：</label>
               <SearchInput
+              input-id="search_projectName"
                 v-model="filters.project"
                 field-key="MaintenanceLogList_project"
                 placeholder="请输入项目名称"
@@ -20,11 +21,15 @@
                 type="date"
                 class="search-input"
                 @change="handleSearch"
-              />
+              >
             </div>
-            <div v-if="canViewAll" class="search-item">
-              <label class="search-label">提交人：</label>
+            <div
+              v-if="canViewAll"
+              class="search-item"
+            >
+              <label for="search_submitter" class="search-label">提交人：</label>
               <SearchInput
+              input-id="search_submitter"
                 v-model="filters.createdBy"
                 field-key="MaintenanceLogList_created_by"
                 placeholder="请输入提交人"
@@ -46,19 +51,27 @@
               <th>日志类型</th>
               <th>日志日期</th>
               <th>工作内容</th>
-              <th v-if="canViewAll">提交人</th>
+              <th v-if="canViewAll">
+                提交人
+              </th>
               <th>提交时间</th>
               <th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px">
+              <td
+                :colspan="canViewAll ? 10 : 9"
+                style="text-align: center; padding: 20px"
+              >
                 加载中...
               </td>
             </tr>
             <tr v-else-if="dataList.length === 0">
-              <td :colspan="canViewAll ? 10 : 9" style="text-align: center; padding: 20px">
+              <td
+                :colspan="canViewAll ? 10 : 9"
+                style="text-align: center; padding: 20px"
+              >
                 暂无数据
               </td>
             </tr>
@@ -69,33 +82,44 @@
               :class="{ 'even-row': index % 2 === 0 }"
             >
               <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
-              <td class="log-id-cell">{{ item.log_id }}</td>
+              <td class="log-id-cell">
+                {{ item.log_id }}
+              </td>
               <td>{{ item.project_name }}</td>
               <td>{{ item.project_id }}</td>
               <td>
-                <span class="log-type-tag" :class="item.log_type">
+                <span
+                  class="log-type-tag"
+                  :class="item.log_type"
+                >
                   {{ getLogTypeName(item.log_type) }}
                 </span>
               </td>
               <td>{{ formatDate(item.log_date) }}</td>
               <td class="content-cell">
-                <span class="content-text" :title="item.work_content">
+                <span
+                  class="content-text"
+                  :title="item.work_content"
+                >
                   {{ truncateContent(item.work_content) }}
                 </span>
               </td>
-              <td v-if="canViewAll">{{ item.created_by || '-' }}</td>
+              <td v-if="canViewAll">
+                {{ item.created_by || '-' }}
+              </td>
               <td>{{ formatDateTime(item.created_at) }}</td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
-                  >查看</a
-                >
+                <a
+                  href="#"
+                  class="action-link action-view"
+                  @click.prevent="handleView(item)"
+                >查看</a>
                 <a
                   v-if="canViewAll && (!item.status || item.status === 'submitted')"
                   href="#"
                   class="action-link action-reject"
                   @click.prevent="handleReject(item)"
-                  >退回</a
-                >
+                >退回</a>
               </td>
             </tr>
           </tbody>
@@ -103,7 +127,9 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">共 {{ total }} 条记录</div>
+        <div class="pagination-info">
+          共 {{ total }} 条记录
+        </div>
         <div class="pagination-controls">
           <button
             class="page-btn page-nav"
@@ -128,38 +154,81 @@
           >
             &gt;
           </button>
-          <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
-            <option value="10">10 条 / 页</option>
-            <option value="20">20 条 / 页</option>
-            <option value="50">50 条 / 页</option>
+          <select
+            id="pageSize"
+            name="pageSize"
+            v-model="pageSize"
+            class="page-select"
+            @change="handlePageSizeChange"
+          >
+            <option value="10">
+              10 条 / 页
+            </option>
+            <option value="20">
+              20 条 / 页
+            </option>
+            <option value="50">
+              50 条 / 页
+            </option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+            <input
+              id="jumpPage"
+              v-model="jumpPage"
+              name="jumpPage"
+              type="number"
+              class="page-input"
+              min="1"
+              :max="totalPages"
+              aria-label="跳转页码"
+            >
             <span>页</span>
-            <button class="page-btn page-go" @click="handleJump">Go</button>
+            <button
+              class="page-btn page-go"
+              @click="handleJump"
+            >
+              Go
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
+    <div
+      v-if="showDetailModal"
+      class="modal-overlay"
+      @click.self="closeDetailModal"
+    >
       <div class="modal-content modal-content-large">
         <div class="modal-header">
           <h3>日志详情</h3>
-          <button class="close-btn" @click="closeDetailModal">&times;</button>
+          <button
+            class="close-btn"
+            @click="closeDetailModal"
+          >
+            &times;
+          </button>
         </div>
-        <div v-if="detailData" class="modal-body">
+        <div
+          v-if="detailData"
+          class="modal-body"
+        >
           <div class="detail-section">
             <div class="detail-row">
               <div class="detail-item">
-                <label class="detail-label">日志编号</label>
-                <div class="detail-value">{{ detailData.log_id }}</div>
+                <span class="detail-label">日志编号</span>
+                <div class="detail-value">
+                  {{ detailData.log_id }}
+                </div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">日志类型</label>
+                <span class="detail-label">日志类型</span>
                 <div class="detail-value">
-                  <span class="log-type-tag" :class="detailData.log_type">
+                  <span
+                    class="log-type-tag"
+                    :class="detailData.log_type"
+                  >
                     {{ getLogTypeName(detailData.log_type) }}
                   </span>
                 </div>
@@ -167,34 +236,46 @@
             </div>
             <div class="detail-row">
               <div class="detail-item">
-                <label class="detail-label">项目名称</label>
-                <div class="detail-value">{{ detailData.project_name }}</div>
+                <span class="detail-label">项目名称</span>
+                <div class="detail-value">
+                  {{ detailData.project_name }}
+                </div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">项目编号</label>
-                <div class="detail-value">{{ detailData.project_id }}</div>
+                <span class="detail-label">项目编号</span>
+                <div class="detail-value">
+                  {{ detailData.project_id }}
+                </div>
               </div>
             </div>
             <div class="detail-row">
               <div class="detail-item">
-                <label class="detail-label">日志日期</label>
-                <div class="detail-value">{{ formatDate(detailData.log_date) }}</div>
+                <span class="detail-label">日志日期</span>
+                <div class="detail-value">
+                  {{ formatDate(detailData.log_date) }}
+                </div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">提交时间</label>
-                <div class="detail-value">{{ formatDateTime(detailData.created_at) }}</div>
-              </div>
-            </div>
-            <div class="detail-row full-width">
-              <div class="detail-item">
-                <label class="detail-label">工作内容</label>
-                <div class="detail-value content-full">{{ detailData.work_content || '-' }}</div>
+                <span class="detail-label">提交时间</span>
+                <div class="detail-value">
+                  {{ formatDateTime(detailData.created_at) }}
+                </div>
               </div>
             </div>
             <div class="detail-row full-width">
               <div class="detail-item">
-                <label class="detail-label">备注</label>
-                <div class="detail-value content-full">{{ detailData.remark || '-' }}</div>
+                <span class="detail-label">工作内容</span>
+                <div class="detail-value content-full">
+                  {{ detailData.work_content || '-' }}
+                </div>
+              </div>
+            </div>
+            <div class="detail-row full-width">
+              <div class="detail-item">
+                <span class="detail-label">备注</span>
+                <div class="detail-value content-full">
+                  {{ detailData.remark || '-' }}
+                </div>
               </div>
             </div>
             <div
@@ -202,7 +283,7 @@
               class="detail-row full-width"
             >
               <div class="detail-item">
-                <label class="detail-label">现场照片</label>
+                <span class="detail-label">现场照片</span>
                 <div class="detail-images">
                   <img
                     v-for="(img, index) in parseImages(detailData.images)"
@@ -212,14 +293,19 @@
                     class="detail-image"
                     loading="lazy"
                     @click="previewImage(img)"
-                  />
+                  >
                 </div>
               </div>
             </div>
           </div>
 
-          <div v-if="operationLogs.length > 0" class="operation-log-section">
-            <div class="section-title">内部确认区</div>
+          <div
+            v-if="operationLogs.length > 0"
+            class="operation-log-section"
+          >
+            <div class="section-title">
+              内部确认区
+            </div>
             <div class="timeline">
               <div
                 v-for="(log, index) in operationLogs"
@@ -227,7 +313,7 @@
                 class="timeline-item"
                 :class="{ last: index === operationLogs.length - 1 }"
               >
-                <div class="timeline-dot"></div>
+                <div class="timeline-dot" />
                 <div class="timeline-content">
                   <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
                   <span class="timeline-operator">{{ log.operator_name }}</span>
@@ -236,41 +322,80 @@
               </div>
             </div>
           </div>
-          <div v-else-if="!loadingLogs" class="operation-log-section">
-            <div class="section-title">内部确认区</div>
-            <div class="no-logs">暂无操作记录</div>
+          <div
+            v-else-if="!loadingLogs"
+            class="operation-log-section"
+          >
+            <div class="section-title">
+              内部确认区
+            </div>
+            <div class="no-logs">
+              暂无操作记录
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="cancel-btn" @click="closeDetailModal">关闭</button>
+          <button
+            class="cancel-btn"
+            @click="closeDetailModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showImagePreview" class="image-preview-overlay" @click="closeImagePreview">
-      <img :src="previewImageUrl" alt="预览图片" class="preview-image" loading="lazy" />
+    <div
+      v-if="showImagePreview"
+      class="image-preview-overlay"
+      @click="closeImagePreview"
+    >
+      <img
+        :src="previewImageUrl"
+        alt="预览图片"
+        class="preview-image"
+        loading="lazy"
+      >
     </div>
 
-    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+    <div
+      v-if="showRejectModal"
+      class="modal-overlay"
+      @click.self="closeRejectModal"
+    >
       <div class="modal-content modal-content-small">
         <div class="modal-header">
           <h3>退回确认</h3>
-          <button class="close-btn" @click="closeRejectModal">&times;</button>
+          <button
+            class="close-btn"
+            @click="closeRejectModal"
+          >
+            &times;
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label class="form-label">退回原因 <span class="required">*</span></label>
-            <textarea
+            <label for="rejectReason" class="form-label">退回原因 <span class="required">*</span></label>
+            <textarea id="rejectReason" name="rejectReason"
               v-model="rejectReason"
               class="form-textarea"
               placeholder="请输入退回原因"
               rows="4"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="cancel-btn" @click="closeRejectModal">取消</button>
-          <button class="confirm-btn reject" :disabled="submitting" @click="confirmReject">
+          <button
+            class="cancel-btn"
+            @click="closeRejectModal"
+          >
+            取消
+          </button>
+          <button
+            class="confirm-btn reject"
+            :disabled="submitting"
+            @click="confirmReject"
+          >
             {{ submitting ? '处理中...' : '确认退回' }}
           </button>
         </div>
@@ -281,11 +406,12 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
-import apiClient from '@/utils/api'
+import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { userStore } from '@/stores/userStore'
 import { formatDate, formatDateTime } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
+import { ElMessage } from 'element-plus'
 
 /**
  * 维保日志项接口定义
@@ -441,7 +567,7 @@ export default defineComponent({
           }
         }
 
-        const response = (await apiClient.get('/maintenance-log', {
+        const response = (await request.get('/maintenance-log', {
           params,
         })) as unknown as PaginatedResponse<MaintenanceLogItem>
 
@@ -480,7 +606,7 @@ export default defineComponent({
     const fetchOperationLogs = async (logId: number) => {
       loadingLogs.value = true
       try {
-        const response = (await apiClient.get(
+        const response = (await request.get(
           `/maintenance-log/${logId}/operation-logs`
         )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
@@ -546,7 +672,7 @@ export default defineComponent({
      */
     const confirmReject = async () => {
       if (!rejectReason.value.trim()) {
-        alert('请输入退回原因')
+        ElMessage.warning('请输入退回原因')
         return
       }
 
@@ -554,7 +680,7 @@ export default defineComponent({
 
       submitting.value = true
       try {
-        const response = (await apiClient.post(
+        const response = (await request.post(
           `/maintenance-log/${pendingRejectItem.value.id}/reject`,
           {
             reject_reason: rejectReason.value,
@@ -562,15 +688,15 @@ export default defineComponent({
         )) as unknown as ApiResponse<null>
 
         if (response.code === 200) {
-          alert('已退回')
+          ElMessage.success('已退回')
           closeRejectModal()
           loadData()
         } else {
-          alert(response.message || '退回失败')
+          ElMessage.error(response.message || '退回失败')
         }
       } catch (error) {
         console.error('Failed to reject:', error)
-        alert('退回失败，请重试')
+        ElMessage.error('退回失败，请重试')
       } finally {
         submitting.value = false
       }
@@ -673,7 +799,7 @@ export default defineComponent({
 
 <style scoped>
 .maintenance-log-page {
-  background: #fff;
+  background: var(--color-bg-card);
   min-height: 100vh;
 }
 
@@ -711,7 +837,7 @@ export default defineComponent({
 
 .search-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -726,12 +852,12 @@ export default defineComponent({
 }
 
 .search-input:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .table-section {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
@@ -744,7 +870,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .data-table th {
@@ -752,8 +878,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
 }
 
@@ -766,14 +892,14 @@ export default defineComponent({
 }
 
 .data-table tbody tr.even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .data-table td {
   padding: 12px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .log-id-cell {
@@ -791,18 +917,18 @@ export default defineComponent({
 }
 
 .log-type-tag.maintenance {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .log-type-tag.spot {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .log-type-tag.repair {
-  background: #fff3e0;
-  color: #f57c00;
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
 }
 
 .content-cell {
@@ -831,11 +957,11 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .action-view:hover {
-  color: #1565c0;
+  color: var(--color-primary-dark);
 }
 
 .pagination-section {
@@ -843,12 +969,12 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -862,15 +988,15 @@ export default defineComponent({
   padding: 6px 12px;
   border: 1px solid #d0d7de;
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #1976d2;
+  background: var(--color-bg-page);
+  border-color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -883,9 +1009,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #1976d2;
-  color: #fff;
-  border-color: #1976d2;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-select {
@@ -893,7 +1019,7 @@ export default defineComponent({
   border: 1px solid #d0d7de;
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
+  background: var(--color-bg-card);
   cursor: pointer;
   outline: none;
 }
@@ -903,7 +1029,7 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
@@ -917,12 +1043,12 @@ export default defineComponent({
 }
 
 .page-btn.page-go {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .page-btn.page-go:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .modal-overlay {
@@ -939,7 +1065,7 @@ export default defineComponent({
 }
 
 .modal-content {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 500px;
   max-width: 90%;
@@ -956,13 +1082,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .close-btn {
@@ -970,7 +1096,7 @@ export default defineComponent({
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .modal-body {
@@ -1001,12 +1127,12 @@ export default defineComponent({
 
 .detail-label {
   font-size: 13px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .detail-value {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .content-full {
@@ -1039,7 +1165,7 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .cancel-btn {
@@ -1048,12 +1174,12 @@ export default defineComponent({
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .cancel-btn:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .image-preview-overlay {
@@ -1079,16 +1205,16 @@ export default defineComponent({
 .operation-log-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   padding-left: 12px;
-  border-left: 3px solid #1976d2;
+  border-left: 3px solid var(--color-primary);
 }
 
 .timeline {
@@ -1103,7 +1229,7 @@ export default defineComponent({
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .timeline-item {
@@ -1126,9 +1252,9 @@ export default defineComponent({
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #1976d2;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px #1976d2;
+  background: var(--color-primary);
+  border: 2px solid var(--color-bg-card);
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .timeline-content {
@@ -1140,27 +1266,27 @@ export default defineComponent({
 
 .timeline-time {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-family: monospace;
 }
 
 .timeline-operator {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .timeline-action {
   font-size: 13px;
-  color: #1976d2;
-  background: #e3f2fd;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .no-logs {
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
   padding: 20px 0;
 }
@@ -1179,17 +1305,17 @@ export default defineComponent({
   margin-bottom: 6px;
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .required {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   resize: vertical;
@@ -1198,7 +1324,7 @@ export default defineComponent({
 
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
@@ -1208,32 +1334,32 @@ export default defineComponent({
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .confirm-btn:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .confirm-btn:disabled {
-  background: #ccc;
+  background: var(--color-border);
   cursor: not-allowed;
 }
 
 .confirm-btn.reject {
-  background: #d32f2f;
+  background: var(--color-danger);
 }
 
 .confirm-btn.reject:hover {
-  background: #c62828;
+  background: var(--color-danger);
 }
 
 .action-reject {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .action-reject:hover {
-  color: #c62828;
+  color: var(--color-danger);
 }
 </style>

@@ -40,7 +40,7 @@ class WeeklyReportRepository:
                 query = query.filter(WeeklyReport.created_by == created_by)
 
             total = query.count()
-            items = query.order_by(WeeklyReport.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(WeeklyReport.created_at.desc(), WeeklyReport.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -112,7 +112,7 @@ class WeeklyReportRepository:
 
     def find_all_unpaginated(self) -> list[WeeklyReport]:
         try:
-            return self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(WeeklyReport.is_deleted == False).all()
+            return self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(WeeklyReport.is_deleted == False).order_by(WeeklyReport.created_at.desc(), WeeklyReport.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有维保周报失败: {str(e)}")
             raise

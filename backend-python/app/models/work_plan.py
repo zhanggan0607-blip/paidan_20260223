@@ -36,6 +36,9 @@ class WorkPlan(Base, SoftDeleteMixin):
         Index('idx_work_plan_client_name', 'client_name'),
         Index('idx_work_plan_status', 'status'),
         Index('idx_work_plan_start_date', 'plan_start_date'),
+        Index('idx_work_plan_project_status', 'project_name', 'status'),
+        Index('idx_work_plan_type_status', 'plan_type', 'status'),
+        Index('idx_work_plan_created_status', 'created_at', 'status'),
         {'comment': '工作计划表（统一管理定期巡检、临时维修、零星用工）'}
     )
 

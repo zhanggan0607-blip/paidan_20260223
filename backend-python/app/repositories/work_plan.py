@@ -23,7 +23,8 @@ class WorkPlanRepository:
         project_name: str | None = None,
         client_name: str | None = None,
         status: str | None = None,
-        maintenance_personnel: str | None = None
+        maintenance_personnel: str | None = None,
+        plan_id: str | None = None
     ) -> tuple[list[WorkPlan], int]:
         try:
             query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
@@ -45,8 +46,11 @@ class WorkPlanRepository:
             if maintenance_personnel:
                 query = query.filter(WorkPlan.maintenance_personnel == maintenance_personnel)
 
+            if plan_id:
+                query = query.filter(WorkPlan.plan_id.like(f'%{plan_id}%'))
+
             total = query.count()
-            items = query.order_by(WorkPlan.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(WorkPlan.created_at.desc(), WorkPlan.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -139,7 +143,7 @@ class WorkPlanRepository:
             )
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)
-            return query.order_by(WorkPlan.created_at.desc()).all()
+            return query.order_by(WorkPlan.created_at.desc(), WorkPlan.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有工作计划失败: {str(e)}")
             raise

@@ -1,67 +1,159 @@
 <template>
-  <div class="layout" :class="{ 'fullscreen-mode': isFullscreenMode }">
-    <aside v-show="!isFullscreenMode" class="sidebar">
-      <div class="sidebar-header">
-        <h1 class="system-title">SSTCP维保系统</h1>
+  <div
+    class="layout"
+    :class="{ 'layout--fullscreen': isFullscreenMode }"
+  >
+    <aside
+      v-show="!isFullscreenMode"
+      class="sidebar"
+    >
+      <div class="sidebar__header">
+        <div class="sidebar__logo">
+          <svg
+            class="sidebar__logo-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path d="M12 2L2 7l10 5 10-5-10-5z" />
+            <path d="M2 17l10 5 10-5" />
+            <path d="M2 12l10 5 10-5" />
+          </svg>
+        </div>
+        <h1 class="sidebar__title">
+          SSTCP
+        </h1>
+        <span class="sidebar__subtitle">维保管理</span>
       </div>
-      <nav class="sidebar-nav">
-        <div v-for="menu in filteredMenuItems" :key="menu.id" class="menu-group">
-          <div class="menu-title" @click="toggleMenu(menu.id)">
-            <span class="menu-label">{{ menu.label }}</span>
+      <nav class="sidebar__nav">
+        <div
+          v-for="menu in filteredMenuItems"
+          :key="menu.id"
+          class="nav-group"
+        >
+          <div
+            class="nav-group__title"
+            :class="{ 'nav-group__title--expandable': menu.children }"
+            @click="toggleMenu(menu.id)"
+          >
+            <span class="nav-group__label">{{ menu.label }}</span>
             <span
               v-if="menu.children"
-              class="menu-arrow"
-              :class="{ expanded: expandedMenus.includes(menu.id) }"
+              class="nav-group__arrow"
+              :class="{ 'nav-group__arrow--open': expandedMenus.includes(menu.id) }"
             >
-              ▶
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+              >
+                <path
+                  d="M4.5 2.5L8 6L4.5 9.5"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  fill="none"
+                />
+              </svg>
             </span>
           </div>
-          <div v-if="menu.children && expandedMenus.includes(menu.id)" class="submenu">
+          <Transition name="submenu">
             <div
-              v-for="submenu in menu.children"
-              :key="submenu.id"
-              class="submenu-item"
-              :class="{ active: activeMenu === submenu.id }"
-              @click="handleMenuClick(submenu)"
+              v-if="menu.children && expandedMenus.includes(menu.id)"
+              class="nav-group__submenu"
             >
-              {{ submenu.label }}
+              <div
+                v-for="submenu in menu.children"
+                :key="submenu.id"
+                class="nav-item"
+                :class="{ 'nav-item--active': activeMenu === submenu.id }"
+                @click="handleMenuClick(submenu)"
+              >
+                <span class="nav-item__dot" />
+                <span class="nav-item__text">{{ submenu.label }}</span>
+              </div>
             </div>
-          </div>
+          </Transition>
           <div
             v-if="!menu.children"
-            class="submenu-item"
-            :class="{ active: activeMenu === menu.id }"
+            class="nav-item"
+            :class="{ 'nav-item--active': activeMenu === menu.id }"
             @click="handleMenuClick(menu)"
           >
-            {{ menu.label }}
+            <span class="nav-item__dot" />
+            <span class="nav-item__text">{{ menu.label }}</span>
           </div>
         </div>
       </nav>
+      <div class="sidebar__footer">
+        <div class="sidebar__version">V{{ appVersion }}</div>
+      </div>
     </aside>
 
-    <section class="center-content">
-      <div class="main-content">
-        <div v-show="!isFullscreenMode" class="top-bar">
-          <div class="breadcrumb">
-            <span class="breadcrumb-level1">{{ currentBreadcrumb.level1 }}</span>
-            <span v-if="currentBreadcrumb.level2" class="breadcrumb-separator">/</span>
-            <span class="breadcrumb-level2">{{ currentBreadcrumb.level2 }}</span>
+    <section class="main">
+      <div class="main__inner">
+        <header
+          v-show="!isFullscreenMode"
+          class="topbar"
+        >
+          <div class="topbar__breadcrumb">
+            <span class="topbar__breadcrumb-l1">{{ currentBreadcrumb.level1 }}</span>
+            <span
+              v-if="currentBreadcrumb.level2"
+              class="topbar__breadcrumb-sep"
+            >/</span>
+            <span
+              v-if="currentBreadcrumb.level2"
+              class="topbar__breadcrumb-l2"
+            >{{ currentBreadcrumb.level2 }}</span>
           </div>
-          <div class="user-info" @click="showUserMenu = !showUserMenu">
-            <div class="user-avatar">{{ userInitials }}</div>
-            <span class="user-name">{{ userDisplayName }}</span>
-            <span class="dropdown-arrow">▼</span>
-            <div v-if="showUserMenu" class="user-dropdown">
-              <div class="dropdown-item user-role">
-                {{ currentUser?.role || '未知角色' }}
-              </div>
-              <div class="dropdown-divider"></div>
-              <div class="dropdown-item" @click.stop="handleChangePassword">修改密码</div>
-              <div class="dropdown-item logout" @click.stop="handleLogout">退出登录</div>
+          <div
+            class="topbar__user"
+            @click="showUserMenu = !showUserMenu"
+          >
+            <div class="topbar__avatar">
+              {{ userInitials }}
             </div>
+            <span class="topbar__username">{{ userDisplayName }}</span>
+            <svg
+              class="topbar__chevron"
+              width="10"
+              height="10"
+              viewBox="0 0 10 10"
+            >
+              <path
+                d="M2.5 3.75L5 6.25L7.5 3.75"
+                stroke="currentColor"
+                stroke-width="1.2"
+                fill="none"
+              />
+            </svg>
+            <Transition name="dropdown">
+              <div
+                v-if="showUserMenu"
+                class="user-menu"
+              >
+                <div class="user-menu__role">
+                  {{ currentUser?.role || '未知角色' }}
+                </div>
+                <div class="user-menu__divider" />
+                <div
+                  class="user-menu__item"
+                  @click.stop="handleChangePassword"
+                >
+                  修改密码
+                </div>
+                <div
+                  class="user-menu__item user-menu__item--danger"
+                  @click.stop="handleLogout"
+                >
+                  退出登录
+                </div>
+              </div>
+            </Transition>
           </div>
-        </div>
-        <div class="content-wrapper">
+        </header>
+        <div class="content">
           <router-view />
         </div>
       </div>
@@ -74,7 +166,8 @@ import { defineComponent, ref, computed, provide, readonly, onMounted, onUnmount
 import { useRouter, useRoute } from 'vue-router'
 import type { MenuItem } from '@/types'
 import { userStore } from '@/stores/userStore'
-import api from '@/utils/api'
+import { request } from '@/api/request'
+import { version as appVersion } from '../../package.json'
 
 const HEARTBEAT_INTERVAL = 2 * 60 * 1000
 
@@ -115,9 +208,9 @@ export default defineComponent({
 
     const sendHeartbeat = async () => {
       try {
-        await api.post('/online/heartbeat', { device_type: 'pc' })
+        await request.post('/online/heartbeat', { device_type: 'pc' })
       } catch {
-        // 忽略心跳错误
+        // ignore
       }
     }
 
@@ -265,9 +358,9 @@ export default defineComponent({
     const handleLogout = async () => {
       showUserMenu.value = false
       try {
-        await api.post('/auth/logout')
+        await request.post('/auth/logout')
       } catch {
-        // 忽略登出错误
+        // ignore
       }
       userStore.clearUser()
       router.push('/login')
@@ -275,7 +368,7 @@ export default defineComponent({
 
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
-      if (!target.closest('.user-info')) {
+      if (!target.closest('.topbar__user')) {
         showUserMenu.value = false
       }
     }
@@ -291,6 +384,7 @@ export default defineComponent({
     })
 
     return {
+      appVersion,
       filteredMenuItems,
       expandedMenus,
       activeMenu,
@@ -312,239 +406,337 @@ export default defineComponent({
 <style scoped>
 .layout {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;
   min-height: 100vh;
+  background: var(--color-bg-page);
 }
 
-.layout.fullscreen-mode {
+.layout--fullscreen {
   grid-template-columns: 1fr;
 }
 
-.layout.fullscreen-mode .center-content {
-  width: 100%;
-  max-width: 100%;
-}
-
 .sidebar {
-  width: 240px;
-  background: #001f3f;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  box-shadow: 1px 0 4px rgba(0, 0, 0, 0.08);
-}
-
-.sidebar-header {
-  padding: 20px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.system-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #fff;
-  text-align: center;
-  letter-spacing: 0.3px;
-}
-
-.sidebar-nav {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 0;
-}
-
-.menu-group {
-  margin-bottom: 2px;
-}
-
-.menu-title {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.menu-title:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.menu-label {
-  flex: 1;
-}
-
-.menu-arrow {
-  font-size: 8px;
-  transition: transform 0.15s;
-  margin-left: 8px;
-}
-
-.menu-arrow.expanded {
-  transform: rotate(90deg);
-}
-
-.submenu {
-  background: rgba(0, 0, 0, 0.08);
-}
-
-.submenu-item {
-  padding: 8px 16px 8px 36px;
-  cursor: pointer;
-  transition: background 0.15s;
-  font-size: 16px;
-  text-align: left;
-}
-
-.submenu-item:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.submenu-item.active {
-  background: rgba(255, 255, 255, 0.12);
-  border-left: 3px solid #90caf9;
-}
-
-.center-content {
-  display: flex;
-  flex-direction: column;
-  background: #f5f7fa;
-  overflow: hidden;
-}
-
-.main-content {
-  flex: 1;
+  background: var(--color-sidebar-bg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.top-bar {
-  height: 56px;
-  background: #fff;
-  border-bottom: 1px solid #e8e8e8;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-}
-
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  font-size: 14px;
-  color: #666;
-}
-
-.breadcrumb-level1 {
-  color: #999;
-}
-
-.breadcrumb-separator {
-  margin: 0 8px;
-  color: #ccc;
-}
-
-.breadcrumb-level2 {
-  color: #333;
-  font-weight: 500;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 20px;
-  transition: background 0.2s;
   position: relative;
 }
 
-.user-info:hover {
-  background: #f5f5f5;
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-sidebar-border);
 }
 
-.user-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+.sidebar__header {
+  padding: var(--space-5) var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--color-sidebar-border);
+}
+
+.sidebar__logo {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  margin-right: 8px;
+  color: var(--color-primary-light);
+  flex-shrink: 0;
 }
 
-.user-name {
-  font-size: 14px;
-  color: #333;
-  margin-right: 4px;
+.sidebar__logo-icon {
+  width: 24px;
+  height: 24px;
 }
 
-.dropdown-arrow {
-  font-size: 10px;
-  color: #999;
+.sidebar__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--color-sidebar-text-active);
+  letter-spacing: 0.08em;
+  line-height: 1;
 }
 
-.user-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  min-width: 160px;
-  z-index: 1000;
+.sidebar__subtitle {
+  font-size: var(--text-xs);
+  color: var(--color-sidebar-text);
+  opacity: 0.6;
+  margin-left: auto;
+  letter-spacing: 0.04em;
+}
+
+.sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2) 0;
+}
+
+.nav-group {
+  margin-bottom: 1px;
+}
+
+.nav-group__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-sidebar-text);
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.nav-group__title:hover {
+  background: var(--color-sidebar-hover);
+}
+
+.nav-group__title--expandable {
+  cursor: pointer;
+}
+
+.nav-group__arrow {
+  display: flex;
+  align-items: center;
+  color: var(--color-sidebar-text);
+  opacity: 0.4;
+  transition: transform var(--transition-normal), opacity var(--transition-fast);
+}
+
+.nav-group__arrow--open {
+  transform: rotate(90deg);
+  opacity: 0.7;
+}
+
+.nav-group__submenu {
   overflow: hidden;
 }
 
-.dropdown-item {
-  padding: 12px 16px;
-  font-size: 14px;
-  color: #333;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-4) var(--space-1) var(--space-6);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  font-size: var(--text-sm);
+  color: var(--color-sidebar-text);
+  opacity: 0.75;
+  user-select: none;
 }
 
-.dropdown-item:hover {
-  background: #f5f5f5;
+.nav-item:hover {
+  background: var(--color-sidebar-hover);
+  opacity: 1;
 }
 
-.dropdown-item.user-role {
-  color: #666;
-  font-size: 12px;
-  cursor: default;
+.nav-item--active {
+  background: var(--color-sidebar-active);
+  color: var(--color-sidebar-text-active);
+  opacity: 1;
 }
 
-.dropdown-item.user-role:hover {
-  background: transparent;
+.nav-item__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: currentColor;
+  opacity: 0.4;
+  flex-shrink: 0;
 }
 
-.dropdown-item.logout {
-  color: #e74c3c;
+.nav-item--active .nav-item__dot {
+  opacity: 1;
+  background: var(--color-primary-light);
 }
 
-.dropdown-item.logout:hover {
-  background: #fdf2f2;
+.nav-item__text {
+  line-height: var(--leading-tight);
 }
 
-.dropdown-divider {
+.sidebar__footer {
+  padding: var(--space-3) var(--space-4);
+}
+
+.sidebar__version {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-sidebar-text);
+  opacity: 0.35;
+  letter-spacing: 0.06em;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-bg-page);
+}
+
+.main__inner {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topbar {
+  height: var(--topbar-height);
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-6);
+  flex-shrink: 0;
+}
+
+.topbar__breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.topbar__breadcrumb-l1 {
+  color: var(--color-text-secondary);
+}
+
+.topbar__breadcrumb-sep {
+  color: var(--color-border);
+}
+
+.topbar__breadcrumb-l2 {
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+  position: relative;
+}
+
+.topbar__user:hover {
+  background: var(--color-bg-page);
+}
+
+.topbar__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.topbar__username {
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+.topbar__chevron {
+  color: var(--color-text-secondary);
+  transition: transform var(--transition-fast);
+}
+
+.user-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 160px;
+  overflow: hidden;
+  z-index: var(--z-dropdown);
+}
+
+.user-menu__role {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.user-menu__divider {
   height: 1px;
-  background: #eee;
-  margin: 4px 0;
+  background: var(--color-border-light);
 }
 
-.content-wrapper {
+.user-menu__item {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-regular);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.user-menu__item:hover {
+  background: var(--color-bg-page);
+}
+
+.user-menu__item--danger {
+  color: var(--color-danger);
+}
+
+.user-menu__item--danger:hover {
+  background: var(--color-danger-subtle);
+}
+
+.content {
   flex: 1;
   overflow: auto;
-  padding: 20px;
+  padding: var(--space-5);
+}
+
+.submenu-enter-active,
+.submenu-leave-active {
+  transition: all var(--transition-normal);
+  overflow: hidden;
+}
+
+.submenu-enter-from,
+.submenu-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.submenu-enter-to,
+.submenu-leave-from {
+  opacity: 1;
+  max-height: 500px;
+}
+
+.dropdown-enter-active {
+  animation: slideDown var(--transition-fast) ease-out;
+}
+
+.dropdown-leave-active {
+  animation: slideDown var(--transition-fast) ease-out reverse;
 }
 </style>

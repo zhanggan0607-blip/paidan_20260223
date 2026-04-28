@@ -6,7 +6,10 @@
         <p>首次登录需要修改密码</p>
       </div>
 
-      <form class="change-password-form" @submit.prevent="handleChangePassword">
+      <form
+        class="change-password-form"
+        @submit.prevent="handleChangePassword"
+      >
         <div class="form-group">
           <label for="oldPassword">旧密码</label>
           <input
@@ -15,7 +18,7 @@
             type="password"
             placeholder="请输入旧密码"
             :disabled="loading"
-          />
+          >
         </div>
 
         <div class="form-group">
@@ -26,7 +29,7 @@
             type="password"
             placeholder="请输入新密码（至少6位）"
             :disabled="loading"
-          />
+          >
         </div>
 
         <div class="form-group">
@@ -37,18 +40,28 @@
             type="password"
             placeholder="请再次输入新密码"
             :disabled="loading"
-          />
+          >
         </div>
 
-        <div v-if="errorMessage" class="error-message">
+        <div
+          v-if="errorMessage"
+          class="error-message"
+        >
           {{ errorMessage }}
         </div>
 
-        <div v-if="successMessage" class="success-message">
+        <div
+          v-if="successMessage"
+          class="success-message"
+        >
           {{ successMessage }}
         </div>
 
-        <button type="submit" class="change-password-button" :disabled="loading">
+        <button
+          type="submit"
+          class="change-password-button"
+          :disabled="loading"
+        >
           {{ loading ? '修改中...' : '确认修改' }}
         </button>
       </form>
@@ -59,7 +72,7 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/utils/api'
+import { request } from '@/api/request'
 import type { ApiResponse } from '@sstcp/shared'
 
 export default defineComponent({
@@ -104,7 +117,7 @@ export default defineComponent({
       loading.value = true
 
       try {
-        const response = (await api.post('/auth/change-password', formData.value)) as ApiResponse
+        const response = (await request.post('/auth/change-password', formData.value)) as ApiResponse
 
         if (response.code === 200) {
           successMessage.value = '密码修改成功，正在跳转...'
@@ -140,7 +153,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
   padding: 20px;
 }
 
@@ -160,7 +173,7 @@ export default defineComponent({
 
 .change-password-header h1 {
   font-size: 24px;
-  color: #333;
+  color: var(--color-text-primary);
   margin-bottom: 8px;
 }
 
@@ -183,7 +196,7 @@ export default defineComponent({
 
 .form-group label {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
@@ -199,12 +212,12 @@ export default defineComponent({
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .form-group input:disabled {
-  background-color: #f5f5f5;
+  background-color: var(--color-bg-page);
   cursor: not-allowed;
 }
 
@@ -228,7 +241,7 @@ export default defineComponent({
 
 .change-password-button {
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary) 100%);
   color: white;
   border: none;
   border-radius: 8px;

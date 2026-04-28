@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, onActivated } from 'vue'
+import { ref, onMounted, computed, onActivated, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { temporaryRepairService } from '../services'
@@ -11,10 +11,12 @@ import {
   getDisplayStatus,
   BASE_WORK_TABS,
   APPROVAL_TAB,
+  sortByTimestampDesc,
 } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
+import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -24,6 +26,7 @@ const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<any[]>([])
 const userReady = ref(false)
+const isInitialized = ref(false)
 
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
@@ -31,7 +34,7 @@ const CREATE_TAB = {
   key: '新增工单',
   title: '新增工单',
   isCreate: true,
-  color: '#07c160',
+  color: 'var(--color-success)',
 }
 
 const tabs = computed(() => {
@@ -42,49 +45,72 @@ const tabs = computed(() => {
 const currentTab = computed(() => tabs.value[activeTab.value])
 const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
 
-/**
- * 获取工单列表
- * 排序规则：
- * 1. 后端已做权限过滤：运维人员只能看到自己负责项目的工单
- * 2. 审批tab中，显示其他人提交的待确认工单（管理员/部门经理可见）
- * 3. 待确认tab中，显示自己提交的待确认工单
- * 4. 时间最近的排最上面
- */
-const fetchWorkList = async () => {
+const allItemsCache = ref<any[]>([])
+
+const fetchWorkList = async (forceRefresh = false) => {
   if (!userReady.value) return
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await temporaryRepairService.getList({
-      page: 0,
-      size: 100,
-    })
-    if (response.code === 200) {
-      const allItems = response.data?.content || []
-      const currentUserName = userStore.getUser()?.name || ''
-      const isApprovalTab = currentTab.value?.key === '审批'
-      const isPendingConfirmTab = currentTab.value?.key === '待确认'
+    const currentUserName = userStore.getUser()?.name || ''
+    const tabKey = currentTab.value?.key
+    const isApprovalTab = tabKey === '审批'
+    const isPendingConfirmTab = tabKey === '待确认'
 
-      const tabStatuses = (currentTab.value as { statuses?: string[] })?.statuses || []
-      let filteredItems = allItems.filter((item: any) => tabStatuses.includes(item.status))
+    if (isApprovalTab || isPendingConfirmTab) {
+      const cacheKey = CACHE_KEYS.TEMPORARY_REPAIR_PENDING
+      if (!forceRefresh) {
+        const cached = apiCache.get<any[]>(cacheKey)
+        if (cached) {
+          allItemsCache.value = cached
+        }
+      }
+      
+      if (forceRefresh || allItemsCache.value.length === 0) {
+        const response = await temporaryRepairService.getList({
+          page: 0,
+          size: 100,
+          status: '待确认',
+        })
+        if (response.code === 200) {
+          allItemsCache.value = response.data?.content || []
+          apiCache.set(cacheKey, allItemsCache.value, CACHE_TTL.SHORT)
+        }
+      }
 
+      let filteredItems = allItemsCache.value
       if (isApprovalTab) {
         filteredItems = filteredItems.filter(
           (item: any) => item.maintenance_personnel !== currentUserName
         )
-      }
-
-      if (isPendingConfirmTab) {
+      } else {
         filteredItems = filteredItems.filter(
           (item: any) => item.maintenance_personnel === currentUserName
         )
       }
 
-      workList.value = filteredItems.sort((a: any, b: any) => {
-        const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
-        const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
-        return dateB - dateA
+      workList.value = sortByTimestampDesc(filteredItems, {
+        secondarySortKey: 'id'
       })
+    } else {
+      const tabStatuses = (currentTab.value as { statuses?: string[] })?.statuses || []
+      
+      if (tabStatuses.length > 0) {
+        const responses = await Promise.all(
+          tabStatuses.map(status =>
+            temporaryRepairService.getList({ page: 0, size: 100, status })
+          )
+        )
+        const allItems = responses
+          .filter(r => r.code === 200)
+          .flatMap(r => r.data?.content || [])
+
+        workList.value = sortByTimestampDesc(allItems, {
+          secondarySortKey: 'id'
+        })
+      } else {
+        workList.value = []
+      }
     }
   } catch (error) {
     console.error('Failed to fetch work list:', error)
@@ -128,6 +154,8 @@ const handleTabChange = () => {
 }
 
 onMounted(() => {
+  if (isInitialized.value) return
+  isInitialized.value = true
   userReady.value = true
   fetchWorkList()
   const tabParam = route.query.tab
@@ -140,7 +168,9 @@ onMounted(() => {
 })
 
 onActivated(() => {
-  if (userReady.value) {
+  if (!isInitialized.value) {
+    isInitialized.value = true
+    userReady.value = true
     fetchWorkList()
   }
 })
@@ -229,7 +259,7 @@ onActivated(() => {
 <style scoped>
 .temporary-repair-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .work-list {
@@ -237,7 +267,7 @@ onActivated(() => {
 }
 
 .work-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -249,8 +279,8 @@ onActivated(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
   flex-wrap: nowrap;
 }
 
@@ -266,7 +296,7 @@ onActivated(() => {
 
 .work-id {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
   white-space: nowrap;
   text-align: right;
   flex: 1;
@@ -297,13 +327,13 @@ onActivated(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -315,7 +345,7 @@ onActivated(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .card-footer .van-button {

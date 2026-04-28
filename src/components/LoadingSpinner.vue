@@ -1,7 +1,12 @@
 <template>
-  <div v-if="visible" class="loading-overlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">{{ text }}</div>
+  <div
+    v-if="visible"
+    class="loading-overlay"
+  >
+    <div class="loading-spinner" />
+    <div class="loading-text">
+      {{ text }}
+    </div>
   </div>
 </template>
 
@@ -45,7 +50,7 @@ export default defineComponent({
   width: 50px;
   height: 50px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196f3;
+  border-top: 4px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -62,7 +67,7 @@ export default defineComponent({
 .loading-text {
   margin-top: 20px;
   font-size: 16px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 </style>

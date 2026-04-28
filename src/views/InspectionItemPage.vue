@@ -7,8 +7,18 @@
             <span>巡检事项分类</span>
           </div>
           <div class="section-actions">
-            <el-button size="small" @click="handleExpandAll"> 全部展开 </el-button>
-            <el-button size="small" @click="handleCollapseAll"> 全部收起 </el-button>
+            <el-button
+              size="small"
+              @click="handleExpandAll"
+            >
+              全部展开
+            </el-button>
+            <el-button
+              size="small"
+              @click="handleCollapseAll"
+            >
+              全部收起
+            </el-button>
           </div>
         </div>
 
@@ -21,7 +31,10 @@
           />
 
           <div class="toolbar-actions">
-            <el-checkbox v-model="showCheckbox" @change="handleCheckboxChange">
+            <el-checkbox
+              v-model="showCheckbox"
+              @change="handleCheckboxChange"
+            >
               多选模式
             </el-checkbox>
             <el-button
@@ -35,9 +48,17 @@
           </div>
         </div>
 
-        <div class="tree-content" @contextmenu.prevent>
-          <div v-if="loading" class="loading-container">
-            <el-icon class="is-loading"><Loading /></el-icon>
+        <div
+          class="tree-content"
+          @contextmenu.prevent
+        >
+          <div
+            v-if="loading"
+            class="loading-container"
+          >
+            <el-icon class="is-loading">
+              <Loading />
+            </el-icon>
             <span>加载中...</span>
           </div>
           <el-tree
@@ -64,10 +85,16 @@
             <template #default="{ node, data }">
               <div class="custom-tree-node">
                 <div class="node-content">
-                  <el-icon class="node-icon" :class="`level-${data.level}`">
+                  <el-icon
+                    class="node-icon"
+                    :class="`level-${data.level}`"
+                  >
                     <component :is="getNodeIcon(data.level)" />
                   </el-icon>
-                  <span class="node-label" :title="node.label">{{ node.label }}</span>
+                  <span
+                    class="node-label"
+                    :title="node.label"
+                  >{{ node.label }}</span>
                   <el-tag
                     v-if="data.level === 3 && data.check_content"
                     size="small"
@@ -77,7 +104,10 @@
                     已配置
                   </el-tag>
                 </div>
-                <div class="node-actions" @click.stop>
+                <div
+                  class="node-actions"
+                  @click.stop
+                >
                   <el-button
                     v-if="data.level < 3"
                     type="primary"
@@ -87,7 +117,12 @@
                   >
                     新增
                   </el-button>
-                  <el-button type="primary" size="small" text @click.stop="handleEdit(data)">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    text
+                    @click.stop="handleEdit(data)"
+                  >
                     编辑
                   </el-button>
                   <el-button
@@ -118,8 +153,18 @@
           >
             新增子节点
           </div>
-          <div class="context-menu-item" @click="handleAddSiblingFromMenu">新增同级节点</div>
-          <div class="context-menu-item" @click="handleEditFromMenu">重命名</div>
+          <div
+            class="context-menu-item"
+            @click="handleAddSiblingFromMenu"
+          >
+            新增同级节点
+          </div>
+          <div
+            class="context-menu-item"
+            @click="handleEditFromMenu"
+          >
+            重命名
+          </div>
           <div
             v-if="contextMenuNode && contextMenuNode.level !== 1"
             class="context-menu-item"
@@ -130,7 +175,7 @@
         </div>
       </div>
 
-      <div class="divider"></div>
+      <div class="divider" />
 
       <div class="form-section">
         <template v-if="selectedNode && selectedNode.level === 3">
@@ -138,11 +183,16 @@
             <div class="form-title">
               <span>详细检查要求</span>
             </div>
-            <div class="form-subtitle">当前选中：{{ selectedNode.item_name }}</div>
+            <div class="form-subtitle">
+              当前选中：{{ selectedNode.item_name }}
+            </div>
           </div>
 
           <div class="form-content">
-            <el-form :model="formData" label-position="top">
+            <el-form
+              :model="formData"
+              label-position="top"
+            >
               <el-form-item label="检查内容">
                 <el-input
                   v-model="formData.check_content"
@@ -167,8 +217,16 @@
           </div>
 
           <div class="form-actions">
-            <el-button @click="handleCancel">取消</el-button>
-            <el-button type="primary" :loading="saving" @click="handleSave"> 保存 </el-button>
+            <el-button @click="handleCancel">
+              取消
+            </el-button>
+            <el-button
+              type="primary"
+              :loading="saving"
+              @click="handleSave"
+            >
+              保存
+            </el-button>
           </div>
         </template>
 
@@ -176,11 +234,20 @@
           <div class="empty-state">
             <el-empty description="请选择三级检查项进行编辑">
               <template #image>
-                <el-icon :size="64" color="#dcdfe6"><Document /></el-icon>
+                <el-icon
+                  :size="64"
+                  color="#dcdfe6"
+                >
+                  <Document />
+                </el-icon>
               </template>
             </el-empty>
             <div class="empty-hint">
-              <el-alert title="提示" type="info" :closable="false">
+              <el-alert
+                title="提示"
+                type="info"
+                :closable="false"
+              >
                 一、二级节点仅作为分类使用，无法编辑检查要求
               </el-alert>
             </div>
@@ -195,7 +262,10 @@
       width="400px"
       @close="handleDialogClose"
     >
-      <el-form :model="dialogForm" label-width="80px">
+      <el-form
+        :model="dialogForm"
+        label-width="80px"
+      >
         <el-form-item label="节点名称">
           <el-input
             v-model="dialogForm.item_name"
@@ -205,14 +275,24 @@
           />
         </el-form-item>
         <el-form-item label="事项类型">
-          <el-input v-model="dialogForm.item_type" placeholder="请输入事项类型" maxlength="50" />
+          <el-input
+            v-model="dialogForm.item_type"
+            placeholder="请输入事项类型"
+            maxlength="50"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="dialogLoading" @click="handleDialogConfirm"
-          >确定</el-button
+        <el-button @click="dialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="dialogLoading"
+          @click="handleDialogConfirm"
         >
+          确定
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -222,7 +302,6 @@
 import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { ElTree } from 'element-plus'
-import type Node from 'element-plus/es/components/tree/src/model/node'
 import { inspectionItemService, type InspectionItem } from '@/services/inspectionItem'
 import SearchInput from '@/components/SearchInput.vue'
 
@@ -566,18 +645,18 @@ const handleSave = async () => {
   }
 }
 
-const allowDrop = (_draggingNode: Node, dropNode: Node, type: 'prev' | 'inner' | 'next') => {
+const allowDrop = (_draggingNode: any, dropNode: any, type: 'prev' | 'inner' | 'next') => {
   if (type === 'inner') {
     return dropNode.data.level < 3
   }
   return true
 }
 
-const allowDrag = (draggingNode: Node) => {
+const allowDrag = (draggingNode: any) => {
   return draggingNode.data.level !== 1
 }
 
-const handleDrop = async (draggingNode: Node, dropNode: Node, dropType: string, _ev: DragEvent) => {
+const handleDrop = async (draggingNode: any, dropNode: any, dropType: string, _ev: DragEvent) => {
   const draggingData = draggingNode.data as TreeNodeData
   const dropData = dropNode.data as TreeNodeData
 
@@ -619,14 +698,14 @@ const handleUserChanged = () => {
 <style scoped>
 .inspection-item-page {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--color-bg-page);
   padding: 20px;
 }
 
 .content-body {
   display: flex;
   gap: 0;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -638,7 +717,7 @@ const handleUserChanged = () => {
   min-width: 320px;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: var(--color-bg-card);
   border-right: 1px solid #dcdfe6;
 }
 
@@ -648,7 +727,7 @@ const handleUserChanged = () => {
   align-items: center;
   padding: 16px 20px;
   border-bottom: 1px solid #ebeef5;
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .section-title {
@@ -752,7 +831,7 @@ const handleUserChanged = () => {
 
 .context-menu {
   position: fixed;
-  background: #fff;
+  background: var(--color-bg-card);
   border: 1px solid #ebeef5;
   border-radius: 4px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
@@ -773,7 +852,7 @@ const handleUserChanged = () => {
 }
 
 .context-menu-item:hover {
-  background: #f5f7fa;
+  background: var(--color-bg-page);
   color: #409eff;
 }
 
@@ -787,13 +866,13 @@ const handleUserChanged = () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  background: var(--color-bg-page);
   min-width: 0;
 }
 
 .form-header {
   padding: 20px 32px 16px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-bottom: 1px solid #ebeef5;
 }
 
@@ -824,7 +903,7 @@ const handleUserChanged = () => {
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 32px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-top: 1px solid #ebeef5;
 }
 

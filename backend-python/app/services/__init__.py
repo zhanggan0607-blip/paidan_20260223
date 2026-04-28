@@ -17,7 +17,6 @@ from app.services.spot_work import SpotWorkService
 from app.services.sync_service import SyncService
 from app.services.temporary_repair import TemporaryRepairService
 from app.services.weekly_report import WeeklyReportService
-from app.services.work_order_operation_log import WorkOrderOperationLogService
 from app.services.work_plan import WorkPlanService
 
 __all__ = [
@@ -25,7 +24,6 @@ __all__ = [
     'PeriodicInspectionService',
     'TemporaryRepairService',
     'PeriodicInspectionRecordService',
-    'WorkOrderOperationLogService',
     'CustomerService',
     'DictionaryService',
     'ExpiringSoonService',

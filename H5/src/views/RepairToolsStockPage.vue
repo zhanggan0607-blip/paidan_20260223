@@ -185,15 +185,15 @@ onMounted(() => {
     </van-nav-bar>
 
     <div class="action-bar">
-      <van-search
+      <van-search name="filter_keyword"
         v-model="filterKeyword"
         placeholder="搜索工具名称/编号/规格"
         shape="round"
         class="search-input"
       />
-      <van-field v-model="filterCategory" label="" placeholder="分类筛选" class="category-filter">
+      <van-field name="filter_category" v-model="filterCategory" label="" placeholder="分类筛选" class="category-filter">
         <template #input>
-          <select v-model="filterCategory" class="category-select-filter">
+          <select id="filter_category" name="filter_category" v-model="filterCategory" class="category-select-filter">
             <option value="">全部分类</option>
             <option v-for="cat in categoryList" :key="cat" :value="cat">{{ cat }}</option>
           </select>
@@ -253,7 +253,7 @@ onMounted(() => {
           <van-icon name="cross" @click="showAddPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field
+          <van-field name="tool_name"
             v-model="addForm.tool_name"
             label="工具名称"
             placeholder="请输入或选择工具名称"
@@ -271,35 +271,35 @@ onMounted(() => {
               </datalist>
             </template>
           </van-field>
-          <van-field v-model="addForm.category" label="工具分类" placeholder="请选择分类" required>
+          <van-field name="category" v-model="addForm.category" label="工具分类" placeholder="请选择分类" required>
             <template #input>
-              <select v-model="addForm.category" class="category-select">
+              <select id="category" name="category" v-model="addForm.category" class="category-select">
                 <option value="">请选择分类</option>
                 <option v-for="cat in categoryList" :key="cat" :value="cat">{{ cat }}</option>
               </select>
             </template>
           </van-field>
-          <van-field
+          <van-field name="specification"
             v-model="addForm.specification"
             label="规格型号"
             placeholder="请输入规格型号"
           />
-          <van-field v-model="addForm.unit" label="单位" placeholder="如：个、把、台" required />
-          <van-field
+          <van-field name="unit" v-model="addForm.unit" label="单位" placeholder="如：个、把、台" required />
+          <van-field name="stock"
             v-model="addForm.stock"
             type="number"
             label="库存数量"
             placeholder="请输入数量"
             required
           />
-          <van-field
+          <van-field name="min_stock"
             v-model="addForm.min_stock"
             type="number"
             label="最低库存"
             placeholder="预警阈值"
           />
-          <van-field v-model="addForm.location" label="存放位置" placeholder="如：A区1号柜" />
-          <van-field
+          <van-field name="location" v-model="addForm.location" label="存放位置" placeholder="如：A区1号柜" />
+          <van-field name="remark"
             v-model="addForm.remark"
             label="备注"
             placeholder="请输入备注"
@@ -320,13 +320,13 @@ onMounted(() => {
 <style scoped>
 .repair-tools-stock-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .action-bar {
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -358,7 +358,7 @@ onMounted(() => {
 }
 
 .stock-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -370,13 +370,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tool-name {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .stock-badge {
@@ -387,13 +387,13 @@ onMounted(() => {
 }
 
 .stock-normal {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .stock-low {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .card-body {
@@ -409,13 +409,13 @@ onMounted(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -426,7 +426,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .popup-content {
@@ -440,7 +440,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .popup-title {

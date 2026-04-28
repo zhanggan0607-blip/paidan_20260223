@@ -23,30 +23,10 @@ export interface PaginatedData<T> {
 
 export interface PaginatedResponse<T = unknown> extends ApiResponse<PaginatedData<T>> {}
 
-export interface LegacyPaginatedResponse<T = unknown> {
-  items: T[]
-  total: number
-  page: number
-  pageSize: number
-  content?: T[]
-  totalElements?: number
-  totalPages?: number
-  size?: number
-  number?: number
-  first?: boolean
-  last?: boolean
-}
-
 export interface QueryParams {
   page: number
   size?: number
   pageSize?: number
-}
-
-export interface ListQueryParams extends QueryParams {
-  project_name?: string
-  client_name?: string
-  status?: string
 }
 
 export interface ApiError {
@@ -57,13 +37,14 @@ export interface ApiError {
 }
 
 export interface User {
-  id?: number
+  id: number
   name: string
   role: string
   department?: string
   phone?: string
   email?: string
   username?: string
+  must_change_password?: boolean
 }
 
 export interface UserInfo extends User {

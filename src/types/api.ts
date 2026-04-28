@@ -1,15 +1,8 @@
-/**
- * PC端类型定义
- * 从shared包导入共享类型，保留PC端特有的类型
- */
-
 export type {
   ApiResponse,
   PaginatedData,
   PaginatedResponse,
-  LegacyPaginatedResponse,
   QueryParams,
-  ListQueryParams,
   ApiError,
   User,
   UserInfo,

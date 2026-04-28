@@ -66,11 +66,13 @@ const displayList = computed(() => {
         clientName: item.customerName,
         totalCount: undefined,
         filledCount: undefined,
+        createdAt: item.created_at,
       }))
       .sort((a, b) => {
-        const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
-        const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
-        return dateB - dateA
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        if (dateB !== dateA) return dateB - dateA
+        return (b.id || 0) - (a.id || 0)
       })
   }
   if (tabKey === 'expiring') {
@@ -89,11 +91,13 @@ const displayList = computed(() => {
         clientName: item.customerName,
         totalCount: undefined,
         filledCount: undefined,
+        createdAt: item.created_at,
       }))
       .sort((a, b) => {
-        const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
-        const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
-        return dateB - dateA
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        if (dateB !== dateA) return dateB - dateA
+        return (b.id || 0) - (a.id || 0)
       })
   }
   return workList.value
@@ -200,6 +204,7 @@ const fetchWorkList = async (isLoadMore = false) => {
             items = (response.data?.items || []).map((item: any) => ({
               id: item.id,
               planType: item.plan_type,
+              orderTypeCode: item.order_type_code,
               project_name: item.project_name,
               projectName: item.project_name,
               plan_start_date: item.plan_start_date,
@@ -221,47 +226,56 @@ const fetchWorkList = async (isLoadMore = false) => {
       }
 
       case 'periodic': {
-        const response = await periodicInspectionService.getList({ page: 0, size: 500 })
-        if (response.code === 200) {
-          const validStatuses = ['执行中', '待确认', '已退回']
-          items = (response.data?.items || response.data?.content || [])
-            .filter((item: any) => validStatuses.includes(item.status))
-            .map((item: any) => ({
-              ...item,
-              planType: '定期巡检',
-            }))
-          totalCount = items.length
-        }
+        const validStatuses = ['执行中', '待确认', '已退回']
+        const responses = await Promise.all(
+          validStatuses.map(status => 
+            periodicInspectionService.getList({ page: 0, size: 100, status })
+          )
+        )
+        items = responses
+          .filter(r => r.code === 200)
+          .flatMap(r => (r.data?.items || r.data?.content || []).map((item: any) => ({
+            ...item,
+            planType: '定期巡检',
+            orderTypeCode: 'inspection',
+          })))
+        totalCount = items.length
         break
       }
 
       case 'repair': {
-        const response = await temporaryRepairService.getList({ page: 0, size: 500 })
-        if (response.code === 200) {
-          const validStatuses = ['执行中', '待确认', '已退回']
-          items = (response.data?.items || response.data?.content || [])
-            .filter((item: any) => validStatuses.includes(item.status))
-            .map((item: any) => ({
-              ...item,
-              planType: '临时维修',
-            }))
-          totalCount = items.length
-        }
+        const validStatuses = ['执行中', '待确认', '已退回']
+        const responses = await Promise.all(
+          validStatuses.map(status => 
+            temporaryRepairService.getList({ page: 0, size: 100, status })
+          )
+        )
+        items = responses
+          .filter(r => r.code === 200)
+          .flatMap(r => (r.data?.items || r.data?.content || []).map((item: any) => ({
+            ...item,
+            planType: '临时维修',
+            orderTypeCode: 'repair',
+          })))
+        totalCount = items.length
         break
       }
 
       case 'spot': {
-        const response = await spotWorkService.getList({ page: 0, size: 500 })
-        if (response.code === 200) {
-          const validStatuses = ['执行中', '待确认', '已退回']
-          items = (response.data?.items || response.data?.content || [])
-            .filter((item: any) => validStatuses.includes(item.status))
-            .map((item: any) => ({
-              ...item,
-              planType: '零星用工',
-            }))
-          totalCount = items.length
-        }
+        const validStatuses = ['执行中', '待确认', '已退回']
+        const responses = await Promise.all(
+          validStatuses.map(status => 
+            spotWorkService.getList({ page: 0, size: 100, status })
+          )
+        )
+        items = responses
+          .filter(r => r.code === 200)
+          .flatMap(r => (r.data?.items || r.data?.content || []).map((item: any) => ({
+            ...item,
+            planType: '零星用工',
+            orderTypeCode: 'spotwork',
+          })))
+        totalCount = items.length
         break
       }
     }
@@ -274,15 +288,17 @@ const fetchWorkList = async (isLoadMore = false) => {
       planEndDate: item.plan_end_date || item.planEndDate,
       status: item.status,
       planType: item.planType,
+      orderTypeCode: item.orderTypeCode,
       workOrderNo: item.inspection_id || item.repair_id || item.work_id,
       clientName: item.client_name || item.clientName,
       totalCount: item.total_count,
       filledCount: item.filled_count,
-      updatedAt: item.updated_at,
+      createdAt: item.created_at,
     })).sort((a, b) => {
-      const dateA = a.planStartDate ? new Date(a.planStartDate).getTime() : 0
-      const dateB = b.planStartDate ? new Date(b.planStartDate).getTime() : 0
-      return dateB - dateA
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0
+      if (dateB !== dateA) return dateB - dateA
+      return (b.id || 0) - (a.id || 0)
     })
 
     if (tabKey === 'completed') {
@@ -339,15 +355,22 @@ const handleItemClick = (item: any) => {
       }
     }
   } else {
-    const planType = item.planType || currentTab.value?.planType
-    if (planType === '定期巡检') {
+    const orderTypeCode = item.orderTypeCode
+    if (orderTypeCode === 'inspection') {
       router.push({ path: `/periodic-inspection/${item.id}`, query: { from: fromPath } })
-    } else if (planType === '临时维修') {
+    } else if (orderTypeCode === 'repair') {
       router.push({ path: `/temporary-repair/${item.id}`, query: { from: fromPath } })
-    } else if (planType === '零星用工') {
+    } else if (orderTypeCode === 'spotwork') {
       router.push({ path: `/spot-work/${item.id}`, query: { from: fromPath } })
     } else {
-      router.push({ path: `/periodic-inspection/${item.id}`, query: { from: fromPath } })
+      const planType = item.planType || currentTab.value?.planType
+      if (planType === '定期巡检') {
+        router.push({ path: `/periodic-inspection/${item.id}`, query: { from: fromPath } })
+      } else if (planType === '临时维修') {
+        router.push({ path: `/temporary-repair/${item.id}`, query: { from: fromPath } })
+      } else if (planType === '零星用工') {
+        router.push({ path: `/spot-work/${item.id}`, query: { from: fromPath } })
+      }
     }
   }
 }
@@ -476,7 +499,7 @@ watch(type, () => {
 <style scoped>
 .work-list-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .work-list {
@@ -484,7 +507,7 @@ watch(type, () => {
 }
 
 .work-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -496,8 +519,8 @@ watch(type, () => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
   flex-wrap: nowrap;
 }
 
@@ -513,7 +536,7 @@ watch(type, () => {
 
 .work-id {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
   white-space: nowrap;
   text-align: right;
   flex: 1;
@@ -544,13 +567,13 @@ watch(type, () => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -558,17 +581,17 @@ watch(type, () => {
 }
 
 .info-row .value.highlight {
-  color: #1989fa;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
 .info-row .value.error {
-  color: #ee0a24;
+  color: var(--color-danger);
   font-weight: 500;
 }
 
 .info-row .value.warning {
-  color: #ff976a;
+  color: var(--color-warning);
   font-weight: 500;
 }
 
@@ -577,7 +600,7 @@ watch(type, () => {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .card-footer .van-button {
@@ -593,7 +616,7 @@ watch(type, () => {
 .load-more-tip {
   text-align: center;
   padding: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 </style>

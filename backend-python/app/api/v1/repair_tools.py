@@ -51,10 +51,13 @@ async def get_personnel_projects(
                 WorkPlan.maintenance_personnel == person.name
             ).all()
 
+            project_ids = {p.project_id for p in work_plans if p.project_id}
+            project_map = {p.project_id: p for p in db.query(ProjectInfo).filter(
+                ProjectInfo.project_id.in_(project_ids)
+            ).all()} if project_ids else {}
+
             for plan in work_plans:
-                project = db.query(ProjectInfo).filter(
-                    ProjectInfo.project_id == plan.project_id
-                ).first()
+                project = project_map.get(plan.project_id)
                 if project:
                     result.append({
                         'project_id': project.project_id,
@@ -66,12 +69,15 @@ async def get_personnel_projects(
             WorkPlan.project_id == project_id
         ).all()
 
+        personnel_names = {p.maintenance_personnel for p in work_plans if p.maintenance_personnel}
+        personnel_map = {p.name: p for p in db.query(Personnel).filter(
+            Personnel.name.in_(personnel_names),
+            Personnel.role == '运维人员'
+        ).all()} if personnel_names else {}
+
         for plan in work_plans:
             if plan.maintenance_personnel:
-                person = db.query(Personnel).filter(
-                    Personnel.name == plan.maintenance_personnel,
-                    Personnel.role == '运维人员'
-                ).first()
+                person = personnel_map.get(plan.maintenance_personnel)
                 if person and not any(p['id'] == person.id for p in result):
                     result.append({
                         'id': person.id,
@@ -82,12 +88,21 @@ async def get_personnel_projects(
         work_plans = db.query(WorkPlan).all()
         personnel_projects = {}
 
+        personnel_names = {p.maintenance_personnel for p in work_plans if p.maintenance_personnel}
+        project_ids = {p.project_id for p in work_plans if p.project_id}
+
+        personnel_map = {p.name: p for p in db.query(Personnel).filter(
+            Personnel.name.in_(personnel_names),
+            Personnel.role == '运维人员'
+        ).all()} if personnel_names else {}
+
+        project_map = {p.project_id: p for p in db.query(ProjectInfo).filter(
+            ProjectInfo.project_id.in_(project_ids)
+        ).all()} if project_ids else {}
+
         for plan in work_plans:
             if plan.maintenance_personnel and plan.project_id:
-                person = db.query(Personnel).filter(
-                    Personnel.name == plan.maintenance_personnel,
-                    Personnel.role == '运维人员'
-                ).first()
+                person = personnel_map.get(plan.maintenance_personnel)
 
                 if person:
                     if person.id not in personnel_projects:
@@ -97,9 +112,7 @@ async def get_personnel_projects(
                             'projects': []
                         }
 
-                    project = db.query(ProjectInfo).filter(
-                        ProjectInfo.project_id == plan.project_id
-                    ).first()
+                    project = project_map.get(plan.project_id)
 
                     if project:
                         if not any(p['project_id'] == project.project_id for p in personnel_projects[person.id]['projects']):
@@ -191,19 +204,6 @@ async def create_stock(
     try:
         inbound_no = generate_inbound_no()
 
-        inbound = RepairToolsInbound(
-            inbound_no=inbound_no,
-            tool_name=data.tool_name,
-            category=data.category,
-            specification=data.specification,
-            quantity=data.stock,
-            unit=data.unit,
-            location=data.location,
-            user_name='系统',
-            remark=data.remark
-        )
-        db.add(inbound)
-
         stock = RepairToolsStock(
             tool_name=data.tool_name,
             category=data.category,
@@ -215,6 +215,25 @@ async def create_stock(
             remark=data.remark
         )
         db.add(stock)
+        db.flush()
+
+        tool_id = stock.tool_id or f'TOOL{stock.id:06d}'
+        if not stock.tool_id:
+            stock.tool_id = tool_id
+
+        inbound = RepairToolsInbound(
+            inbound_no=inbound_no,
+            tool_name=data.tool_name,
+            tool_id=tool_id,
+            category=data.category,
+            specification=data.specification,
+            quantity=data.stock,
+            unit=data.unit,
+            location=data.location,
+            user_name=user_info.name,
+            remark=data.remark
+        )
+        db.add(inbound)
 
         db.commit()
         db.refresh(stock)
@@ -294,7 +313,7 @@ async def restock_tool(
             quantity=data.quantity,
             unit=stock.unit,
             location=stock.location,
-            user_name='系统',
+            user_name=user_info.name,
             remark=data.remark
         )
         db.add(inbound)
@@ -473,7 +492,9 @@ async def create_issue(
 
     project_name = data.project_name
     if data.project_id and not project_name:
-        project = db.query(ProjectInfo).filter(ProjectInfo.project_id == data.project_id).first()
+        project = db.query(ProjectInfo).filter(
+            ProjectInfo.project_id == data.project_id
+        ).first()
         if project:
             project_name = project.project_name
 

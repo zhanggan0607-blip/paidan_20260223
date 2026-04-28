@@ -85,7 +85,7 @@ def create_dictionary(
     dictionary = service.create(dto)
     return ApiResponse(
         code=200,
-        message="Created successfully",
+        message="创建成功",
         data=dictionary.to_dict()
     )
 
@@ -100,7 +100,7 @@ def update_dictionary(
     dictionary = service.update(id, dto)
     return ApiResponse(
         code=200,
-        message="Updated successfully",
+        message="更新成功",
         data=dictionary.to_dict()
     )
 
@@ -114,6 +114,6 @@ def delete_dictionary(
     service.delete(id)
     return ApiResponse(
         code=200,
-        message="Deleted successfully",
+        message="删除成功",
         data=None
     )

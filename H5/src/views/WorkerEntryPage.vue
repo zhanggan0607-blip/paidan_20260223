@@ -40,6 +40,7 @@ const fromPath = ref('')
 const workerList = ref<WorkerInfo[]>([])
 const showAddPopup = ref(false)
 const loading = ref(false)
+const isInitialized = ref(false)
 
 const currentWorker = ref<WorkerInfo>({
   name: '',
@@ -546,6 +547,8 @@ const handleBack = () => {
 }
 
 onMounted(() => {
+  if (isInitialized.value) return
+  isInitialized.value = true
   projectId.value = (route.query.projectId as string) || ''
   projectName.value = (route.query.projectName as string) || ''
   workDateStart.value = (route.query.workDateStart as string) || ''
@@ -558,14 +561,17 @@ onMounted(() => {
 })
 
 onActivated(() => {
-  projectId.value = (route.query.projectId as string) || ''
-  projectName.value = (route.query.projectName as string) || ''
-  workDateStart.value = (route.query.workDateStart as string) || ''
-  workDateEnd.value = (route.query.workDateEnd as string) || ''
-  fromPath.value = (route.query.from as string) || ''
+  if (!isInitialized.value) {
+    isInitialized.value = true
+    projectId.value = (route.query.projectId as string) || ''
+    projectName.value = (route.query.projectName as string) || ''
+    workDateStart.value = (route.query.workDateStart as string) || ''
+    workDateEnd.value = (route.query.workDateEnd as string) || ''
+    fromPath.value = (route.query.from as string) || ''
 
-  if (projectId.value) {
-    fetchWorkerList()
+    if (projectId.value) {
+      fetchWorkerList()
+    }
   }
 })
 </script>
@@ -688,13 +694,13 @@ onActivated(() => {
           </van-cell-group>
 
           <van-cell-group inset title="身份信息">
-            <van-field
+            <van-field name="name"
               v-model="currentWorker.name"
               label="姓名"
               placeholder="请输入姓名"
               required
             />
-            <van-field
+            <van-field name="id_card_number"
               v-model="currentWorker.idCardNumber"
               label="身份证号"
               placeholder="请输入18位身份证号码"
@@ -703,21 +709,21 @@ onActivated(() => {
               :error-message="idCardError"
               @input="handleIdCardChange"
             />
-            <van-field
+            <van-field name="gender"
               v-model="currentWorker.gender"
               label="性别"
               placeholder="输入身份证后自动填充"
               readonly
               required
             />
-            <van-field
+            <van-field name="birth_date"
               v-model="currentWorker.birthDate"
               label="出生日期"
               placeholder="输入身份证后自动填充"
               readonly
               required
             />
-            <van-field
+            <van-field name="address"
               v-model="currentWorker.address"
               label="住址"
               placeholder="请输入住址"
@@ -729,13 +735,13 @@ onActivated(() => {
           </van-cell-group>
 
           <van-cell-group inset title="证件信息">
-            <van-field
+            <van-field name="issuing_authority"
               v-model="currentWorker.issuingAuthority"
               label="签发机关"
               placeholder="请输入签发机关"
               required
             />
-            <van-field
+            <van-field name="valid_period"
               v-model="currentWorker.validPeriod"
               label="有效期限"
               placeholder="请输入有效期限"
@@ -817,7 +823,7 @@ onActivated(() => {
 <style scoped>
 .worker-entry-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 :deep(.van-cell-group--inset) {
@@ -831,7 +837,7 @@ onActivated(() => {
 .worker-count-title {
   font-size: 18px;
   font-weight: bold;
-  color: #1989fa;
+  color: var(--color-primary);
 }
 
 .worker-item {
@@ -847,7 +853,7 @@ onActivated(() => {
 
 .worker-id {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 
 .worker-photos {
@@ -860,11 +866,11 @@ onActivated(() => {
 }
 
 .photo-icon.done {
-  color: #07c160;
+  color: var(--color-success);
 }
 
 .photo-icon.pending {
-  color: #c8c9cc;
+  color: var(--color-text-placeholder);
 }
 
 .add-btn {
@@ -881,14 +887,14 @@ onActivated(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .nav-left {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .popup-content {
@@ -902,7 +908,7 @@ onActivated(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .popup-title {
@@ -920,12 +926,12 @@ onActivated(() => {
 .popup-footer {
   padding: 12px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
   position: absolute;
   bottom: 0;
   left: 0;
   right: 0;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .id-card-preview {
@@ -933,7 +939,7 @@ onActivated(() => {
   height: 50px;
   border-radius: 4px;
   overflow: hidden;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -951,7 +957,7 @@ onActivated(() => {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 10px;
 }
 

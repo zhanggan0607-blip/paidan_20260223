@@ -1,4 +1,5 @@
 from sqlalchemy import BigInteger, Boolean, Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -22,6 +23,8 @@ class PeriodicInspectionRecord(Base):
     inspection_result = Column(Text, comment="巡检结果")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+
+    inspection = relationship("PeriodicInspection", foreign_keys=[inspection_id])
 
     __table_args__ = (
         Index('idx_record_inspection_id', 'inspection_id'),

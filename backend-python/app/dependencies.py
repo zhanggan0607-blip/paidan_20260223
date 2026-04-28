@@ -78,17 +78,14 @@ class UserInfo:
 
 
 def _parse_jwt_token(token: str) -> dict | None:
-    """
-    解析JWT Token
-
-    Args:
-        token: JWT Token字符串
-
-    Returns:
-        解析后的payload，解析失败返回None
-    """
     try:
-        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        jti = payload.get("jti")
+        if jti:
+            from app.auth import is_token_blacklisted
+            if is_token_blacklisted(jti):
+                return None
+        return payload
     except JWTError:
         return None
 

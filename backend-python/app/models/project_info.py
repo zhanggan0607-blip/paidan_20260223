@@ -17,7 +17,7 @@ class ProjectInfo(Base):
     maintenance_period = Column(String(20), nullable=False, comment="维保频率")
     client_name = Column(String(100), nullable=False, comment="客户单位名称")
     address = Column(String(200), nullable=False, comment="客户地址")
-    project_abbr = Column(String(10), comment="项目简称")
+    project_abbr = Column(String(50), comment="项目简称")
     project_manager = Column(String(50), nullable=False, comment="运维人员")
     client_contact_id = Column(Integer, ForeignKey("customer_contact.id", ondelete="SET NULL"), nullable=True, index=True, comment="客户联系人ID")
     client_contact = Column(String(50), comment="客户联系人")

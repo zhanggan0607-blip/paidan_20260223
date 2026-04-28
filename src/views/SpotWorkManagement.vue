@@ -1,13 +1,18 @@
-<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="spot-work-page">
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
     <div class="content">
       <div class="search-section">
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label class="search-label">项目名称：</label>
+              <label for="search_projectName" class="search-label">项目名称：</label>
               <SearchInput
+              input-id="search_projectName"
                 v-model="searchForm.project_name"
                 field-key="SpotWorkManagement_project_name"
                 placeholder="请输入项目名称"
@@ -15,8 +20,9 @@
               />
             </div>
             <div class="search-item">
-              <label class="search-label">工单编号：</label>
+              <label for="search_workOrderId" class="search-label">工单编号：</label>
               <SearchInput
+              input-id="search_workOrderId"
                 v-model="searchForm.work_id"
                 field-key="SpotWorkManagement_work_id"
                 placeholder="请输入工单编号"
@@ -26,7 +32,12 @@
           </div>
         </div>
         <div class="action-buttons">
-          <button class="btn btn-add" @click="handleAdd">新增零星用工单</button>
+          <button
+            class="btn btn-add"
+            @click="handleAdd"
+          >
+            新增零星用工单
+          </button>
         </div>
       </div>
 
@@ -49,10 +60,20 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="11" style="text-align: center; padding: 20px">加载中...</td>
+              <td
+                colspan="11"
+                style="text-align: center; padding: 20px"
+              >
+                加载中...
+              </td>
             </tr>
             <tr v-else-if="workData.length === 0">
-              <td colspan="11" style="text-align: center; padding: 20px">暂无数据</td>
+              <td
+                colspan="11"
+                style="text-align: center; padding: 20px"
+              >
+                暂无数据
+              </td>
             </tr>
             <tr
               v-for="(item, index) in workData"
@@ -77,50 +98,54 @@
                 <span
                   v-if="item.status === WORK_STATUS.IN_PROGRESS"
                   class="status-tag status-in-progress"
-                  >执行中</span
-                >
+                >执行中</span>
                 <span
                   v-else-if="item.status === WORK_STATUS.PENDING_CONFIRM"
                   class="status-tag status-waiting"
-                  >待确认</span
-                >
+                >待确认</span>
                 <span
                   v-else-if="item.status === WORK_STATUS.COMPLETED"
                   class="status-tag status-completed"
-                  >已完成</span
-                >
+                >已完成</span>
                 <span
                   v-else-if="item.status === WORK_STATUS.RETURNED"
                   class="status-tag status-returned"
-                  >已退回</span
-                >
-                <span v-else class="status-tag">{{ item.status }}</span>
+                >已退回</span>
+                <span
+                  v-else
+                  class="status-tag"
+                >{{ item.status }}</span>
               </td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
-                  >查看</a
-                >
                 <a
-                  v-if="isAdmin"
+                  href="#"
+                  class="action-link action-view"
+                  @click.prevent="handleView(item)"
+                >查看</a>
+                <a
+                  v-if="canEditWork(item)"
                   href="#"
                   class="action-link action-edit"
                   @click.prevent="handleEdit(item)"
-                  >编辑</a
-                >
+                >编辑</a>
                 <a
                   v-if="isAdmin && item.status === WORK_STATUS.PENDING_CONFIRM"
                   href="#"
                   class="action-link action-reject"
                   @click.prevent="handleReject(item)"
-                  >退回</a
-                >
+                >退回</a>
+                <a
+                  v-if="canRecallWork(item)"
+                  href="#"
+                  class="action-link action-recall"
+                  @click.prevent="handleRecall(item)"
+                >撤回</a>
                 <a
                   v-if="item.status === WORK_STATUS.COMPLETED"
                   href="#"
                   class="action-link action-export"
                   @click.prevent="handleExport(item)"
-                  >导出</a
-                >
+                >导出</a>
               </td>
             </tr>
           </tbody>
@@ -128,9 +153,15 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+        <div class="pagination-info">
+          共 {{ totalElements }} 条记录
+        </div>
         <div class="pagination-controls">
-          <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+          >
             &lt;
           </button>
           <button
@@ -149,38 +180,76 @@
           >
             &gt;
           </button>
-          <select v-model="pageSize" class="page-select">
-            <option value="10">10 条 / 页</option>
-            <option value="20">20 条 / 页</option>
-            <option value="50">50 条 / 页</option>
+          <select
+            id="pageSize"
+            name="pageSize"
+            v-model="pageSize"
+            class="page-select"
+          >
+            <option value="10">
+              10 条 / 页
+            </option>
+            <option value="20">
+              20 条 / 页
+            </option>
+            <option value="50">
+              50 条 / 页
+            </option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+            <input
+              id="jumpPage"
+              v-model="jumpPage"
+              name="jumpPage"
+              type="number"
+              class="page-input"
+              min="1"
+              :max="totalPages"
+              aria-label="跳转页码"
+            >
             <span>页</span>
-            <button class="page-btn page-go" @click="handleJump">Go</button>
+            <button
+              class="page-btn page-go"
+              @click="handleJump"
+            >
+              Go
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="isAddModalOpen" class="modal-overlay" @click.self="closeAddModal">
+    <div
+      v-if="isAddModalOpen"
+      class="modal-overlay"
+      @click.self="closeAddModal"
+    >
       <div class="modal-container modal-large">
         <div class="modal-header">
-          <h3 class="modal-title">新增零星用工单</h3>
-          <button class="modal-close" @click="closeAddModal">×</button>
+          <h3 class="modal-title">
+            新增零星用工单
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeAddModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
-                <select
+                <label for="projectName" class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <select id="projectName" name="projectName"
                   v-model="formData.project_name"
                   class="form-input"
                   @change="handleProjectChange"
                 >
-                  <option value="">请选择项目</option>
+                  <option value="">
+                    请选择项目
+                  </option>
                   <option
                     v-for="project in projectList"
                     :key="project.id"
@@ -191,218 +260,332 @@
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value-readonly">{{ formData.project_id || '-' }}</div>
+                <span class="form-label">项目编号</span>
+                <div class="form-value-readonly">
+                  {{ formData.project_id || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 计划开始日期 </label>
-                <input
+                <label for="planStartDate" class="form-label"> <span class="required">*</span> 计划开始日期 </label>
+                <input id="planStartDate" name="planStartDate"
                   v-model="formData.plan_start_date"
                   type="date"
                   class="form-input"
                   @change="calculateWorkDays"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">用工天数</label>
-                <div class="form-value-readonly">{{ workDays }} 天</div>
+                <span class="form-label">用工天数</span>
+                <div class="form-value-readonly">
+                  {{ workDays }} 天
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
-                <input
+                <label for="clientContact" class="form-label">客户联系人</label>
+                <input id="clientContact" name="clientContact"
                   v-model="formData.client_contact"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人"
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select v-model="formData.maintenance_personnel" class="form-input">
-                  <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person.id" :value="person.name">
+                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                  v-model="formData.maintenance_personnel"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option
+                    v-for="person in personnelList"
+                    :key="person.id"
+                    :value="person.name"
+                  >
                     {{ person.name }}
                   </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value-readonly">{{ formData.work_id || '自动生成' }}</div>
+                <span class="form-label">工单编号</span>
+                <div class="form-value-readonly">
+                  {{ formData.work_id || '自动生成' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 计划结束日期 </label>
-                <input
+                <label for="planEndDate" class="form-label"> <span class="required">*</span> 计划结束日期 </label>
+                <input id="planEndDate" name="planEndDate"
                   v-model="formData.plan_end_date"
                   type="date"
                   class="form-input"
                   @change="calculateWorkDays"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">施工人数</label>
-                <div class="form-value-readonly">{{ workerCount }} 人</div>
+                <span class="form-label">施工人数</span>
+                <div class="form-value-readonly">
+                  {{ workerCount }} 人
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系电话</label>
-                <input
+                <label for="clientContactPhone" class="form-label">客户联系电话</label>
+                <input id="clientContactPhone" name="clientContactPhone"
                   v-model="formData.client_contact_info"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系电话"
-                />
+                >
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label"> <span class="required">*</span> 工作内容 </label>
-            <textarea
+            <label for="workContent" class="form-label"> <span class="required">*</span> 工作内容 </label>
+            <textarea id="workContent" name="workContent"
               v-model="formData.work_content"
               class="form-input form-textarea"
               placeholder="请输入工作内容"
               maxlength="800"
-            ></textarea>
+            />
           </div>
 
           <div class="form-item-full">
-            <label class="form-label">施工人员</label>
+            <span class="form-label">施工人员</span>
             <div class="worker-section">
-              <button type="button" class="btn btn-worker" @click="openWorkerModal">
+              <button
+                type="button"
+                class="btn btn-worker"
+                @click="openWorkerModal"
+              >
                 {{ workerCount > 0 ? `已录入 ${workerCount} 人` : '录入施工人员' }}
               </button>
             </div>
           </div>
 
           <div class="form-item-full">
-            <label class="form-label"> <span class="required">*</span> 现场图片 </label>
-            <PhotoUpload v-model="formData.photos" :max-count="9" />
+            <span class="form-label"> <span class="required">*</span> 现场图片 </span>
+            <PhotoUpload
+              v-model="formData.photos"
+              :max-count="9"
+            />
           </div>
 
           <div class="form-item-full">
-            <label class="form-label"> <span class="required">*</span> 班组签字 </label>
+            <span class="form-label"> <span class="required">*</span> 班组签字 </span>
             <div class="signature-section">
-              <div v-if="formData.signature" class="signature-preview">
-                <img :src="formData.signature" alt="班组签字" />
-                <button class="btn-clear-signature" @click="formData.signature = ''">
+              <div
+                v-if="formData.signature"
+                class="signature-preview"
+              >
+                <img
+                  :src="formData.signature"
+                  alt="班组签字"
+                >
+                <button
+                  class="btn-clear-signature"
+                  @click="formData.signature = ''"
+                >
                   清除签字
                 </button>
               </div>
-              <button v-else class="btn btn-signature" @click="openSignatureModal">点击签字</button>
+              <button
+                v-else
+                class="btn btn-signature"
+                @click="openSignatureModal"
+              >
+                点击签字
+              </button>
             </div>
           </div>
 
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="formData.remarks"
               class="form-input form-textarea"
               placeholder="请输入备注"
               maxlength="500"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeAddModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleSave">
+          <button
+            class="btn btn-cancel"
+            @click="closeAddModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleSave"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
+    <div
+      v-if="isEditModalOpen"
+      class="modal-overlay"
+      @click.self="closeEditModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">编辑零星用工单</h3>
-          <button class="modal-close" @click="closeEditModal">×</button>
+          <h3 class="modal-title">
+            编辑零星用工单
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeEditModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目名称</label>
-                <div class="form-value-readonly">{{ editFormData.project_name }}</div>
+                <span class="form-label">项目名称</span>
+                <div class="form-value-readonly">
+                  {{ editFormData.project_name }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value-readonly">{{ editFormData.work_id }}</div>
+                <span class="form-label">工单编号</span>
+                <div class="form-value-readonly">
+                  {{ editFormData.work_id }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 计划开始日期 </label>
-                <input v-model="editFormData.plan_start_date" type="date" class="form-input" />
+                <label for="planStartDate" class="form-label"> <span class="required">*</span> 计划开始日期 </label>
+                <input id="planStartDate" name="planStartDate"
+                  v-model="editFormData.plan_start_date"
+                  type="date"
+                  class="form-input"
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
-                <input
+                <label for="clientContact" class="form-label">客户联系人</label>
+                <input id="clientContact" name="clientContact"
                   v-model="editFormData.client_contact"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人"
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select v-model="editFormData.maintenance_personnel" class="form-input">
-                  <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person.id" :value="person.name">
+                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                  v-model="editFormData.maintenance_personnel"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option
+                    v-for="person in personnelList"
+                    :key="person.id"
+                    :value="person.name"
+                  >
                     {{ person.name }}
                   </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 计划结束日期 </label>
-                <input v-model="editFormData.plan_end_date" type="date" class="form-input" />
+                <label for="planEndDate" class="form-label"> <span class="required">*</span> 计划结束日期 </label>
+                <input id="planEndDate" name="planEndDate"
+                  v-model="editFormData.plan_end_date"
+                  type="date"
+                  class="form-input"
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系方式</label>
-                <input
+                <label for="clientContactInfo" class="form-label">客户联系方式</label>
+                <input id="clientContactInfo" name="clientContactInfo"
                   v-model="editFormData.client_contact_info"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系方式"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">状态</label>
-                <select v-model="editFormData.status" class="form-input">
-                  <option value="执行中">执行中</option>
-                  <option value="待确认">待确认</option>
-                  <option value="已完成">已完成</option>
-                  <option value="已退回">已退回</option>
+                <label for="status" class="form-label">状态</label>
+                <select id="status" name="status"
+                  v-model="editFormData.status"
+                  class="form-input"
+                >
+                  <option value="执行中">
+                    执行中
+                  </option>
+                  <option value="待确认">
+                    待确认
+                  </option>
+                  <option value="已完成">
+                    已完成
+                  </option>
+                  <option value="已退回">
+                    已退回
+                  </option>
                 </select>
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="editFormData.remarks"
               class="form-input form-textarea"
               placeholder="请输入备注"
               maxlength="500"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
+          <button
+            class="btn btn-cancel"
+            @click="closeEditModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleUpdate"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showSignatureModal" class="modal-overlay" @click.self="showSignatureModal = false">
+    <div
+      v-if="showSignatureModal"
+      class="modal-overlay"
+      @click.self="showSignatureModal = false"
+    >
       <div class="modal-container signature-modal">
         <div class="modal-header">
-          <h3 class="modal-title">班组签字</h3>
-          <button class="modal-close" @click="showSignatureModal = false">×</button>
+          <h3 class="modal-title">
+            班组签字
+          </h3>
+          <button
+            class="modal-close"
+            @click="showSignatureModal = false"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
-          <SignaturePad @confirm="handleSignatureConfirm" @cancel="showSignatureModal = false" />
+          <SignaturePad
+            @confirm="handleSignatureConfirm"
+            @cancel="showSignatureModal = false"
+          />
         </div>
       </div>
     </div>
@@ -418,28 +601,50 @@
       @confirm="handleWorkerConfirm"
     />
 
-    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+    <div
+      v-if="showRejectModal"
+      class="modal-overlay"
+      @click.self="closeRejectModal"
+    >
       <div class="modal-container modal-small">
         <div class="modal-header">
-          <h3 class="modal-title">退回确认</h3>
-          <button class="modal-close" @click="closeRejectModal">×</button>
+          <h3 class="modal-title">
+            退回确认
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeRejectModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-item-full">
-            <label class="form-label">退回原因 <span class="required">*</span></label>
-            <textarea
+            <label for="rejectReason" class="form-label">退回原因 <span class="required">*</span></label>
+            <textarea id="rejectReason" name="rejectReason"
               v-model="rejectReason"
               class="form-input form-textarea"
               placeholder="请输入退回原因（10-500字符）"
               maxlength="500"
               rows="4"
-            ></textarea>
-            <div class="char-count">{{ rejectReason.length }}/500</div>
+            />
+            <div class="char-count">
+              {{ rejectReason.length }}/500
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeRejectModal">取消</button>
-          <button class="btn btn-reject" :disabled="saving" @click="confirmReject">
+          <button
+            class="btn btn-cancel"
+            @click="closeRejectModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-reject"
+            :disabled="saving"
+            @click="confirmReject"
+          >
             {{ saving ? '处理中...' : '确认退回' }}
           </button>
         </div>
@@ -522,6 +727,23 @@ export default defineComponent({
 
     const isAdmin = ref(userStore.isAdmin())
     const isDepartmentManager = ref(userStore.isDepartmentManager?.() || false)
+    const currentUserName = ref(userStore.getUser()?.name || '')
+
+    const canEditWork = (item: WorkItem): boolean => {
+      if (isAdmin.value) return true
+      if (item.status === WORK_STATUS.COMPLETED) return false
+      const isOwner = item.maintenance_personnel === currentUserName.value
+      const isEditableStatus = item.status === WORK_STATUS.PENDING_CONFIRM ||
+                               item.status === WORK_STATUS.IN_PROGRESS ||
+                               item.status === WORK_STATUS.RETURNED
+      return isOwner && isEditableStatus
+    }
+
+    const canRecallWork = (item: WorkItem): boolean => {
+      if (item.status !== WORK_STATUS.PENDING_CONFIRM) return false
+      if (isAdmin.value) return true
+      return item.maintenance_personnel === currentUserName.value
+    }
 
     const toast = reactive({
       visible: false,
@@ -695,21 +917,9 @@ export default defineComponent({
       if (!formData.value.project_id) return
 
       try {
-        const today = new Date()
-        const year = today.getFullYear()
-        const month = String(today.getMonth() + 1).padStart(2, '0')
-        const day = String(today.getDate()).padStart(2, '0')
-        const dateStr = `${year}${month}${day}`
-        const prefix = `YG-${formData.value.project_id}-${dateStr}`
-
-        const response = await spotWorkService.getAll()
-
-        if (response.code === 200) {
-          const existingWorks = response.data.filter(
-            (item) => item.work_id && item.work_id.startsWith(prefix)
-          )
-          const nextNumber = existingWorks.length + 1
-          formData.value.work_id = `${prefix}-${String(nextNumber).padStart(2, '0')}`
+        const response = await spotWorkService.generateId(formData.value.project_id)
+        if (response.code === 200 && response.data) {
+          formData.value.work_id = response.data.work_id
         }
       } catch (error) {
         console.error('生成用工单编号失败:', error)
@@ -730,8 +940,9 @@ export default defineComponent({
       return `${year}-${month}-${day}`
     }
 
-    const handleAdd = () => {
+    const handleAdd = async () => {
       resetForm()
+      await Promise.all([loadProjects(), loadPersonnel()])
       isAddModalOpen.value = true
     }
 
@@ -832,15 +1043,26 @@ export default defineComponent({
         if (response.code === 200) {
           if (workers.value.length > 0) {
             try {
-              await spotWorkService.create({
+              await spotWorkService.saveWorkers({
                 project_id: formData.value.project_id,
                 project_name: formData.value.project_name,
-                plan_start_date: formData.value.plan_start_date,
-                plan_end_date: formData.value.plan_end_date,
-                work_id: response.data.work_id,
-              } as any)
+                start_date: formData.value.plan_start_date,
+                end_date: formData.value.plan_end_date,
+                workers: workers.value.map(w => ({
+                  name: w.name,
+                  gender: w.gender || null,
+                  birthDate: w.birthDate || null,
+                  address: w.address || null,
+                  idCardNumber: w.idCardNumber,
+                  issuingAuthority: w.issuingAuthority || null,
+                  validPeriod: w.validPeriod || null,
+                  idCardFront: w.idCardFront,
+                  idCardBack: w.idCardBack,
+                })),
+              })
             } catch (e) {
               console.error('Failed to save workers:', e)
+              showToast('工单创建成功，但施工人员保存失败', 'warning')
             }
           }
           showToast('保存成功', 'success')
@@ -943,6 +1165,26 @@ export default defineComponent({
     }
 
     const handleExport = async (item: WorkItem) => {
+      const filename = `零星用工单_${item.work_id}.pdf`
+      
+      let fileHandle: any = null
+      
+      if ('showSaveFilePicker' in window && window.isSecureContext) {
+        try {
+          fileHandle = await (window as any).showSaveFilePicker({
+            suggestedName: filename,
+            types: [{
+              description: 'PDF文件',
+              accept: { 'application/pdf': ['.pdf'] }
+            }]
+          })
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            return
+          }
+        }
+      }
+      
       try {
         const token = localStorage.getItem('token')
         const response = await fetch(`/api/v1/export/spot-work/${item.id}`, {
@@ -958,15 +1200,23 @@ export default defineComponent({
         }
 
         const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `零星用工单_${item.work_id}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        showToast('导出成功', 'success')
+
+        if (fileHandle) {
+          const writable = await fileHandle.createWritable()
+          await writable.write(blob)
+          await writable.close()
+          showToast('导出成功', 'success')
+        } else {
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = filename
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          setTimeout(() => window.URL.revokeObjectURL(url), 1000)
+          showToast('导出成功', 'success')
+        }
       } catch (error) {
         console.error('导出失败:', error)
         showToast('导出失败，请检查网络连接', 'error')
@@ -981,6 +1231,22 @@ export default defineComponent({
       pendingRejectItem.value = item
       rejectReason.value = ''
       showRejectModal.value = true
+    }
+
+    const handleRecall = async (item: WorkItem) => {
+      if (!confirm('确认撤回此工单？撤回后可继续编辑。')) return
+      try {
+        const response = await spotWorkService.recall(item.id)
+        if (response.code === 200) {
+          showToast('撤回成功', 'success')
+          await loadData()
+        } else {
+          showToast(response.message || '撤回失败', 'error')
+        }
+      } catch (error) {
+        console.error('撤回失败:', error)
+        showToast('撤回失败', 'error')
+      }
     }
 
     const closeRejectModal = () => {
@@ -1063,8 +1329,6 @@ export default defineComponent({
     })
 
     onMounted(() => {
-      loadProjects()
-      loadPersonnel()
       loadData()
       window.addEventListener('user-changed', handleUserChanged)
       window.addEventListener('project-info-changed', handleProjectInfoChanged)
@@ -1121,6 +1385,9 @@ export default defineComponent({
       handleUpdate,
       handleExport,
       handleReject,
+      handleRecall,
+      canEditWork,
+      canRecallWork,
       closeRejectModal,
       confirmReject,
       handleDelete,
@@ -1139,7 +1406,7 @@ export default defineComponent({
 
 <style scoped>
 .spot-work-page {
-  background: #fff;
+  background: var(--color-bg-card);
   min-height: 100vh;
 }
 
@@ -1177,7 +1444,7 @@ export default defineComponent({
 
 .search-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -1192,7 +1459,7 @@ export default defineComponent({
 }
 
 .search-input:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -1203,12 +1470,12 @@ export default defineComponent({
   font-size: 14px;
   outline: none;
   min-width: 120px;
-  background: #fff;
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 
 .search-select:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -1228,8 +1495,8 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #4caf50;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover {
@@ -1237,16 +1504,16 @@ export default defineComponent({
 }
 
 .btn-search {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .table-section {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -1257,7 +1524,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .data-table th {
@@ -1265,8 +1532,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .data-table tbody tr {
@@ -1278,14 +1545,14 @@ export default defineComponent({
 }
 
 .data-table tbody tr.even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .data-table td {
   padding: 12px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .action-cell {
@@ -1301,23 +1568,23 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .action-view:hover {
-  color: #1565c0;
+  color: var(--color-primary-dark);
 }
 
 .action-edit {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .action-edit:hover {
-  color: #1565c0;
+  color: var(--color-primary-dark);
 }
 
 .action-confirm {
-  color: #4caf50;
+  color: var(--color-success);
 }
 
 .action-confirm:hover {
@@ -1325,15 +1592,15 @@ export default defineComponent({
 }
 
 .action-delete {
-  color: #f44336;
+  color: var(--color-danger);
 }
 
 .action-delete:hover {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .action-export {
-  color: #4caf50;
+  color: var(--color-success);
 }
 
 .action-export:hover {
@@ -1349,23 +1616,23 @@ export default defineComponent({
 }
 
 .status-pending {
-  background: #fff3cd;
+  background: var(--color-bg-card)3cd;
   color: #856404;
 }
 
 .status-waiting {
-  background: #fff7e0;
-  color: #f57c00;
+  background: var(--color-bg-card)7e0;
+  color: var(--color-warning);
 }
 
 .status-in-progress {
-  background: #e3f2fd;
-  color: #fff;
+  background: var(--color-primary-subtle);
+  color: var(--color-bg-card);
 }
 
 .status-completed {
   background: #9e9e9e;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-section {
@@ -1373,12 +1640,12 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -1392,15 +1659,15 @@ export default defineComponent({
   padding: 6px 12px;
   border: 1px solid #d0d7de;
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #1976d2;
+  background: var(--color-bg-page);
+  border-color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -1413,9 +1680,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #1976d2;
-  color: #fff;
-  border-color: #1976d2;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-select {
@@ -1423,13 +1690,13 @@ export default defineComponent({
   border: 1px solid #d0d7de;
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
+  background: var(--color-bg-card);
   cursor: pointer;
   outline: none;
 }
 
 .page-select:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -1438,7 +1705,7 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
@@ -1452,17 +1719,17 @@ export default defineComponent({
 }
 
 .page-input:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .page-btn.page-go {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .page-btn.page-go:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .modal-overlay {
@@ -1479,7 +1746,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 900px;
   max-width: 95vw;
@@ -1493,13 +1760,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -1509,7 +1776,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -1518,7 +1785,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -1548,53 +1815,53 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .required {
-  color: #d32f2f;
+  color: var(--color-danger);
   margin-right: 4px;
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-input-readonly {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
 }
 
 .form-input-readonly:focus {
   outline: none;
-  border-color: #e0e0e0;
+  border-color: var(--color-border);
   box-shadow: none;
 }
 
 .form-value-readonly {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -1618,26 +1885,26 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-save {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .btn:disabled {
@@ -1658,14 +1925,14 @@ export default defineComponent({
 }
 
 .btn-worker {
-  background: #fff;
-  color: #1976d2;
-  border: 1px solid #1976d2;
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   padding: 10px 20px;
 }
 
 .btn-worker:hover {
-  background: #e3f2fd;
+  background: var(--color-primary-subtle);
 }
 
 .signature-section {
@@ -1681,33 +1948,33 @@ export default defineComponent({
 .signature-preview img {
   max-width: 200px;
   max-height: 100px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .btn-clear-signature {
   padding: 6px 12px;
-  border: 1px solid #f44336;
+  border: 1px solid var(--color-danger);
   border-radius: 4px;
-  background: #fff;
-  color: #f44336;
+  background: var(--color-bg-card);
+  color: var(--color-danger);
   font-size: 12px;
   cursor: pointer;
 }
 
 .btn-clear-signature:hover {
-  background: #ffebee;
+  background: var(--color-danger-subtle);
 }
 
 .btn-signature {
-  background: #fff;
-  color: #1976d2;
-  border: 1px solid #1976d2;
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   padding: 12px 24px;
 }
 
 .btn-signature:hover {
-  background: #e3f2fd;
+  background: var(--color-primary-subtle);
 }
 </style>

@@ -11,10 +11,12 @@ import {
   getDisplayStatus,
   BASE_WORK_TABS,
   APPROVAL_TAB,
+  sortByTimestampDesc,
 } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
 import { userStore } from '../stores/userStore'
 import { useNavigation } from '../composables/useNavigation'
+import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 
 const router = useRouter()
 const route = useRoute()
@@ -37,59 +39,79 @@ const tabs = computed(() => {
 const currentTab = computed(() => tabs.value[activeTab.value])
 const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
 
-/**
- * 获取工单列表
- * 排序规则：
- * 1. 执行中tab中，所有角色只能看到自己的工单
- * 2. 审批tab中，显示其他人提交的待确认工单
- * 3. 待确认tab中，显示自己提交的待确认工单
- * 4. 时间最近的排最上面
- */
-const fetchWorkList = async () => {
+const allItemsCache = ref<any[]>([])
+
+const fetchWorkList = async (forceRefresh = false) => {
   if (!userReady.value) return
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const response = await periodicInspectionService.getList({
-      page: 0,
-      size: 100,
-    })
-    if (response.code === 200) {
-      const allItems = response.data?.content || []
-      const currentUserName = userStore.getUser()?.name || ''
-      const isInProgressTab = currentTab.value?.key === '执行中'
-      const isApprovalTab = currentTab.value?.key === '审批'
-      const isPendingConfirmTab = currentTab.value?.key === '待确认'
+    const currentUserName = userStore.getUser()?.name || ''
+    const tabKey = currentTab.value?.key
+    const isInProgressTab = tabKey === '执行中'
+    const isApprovalTab = tabKey === '审批'
+    const isPendingConfirmTab = tabKey === '待确认'
 
-      let filteredItems = allItems.filter((item: any) =>
-        currentTab.value?.statuses.includes(item.status)
-      )
-
-      if (isInProgressTab) {
-        if (!canApprove.value) {
-          filteredItems = filteredItems.filter(
-            (item: any) => item.maintenance_personnel === currentUserName
-          )
+    if (isApprovalTab || isPendingConfirmTab) {
+      const cacheKey = CACHE_KEYS.PERIODIC_INSPECTION_PENDING
+      if (!forceRefresh) {
+        const cached = apiCache.get<any[]>(cacheKey)
+        if (cached) {
+          allItemsCache.value = cached
+        }
+      }
+      
+      if (forceRefresh || allItemsCache.value.length === 0) {
+        const response = await periodicInspectionService.getList({
+          page: 0,
+          size: 100,
+          status: '待确认',
+        })
+        if (response.code === 200) {
+          allItemsCache.value = response.data?.content || []
+          apiCache.set(cacheKey, allItemsCache.value, CACHE_TTL.SHORT)
         }
       }
 
+      let filteredItems = allItemsCache.value
       if (isApprovalTab) {
         filteredItems = filteredItems.filter(
           (item: any) => item.maintenance_personnel !== currentUserName
         )
-      }
-
-      if (isPendingConfirmTab) {
+      } else {
         filteredItems = filteredItems.filter(
           (item: any) => item.maintenance_personnel === currentUserName
         )
       }
 
-      workList.value = filteredItems.sort((a: any, b: any) => {
-        const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
-        const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
-        return dateB - dateA
+      workList.value = sortByTimestampDesc(filteredItems, {
+        secondarySortKey: 'id'
       })
+    } else {
+      const tabStatuses = (currentTab.value as { statuses?: string[] })?.statuses || []
+      
+      if (tabStatuses.length > 0) {
+        const responses = await Promise.all(
+          tabStatuses.map(status =>
+            periodicInspectionService.getList({ page: 0, size: 100, status })
+          )
+        )
+        let allItems = responses
+          .filter(r => r.code === 200)
+          .flatMap(r => r.data?.content || [])
+
+        if (isInProgressTab && !canApprove.value) {
+          allItems = allItems.filter(
+            (item: any) => item.maintenance_personnel === currentUserName
+          )
+        }
+
+        workList.value = sortByTimestampDesc(allItems, {
+          secondarySortKey: 'id'
+        })
+      } else {
+        workList.value = []
+      }
     }
   } catch (error) {
     console.error('Failed to fetch work list:', error)
@@ -219,7 +241,7 @@ onMounted(() => {
 <style scoped>
 .periodic-inspection-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .work-list {
@@ -227,7 +249,7 @@ onMounted(() => {
 }
 
 .work-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -239,8 +261,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
   flex-wrap: nowrap;
 }
 
@@ -256,7 +278,7 @@ onMounted(() => {
 
 .work-id {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
   white-space: nowrap;
   text-align: right;
   flex: 1;
@@ -287,13 +309,13 @@ onMounted(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -301,7 +323,7 @@ onMounted(() => {
 }
 
 .info-row .value.highlight {
-  color: #1989fa;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -310,7 +332,7 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .card-footer .van-button {

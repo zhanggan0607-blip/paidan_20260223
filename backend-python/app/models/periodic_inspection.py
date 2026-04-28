@@ -84,3 +84,27 @@ class PeriodicInspection(Base, SoftDeleteMixin):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
+
+    def to_list_dict(self):
+        project_name = self.project_name
+        client_name = self.client_name
+        if self.project:
+            project_name = self.project.project_name or project_name
+            client_name = self.project.client_name or client_name
+
+        return {
+            'id': self.id,
+            'inspection_id': self.inspection_id,
+            'project_id': self.project_id,
+            'project_name': project_name,
+            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
+            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
+            'client_name': client_name,
+            'maintenance_personnel': self.maintenance_personnel,
+            'status': self.status,
+            'filled_count': self.filled_count or 0,
+            'total_count': self.total_count or 5,
+            'reject_reason': self.reject_reason or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }

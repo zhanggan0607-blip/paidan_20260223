@@ -26,7 +26,9 @@ export interface PeriodicInspection {
   execution_result?: string
   remarks?: string
   signature?: string
+  photos?: string[]
   actual_completion_date?: string
+  reject_reason?: string
   created_at: string
   updated_at: string
 }
@@ -94,6 +96,7 @@ export interface PeriodicInspectionUpdate {
   execution_result?: string
   remarks?: string
   signature?: string
+  reject_reason?: string
 }
 
 /**

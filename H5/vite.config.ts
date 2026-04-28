@@ -34,7 +34,7 @@ export default defineConfig(({ mode }) => ({
       dts: 'src/auto-imports.d.ts',
     }),
     Components({
-      resolvers: [VantResolver()],
+      resolvers: [VantResolver({ importStyle: 'css' })],
       dts: 'src/components.d.ts',
     }),
   ],
@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => ({
       ),
     },
   },
-  base: '/',
+  base: '/h5/',
   server: {
     host: true,
     port: 5180,
@@ -85,7 +85,7 @@ export default defineConfig(({ mode }) => ({
         pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : [],
       },
     },
-    sourcemap: mode !== 'production',
+    sourcemap: false,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {

@@ -1,43 +1,3 @@
-/**
- * 统一权限配置模块 (PC端)
- * 从共享包导入基础权限配置，保留PC端特有的权限配置
- */
-
-// 类型导出（编译时擦除，需要使用 export type）
-export type { UserRole, RoleCodeType, RoleConfig, PermissionConfig } from '@sstcp/shared'
-
-// 值导出（运行时存在的常量和函数）
-export {
-  RoleCode,
-  ADMIN_ROLES,
-  ALL_ROLES,
-  MANAGER_ROLES,
-  PROJECT_MANAGEMENT_ROLES,
-  PERSONNEL_MANAGEMENT_ROLES,
-  SPARE_PARTS_MANAGEMENT_ROLES,
-  WORK_ORDER_VIEW_ROLES,
-  WORK_ORDER_APPROVE_ROLES,
-  STATISTICS_VIEW_ROLES,
-  MAINTENANCE_LOG_FILL_ROLES,
-  MAINTENANCE_LOG_VIEW_ROLES,
-  WEEKLY_REPORT_FILL_ROLES,
-  WEEKLY_REPORT_VIEW_ROLES,
-  isAdminRole,
-  isManagerRole,
-  isMaterialManager,
-  canViewAllWorkOrders,
-  canManagePersonnel,
-  canManageProjects,
-  canManagePlans,
-  canApproveWorkOrders,
-  canViewStatistics,
-  canManageSpareParts,
-  canViewSpareParts,
-  canViewWorkOrder,
-  canViewSignature,
-  getRoleLevel,
-} from '@sstcp/shared'
-
 import type { PermissionConfig } from '@sstcp/shared'
 import {
   RoleCode,
@@ -51,9 +11,15 @@ import {
   MAINTENANCE_LOG_VIEW_ROLES,
   WEEKLY_REPORT_FILL_ROLES,
   WEEKLY_REPORT_VIEW_ROLES,
+  isAdminRole,
+  isManagerRole,
+  canDeleteWorkOrder,
 } from '@sstcp/shared'
 
-export const PERMISSION_CONFIGS: Record<string, PermissionConfig> = {
+export { RoleCode, isAdminRole, isManagerRole, canDeleteWorkOrder }
+export type { UserRole, RoleCodeType, RoleConfig, PermissionConfig } from '@sstcp/shared'
+
+const PERMISSION_CONFIGS: Record<string, PermissionConfig> = {
   view_statistics: {
     id: 'view_statistics',
     name: '查看统计',
@@ -176,43 +142,7 @@ export const PERMISSION_CONFIGS: Record<string, PermissionConfig> = {
   },
 }
 
-export function hasPermission(role: string | undefined | null, permissionId: string): boolean {
-  if (!role) return false
-  const permission = PERMISSION_CONFIGS[permissionId]
-  if (!permission) return false
-  return permission.allowedRoles.includes(role)
-}
-
-export function getAllowedPermissions(role: string): string[] {
-  return Object.entries(PERMISSION_CONFIGS)
-    .filter(([_, config]) => config.allowedRoles.includes(role))
-    .map(([id]) => id)
-}
-
-export function canEditPersonnel(
-  currentRole: string,
-  _targetRole: string,
-  currentDepartment: string = '',
-  targetDepartment: string = ''
-): boolean {
-  if (currentRole === RoleCode.ADMIN) return true
-  if (currentRole === RoleCode.DEPARTMENT_MANAGER) {
-    if (currentDepartment && targetDepartment === currentDepartment) {
-      return true
-    }
-  }
-  return false
-}
-
-export function canDeletePersonnel(currentRole: string): boolean {
-  return currentRole === RoleCode.ADMIN
-}
-
-export function canEditPersonnelRole(currentRole: string): boolean {
-  return currentRole === RoleCode.ADMIN
-}
-
-export const MENU_PERMISSION_MAP: Record<string, string> = {
+const MENU_PERMISSION_MAP: Record<string, string> = {
   statistics: 'view_statistics',
   'project-info': 'view_project_management',
   'maintenance-plan': 'view_project_management',
@@ -234,6 +164,47 @@ export const MENU_PERMISSION_MAP: Record<string, string> = {
   'maintenance-log-list': 'view_maintenance_log',
   'weekly-report-fill': 'fill_weekly_report',
   'weekly-report-list': 'view_weekly_report',
+}
+
+const DEFAULT_ROUTE_ORDER = [
+  'statistics',
+  'project-info',
+  'maintenance-plan',
+  'overdue-alert',
+  'near-expiry-alert',
+  'personnel',
+  'customer',
+  'inspection-item',
+  'work-plan',
+  'temporary-repair',
+  'spot-work',
+  'spare-parts-stock',
+  'spare-parts-issue',
+  'spare-parts-return',
+  'repair-tools-inbound',
+  'repair-tools-issue',
+  'repair-tools-return',
+  'maintenance-log-fill',
+  'maintenance-log-list',
+  'weekly-report-fill',
+  'weekly-report-list',
+]
+
+export function getDefaultPath(role: string | undefined | null): string {
+  if (!role) return '/login'
+  for (const menuId of DEFAULT_ROUTE_ORDER) {
+    if (canShowMenu(menuId, role)) {
+      return `/${menuId}`
+    }
+  }
+  return '/login'
+}
+
+export function hasPermission(role: string | undefined | null, permissionId: string): boolean {
+  if (!role) return false
+  const permission = PERMISSION_CONFIGS[permissionId]
+  if (!permission) return false
+  return permission.allowedRoles.includes(role)
 }
 
 export function canShowMenu(menuId: string, role: string | undefined | null): boolean {

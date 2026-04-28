@@ -4,72 +4,11 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse, PaginatedData } from '@sstcp/shared'
+import type { ApiResponse, PaginatedData, TemporaryRepair, TemporaryRepairCreate, TemporaryRepairUpdate } from '@sstcp/shared'
 
-export interface TemporaryRepair {
-  id: number
-  repair_id: string
-  plan_id?: string
-  plan_type?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name?: string
-  client_contact?: string
-  client_contact_info?: string
-  address?: string
-  client_contact_position?: string
-  maintenance_personnel?: string
-  status: string
-  remarks?: string
-  fault_description?: string
-  solution?: string
-  photos?: string[]
-  signature?: string
-  customer_signature?: string
-  execution_date?: string
-  actual_completion_date?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface TemporaryRepairCreate {
-  repair_id: string
-  plan_id?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name?: string
-  maintenance_personnel?: string
-  status?: string
-  remarks?: string
-  fault_description?: string
-  solution?: string
-  photos?: string[]
-  signature?: string
-  execution_date?: string
-}
-
-export interface TemporaryRepairUpdate {
-  repair_id?: string
-  plan_id?: string
-  project_id?: string
-  project_name?: string
-  plan_start_date?: string
-  plan_end_date?: string
-  client_name?: string
-  maintenance_personnel?: string
-  status?: string
-  remarks?: string
-  fault_description?: string
-  solution?: string
-  photos?: string[]
-  signature?: string
-  execution_date?: string
-  reject_reason?: string
-}
+export type { TemporaryRepair } from '@sstcp/shared'
+export type { TemporaryRepairCreate } from '@sstcp/shared'
+export type { TemporaryRepairUpdate } from '@sstcp/shared'
 
 export const temporaryRepairService = {
   /**
@@ -90,6 +29,10 @@ export const temporaryRepairService = {
    */
   async getAll(): Promise<ApiResponse<TemporaryRepair[]>> {
     return await request.get(API_ENDPOINTS.TEMPORARY_REPAIR.ALL)
+  },
+
+  async generateId(projectId: string): Promise<ApiResponse<{ repair_id: string }>> {
+    return await request.get(API_ENDPOINTS.TEMPORARY_REPAIR.GENERATE_ID, { params: { project_id: projectId } })
   },
 
   /**
@@ -128,5 +71,13 @@ export const temporaryRepairService = {
    */
   async delete(id: number): Promise<ApiResponse<null>> {
     return await request.delete(API_ENDPOINTS.TEMPORARY_REPAIR.DETAIL(id))
+  },
+
+  async submit(id: number): Promise<ApiResponse<TemporaryRepair>> {
+    return await request.post(API_ENDPOINTS.TEMPORARY_REPAIR.SUBMIT(id))
+  },
+
+  async recall(id: number): Promise<ApiResponse<TemporaryRepair>> {
+    return await request.post(API_ENDPOINTS.TEMPORARY_REPAIR.RECALL(id))
   },
 }

@@ -26,6 +26,7 @@ const loading = ref(false)
 const detail = ref<SpotWork | null>(null)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 const isSubmitting = ref(false)
+const isInitialized = ref(false)
 
 const formData = ref({
   work_content: '',
@@ -42,8 +43,10 @@ const rejectReason = ref('')
 
 const isEditable = computed(() => {
   const status = detail.value?.status
-  if (!isWorker.value) return false
-  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+  if (status === WORK_STATUS.COMPLETED) return false
+  return status === WORK_STATUS.IN_PROGRESS || 
+         status === WORK_STATUS.PENDING_CONFIRM || 
+         status === WORK_STATUS.RETURNED
 })
 
 const canSubmit = computed(() => {
@@ -51,6 +54,11 @@ const canSubmit = computed(() => {
   if (!isWorker.value) return false
   const status = detail.value?.status
   return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+})
+
+const canUpdate = computed(() => {
+  const status = detail.value?.status
+  return status === WORK_STATUS.PENDING_CONFIRM || status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
 })
 
 const canApprove = computed(() => userStore.canApproveSpotWork())
@@ -419,6 +427,24 @@ const handlePhotoSave = () => {
   showSuccessToast('保存成功')
 }
 
+const getFullImageUrl = (url: string): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+    return url
+  }
+  return window.location.origin + url
+}
+
+const handlePreviewPhoto = (index: number) => {
+  const fullUrls = currentPhotos.value.map((url) => getFullImageUrl(url))
+  showImagePreview({
+    images: fullUrls,
+    startPosition: index,
+    closeable: true,
+    showIndex: true,
+  })
+}
+
 const handleSignature = () => {
   router.push({
     path: '/signature',
@@ -481,6 +507,70 @@ const handleSubmit = async () => {
     if (error !== 'cancel') {
       console.error('Failed to submit:', error)
       showFailToast('提交失败')
+    }
+  } finally {
+    closeToast()
+  }
+}
+
+const handleRecall = async () => {
+  try {
+    await showConfirmDialog({
+      title: '确认撤回',
+      message: '撤回后工单将回到执行中状态，您可以继续编辑。',
+    })
+
+    const response = await spotWorkService.recall(detail.value?.id!)
+    if (response.code === 200) {
+      showSuccessToast('撤回成功')
+      await loadData()
+    } else {
+      showFailToast(response.message || '撤回失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('撤回失败:', error)
+      if (error.response?.data?.detail) {
+        showFailToast(error.response.data.detail)
+      } else {
+        showFailToast('撤回失败')
+      }
+    }
+  }
+}
+
+const handleUpdate = async () => {
+  if (!canUpdate.value) {
+    showFailToast('当前状态不允许更新')
+    return
+  }
+
+  try {
+    await showConfirmDialog({
+      title: '提示',
+      message: '确认更新工单内容吗？',
+    })
+
+    showLoadingToast({ message: '更新中...', forbidClick: true })
+
+    const updateData = {
+      work_content: formData.value.work_content,
+      photos: currentPhotos.value,
+      signature: formData.value.signature,
+      remarks: formData.value.remarks,
+    }
+
+    const response = await spotWorkService.patch(detail.value?.id!, updateData)
+
+    if (response.code === 200) {
+      await addOperationLog('update', '员工更新工单内容')
+      showSuccessToast('更新成功')
+      await fetchDetail()
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('Failed to update:', error)
+      showFailToast('更新失败')
     }
   } finally {
     closeToast()
@@ -629,7 +719,7 @@ const confirmReject = async () => {
       title: '退回确认',
       message: '确认退回该工单吗？退回后员工需重新填写。',
       confirmButtonText: '确认退回',
-      confirmButtonColor: '#ee0a24',
+      confirmButtonColor: 'var(--color-danger)',
     })
 
     showRejectDialog.value = false
@@ -660,9 +750,12 @@ const confirmReject = async () => {
 }
 
 onMounted(async () => {
+  if (isInitialized.value) return
+  
   if (userStore.isLoggedIn()) {
     const user = userStore.getUser()
     if (user) {
+      isInitialized.value = true
       await fetchDetail()
       loadSignature()
     }
@@ -670,7 +763,8 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  if (userStore.isLoggedIn()) {
+  if (!isInitialized.value && userStore.isLoggedIn()) {
+    isInitialized.value = true
     await fetchDetail()
     loadSignature()
   }
@@ -765,7 +859,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
       </van-cell-group>
 
       <van-cell-group inset title="工作内容">
-        <van-field
+        <van-field name="work_content"
           v-model="formData.work_content"
           rows="3"
           autosize
@@ -861,7 +955,16 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         :work-order-id="detail.id"
       />
 
-      <div v-if="isEditable" class="action-buttons">
+      <div v-if="canUpdate" class="action-buttons">
+        <van-button type="primary" size="large" @click="handleUpdate"
+          >更新</van-button
+        >
+      </div>
+
+      <div v-else-if="isEditable" class="action-buttons">
+        <van-button v-if="detail?.status === WORK_STATUS.PENDING_CONFIRM && isWorker" type="warning" size="large" @click="handleRecall"
+          >撤回</van-button
+        >
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
           >提交</van-button
         >
@@ -887,25 +990,35 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
         </div>
         <div class="popup-body">
           <div class="photo-section">
-            <div class="photo-grid">
-              <div v-for="(photo, index) in currentPhotos" :key="index" class="photo-item">
+            <div v-if="currentPhotos.length === 0" class="empty-photos">
+              <van-icon name="photo-o" size="48" color="#dcdee0" />
+              <span>暂无现场图片</span>
+            </div>
+            <div v-else class="photo-grid">
+              <div v-for="(photo, index) in currentPhotos" :key="index" class="photo-item" @click="handlePreviewPhoto(index)">
                 <img :src="photo" alt="现场照片" loading="lazy" />
                 <van-icon
+                  v-if="isEditable"
                   name="delete"
                   class="delete-icon"
                   @click.stop="handleRemovePhoto(index)"
                 />
               </div>
-              <div v-if="currentPhotos.length < 9" class="photo-add" @click="handlePhotoCapture">
+            </div>
+            <div v-if="isEditable && currentPhotos.length < 9" class="photo-add-wrapper">
+              <div class="photo-add" @click="handlePhotoCapture">
                 <van-icon name="photograph" size="24" />
                 <span>拍照</span>
               </div>
             </div>
-            <div class="photo-tip">只支持拍照，最多上传9张</div>
+            <div v-if="isEditable" class="photo-tip">只支持拍照，最多上传9张</div>
           </div>
         </div>
-        <div class="popup-footer">
+        <div v-if="isEditable" class="popup-footer">
           <van-button type="primary" block @click="handlePhotoSave">保存</van-button>
+        </div>
+        <div v-else class="popup-footer">
+          <van-button type="default" block @click="showPhotoPopup = false">关闭</van-button>
         </div>
       </div>
     </van-popup>
@@ -963,7 +1076,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
           <van-icon name="cross" @click="showRejectDialog = false" />
         </div>
         <div class="popup-body">
-          <van-field
+          <van-field name="reject_reason"
             v-model="rejectReason"
             rows="4"
             autosize
@@ -987,7 +1100,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 <style scoped>
 .spot-work-detail {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .content {
@@ -1013,8 +1126,8 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   display: inline-block;
   padding: 2px 8px;
   font-size: 12px;
-  color: #fff;
-  background-color: #07c160;
+  color: var(--color-bg-card);
+  background-color: var(--color-success);
   border-radius: 4px;
 }
 
@@ -1022,8 +1135,8 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   display: inline-block;
   padding: 2px 8px;
   font-size: 12px;
-  color: #fff;
-  background-color: #1989fa;
+  color: var(--color-bg-card);
+  background-color: var(--color-primary);
   border-radius: 4px;
 }
 
@@ -1031,8 +1144,8 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   display: inline-block;
   padding: 3px 10px;
   font-size: 14px;
-  color: #fff;
-  background-color: #ff976a;
+  color: var(--color-bg-card);
+  background-color: var(--color-warning);
   border-radius: 4px;
 }
 
@@ -1040,7 +1153,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   display: flex;
   gap: 12px;
   padding: 12px 16px;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .id-card-item {
@@ -1049,14 +1162,14 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 
 .id-card-label {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
 }
 
 .id-card-upload {
   width: 100%;
   aspect-ratio: 1.5;
-  border: 1px dashed #dcdee0;
+  border: 1px dashed var(--color-border-light);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
@@ -1076,7 +1189,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -1108,7 +1221,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   top: 4px;
   right: 4px;
   font-size: 18px;
-  color: #ee0a24;
+  color: var(--color-danger);
   background: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   padding: 2px;
@@ -1116,35 +1229,53 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 
 .photo-add {
   aspect-ratio: 1;
-  border: 1px dashed #dcdee0;
+  border: 1px dashed var(--color-border-light);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
+}
+
+.photo-add-wrapper {
+  margin-top: 8px;
+}
+
+.empty-photos {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: var(--color-text-secondary);
+  gap: 12px;
+}
+
+.empty-photos span {
+  font-size: 14px;
 }
 
 .photo-tip {
   margin-top: 8px;
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 
 .signature-preview {
   width: 80px;
   height: 40px;
   object-fit: contain;
-  background-color: #fff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
 .action-buttons {
   padding: 12px 16px;
-  background: #fff;
+  background: var(--color-bg-card);
   display: flex;
   flex-direction: row;
   gap: 12px;
@@ -1171,7 +1302,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .popup-title {
@@ -1188,7 +1319,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 .popup-footer {
   padding: 12px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .popup-footer .van-button {
@@ -1205,7 +1336,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 }
 
 .order-id-text {
-  color: #323233;
+  color: var(--color-text-primary);
   word-break: break-all;
   text-align: right;
 }
@@ -1223,7 +1354,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 
 .workers-summary {
   font-size: 14px;
-  color: #1989fa;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -1237,11 +1368,11 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 }
 
 .photo-icon.done {
-  color: #07c160;
+  color: var(--color-success);
 }
 
 .photo-icon.pending {
-  color: #c8c9cc;
+  color: var(--color-text-placeholder);
 }
 
 .id-card-preview-large {
@@ -1249,7 +1380,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
   aspect-ratio: 1.5;
   border-radius: 8px;
   overflow: hidden;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1262,7 +1393,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 }
 
 .no-photo {
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -1275,52 +1406,52 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 }
 
 .status-pending {
-  background: #fff3cd;
-  color: #856404;
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
 }
 
 .status-waiting {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-info-subtle);
+  color: var(--color-primary);
 }
 
 .status-confirmed {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .status-completed {
-  background: #f3e5f5;
-  color: #7b1fa2;
+  background: var(--color-info-subtle);
+  color: var(--color-info);
 }
 
 .status-returned {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .status-cancelled {
-  background: #f5f5f5;
-  color: #757575;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .reject-reason-input {
   margin: 12px 16px;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   border-radius: 8px;
 }
 
 .reject-tip {
   margin: 0 16px;
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
 .popup-footer {
   padding: 12px 16px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
   display: flex;
   gap: 12px;
 }

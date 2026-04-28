@@ -10,7 +10,9 @@
       <span v-else-if="type === 'warning'">!</span>
       <span v-else>ℹ</span>
     </div>
-    <div class="toast-message">{{ message }}</div>
+    <div class="toast-message">
+      {{ message }}
+    </div>
   </div>
 </template>
 
@@ -103,22 +105,22 @@ export default defineComponent({
 
 .toast-success {
   background: #43a047;
-  color: #fff;
+  color: var(--color-bg-card);
 }
 
 .toast-error {
-  background: #d32f2f;
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-bg-card);
 }
 
 .toast-warning {
   background: #ffa000;
-  color: #fff;
+  color: var(--color-bg-card);
 }
 
 .toast-info {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .toast-icon {

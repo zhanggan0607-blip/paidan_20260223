@@ -1,10 +1,16 @@
 /**
- * 用户状态管理
- * 提供两种导出方式：
- * 1. userStore - 兼容旧代码的对象式API
- * 2. useUserStore - Pinia Composition API
+ * H5端用户状态管理 - Pinia Store
+ * 使用标准的Pinia Store模式，支持DevTools调试和持久化
+ *
+ * 状态存储：localStorage (token/refresh_token/user)
+ * 登录判断：isLoggedIn = !!token && !!currentUser
+ *
+ * TODO: 启动时应调用 /auth/me 验证token有效性，避免过期token仍显示已登录
+ * TODO: 后端应支持Token黑名单机制，登出/改密码时使旧token失效
  */
-import { ref, readonly, watch } from 'vue'
+import { defineStore } from 'pinia'
+import { ref, computed, watch } from 'vue'
+import type { User } from '@sstcp/shared'
 import {
   RoleCode,
   hasPermission,
@@ -13,21 +19,11 @@ import {
   isMaterialManager,
 } from '../config/permission'
 
-export interface User {
-  id: number
-  name: string
-  role: string
-  department: string
-  phone: string
-}
-
 const USER_STORAGE_KEY = 'user'
 const TOKEN_STORAGE_KEY = 'token'
 const REFRESH_TOKEN_STORAGE_KEY = 'refresh_token'
 
-const currentUser = ref<User | null>(null)
-
-const loadUserFromStorage = (): User | null => {
+function loadUserFromStorage(): User | null {
   const userStr = localStorage.getItem(USER_STORAGE_KEY)
   if (userStr) {
     try {
@@ -39,226 +35,448 @@ const loadUserFromStorage = (): User | null => {
   return null
 }
 
-currentUser.value = loadUserFromStorage()
+export const useUserStore = defineStore('user', () => {
+  const currentUser = ref<User | null>(loadUserFromStorage())
+  const token = ref<string | null>(localStorage.getItem(TOKEN_STORAGE_KEY))
+  const refreshToken = ref<string | null>(localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY))
 
-if (typeof window !== 'undefined') {
-  window.addEventListener('user-changed', ((event: CustomEvent<User | null>) => {
-    currentUser.value = event.detail
-  }) as EventListener)
-}
+  watch(
+    currentUser,
+    (newUser) => {
+      if (newUser) {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
+      } else {
+        localStorage.removeItem(USER_STORAGE_KEY)
+      }
+    },
+    { deep: true }
+  )
 
-watch(
-  currentUser,
-  (newUser) => {
-    if (newUser) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
+  watch(token, (newToken) => {
+    if (newToken) {
+      localStorage.setItem(TOKEN_STORAGE_KEY, newToken)
+    } else {
+      localStorage.removeItem(TOKEN_STORAGE_KEY)
     }
-  },
-  { deep: true }
-)
+  })
+
+  watch(refreshToken, (newRefreshToken) => {
+    if (newRefreshToken) {
+      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, newRefreshToken)
+    } else {
+      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
+    }
+  })
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e: StorageEvent) => {
+      if (e.key === TOKEN_STORAGE_KEY) {
+        token.value = e.newValue
+      }
+      if (e.key === REFRESH_TOKEN_STORAGE_KEY) {
+        refreshToken.value = e.newValue
+      }
+      if (e.key === USER_STORAGE_KEY) {
+        if (e.newValue) {
+          try {
+            currentUser.value = JSON.parse(e.newValue)
+          } catch {
+            currentUser.value = null
+          }
+        } else {
+          currentUser.value = null
+        }
+      }
+    })
+  }
+
+  const isLoggedIn = computed(() => !!token.value && !!currentUser.value)
+  const isAdmin = computed(() => isAdminRole(currentUser.value?.role))
+  const isDepartmentManager = computed(() => currentUser.value?.role === RoleCode.DEPARTMENT_MANAGER)
+  const isMaterialManagerRole = computed(() => isMaterialManager(currentUser.value?.role))
+  const isEmployee = computed(() => currentUser.value?.role === RoleCode.EMPLOYEE)
+  const isManager = computed(() => isManagerRole(currentUser.value?.role))
+
+  function setUser(user: User): void {
+    currentUser.value = user
+    window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
+  }
+
+  function clearUser(): void {
+    currentUser.value = null
+    token.value = null
+    refreshToken.value = null
+    window.dispatchEvent(new CustomEvent('user-changed', { detail: null }))
+  }
+
+  function setToken(newToken: string): void {
+    token.value = newToken
+  }
+
+  function setRefreshToken(newRefreshToken: string): void {
+    refreshToken.value = newRefreshToken
+  }
+
+  function canViewAllWorkOrders(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_all_work_orders')
+  }
+
+  function canViewPersonnel(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_personnel')
+  }
+
+  function canViewStatistics(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_statistics')
+  }
+
+  function canViewProjectManagement(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_project_management')
+  }
+
+  function canViewWorkOrder(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function canViewSparePartsInventory(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_inventory')
+  }
+
+  function canViewSparePartsStock(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_stock')
+  }
+
+  function canViewSparePartsIssue(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_spare_parts_issue')
+  }
+
+  function canViewRepairToolsStock(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_stock')
+  }
+
+  function canViewRepairToolsInbound(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_inbound')
+  }
+
+  function canViewRepairToolsIssue(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_repair_tools_issue')
+  }
+
+  function canViewAlerts(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_alerts')
+  }
+
+  function canViewSystemManagement(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_system_management')
+  }
+
+  function canViewPeriodicInspection(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function canApprovePeriodicInspection(): boolean {
+    return hasPermission(currentUser.value?.role, 'approve_periodic_inspection')
+  }
+
+  function canApproveTemporaryRepair(): boolean {
+    return hasPermission(currentUser.value?.role, 'approve_temporary_repair')
+  }
+
+  function canApproveSpotWork(): boolean {
+    return hasPermission(currentUser.value?.role, 'approve_spot_work')
+  }
+
+  function canViewTemporaryRepair(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function canViewSpotWork(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function canApplySpotWork(): boolean {
+    return hasPermission(currentUser.value?.role, 'apply_spot_work')
+  }
+
+  function canViewProjectInfo(): boolean {
+    return true
+  }
+
+  function canQuickFillSpotWork(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function canViewMaintenanceLog(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_maintenance_log')
+  }
+
+  function canViewMaintenanceLogDetail(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_maintenance_log_detail')
+  }
+
+  function canFillMaintenanceLog(): boolean {
+    return hasPermission(currentUser.value?.role, 'fill_maintenance_log')
+  }
+
+  function canViewAllMaintenanceLog(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_all_maintenance_log')
+  }
+
+  function canViewDepartmentWeeklyReport(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_department_weekly_report')
+  }
+
+  function canViewAllWeeklyReport(): boolean {
+    return hasPermission(currentUser.value?.role, 'view_all_weekly_report')
+  }
+
+  function canApproveWeeklyReport(): boolean {
+    return hasPermission(currentUser.value?.role, 'approve_weekly_report')
+  }
+
+  function canViewWorkList(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function canViewSignature(): boolean {
+    return !isMaterialManager(currentUser.value?.role)
+  }
+
+  function checkPermission(permissionId: string): boolean {
+    return hasPermission(currentUser.value?.role, permissionId)
+  }
+
+  return {
+    currentUser,
+    token,
+    refreshToken,
+    isLoggedIn,
+    isAdmin,
+    isDepartmentManager,
+    isMaterialManagerRole,
+    isEmployee,
+    isManager,
+    setUser,
+    clearUser,
+    setToken,
+    setRefreshToken,
+    canViewAllWorkOrders,
+    canViewPersonnel,
+    canViewStatistics,
+    canViewProjectManagement,
+    canViewWorkOrder,
+    canViewSparePartsInventory,
+    canViewSparePartsStock,
+    canViewSparePartsIssue,
+    canViewRepairToolsStock,
+    canViewRepairToolsInbound,
+    canViewRepairToolsIssue,
+    canViewAlerts,
+    canViewSystemManagement,
+    canViewPeriodicInspection,
+    canApprovePeriodicInspection,
+    canApproveTemporaryRepair,
+    canApproveSpotWork,
+    canViewTemporaryRepair,
+    canViewSpotWork,
+    canApplySpotWork,
+    canViewProjectInfo,
+    canQuickFillSpotWork,
+    canViewMaintenanceLog,
+    canViewMaintenanceLogDetail,
+    canFillMaintenanceLog,
+    canViewAllMaintenanceLog,
+    canViewDepartmentWeeklyReport,
+    canViewAllWeeklyReport,
+    canApproveWeeklyReport,
+    canViewWorkList,
+    canViewSignature,
+    checkPermission,
+  }
+})
 
 export const userStore = {
-  readonlyCurrentUser: readonly(currentUser),
+  get readonlyCurrentUser() {
+    const store = useUserStore()
+    return store.currentUser
+  },
 
   getUser(): User | null {
-    return currentUser.value
+    return useUserStore().currentUser
   },
 
   setUser(user: User): void {
-    currentUser.value = user
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user))
-    window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
+    useUserStore().setUser(user)
   },
 
   clearUser(): void {
-    currentUser.value = null
-    localStorage.removeItem(USER_STORAGE_KEY)
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-    localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
-    window.dispatchEvent(new CustomEvent('user-changed', { detail: null }))
+    useUserStore().clearUser()
   },
 
   getToken(): string | null {
-    return localStorage.getItem(TOKEN_STORAGE_KEY)
+    return useUserStore().token
   },
 
   setToken(token: string): void {
-    localStorage.setItem(TOKEN_STORAGE_KEY, token)
+    useUserStore().setToken(token)
   },
 
   getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY)
+    return useUserStore().refreshToken
   },
 
   setRefreshToken(refreshToken: string): void {
-    localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, refreshToken)
+    useUserStore().setRefreshToken(refreshToken)
   },
 
   isLoggedIn(): boolean {
-    return !!this.getToken()
+    return useUserStore().isLoggedIn
   },
 
   isAdmin(): boolean {
-    return isAdminRole(currentUser.value?.role)
+    return useUserStore().isAdmin
   },
 
   isDepartmentManager(): boolean {
-    return currentUser.value?.role === RoleCode.DEPARTMENT_MANAGER
+    return useUserStore().isDepartmentManager
   },
 
   isMaterialManager(): boolean {
-    return isMaterialManager(currentUser.value?.role)
+    return useUserStore().isMaterialManagerRole
   },
 
   isEmployee(): boolean {
-    return currentUser.value?.role === RoleCode.EMPLOYEE
-  },
-
-  canManagePersonnel(): boolean {
-    return hasPermission(currentUser.value?.role, 'manage_personnel')
-  },
-
-  canManageProjects(): boolean {
-    return hasPermission(currentUser.value?.role, 'manage_projects')
-  },
-
-  canManageSpareParts(): boolean {
-    return hasPermission(currentUser.value?.role, 'manage_spare_parts')
+    return useUserStore().isEmployee
   },
 
   canViewAllWorkOrders(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_all_work_orders')
+    return useUserStore().canViewAllWorkOrders()
   },
 
   canViewPersonnel(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_personnel')
+    return useUserStore().canViewPersonnel()
   },
 
   canViewStatistics(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_statistics')
+    return useUserStore().canViewStatistics()
   },
 
   canViewProjectManagement(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_project_management')
+    return useUserStore().canViewProjectManagement()
   },
 
   canViewWorkOrder(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return useUserStore().canViewWorkOrder()
   },
 
   canViewSparePartsInventory(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_inventory')
+    return useUserStore().canViewSparePartsInventory()
   },
 
   canViewSparePartsStock(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_stock')
+    return useUserStore().canViewSparePartsStock()
   },
 
   canViewSparePartsIssue(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_issue')
+    return useUserStore().canViewSparePartsIssue()
   },
 
   canViewRepairToolsStock(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_stock')
+    return useUserStore().canViewRepairToolsStock()
   },
 
   canViewRepairToolsInbound(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_inbound')
+    return useUserStore().canViewRepairToolsInbound()
   },
 
   canViewRepairToolsIssue(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_issue')
+    return useUserStore().canViewRepairToolsIssue()
   },
 
   canViewAlerts(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_alerts')
+    return useUserStore().canViewAlerts()
   },
 
   canViewSystemManagement(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_system_management')
+    return useUserStore().canViewSystemManagement()
   },
 
   canViewPeriodicInspection(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return useUserStore().canViewPeriodicInspection()
   },
 
   canApprovePeriodicInspection(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_periodic_inspection')
+    return useUserStore().canApprovePeriodicInspection()
   },
 
   canApproveTemporaryRepair(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_temporary_repair')
+    return useUserStore().canApproveTemporaryRepair()
   },
 
   canApproveSpotWork(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_spot_work')
+    return useUserStore().canApproveSpotWork()
   },
 
   canViewTemporaryRepair(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return useUserStore().canViewTemporaryRepair()
   },
 
   canViewSpotWork(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return useUserStore().canViewSpotWork()
   },
 
   canApplySpotWork(): boolean {
-    return hasPermission(currentUser.value?.role, 'apply_spot_work')
+    return useUserStore().canApplySpotWork()
   },
 
   canViewProjectInfo(): boolean {
-    return true
+    return useUserStore().canViewProjectInfo()
   },
 
   canQuickFillSpotWork(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return useUserStore().canQuickFillSpotWork()
   },
 
   canViewMaintenanceLog(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_maintenance_log')
+    return useUserStore().canViewMaintenanceLog()
   },
 
   canViewMaintenanceLogDetail(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_maintenance_log_detail')
+    return useUserStore().canViewMaintenanceLogDetail()
   },
 
   canFillMaintenanceLog(): boolean {
-    return hasPermission(currentUser.value?.role, 'fill_maintenance_log')
+    return useUserStore().canFillMaintenanceLog()
   },
 
   canViewAllMaintenanceLog(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_all_maintenance_log')
+    return useUserStore().canViewAllMaintenanceLog()
   },
 
   canViewDepartmentWeeklyReport(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_department_weekly_report')
+    return useUserStore().canViewDepartmentWeeklyReport()
   },
 
   canViewAllWeeklyReport(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_all_weekly_report')
+    return useUserStore().canViewAllWeeklyReport()
   },
 
   canApproveWeeklyReport(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_weekly_report')
+    return useUserStore().canApproveWeeklyReport()
   },
 
   canViewWorkList(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return useUserStore().canViewWorkList()
   },
 
   canViewSignature(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
-  },
-
-  canCreateTemporaryRepair(): boolean {
-    return hasPermission(currentUser.value?.role, 'create_temporary_repair')
+    return useUserStore().canViewSignature()
   },
 
   isManager(): boolean {
-    return isManagerRole(currentUser.value?.role)
+    return useUserStore().isManager
   },
 
   hasPermission(permissionId: string): boolean {
-    return hasPermission(currentUser.value?.role, permissionId)
+    return useUserStore().checkPermission(permissionId)
   },
 }

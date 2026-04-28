@@ -4,43 +4,12 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse, PaginatedData } from '@sstcp/shared'
+import type { ApiResponse, PaginatedData, Personnel, PersonnelCreate, PersonnelUpdate } from '@sstcp/shared'
+import { dataCache, deduplicateRequest } from '../utils/cache'
 
-export interface Personnel {
-  id: number
-  name: string
-  gender: string
-  phone?: string
-  department?: string
-  role: string
-  address?: string
-  remarks?: string
-  last_login_at?: string
-  created_at: string
-  updated_at: string
-  is_online?: boolean
-  device_type?: 'pc' | 'h5' | null
-}
-
-export interface PersonnelCreate {
-  name: string
-  gender: string
-  phone?: string
-  department?: string
-  role: string
-  address?: string
-  remarks?: string
-}
-
-export interface PersonnelUpdate {
-  name?: string
-  gender?: string
-  phone?: string
-  department?: string
-  role?: string
-  address?: string
-  remarks?: string
-}
+export type { Personnel } from '@sstcp/shared'
+export type { PersonnelCreate } from '@sstcp/shared'
+export type { PersonnelUpdate } from '@sstcp/shared'
 
 export const personnelService = {
   /**
@@ -59,7 +28,22 @@ export const personnelService = {
     },
     signal?: AbortSignal
   ): Promise<ApiResponse<PaginatedData<Personnel>>> {
-    return await request.get(API_ENDPOINTS.PERSONNEL.LIST, { params, signal })
+    const cacheKey = `personnel_list_${JSON.stringify(params || {})}`
+    
+    const cached = dataCache.get<ApiResponse<PaginatedData<Personnel>>>(cacheKey)
+    if (cached) {
+      return cached
+    }
+    
+    return deduplicateRequest<ApiResponse<PaginatedData<Personnel>>>(cacheKey, async () => {
+      const response = await request.get<PaginatedData<Personnel>>(API_ENDPOINTS.PERSONNEL.LIST, { params, signal })
+      
+      if (response.code === 200) {
+        dataCache.set(cacheKey, response, 300000)
+      }
+      
+      return response
+    })
   },
 
   /**
@@ -73,27 +57,60 @@ export const personnelService = {
    * 创建人员
    */
   async create(data: PersonnelCreate): Promise<ApiResponse<Personnel>> {
-    return await request.post(API_ENDPOINTS.PERSONNEL.LIST, data)
+    const response = await request.post<Personnel>(API_ENDPOINTS.PERSONNEL.LIST, data)
+    
+    if (response.code === 200) {
+      dataCache.clear()
+    }
+    
+    return response
   },
 
   /**
    * 更新人员
    */
   async update(id: number, data: PersonnelUpdate): Promise<ApiResponse<Personnel>> {
-    return await request.put(API_ENDPOINTS.PERSONNEL.DETAIL(id), data)
+    const response = await request.put<Personnel>(API_ENDPOINTS.PERSONNEL.DETAIL(id), data)
+    
+    if (response.code === 200) {
+      dataCache.clear()
+    }
+    
+    return response
   },
 
   /**
    * 删除人员
    */
   async delete(id: number): Promise<ApiResponse<null>> {
-    return await request.delete(API_ENDPOINTS.PERSONNEL.DETAIL(id))
+    const response = await request.delete<null>(API_ENDPOINTS.PERSONNEL.DETAIL(id))
+    
+    if (response.code === 200) {
+      dataCache.clear()
+    }
+    
+    return response
   },
 
   /**
    * 获取所有人员（不分页）
    */
   async getAll(signal?: AbortSignal): Promise<ApiResponse<Personnel[]>> {
-    return await request.get(API_ENDPOINTS.PERSONNEL.ALL, { signal })
+    const cacheKey = 'personnel_all'
+    
+    const cached = dataCache.get<ApiResponse<Personnel[]>>(cacheKey)
+    if (cached) {
+      return cached
+    }
+    
+    return deduplicateRequest<ApiResponse<Personnel[]>>(cacheKey, async () => {
+      const response = await request.get<Personnel[]>(API_ENDPOINTS.PERSONNEL.ALL, { signal })
+      
+      if (response.code === 200) {
+        dataCache.set(cacheKey, response, 300000)
+      }
+      
+      return response
+    })
   },
 }

@@ -238,7 +238,7 @@ onMounted(() => {
 
         <div class="popup-body">
           <van-cell-group inset>
-            <van-field label="选择工具" placeholder="请选择工具" required>
+            <van-field name="选择工具" label="选择工具" placeholder="请选择工具" required>
               <template #input>
                 <select
                   v-model="selectedToolId"
@@ -253,16 +253,16 @@ onMounted(() => {
                 </select>
               </template>
             </van-field>
-            <van-field
+            <van-field name="工具名称"
               :model-value="selectedTool?.tool_name || ''"
               label="工具名称"
               placeholder="请选择工具"
               readonly
             />
-            <van-field :model-value="selectedTool?.tool_id || ''" label="工具编号" readonly />
-            <van-field :model-value="selectedTool?.specification || ''" label="规格型号" readonly />
-            <van-field :model-value="selectedTool?.stock || 0" label="库存数量" readonly />
-            <van-field label="领用数量" required>
+            <van-field name="工具编号" :model-value="selectedTool?.tool_id || ''" label="工具编号" readonly />
+            <van-field name="规格型号" :model-value="selectedTool?.specification || ''" label="规格型号" readonly />
+            <van-field name="库存数量" :model-value="selectedTool?.stock || 0" label="库存数量" readonly />
+            <van-field name="领用数量" label="领用数量" required>
               <template #input>
                 <van-stepper
                   v-model="issueForm.quantity"
@@ -273,7 +273,7 @@ onMounted(() => {
                 />
               </template>
             </van-field>
-            <van-field
+            <van-field name="project_name"
               v-model="issueForm.projectName"
               label="所属项目"
               placeholder="请选择项目"
@@ -301,7 +301,7 @@ onMounted(() => {
                 </select>
               </template>
             </van-field>
-            <van-field
+            <van-field name="remark"
               v-model="issueForm.remark"
               label="备注"
               placeholder="请输入备注"
@@ -324,13 +324,13 @@ onMounted(() => {
 <style scoped>
 .repair-tools-issue-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .action-bar {
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .issue-list {
@@ -338,7 +338,7 @@ onMounted(() => {
 }
 
 .issue-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -350,13 +350,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tool-name {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .status-badge {
@@ -367,13 +367,13 @@ onMounted(() => {
 }
 
 .status-issued {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--color-warning-subtle);
+  color: var(--color-accent-dark);
 }
 
 .status-returned {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .card-body {
@@ -389,13 +389,13 @@ onMounted(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -406,7 +406,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .popup-content {
@@ -420,7 +420,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
 }
 
@@ -437,7 +437,7 @@ onMounted(() => {
 .popup-footer {
   padding: 16px;
   flex-shrink: 0;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .project-select,

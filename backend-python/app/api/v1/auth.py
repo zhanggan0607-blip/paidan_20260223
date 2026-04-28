@@ -2,6 +2,8 @@
 用户认证API接口
 包含登录、登出、获取用户信息、修改密码等功能
 """
+import threading
+import time
 from datetime import datetime
 import uuid
 
@@ -18,6 +20,9 @@ from app.auth import (
     get_current_user_required,
     get_password_hash,
     verify_password,
+    add_token_to_blacklist,
+    blacklist_all_user_tokens,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
 )
 from app.database import get_db
 from app.dependencies import UserInfo
@@ -29,6 +34,35 @@ from app.websocket import manager
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+_login_failures: dict[str, list[float]] = {}
+_login_lock = threading.Lock()
+MAX_LOGIN_ATTEMPTS = 5
+LOGIN_LOCKOUT_SECONDS = 900
+
+
+def _check_login_lockout(username: str) -> int | None:
+    with _login_lock:
+        attempts = _login_failures.get(username, [])
+        now = time.time()
+        attempts = [t for t in attempts if now - t < LOGIN_LOCKOUT_SECONDS]
+        _login_failures[username] = attempts
+        if len(attempts) >= MAX_LOGIN_ATTEMPTS:
+            remaining = int(attempts[0] + LOGIN_LOCKOUT_SECONDS - now)
+            return max(remaining, 0)
+        return None
+
+
+def _record_login_failure(username: str) -> None:
+    with _login_lock:
+        if username not in _login_failures:
+            _login_failures[username] = []
+        _login_failures[username].append(time.time())
+
+
+def _clear_login_failures(username: str) -> None:
+    with _login_lock:
+        _login_failures.pop(username, None)
+
 
 class LoginRequest(BaseModel):
     username: str
@@ -37,7 +71,7 @@ class LoginRequest(BaseModel):
 
 
 class ChangePasswordRequest(BaseModel):
-    old_password: str = Field(..., min_length=6, description="旧密码")
+    old_password: str = Field(..., min_length=1, description="旧密码")
     new_password: str = Field(..., min_length=6, description="新密码")
 
 
@@ -105,20 +139,24 @@ def record_online_status(db: Session, user: Personnel, device_type: str, ip_addr
         db.add(online_user)
 
 
-@router.post("/login", response_model=ApiResponse)
-async def login(
-    request: Request,
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db)
-):
-    """
-    用户登录接口
-    使用OAuth2密码模式，用户名为人员姓名
-    支持bcrypt加密密码和明文密码（向后兼容）
-    """
-    user = db.query(Personnel).filter(Personnel.name == form_data.username).first()
+async def _perform_login(
+    db: Session,
+    username: str,
+    password: str,
+    device_type: str,
+    request: Request
+) -> dict:
+    lockout_remaining = _check_login_lockout(username)
+    if lockout_remaining is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"登录失败次数过多，请{lockout_remaining}秒后重试",
+        )
+
+    user = db.query(Personnel).filter(Personnel.name == username).first()
 
     if not user:
+        _record_login_failure(username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
@@ -129,35 +167,38 @@ async def login(
     need_password_migration = False
 
     if user.password_hash:
-        password_valid = verify_password(form_data.password, user.password_hash)
+        password_valid = verify_password(password, user.password_hash)
     else:
         default_password = get_default_password(user)
-        if form_data.password == default_password:
+        if password == default_password:
             password_valid = True
             need_password_migration = True
 
     if not password_valid:
+        _record_login_failure(username)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    _clear_login_failures(username)
+
     if need_password_migration:
-        user.password_hash = get_password_hash(form_data.password)
+        user.password_hash = get_password_hash(password)
         db.commit()
 
     update_last_login(db, user)
-    
+
     ip_address = get_client_ip(request)
-    record_online_status(db, user, "pc", ip_address)
+    record_online_status(db, user, device_type, ip_address)
     db.commit()
 
     await manager.broadcast_online_status(
         user_id=user.id,
         user_name=user.name,
         is_online=True,
-        device_type="pc"
+        device_type=device_type
     )
 
     access_token = create_access_token(
@@ -177,22 +218,39 @@ async def login(
         }
     )
 
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "role": user.role,
+            "department": user.department,
+            "phone": user.phone,
+            "must_change_password": user.must_change_password
+        }
+    }
+
+
+@router.post("/login", response_model=ApiResponse)
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
+    result = await _perform_login(
+        db=db,
+        username=form_data.username,
+        password=form_data.password,
+        device_type="pc",
+        request=request
+    )
+
     return ApiResponse(
         code=200,
         message="登录成功",
-        data={
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "name": user.name,
-                "role": user.role,
-                "department": user.department,
-                "phone": user.phone,
-                "must_change_password": user.must_change_password
-            }
-        }
+        data=result
     )
 
 
@@ -202,98 +260,27 @@ async def login_json(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    用户登录接口（JSON格式）
-    用户名为人员姓名
-    支持device_type参数区分PC端和H5端
-    """
-    user = db.query(Personnel).filter(Personnel.name == login_req.username).first()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
-        )
-
-    password_valid = False
-    need_password_migration = False
-
-    if user.password_hash:
-        password_valid = verify_password(login_req.password, user.password_hash)
-    else:
-        default_password = get_default_password(user)
-        if login_req.password == default_password:
-            password_valid = True
-            need_password_migration = True
-
-    if not password_valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="用户名或密码错误"
-        )
-
-    if need_password_migration:
-        user.password_hash = get_password_hash(login_req.password)
-        db.commit()
-
-    update_last_login(db, user)
-    
-    ip_address = get_client_ip(request)
-    record_online_status(db, user, login_req.device_type, ip_address)
-    db.commit()
-
-    await manager.broadcast_online_status(
-        user_id=user.id,
-        user_name=user.name,
-        is_online=True,
-        device_type=login_req.device_type
-    )
-
-    access_token = create_access_token(
-        data={
-            "sub": user.name,
-            "name": user.name,
-            "role": user.role,
-            "user_id": user.id
-        }
-    )
-    refresh_token = create_refresh_token(
-        data={
-            "sub": user.name,
-            "name": user.name,
-            "role": user.role,
-            "user_id": user.id
-        }
+    result = await _perform_login(
+        db=db,
+        username=login_req.username,
+        password=login_req.password,
+        device_type=login_req.device_type,
+        request=request
     )
 
     return ApiResponse(
         code=200,
         message="登录成功",
-        data={
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "name": user.name,
-                "role": user.role,
-                "department": user.department,
-                "phone": user.phone,
-                "must_change_password": user.must_change_password
-            }
-        }
+        data=result
     )
 
 
 @router.post("/logout", response_model=ApiResponse)
 async def logout(
+    request: Request,
     current_user: UserInfo = Depends(get_user_info),
     db: Session = Depends(get_db)
 ):
-    """
-    用户登出接口
-    更新用户在线状态为离线
-    """
     user_name = None
     if current_user.is_authenticated and current_user.id:
         existing = db.query(OnlineUser).filter(
@@ -307,6 +294,23 @@ async def logout(
             user_name = existing.user_name
             existing.is_active = False
             db.commit()
+
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+            try:
+                from jose import jwt as jose_jwt
+                from app.config import get_settings
+                payload = jose_jwt.decode(token, get_settings().secret_key, algorithms=["HS256"])
+                jti = payload.get("jti")
+                exp = payload.get("exp", 0)
+                if jti and exp:
+                    import time
+                    remaining = int(exp - time.time())
+                    if remaining > 0:
+                        add_token_to_blacklist(jti, remaining)
+            except Exception:
+                pass
     
     if user_name:
         await manager.broadcast_online_status(
@@ -392,6 +396,14 @@ async def refresh_token(
             detail="用户不存在"
         )
 
+    old_jti = payload.get("jti")
+    old_exp = payload.get("exp", 0)
+    if old_jti and old_exp:
+        import time as _time
+        remaining = int(old_exp - _time.time())
+        if remaining > 0:
+            add_token_to_blacklist(old_jti, remaining)
+
     access_token = create_access_token(
         data={
             "sub": user.name,
@@ -433,7 +445,7 @@ async def change_password(
     user = db.query(Personnel).filter(Personnel.id == current_user.id).first()
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="用户不存在"
         )
 
@@ -444,8 +456,9 @@ async def change_password(
                 detail="旧密码错误"
             )
     else:
+        import hmac
         default_password = get_default_password(user)
-        if password_req.old_password != default_password:
+        if not hmac.compare_digest(password_req.old_password, default_password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="旧密码错误"
@@ -461,8 +474,10 @@ async def change_password(
     user.must_change_password = False
     db.commit()
 
+    blacklist_all_user_tokens(user.id)
+
     return ApiResponse(
         code=200,
-        message="密码修改成功",
+        message="密码修改成功，请重新登录",
         data=None
     )

@@ -1,19 +1,31 @@
 <template>
-  <div ref="wrapperRef" class="search-input-wrapper">
+  <div
+    ref="wrapperRef"
+    class="search-input-wrapper"
+  >
     <input
+      :id="inputId"
       type="text"
       class="search-input"
+      :name="inputId"
       :placeholder="placeholder"
       :value="modelValue"
       @input="handleInput"
       @focus="handleFocus"
       @blur="handleBlur"
       @keydown="handleKeydown"
-    />
-    <div v-if="showDropdown && filteredHistory.length > 0" class="search-dropdown">
+    >
+    <div
+      v-if="showDropdown && filteredHistory.length > 0"
+      class="search-dropdown"
+    >
       <div class="dropdown-header">
         <span>历史记录</span>
-        <a href="#" class="clear-link" @click.prevent="handleClearHistory">清空</a>
+        <a
+          href="#"
+          class="clear-link"
+          @click.prevent="handleClearHistory"
+        >清空</a>
       </div>
       <div
         v-for="(item, index) in filteredHistory"
@@ -48,6 +60,10 @@ export default defineComponent({
     fieldKey: {
       type: String,
       required: true,
+    },
+    inputId: {
+      type: String,
+      default: '',
     },
   },
   emits: ['update:modelValue', 'search', 'input'],
@@ -189,22 +205,22 @@ export default defineComponent({
 .search-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .search-dropdown {
@@ -212,8 +228,8 @@ export default defineComponent({
   top: 100%;
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -227,13 +243,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-light);
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .clear-link {
-  color: #1976d2;
+  color: var(--color-primary);
   text-decoration: none;
   font-size: 12px;
 }
@@ -253,7 +269,7 @@ export default defineComponent({
 
 .dropdown-item:hover,
 .dropdown-item.active {
-  background-color: #f5f5f5;
+  background-color: var(--color-bg-page);
 }
 
 .history-icon {
@@ -263,7 +279,7 @@ export default defineComponent({
 
 .history-text {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

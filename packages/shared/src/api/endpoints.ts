@@ -49,31 +49,33 @@ export const API_ENDPOINTS = {
       `/periodic-inspection-record/inspection/${inspectionId}`,
     CREATE_RECORD: '/periodic-inspection-record',
     SUBMIT: (id: number) => `/periodic-inspection/${id}/submit`,
+    RECALL: (id: number) => `/periodic-inspection/${id}/recall`,
     APPROVE: (id: number) => `/periodic-inspection/${id}/approve`,
-    REJECT: (id: number) => `/periodic-inspection/${id}/reject`,
   },
 
   TEMPORARY_REPAIR: {
     LIST: '/temporary-repair',
     DETAIL: (id: number) => `/temporary-repair/${id}`,
     ALL: '/temporary-repair/all/list',
+    GENERATE_ID: '/temporary-repair/generate-id',
     SUBMIT: (id: number) => `/temporary-repair/${id}/submit`,
+    RECALL: (id: number) => `/temporary-repair/${id}/recall`,
     APPROVE: (id: number) => `/temporary-repair/${id}/approve`,
-    REJECT: (id: number) => `/temporary-repair/${id}/reject`,
   },
 
   SPOT_WORK: {
     LIST: '/spot-work',
     DETAIL: (id: number) => `/spot-work/${id}`,
     ALL: '/spot-work/all/list',
+    GENERATE_ID: '/spot-work/generate-id',
     QUICK_FILL: '/spot-work/quick-fill',
     WORKERS: '/spot-work/workers',
     WORKER_DETAIL: (id: number) => `/spot-work/workers/${id}`,
     WORKERS_BY_PROJECT: '/spot-work/workers',
     CHECK_ID_CARD: '/spot-work/workers/check-id-card',
     SUBMIT: (id: number) => `/spot-work/${id}/submit`,
+    RECALL: (id: number) => `/spot-work/${id}/recall`,
     APPROVE: (id: number) => `/spot-work/${id}/approve`,
-    REJECT: (id: number) => `/spot-work/${id}/reject`,
     ALL_WORKERS: '/spot-work/workers/all',
   },
 
@@ -192,7 +194,6 @@ export const API_ENDPOINTS = {
   },
 
   UPLOAD: {
-    IMAGE: '/upload/image',
     FILE: '/upload',
     BASE64: '/upload/base64',
   },

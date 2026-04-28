@@ -1,15 +1,8 @@
-/**
- * H5端类型定义
- * 从shared包重新导出所有共享类型
- */
-
 export type {
   ApiResponse,
   PaginatedData,
   PaginatedResponse,
-  LegacyPaginatedResponse,
   QueryParams,
-  ListQueryParams,
   ApiError,
   User,
   UserInfo,

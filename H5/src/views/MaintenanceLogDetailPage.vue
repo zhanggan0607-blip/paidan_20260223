@@ -14,6 +14,7 @@ const loading = ref(false)
 const logDetail = ref<MaintenanceLog | null>(null)
 const imageList = ref<string[]>([])
 const operationLogs = ref<OperationLog[]>([])
+const isInitialized = ref(false)
 
 /**
  * 获取日志类型名称
@@ -135,11 +136,16 @@ const handleBack = () => {
 }
 
 onMounted(() => {
+  if (isInitialized.value) return
+  isInitialized.value = true
   fetchLogDetail()
 })
 
 onActivated(() => {
-  fetchLogDetail()
+  if (!isInitialized.value) {
+    isInitialized.value = true
+    fetchLogDetail()
+  }
 })
 
 watch(
@@ -231,7 +237,7 @@ watch(
 <style scoped>
 .maintenance-log-detail-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .detail-content {
@@ -256,7 +262,7 @@ watch(
 .content-box {
   padding: 12px 16px;
   font-size: 14px;
-  color: #323233;
+  color: var(--color-text-primary);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;
@@ -289,7 +295,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .operation-log-section {
@@ -327,8 +333,8 @@ watch(
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #1989fa;
-  border: 2px solid #fff;
+  background: var(--color-primary);
+  border: 2px solid var(--color-bg-card);
   box-shadow: 0 0 0 2px #1989fa;
 }
 
@@ -341,20 +347,20 @@ watch(
 
 .timeline-time {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-family: monospace;
 }
 
 .timeline-operator {
   font-size: 13px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .timeline-action {
   font-size: 12px;
-  color: #1989fa;
-  background: #e8f4ff;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
   padding: 2px 6px;
   border-radius: 4px;
 }

@@ -7,8 +7,9 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label class="search-label">产品名称：</label>
+                  <label for="search_productName" class="search-label">产品名称：</label>
                   <SearchInput
+              input-id="search_productName"
                     v-model="filters.productName"
                     field-key="SparePartsStock_productName"
                     placeholder="请输入产品名称"
@@ -18,7 +19,13 @@
               </div>
             </div>
             <div class="action-buttons">
-              <button v-if="canInbound" class="btn btn-add" @click="handleAdd">新增入库</button>
+              <button
+                v-if="canInbound"
+                class="btn btn-add"
+                @click="handleAdd"
+              >
+                新增入库
+              </button>
             </div>
           </div>
 
@@ -39,15 +46,27 @@
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="9" class="loading-cell">
-                    <div class="loading-spinner"></div>
+                  <td
+                    colspan="9"
+                    class="loading-cell"
+                  >
+                    <div class="loading-spinner" />
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="stockList.length === 0">
-                  <td colspan="9" class="empty-cell">暂无数据</td>
+                  <td
+                    colspan="9"
+                    class="empty-cell"
+                  >
+                    暂无数据
+                  </td>
                 </tr>
-                <tr v-for="(item, index) in stockList" v-else :key="item.id">
+                <tr
+                  v-for="(item, index) in stockList"
+                  v-else
+                  :key="item.id"
+                >
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.productName }}</td>
                   <td>{{ item.brand || '-' }}</td>
@@ -61,7 +80,10 @@
                   <td>{{ item.status || '在库' }}</td>
                   <td>{{ formatTime(item.updatedAt) }}</td>
                   <td>
-                    <button class="action-btn restock-btn" @click="handleRestock(item)">
+                    <button
+                      class="action-btn restock-btn"
+                      @click="handleRestock(item)"
+                    >
                       入库
                     </button>
                   </td>
@@ -88,7 +110,7 @@
                     :min="1"
                     :max="totalPages"
                     class="pagination-input"
-                  />
+                  >
                   <span class="pagination-slash">/</span>
                   <span>{{ totalPages }}</span>
                 </span>
@@ -102,11 +124,25 @@
               </div>
               <div class="page-size-selector">
                 <span>每页</span>
-                <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
+                <select
+                  id="pageSize"
+                  name="pageSize"
+                  v-model="pageSize"
+                  class="page-size-select"
+                  @change="handlePageSizeChange"
+                >
+                  <option :value="10">
+                    10
+                  </option>
+                  <option :value="20">
+                    20
+                  </option>
+                  <option :value="50">
+                    50
+                  </option>
+                  <option :value="100">
+                    100
+                  </option>
                 </select>
                 <span>条</span>
               </div>
@@ -116,156 +152,239 @@
       </div>
     </div>
 
-    <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
+    <div
+      v-if="showAddModal"
+      class="modal-overlay"
+      @click.self="closeAddModal"
+    >
       <div class="modal-content">
         <div class="modal-header">
           <h3>新增备品备件入库</h3>
-          <button class="close-btn" @click="closeAddModal">&times;</button>
+          <button
+            class="close-btn"
+            @click="closeAddModal"
+          >
+            &times;
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label class="form-label">产品名称<span class="required">*</span></label>
-            <input
+            <label for="productName" class="form-label">产品名称<span class="required">*</span></label>
+            <input id="productName" name="productName"
               v-model="formData.productName"
               type="text"
               class="form-input"
               placeholder="请输入产品名称"
-            />
+            >
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label class="form-label">品牌</label>
-              <input
+              <label for="brand" class="form-label">品牌</label>
+              <input id="brand" name="brand"
                 v-model="formData.brand"
                 type="text"
                 class="form-input"
                 placeholder="请输入品牌"
-              />
+              >
             </div>
             <div class="form-item half">
-              <label class="form-label">产品型号</label>
-              <input
+              <label for="productModel" class="form-label">产品型号</label>
+              <input id="productModel" name="productModel"
                 v-model="formData.model"
                 type="text"
                 class="form-input"
                 placeholder="请输入产品型号"
-              />
+              >
             </div>
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label class="form-label">入库数量<span class="required">*</span></label>
-              <input
+              <label for="inboundQuantity" class="form-label">入库数量<span class="required">*</span></label>
+              <input id="inboundQuantity" name="inboundQuantity"
                 v-model.number="formData.quantity"
                 type="number"
                 class="form-input"
                 placeholder="请输入入库数量"
                 min="1"
-              />
+              >
             </div>
             <div class="form-item half">
-              <label class="form-label">单位</label>
-              <select v-model="formData.unit" class="form-select">
-                <option value="件">件</option>
-                <option value="个">个</option>
-                <option value="套">套</option>
-                <option value="箱">箱</option>
-                <option value="台">台</option>
+              <label for="unit" class="form-label">单位</label>
+              <select id="unit" name="unit"
+                v-model="formData.unit"
+                class="form-select"
+              >
+                <option value="件">
+                  件
+                </option>
+                <option value="个">
+                  个
+                </option>
+                <option value="套">
+                  套
+                </option>
+                <option value="箱">
+                  箱
+                </option>
+                <option value="台">
+                  台
+                </option>
               </select>
             </div>
           </div>
           <div class="form-item">
-            <label class="form-label">供应商</label>
-            <input
+            <label for="supplier" class="form-label">供应商</label>
+            <input id="supplier" name="supplier"
               v-model="formData.supplier"
               type="text"
               class="form-input"
               placeholder="请输入供应商"
-            />
+            >
           </div>
           <div class="form-item">
-            <label class="form-label">入库人<span class="required">*</span></label>
-            <select v-model="formData.userName" class="form-select">
-              <option value="">请选择入库人</option>
-              <option v-for="user in userList" :key="user.id" :value="user.name">
+            <label for="inboundUser" class="form-label">入库人<span class="required">*</span></label>
+            <select id="inboundUser" name="inboundUser"
+              v-model="formData.userName"
+              class="form-select"
+            >
+              <option value="">
+                请选择入库人
+              </option>
+              <option
+                v-for="user in userList"
+                :key="user.id"
+                :value="user.name"
+              >
                 {{ user.name }}
               </option>
             </select>
           </div>
           <div class="form-item">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="formData.remarks"
               class="form-textarea"
               placeholder="请输入备注（可选）"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="cancel-btn" @click="closeAddModal">取消</button>
-          <button class="confirm-btn" :disabled="submitting" @click="handleSubmit">
+          <button
+            class="cancel-btn"
+            @click="closeAddModal"
+          >
+            取消
+          </button>
+          <button
+            class="confirm-btn"
+            :disabled="submitting"
+            @click="handleSubmit"
+          >
             {{ submitting ? '提交中...' : '确认' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showRestockModal" class="modal-overlay" @click.self="closeRestockModal">
+    <div
+      v-if="showRestockModal"
+      class="modal-overlay"
+      @click.self="closeRestockModal"
+    >
       <div class="modal-content">
         <div class="modal-header">
           <h3>备品备件入库</h3>
-          <button class="close-btn" @click="closeRestockModal">&times;</button>
+          <button
+            class="close-btn"
+            @click="closeRestockModal"
+          >
+            &times;
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label class="form-label">产品名称</label>
-            <input :value="restockData.productName" class="form-input" disabled />
+            <label for="productName" class="form-label">产品名称</label>
+            <input id="productName" name="productName"
+              :value="restockData.productName"
+              class="form-input"
+              disabled
+            >
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label class="form-label">品牌</label>
-              <input :value="restockData.brand || '-'" class="form-input" disabled />
+              <label for="brand" class="form-label">品牌</label>
+              <input id="brand" name="brand"
+                :value="restockData.brand || '-'"
+                class="form-input"
+                disabled
+              >
             </div>
             <div class="form-item half">
-              <label class="form-label">产品型号</label>
-              <input :value="restockData.model || '-'" class="form-input" disabled />
+              <label for="productModel" class="form-label">产品型号</label>
+              <input id="productModel" name="productModel"
+                :value="restockData.model || '-'"
+                class="form-input"
+                disabled
+              >
             </div>
           </div>
           <div class="form-item">
-            <label class="form-label">当前库存</label>
-            <input :value="restockData.currentStock" class="form-input" disabled />
+            <label for="currentStock" class="form-label">当前库存</label>
+            <input id="currentStock" name="currentStock"
+              :value="restockData.currentStock"
+              class="form-input"
+              disabled
+            >
           </div>
           <div class="form-item">
-            <label class="form-label">入库数量<span class="required">*</span></label>
-            <input
+            <label for="inboundQuantity" class="form-label">入库数量<span class="required">*</span></label>
+            <input id="inboundQuantity" name="inboundQuantity"
               v-model.number="restockData.quantity"
               type="number"
               :min="1"
               class="form-input"
               placeholder="请输入入库数量"
-            />
+            >
           </div>
           <div class="form-item">
-            <label class="form-label">入库人<span class="required">*</span></label>
-            <select v-model="restockData.userName" class="form-select">
-              <option value="">请选择入库人</option>
-              <option v-for="user in userList" :key="user.id" :value="user.name">
+            <label for="inboundUser" class="form-label">入库人<span class="required">*</span></label>
+            <select id="inboundUser" name="inboundUser"
+              v-model="restockData.userName"
+              class="form-select"
+            >
+              <option value="">
+                请选择入库人
+              </option>
+              <option
+                v-for="user in userList"
+                :key="user.id"
+                :value="user.name"
+              >
                 {{ user.name }}
               </option>
             </select>
           </div>
           <div class="form-item">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="restockData.remarks"
               class="form-textarea"
               placeholder="请输入备注"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="cancel-btn" @click="closeRestockModal">取消</button>
-          <button class="confirm-btn" :disabled="submitting" @click="handleRestockSubmit">
+          <button
+            class="cancel-btn"
+            @click="closeRestockModal"
+          >
+            取消
+          </button>
+          <button
+            class="confirm-btn"
+            :disabled="submitting"
+            @click="handleRestockSubmit"
+          >
             {{ submitting ? '提交中...' : '确认入库' }}
           </button>
         </div>
@@ -283,7 +402,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
-import apiClient from '@/utils/api'
+import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import Toast from '@/components/Toast.vue'
 import SearchInput from '@/components/SearchInput.vue'
@@ -400,7 +519,7 @@ export default defineComponent({
         if (filters.value.productName) {
           params.product_name = filters.value.productName
         }
-        const response = (await apiClient.get('/spare-parts-stock/stock', {
+        const response = (await request.get('/spare-parts-stock/stock', {
           params,
           signal: abortController.signal,
         })) as unknown as PaginatedResponse<SparePartsStockItem>
@@ -422,7 +541,7 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = (await apiClient.get('/personnel/all/list')) as ApiResponse<User[]>
+        const response = (await request.get('/personnel/all/list')) as ApiResponse<User[]>
         if (response && response.code === 200 && response.data) {
           userList.value = (Array.isArray(response.data) ? response.data : []).filter(
             (user: User) => user && user.role === USER_ROLES.MATERIAL_MANAGER
@@ -476,7 +595,7 @@ export default defineComponent({
           user_name: formData.value.userName || null,
           remarks: formData.value.remarks || null,
         }
-        const response = (await apiClient.post(
+        const response = (await request.post(
           '/spare-parts-stock/inbound',
           requestData
         )) as ApiResponse<any>
@@ -534,7 +653,7 @@ export default defineComponent({
           user_name: restockData.value.userName,
           remarks: restockData.value.remarks || null,
         }
-        const response = (await apiClient.post(
+        const response = (await request.post(
           '/spare-parts-stock/inbound',
           requestData
         )) as ApiResponse<any>
@@ -623,7 +742,7 @@ export default defineComponent({
 <style scoped>
 .spare-parts-stock-container {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .main-layout {
@@ -635,7 +754,7 @@ export default defineComponent({
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .content-wrapper {
@@ -653,7 +772,7 @@ export default defineComponent({
   margin-bottom: 20px;
   align-items: flex-start;
   padding: 16px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
@@ -681,7 +800,7 @@ export default defineComponent({
 
 .search-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -702,8 +821,8 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #4caf50;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover {
@@ -711,7 +830,7 @@ export default defineComponent({
 }
 
 .table-section {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -723,25 +842,25 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #f5f7fa;
+  background: var(--color-bg-page);
 }
 
 .data-table th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
 }
 
 .data-table tbody tr {
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   transition: background 0.2s;
 }
 
 .data-table tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .data-table td {
@@ -755,7 +874,7 @@ export default defineComponent({
 .empty-cell {
   padding: 40px 16px;
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
 }
 
@@ -763,7 +882,7 @@ export default defineComponent({
   width: 24px;
   height: 24px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #1976d2;
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 12px;
@@ -786,13 +905,13 @@ export default defineComponent({
 }
 
 .stock-normal {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .stock-low {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .action-btn {
@@ -806,13 +925,13 @@ export default defineComponent({
 }
 
 .restock-btn {
-  background: #e8f5e9;
-  color: #388e3c;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .restock-btn:hover {
-  background: #388e3c;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .pagination-section {
@@ -820,15 +939,15 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #f5f7fa;
-  border-top: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border-top: 1px solid var(--color-border);
   flex-wrap: wrap;
   gap: 12px;
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -839,8 +958,8 @@ export default defineComponent({
 
 .pagination-button {
   padding: 6px 16px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
@@ -848,8 +967,8 @@ export default defineComponent({
 }
 
 .pagination-button:hover:not(:disabled) {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .pagination-button:disabled {
@@ -866,14 +985,14 @@ export default defineComponent({
 .pagination-input {
   width: 60px;
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   text-align: center;
   font-size: 14px;
 }
 
 .pagination-slash {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-size-selector {
@@ -881,12 +1000,12 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-size-select {
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
@@ -906,7 +1025,7 @@ export default defineComponent({
 }
 
 .modal-content {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 550px;
   max-width: 90%;
@@ -919,13 +1038,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .close-btn {
@@ -933,7 +1052,7 @@ export default defineComponent({
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .modal-body {
@@ -957,12 +1076,12 @@ export default defineComponent({
   display: block;
   margin-bottom: 6px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .required {
-  color: #f44336;
+  color: var(--color-danger);
   margin-left: 2px;
 }
 
@@ -971,15 +1090,15 @@ export default defineComponent({
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
 }
 
 .form-input:disabled {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .form-textarea {
@@ -991,7 +1110,7 @@ export default defineComponent({
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
 }
 
 .modal-footer {
@@ -999,7 +1118,7 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .cancel-btn,
@@ -1013,17 +1132,17 @@ export default defineComponent({
 }
 
 .cancel-btn {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .cancel-btn:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .confirm-btn {
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #42a5f5 100%);
+  color: var(--color-bg-card);
 }
 
 .confirm-btn:hover:not(:disabled) {

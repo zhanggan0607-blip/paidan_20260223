@@ -59,7 +59,6 @@ export function useOnlineStatusWebSocket() {
       ws.value = new WebSocket(wsUrl)
 
       ws.value.onopen = () => {
-        console.log('[WebSocket] 连接成功')
         isConnected.value = true
         reconnectAttempts.value = 0
         startPing()
@@ -75,7 +74,6 @@ export function useOnlineStatusWebSocket() {
       }
 
       ws.value.onclose = () => {
-        console.log('[WebSocket] 连接关闭')
         isConnected.value = false
         stopPing()
         attemptReconnect()
@@ -106,12 +104,10 @@ export function useOnlineStatusWebSocket() {
 
   const attemptReconnect = () => {
     if (reconnectAttempts.value >= maxReconnectAttempts) {
-      console.log('[WebSocket] 达到最大重连次数，停止重连')
       return
     }
 
     const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.value), 30000)
-    console.log(`[WebSocket] ${delay / 1000}秒后尝试重连...`)
 
     reconnectTimer = setTimeout(() => {
       reconnectAttempts.value++

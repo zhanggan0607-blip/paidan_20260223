@@ -3,7 +3,7 @@ import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
 import { projectInfoService, customerService, authService } from '../services'
-import SearchInput from '../components/SearchInput.vue'
+import { SearchInput } from '@sstcp/shared'
 import { useNavigation } from '../composables'
 import { userStore } from '../stores/userStore'
 import type { Customer, ProjectInfo } from '../types/models'
@@ -291,11 +291,34 @@ const handleDelete = async () => {
     if (response.code === 200) {
       showSuccessToast('删除成功')
       goBack()
+    } else if (response.code === 400 && response.message && response.message.includes('级联删除')) {
+      try {
+        await showConfirmDialog({
+          title: '级联删除',
+          message: response.message + '\n是否确认删除项目及其所有关联数据？',
+        })
+        const cascadeResponse = await projectInfoService.delete(projectId.value, true)
+        if (cascadeResponse.code === 200) {
+          showSuccessToast('删除成功')
+          goBack()
+        } else {
+          showToast(cascadeResponse.message || '删除失败')
+        }
+      } catch {
+        // 用户取消级联删除
+      }
+    } else {
+      showToast(response.message || '删除失败')
     }
   } catch (error: any) {
     if (error !== 'cancel') {
       console.error('Failed to delete project:', error)
-      showToast('删除失败')
+      if (error.status === 404) {
+        showToast('该项目已被删除')
+        goBack()
+      } else {
+        showToast(error.message || '删除失败')
+      }
     }
   }
 }
@@ -362,7 +385,7 @@ onUnmounted(() => {
 
     <div class="form-container">
       <van-cell-group inset>
-        <van-field
+        <van-field name="project_id"
           v-model="formData.project_id"
           label="项目编号"
           placeholder="请输入项目编号"
@@ -370,7 +393,7 @@ onUnmounted(() => {
           :rules="[{ required: true, message: '请输入项目编号' }]"
         />
 
-        <van-field
+        <van-field name="project_name"
           v-model="formData.project_name"
           label="项目名称"
           placeholder="请输入项目名称"
@@ -378,9 +401,9 @@ onUnmounted(() => {
           :rules="[{ required: true, message: '请输入项目名称' }]"
         />
 
-        <van-field v-model="formData.project_abbr" label="项目简称" placeholder="请输入项目简称" />
+        <van-field name="project_abbr" v-model="formData.project_abbr" label="项目简称" placeholder="请输入项目简称" />
 
-        <van-field
+        <van-field name="completion_date"
           v-model="formData.completion_date"
           is-link
           readonly
@@ -390,7 +413,7 @@ onUnmounted(() => {
           @click="showStartDatePicker = true"
         />
 
-        <van-field
+        <van-field name="maintenance_end_date"
           v-model="formData.maintenance_end_date"
           is-link
           readonly
@@ -400,7 +423,7 @@ onUnmounted(() => {
           @click="showEndDatePicker = true"
         />
 
-        <van-field
+        <van-field name="maintenance_period"
           v-model="formData.maintenance_period"
           is-link
           readonly
@@ -410,7 +433,7 @@ onUnmounted(() => {
           @click="showPeriodPicker = true"
         />
 
-        <van-field
+        <van-field name="client_name"
           v-model="formData.client_name"
           is-link
           readonly
@@ -420,20 +443,20 @@ onUnmounted(() => {
           @click="showClientPicker = true"
         />
 
-        <van-field
+        <van-field name="address"
           v-model="formData.address"
           label="客户地址"
           placeholder="请输入客户地址"
           required
         />
 
-        <van-field
+        <van-field name="project_manager"
           v-model="formData.project_manager"
           label="运维人员"
           placeholder="请输入运维人员"
         />
 
-        <van-field
+        <van-field name="client_contact"
           v-model="formData.client_contact"
           is-link
           readonly
@@ -442,13 +465,13 @@ onUnmounted(() => {
           @click="openContactPicker"
         />
 
-        <van-field
+        <van-field name="client_contact_position"
           v-model="formData.client_contact_position"
           label="联系人职位"
           placeholder="请输入联系人职位"
         />
 
-        <van-field
+        <van-field name="client_contact_info"
           v-model="formData.client_contact_info"
           label="联系方式"
           placeholder="请输入联系方式"
@@ -501,17 +524,17 @@ onUnmounted(() => {
         </div>
 
         <div class="custom-input-section">
-          <van-field
+          <van-field name="custom_contact_name"
             v-model="customContactName"
             placeholder="手动输入联系人姓名"
             class="custom-input-field"
           />
-          <van-field
+          <van-field name="custom_contact_phone"
             v-model="customContactPhone"
             placeholder="联系方式"
             class="custom-input-field"
           />
-          <van-field
+          <van-field name="custom_contact_position"
             v-model="customContactPosition"
             placeholder="职位"
             class="custom-input-field"
@@ -554,7 +577,7 @@ onUnmounted(() => {
     </van-popup>
 
     <van-popup v-model:show="showPeriodPicker" position="bottom" round>
-      <van-picker
+      <van-picker name="picker"
         :columns="periodOptions"
         @confirm="onPeriodConfirm"
         @cancel="showPeriodPicker = false"
@@ -588,7 +611,7 @@ onUnmounted(() => {
 <style scoped>
 .project-info-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .loading-overlay {
@@ -619,7 +642,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .picker-title {
@@ -641,7 +664,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 12px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
   gap: 8px;
   flex-wrap: wrap;
 }
@@ -653,15 +676,15 @@ onUnmounted(() => {
 
 .custom-input-field {
   padding: 5px 8px;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
 }
 
 .picker-divider {
   padding: 8px 16px;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   text-align: center;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
@@ -675,6 +698,6 @@ onUnmounted(() => {
 
 .contact-position {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 </style>

@@ -9,12 +9,12 @@
         <div class="form-grid">
           <div class="form-column">
             <div class="form-item">
-              <label class="form-label">项目名称</label>
-              <div class="form-value">{{ repairData.project_name || '-' }}</div>
+              <span class="form-label">项目名称</span>
+              <div class="form-value">{{ repairData.project_name || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">计划开始日期</label>
-              <input
+              <label for="planStartDate" class="form-label">计划开始日期</label>
+              <input id="planStartDate" name="planStartDate"
                 v-if="isEditMode"
                 v-model="repairData.plan_start_date"
                 type="date"
@@ -23,33 +23,33 @@
               <div v-else class="form-value">{{ formatDate(repairData.plan_start_date) }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">运维人员</label>
-              <div class="form-value">{{ repairData.maintenance_personnel || '-' }}</div>
+              <span class="form-label">运维人员</span>
+              <div class="form-value">{{ repairData.maintenance_personnel || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户单位</label>
-              <div class="form-value">{{ repairData.client_name || '-' }}</div>
+              <span class="form-label">客户单位</span>
+              <div class="form-value">{{ repairData.client_name || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户联系人</label>
-              <input
+              <label for="clientContact" class="form-label">客户联系人</label>
+              <input id="clientContact" name="clientContact"
                 v-if="isEditMode"
                 v-model="repairData.client_contact"
                 type="text"
                 class="form-input"
                 placeholder="请输入客户联系人"
               />
-              <div v-else class="form-value">{{ repairData.client_contact || '-' }}</div>
+              <div v-else class="form-value">{{ repairData.client_contact || '暂无数据' }}</div>
             </div>
           </div>
           <div class="form-column">
             <div class="form-item">
-              <label class="form-label">项目编号</label>
-              <div class="form-value">{{ repairData.project_id || '-' }}</div>
+              <span class="form-label">项目编号</span>
+              <div class="form-value">{{ repairData.project_id || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">计划结束日期</label>
-              <input
+              <label for="planEndDate" class="form-label">计划结束日期</label>
+              <input id="planEndDate" name="planEndDate"
                 v-if="isEditMode"
                 v-model="repairData.plan_end_date"
                 type="date"
@@ -58,29 +58,29 @@
               <div v-else class="form-value">{{ formatDate(repairData.plan_end_date) }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">工单编号</label>
-              <div class="form-value">{{ repairData.repair_id || '-' }}</div>
+              <span class="form-label">工单编号</span>
+              <div class="form-value">{{ repairData.repair_id || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户地址</label>
-              <div class="form-value">{{ repairData.address || '-' }}</div>
+              <span class="form-label">客户地址</span>
+              <div class="form-value">{{ repairData.address || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户联系方式</label>
-              <input
+              <label for="clientContactInfo" class="form-label">客户联系方式</label>
+              <input id="clientContactInfo" name="clientContactInfo"
                 v-if="isEditMode"
                 v-model="repairData.client_contact_info"
                 type="text"
                 class="form-input"
                 placeholder="请输入客户联系方式"
               />
-              <div v-else class="form-value">{{ repairData.client_contact_info || '-' }}</div>
+              <div v-else class="form-value">{{ repairData.client_contact_info || '暂无数据' }}</div>
             </div>
           </div>
         </div>
         <div class="form-item-full">
-          <label class="form-label">报修内容</label>
-          <textarea
+          <label for="repairContent" class="form-label">报修内容</label>
+          <textarea id="repairContent" name="repairContent"
             v-model="repairData.remarks"
             class="form-textarea"
             placeholder="请输入报修内容"
@@ -93,19 +93,19 @@
         </div>
 
         <div class="form-item-full">
-          <label class="form-label">故障描述</label>
+          <span class="form-label">故障描述</span>
           <div class="form-value form-value-large">
-            {{ repairData.fault_description || '暂无故障描述' }}
+            {{ repairData.fault_description || '暂无数据' }}
           </div>
         </div>
 
         <div class="form-item-full">
-          <label class="form-label">解决方案</label>
-          <div class="form-value form-value-large">{{ repairData.solution || '暂无解决方案' }}</div>
+          <span class="form-label">解决方案</span>
+          <div class="form-value form-value-large">{{ repairData.solution || '暂无数据' }}</div>
         </div>
 
         <div class="form-item-full">
-          <label class="form-label">现场图片</label>
+          <span class="form-label">现场图片</span>
           <div v-if="repairData.photos && repairData.photos.length > 0" class="photo-grid">
             <div
               v-for="(photo, index) in repairData.photos"
@@ -116,15 +116,15 @@
               <img :src="photo" alt="现场图片" loading="lazy" />
             </div>
           </div>
-          <div v-else class="form-value">暂无现场图片</div>
+          <div v-else class="form-value">暂无数据</div>
         </div>
 
         <div class="form-item-full">
-          <label class="form-label">用户签字</label>
+          <span class="form-label">用户签字</span>
           <div v-if="repairData.signature" class="signature-container">
             <img :src="repairData.signature" alt="用户签字" class="signature-image" />
           </div>
-          <div v-else class="form-value">暂无用户签字</div>
+          <div v-else class="form-value">暂无数据</div>
         </div>
 
         <div class="operation-log-section">
@@ -144,7 +144,7 @@
               </div>
             </div>
           </div>
-          <div v-else class="no-logs">暂无操作记录</div>
+          <div v-else class="no-logs">暂无数据</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -161,7 +161,7 @@
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { temporaryRepairService } from '@/services/temporaryRepair'
-import apiClient from '@/utils/api'
+import request from '@/api/request'
 import type { ApiResponse } from '@/types/api'
 
 interface RepairData {
@@ -256,7 +256,7 @@ export default defineComponent({
       if (!workOrderId) return
       loadingLogs.value = true
       try {
-        const response = (await apiClient.get(
+        const response = (await request.get(
           `/work-order-operation-log?work_order_type=temporary_repair&work_order_id=${workOrderId}`
         )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
@@ -293,7 +293,22 @@ export default defineComponent({
           remarks: repairData.value.remarks || '',
         })
         if (response.code === 200) {
-          alert('保存成功')
+          if (repairData.value.status === '执行中' || repairData.value.status === '已退回') {
+            try {
+              const submitResponse = await temporaryRepairService.submit(repairData.value.id)
+              if (submitResponse.code === 200) {
+                repairData.value.status = '待确认'
+                alert('保存成功，已自动提交审核')
+              } else {
+                alert('保存成功，但提交审核失败：' + (submitResponse.message || '未知错误'))
+              }
+            } catch (submitError) {
+              console.error('提交审核失败:', submitError)
+              alert('保存成功，但提交审核失败')
+            }
+          } else {
+            alert('保存成功')
+          }
         } else {
           alert(response.message || '保存失败')
         }
@@ -377,7 +392,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 900px;
   max-width: 95vw;
@@ -391,13 +406,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -407,7 +422,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -416,7 +431,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -446,16 +461,16 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -468,7 +483,7 @@ export default defineComponent({
 .form-item-full .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
   margin-bottom: 8px;
   display: block;
 }
@@ -484,7 +499,7 @@ export default defineComponent({
 .section-divider {
   margin-top: 24px;
   margin-bottom: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   position: relative;
 }
 
@@ -492,11 +507,11 @@ export default defineComponent({
   position: absolute;
   top: -10px;
   left: 0;
-  background: #fff;
+  background: var(--color-bg-card);
   padding-right: 12px;
   font-size: 15px;
   font-weight: 600;
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .modal-footer {
@@ -504,7 +519,7 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn {
@@ -518,22 +533,22 @@ export default defineComponent({
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-save {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .btn:disabled {
@@ -544,16 +559,16 @@ export default defineComponent({
 .form-input {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   box-sizing: border-box;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -561,10 +576,10 @@ export default defineComponent({
   width: 100%;
   min-height: 108px;
   padding: 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   resize: vertical;
   font-family: inherit;
   line-height: 1.5;
@@ -573,27 +588,27 @@ export default defineComponent({
 
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-textarea::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .operation-log-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   padding-left: 12px;
-  border-left: 3px solid #1976d2;
+  border-left: 3px solid var(--color-primary);
 }
 
 .timeline {
@@ -608,7 +623,7 @@ export default defineComponent({
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .timeline-item {
@@ -627,9 +642,9 @@ export default defineComponent({
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #1976d2;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px #1976d2;
+  background: var(--color-primary);
+  border: 2px solid var(--color-bg-card);
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .timeline-content {
@@ -641,27 +656,27 @@ export default defineComponent({
 
 .timeline-time {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-family: monospace;
 }
 
 .timeline-operator {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .timeline-action {
   font-size: 13px;
-  color: #1976d2;
-  background: #e3f2fd;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .no-logs {
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
   padding: 20px 0;
 }
@@ -679,7 +694,7 @@ export default defineComponent({
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   transition:
     transform 0.2s,
     box-shadow 0.2s;
@@ -699,8 +714,8 @@ export default defineComponent({
 .signature-container {
   margin-top: 8px;
   padding: 16px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   display: inline-block;
 }

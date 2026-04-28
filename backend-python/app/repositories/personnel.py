@@ -50,7 +50,7 @@ class PersonnelRepository:
                     query = query.filter(Personnel.id == -1)
 
             total = query.count()
-            items = query.order_by(Personnel.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(Personnel.created_at.desc(), Personnel.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -59,7 +59,7 @@ class PersonnelRepository:
 
     def find_all_unpaginated(self) -> list[Personnel]:
         try:
-            return self.db.query(Personnel).order_by(Personnel.created_at.desc()).all()
+            return self.db.query(Personnel).order_by(Personnel.created_at.desc(), Personnel.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有人员信息失败: {str(e)}")
             raise

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class SpotWorkBase(BaseModel):
@@ -14,11 +14,20 @@ class SpotWorkBase(BaseModel):
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
-    work_content: str | None = Field(None, description="工作内容")
+    work_content: str | None = Field(None, max_length=800, description="工作内容")
     photos: list[str] | None = Field(None, description="现场图片列表")
     signature: str | None = Field(None, description="班组签字图片")
     status: str = Field("执行中", max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
+
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.plan_start_date and self.plan_end_date:
+            start = self.plan_start_date if isinstance(self.plan_start_date, datetime) else datetime.fromisoformat(str(self.plan_start_date))
+            end = self.plan_end_date if isinstance(self.plan_end_date, datetime) else datetime.fromisoformat(str(self.plan_end_date))
+            if end < start:
+                raise ValueError('计划结束日期不能早于开始日期')
+        return self
 
     @field_validator('status')
     @classmethod
@@ -40,7 +49,7 @@ class SpotWorkCreate(BaseModel):
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
-    work_content: str | None = Field(None, description="工作内容")
+    work_content: str | None = Field(None, max_length=800, description="工作内容")
     photos: list[str] | None = Field(None, description="现场图片列表")
     signature: str | None = Field(None, description="班组签字图片")
     status: str | None = Field(None, max_length=20, description="状态")
@@ -58,7 +67,7 @@ class SpotWorkUpdate(BaseModel):
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
-    work_content: str | None = Field(None, description="工作内容")
+    work_content: str | None = Field(None, max_length=800, description="工作内容")
     photos: list[str] | None = Field(None, description="现场图片列表")
     signature: str | None = Field(None, description="班组签字图片")
     status: str = Field(..., max_length=20, description="状态")
@@ -76,7 +85,7 @@ class SpotWorkPartialUpdate(BaseModel):
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
     maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
-    work_content: str | None = Field(None, description="工作内容")
+    work_content: str | None = Field(None, max_length=800, description="工作内容")
     photos: list[str] | None = Field(None, description="现场图片列表")
     signature: str | None = Field(None, description="班组签字图片")
     status: str | None = Field(None, max_length=20, description="状态")
@@ -92,6 +101,11 @@ class SpotWorkPartialUpdate(BaseModel):
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
+
+
+class SpotWorkApprove(BaseModel):
+    approved: bool
+    reject_reason: str | None = Field(None, max_length=500, description="退回原因")
 
 
 class SpotWorkResponse(BaseModel):
@@ -113,6 +127,7 @@ class SpotWorkResponse(BaseModel):
     signature: str | None
     status: str
     remarks: str | None
+    reject_reason: str | None
     actual_completion_date: datetime | None
     created_at: datetime
     updated_at: datetime

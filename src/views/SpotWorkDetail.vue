@@ -9,45 +9,45 @@
         <div class="form-grid">
           <div class="form-column">
             <div class="form-item">
-              <label class="form-label">项目名称</label>
-              <div class="form-value">{{ workData.project_name || '-' }}</div>
+              <span class="form-label">项目名称</span>
+              <div class="form-value">{{ workData.project_name || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">计划开始日期</label>
+              <span class="form-label">计划开始日期</span>
               <div class="form-value">{{ formatDate(workData.plan_start_date) }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户单位</label>
-              <div class="form-value">{{ workData.client_name || '-' }}</div>
+              <span class="form-label">客户单位</span>
+              <div class="form-value">{{ workData.client_name || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户联系人</label>
-              <div class="form-value">{{ workData.client_contact || '-' }}</div>
+              <span class="form-label">客户联系人</span>
+              <div class="form-value">{{ workData.client_contact || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">运维人员</label>
-              <div class="form-value">{{ workData.maintenance_personnel || '-' }}</div>
+              <span class="form-label">运维人员</span>
+              <div class="form-value">{{ workData.maintenance_personnel || '暂无数据' }}</div>
             </div>
           </div>
           <div class="form-column">
             <div class="form-item">
-              <label class="form-label">工单编号</label>
-              <div class="form-value">{{ workData.work_id || '-' }}</div>
+              <span class="form-label">工单编号</span>
+              <div class="form-value">{{ workData.work_id || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">计划结束日期</label>
+              <span class="form-label">计划结束日期</span>
               <div class="form-value">{{ formatDate(workData.plan_end_date) }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户地址</label>
-              <div class="form-value">{{ workData.address || '-' }}</div>
+              <span class="form-label">客户地址</span>
+              <div class="form-value">{{ workData.address || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">客户联系方式</label>
-              <div class="form-value">{{ workData.client_contact_info || '-' }}</div>
+              <span class="form-label">客户联系方式</span>
+              <div class="form-value">{{ workData.client_contact_info || '暂无数据' }}</div>
             </div>
             <div class="form-item">
-              <label class="form-label">工天统计</label>
+              <span class="form-label">工天统计</span>
               <div class="form-value">
                 {{ workData.work_days !== undefined ? workData.work_days + '工天' : '-' }}
               </div>
@@ -56,21 +56,21 @@
         </div>
 
         <div class="work-content-section">
-          <label class="form-label">工作内容</label>
-          <div class="form-value work-content">{{ workData.work_content || '-' }}</div>
+          <span class="form-label">工作内容</span>
+          <div class="form-value work-content">{{ workData.work_content || '暂无数据' }}</div>
         </div>
 
         <div class="status-section">
-          <label class="form-label">状态</label>
+          <span class="form-label">状态</span>
           <div class="form-value">
             <span class="status-tag" :class="getStatusClass(workData.status)">{{
-              workData.status || '-'
+              workData.status || '暂无数据'
             }}</span>
           </div>
         </div>
 
         <div class="form-item-full">
-          <label class="form-label">现场图片</label>
+          <span class="form-label">现场图片</span>
           <div v-if="workData.photos && workData.photos.length > 0" class="photo-grid">
             <div
               v-for="(photo, index) in workData.photos"
@@ -81,15 +81,15 @@
               <img :src="photo" alt="现场图片" loading="lazy" />
             </div>
           </div>
-          <div v-else class="form-value">暂无现场图片</div>
+          <div v-else class="form-value">暂无数据</div>
         </div>
 
         <div class="form-item-full">
-          <label class="form-label">班组签字</label>
+          <span class="form-label">班组签字</span>
           <div v-if="workData.signature" class="signature-container">
             <img :src="workData.signature" alt="班组签字" class="signature-image" />
           </div>
-          <div v-else class="form-value">暂无班组签字</div>
+          <div v-else class="form-value">暂无数据</div>
         </div>
 
         <div class="workers-section">
@@ -107,14 +107,14 @@
             <tbody>
               <tr v-for="(worker, index) in workers" :key="worker.id">
                 <td>{{ index + 1 }}</td>
-                <td>{{ worker.name || '-' }}</td>
-                <td>{{ worker.gender || '-' }}</td>
-                <td>{{ worker.id_card_number || '-' }}</td>
-                <td>{{ worker.address || '-' }}</td>
+                <td>{{ worker.name || '暂无数据' }}</td>
+                <td>{{ worker.gender || '暂无数据' }}</td>
+                <td>{{ worker.id_card_number || '暂无数据' }}</td>
+                <td>{{ worker.address || '暂无数据' }}</td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="form-value">暂无施工人员信息</div>
+          <div v-else class="form-value">暂无数据</div>
         </div>
 
         <div class="operation-log-section">
@@ -134,7 +134,7 @@
               </div>
             </div>
           </div>
-          <div v-else class="no-logs">暂无操作记录</div>
+          <div v-else class="no-logs">暂无数据</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -149,7 +149,7 @@ import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { spotWorkService } from '@/services/spotWork'
 import type { SpotWorkWorker } from '@/types/api'
-import apiClient from '@/utils/api'
+import request from '@/api/request'
 import type { ApiResponse } from '@/types/api'
 
 interface WorkData {
@@ -269,7 +269,7 @@ export default defineComponent({
       if (!workOrderId) return
       loadingLogs.value = true
       try {
-        const response = (await apiClient.get(
+        const response = (await request.get(
           `/work-order-operation-log?work_order_type=spot_work&work_order_id=${workOrderId}`
         )) as unknown as ApiResponse<OperationLogItem[]>
         if (response.code === 200) {
@@ -358,7 +358,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 800px;
   max-width: 95vw;
@@ -372,13 +372,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -388,7 +388,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -397,7 +397,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -427,16 +427,16 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -445,7 +445,7 @@ export default defineComponent({
 .work-content-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .work-content-section .form-label {
@@ -455,13 +455,13 @@ export default defineComponent({
 .form-item-full {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .form-item-full .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
   margin-bottom: 8px;
   display: block;
 }
@@ -478,7 +478,7 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn {
@@ -493,25 +493,25 @@ export default defineComponent({
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .workers-section {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0 0 16px 0;
 }
 
@@ -522,28 +522,28 @@ export default defineComponent({
 }
 
 .workers-table th {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   padding: 10px 12px;
   text-align: left;
   font-weight: 500;
-  color: #333;
-  border: 1px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .workers-table td {
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
-  color: #666;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .workers-table tbody tr:hover {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .operation-log-section {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .timeline {
@@ -558,7 +558,7 @@ export default defineComponent({
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .timeline-item {
@@ -577,9 +577,9 @@ export default defineComponent({
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #1976d2;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 2px #1976d2;
+  background: var(--color-primary);
+  border: 2px solid var(--color-bg-card);
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .timeline-content {
@@ -591,27 +591,27 @@ export default defineComponent({
 
 .timeline-time {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-family: monospace;
 }
 
 .timeline-operator {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .timeline-action {
   font-size: 13px;
-  color: #1976d2;
-  background: #e3f2fd;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .no-logs {
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
   padding: 20px 0;
 }
@@ -619,7 +619,7 @@ export default defineComponent({
 .status-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .status-tag {
@@ -631,18 +631,18 @@ export default defineComponent({
 }
 
 .status-pending {
-  background: #fff3cd;
+  background: var(--color-bg-card)3cd;
   color: #856404;
 }
 
 .status-waiting {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .status-confirmed {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .status-completed {
@@ -651,19 +651,19 @@ export default defineComponent({
 }
 
 .status-returned {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .status-cancelled {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   color: #757575;
 }
 
 .photos-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .photo-grid {
@@ -678,7 +678,7 @@ export default defineComponent({
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   transition: transform 0.2s;
 }
 
@@ -695,14 +695,14 @@ export default defineComponent({
 .signature-section {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .signature-container {
   margin-top: 8px;
   padding: 16px;
-  background: #fafafa;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   display: inline-block;
 }

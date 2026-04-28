@@ -227,7 +227,7 @@ onMounted(() => {
 
         <div class="popup-body">
           <van-cell-group inset>
-            <van-field label="选择产品" placeholder="请选择产品" required>
+            <van-field name="选择产品" label="选择产品" placeholder="请选择产品" required>
               <template #input>
                 <select
                   v-model="selectedStockId"
@@ -242,17 +242,17 @@ onMounted(() => {
                 </select>
               </template>
             </van-field>
-            <van-field
+            <van-field name="产品名称"
               :model-value="selectedStock?.productName || ''"
               label="产品名称"
               placeholder="请选择产品"
               readonly
             />
-            <van-field :model-value="selectedStock?.brand || ''" label="品牌" readonly />
-            <van-field :model-value="selectedStock?.model || ''" label="产品型号" readonly />
-            <van-field :model-value="selectedStock?.unit || ''" label="单位" readonly />
-            <van-field :model-value="selectedStock?.stock || 0" label="库存数量" readonly />
-            <van-field label="领用数量" required>
+            <van-field name="品牌" :model-value="selectedStock?.brand || ''" label="品牌" readonly />
+            <van-field name="产品型号" :model-value="selectedStock?.model || ''" label="产品型号" readonly />
+            <van-field name="单位" :model-value="selectedStock?.unit || ''" label="单位" readonly />
+            <van-field name="库存数量" :model-value="selectedStock?.stock || 0" label="库存数量" readonly />
+            <van-field name="领用数量" label="领用数量" required>
               <template #input>
                 <van-stepper
                   v-model="issueForm.quantity"
@@ -263,7 +263,7 @@ onMounted(() => {
                 />
               </template>
             </van-field>
-            <van-field
+            <van-field name="project_name"
               v-model="issueForm.projectName"
               label="所属项目"
               placeholder="请选择项目"
@@ -307,13 +307,13 @@ onMounted(() => {
 <style scoped>
 .spare-parts-issue-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .action-bar {
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .issue-list {
@@ -321,7 +321,7 @@ onMounted(() => {
 }
 
 .issue-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -333,18 +333,18 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .product-name {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .issue-date {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 
 .card-body {
@@ -360,13 +360,13 @@ onMounted(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -377,7 +377,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .popup-content {
@@ -391,7 +391,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
 }
 
@@ -408,7 +408,7 @@ onMounted(() => {
 .popup-footer {
   padding: 16px;
   flex-shrink: 0;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .project-select,

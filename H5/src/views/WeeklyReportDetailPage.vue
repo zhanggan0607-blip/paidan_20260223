@@ -15,6 +15,7 @@ const reportDetail = ref<WeeklyReport | null>(null)
 const imageList = ref<string[]>([])
 const operationLogs = ref<OperationLog[]>([])
 const loadingLogs = ref(false)
+const isInitialized = ref(false)
 
 /**
  * 获取状态名称
@@ -147,11 +148,16 @@ const handleBack = () => {
 }
 
 onMounted(() => {
+  if (isInitialized.value) return
+  isInitialized.value = true
   fetchReportDetail()
 })
 
 onActivated(() => {
-  fetchReportDetail()
+  if (!isInitialized.value) {
+    isInitialized.value = true
+    fetchReportDetail()
+  }
 })
 
 watch(
@@ -305,7 +311,7 @@ watch(
 <style scoped>
 .weekly-report-detail-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .detail-content {
@@ -320,7 +326,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .image-section {
@@ -349,8 +355,8 @@ watch(
 .signature-img {
   max-width: 150px;
   max-height: 60px;
-  background-color: #fff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
@@ -367,7 +373,7 @@ watch(
 .empty-container {
   padding: 16px;
   text-align: center;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 14px;
 }
 
@@ -383,7 +389,7 @@ watch(
   top: 0;
   bottom: 0;
   width: 2px;
-  background: #ebedf0;
+  background: var(--color-border-light);
 }
 
 .timeline-item {
@@ -402,8 +408,8 @@ watch(
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #1989fa;
-  border: 2px solid #fff;
+  background: var(--color-primary);
+  border: 2px solid var(--color-bg-card);
   box-shadow: 0 0 0 2px #1989fa;
 }
 
@@ -416,20 +422,20 @@ watch(
 
 .timeline-time {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-family: monospace;
 }
 
 .timeline-operator {
   font-size: 13px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .timeline-action {
   font-size: 12px;
-  color: #1989fa;
-  background: #e8f4ff;
+  color: var(--color-primary);
+  background: var(--color-primary-subtle);
   padding: 2px 6px;
   border-radius: 4px;
 }

@@ -67,9 +67,7 @@ const fetchMaintenancePersonnelList = async () => {
   try {
     const response = await personnelService.getAll()
     if (response.code === 200) {
-      maintenancePersonnelList.value = (response.data || []).filter(
-        (p: any) => p.role === '运维人员'
-      )
+      maintenancePersonnelList.value = (response.data || [])
     }
   } catch (error) {
     console.error('Failed to fetch maintenance personnel list:', error)
@@ -320,18 +318,18 @@ onMounted(() => {
         @click="showDateRangePicker = true"
       />
       <van-cell v-if="formData.clientName" title="客户单位" :value="formData.clientName" />
-      <van-field
+      <van-field name="client_contact"
         v-model="formData.clientContact"
         label="客户联系人"
         placeholder="请输入客户联系人"
       />
-      <van-field
+      <van-field name="client_contact_info"
         v-model="formData.clientContactInfo"
         label="客户联系电话"
         placeholder="请输入客户联系电话"
         type="tel"
       />
-      <van-field
+      <van-field name="remarks"
         v-model="formData.remarks"
         label="报修内容"
         placeholder="请输入报修内容"
@@ -353,13 +351,13 @@ onMounted(() => {
       <van-notice-bar
         :text="'工单已生成，单号：' + generatedWorkId"
         left-icon="info-o"
-        color="#1989fa"
+        color="var(--color-primary)"
         background="#ecf9ff"
       />
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
-      <van-picker
+      <van-picker name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         @confirm="handleProjectConfirm"
@@ -368,7 +366,7 @@ onMounted(() => {
     </van-popup>
 
     <van-popup v-model:show="showMaintenancePersonnelPicker" position="bottom" round>
-      <van-picker
+      <van-picker name="选择运维人员"
         title="选择运维人员"
         :columns="maintenancePersonnelColumns"
         @confirm="handleMaintenancePersonnelConfirm"
@@ -384,7 +382,7 @@ onMounted(() => {
       :max-date="maxDate"
       :poppable="true"
       :show-confirm="true"
-      color="#1989fa"
+      color="var(--color-primary)"
       @confirm="handleDateRangeConfirm"
     />
   </div>
@@ -393,7 +391,7 @@ onMounted(() => {
 <style scoped>
 .temporary-repair-create-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .form-group {
@@ -413,7 +411,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 :deep(.van-cell-group--inset) {

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sstcp-maintenance-system"
-version = "1.0.0"
+version = "1.0.3"
 description = "Backend system for SSTCP maintenance management"
 authors = ["SSTCP Team"]
 readme = "README.md"
@@ -10,29 +10,34 @@ packages = [{include = "app"}]
 python = "^3.11"
 fastapi = "^0.109.0"
 uvicorn = {extras = ["standard"], version = "^0.27.0"}
-sqlalchemy = "^2.0.25"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.25"}
 psycopg2-binary = "^2.9.9"
+asyncpg = "^0.29.0"
+greenlet = "^3.0.3"
 pydantic = "^2.5.3"
 pydantic-settings = "^2.1.0"
 python-multipart = "^0.0.6"
 alembic = "^1.13.1"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+bcrypt = "^4.0.1"
 alibabacloud-ocr20191230 = "^3.0.0"
 alibabacloud-tea-openapi = "^0.3.9"
 alibabacloud-tea-util = "^0.3.12"
-paramiko = "^3.4.0"
+oss2 = "^2.19.0"
 prometheus-fastapi-instrumentator = "^7.0.0"
-weasyprint = "^60.2"
+redis = "^5.0.0"
+reportlab = "^4.0.8"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.1.0"
 ruff = "^0.4.0"
 mypy = "^1.8.0"
-pytest = "^8.0.0"
-pytest-cov = "^4.1.0"
 isort = "^5.13.0"
 pre-commit = "^3.6.0"
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.0"
+pytest-cov = "^4.1.0"
+httpx = "^0.26.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -68,12 +73,6 @@ warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
 
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-python_functions = ["test_*"]
-addopts = "-v --cov=app --cov-report=term-missing"
-
 [tool.ruff]
 line-length = 100
 target-version = "py311"
@@ -98,3 +97,21 @@ ignore = [
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-v --tb=short --strict-markers"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

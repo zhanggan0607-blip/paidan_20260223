@@ -3,26 +3,26 @@
   --color-text-regular: #1a1a1a;
   --color-text-secondary: #333333;
   --color-text-placeholder: #666666;
-  
-  --color-primary: #0056b3;
-  --color-primary-light: #0066cc;
-  --color-primary-dark: #004494;
-  
-  --color-success: #00875a;
-  --color-warning: #d97706;
-  --color-danger: #dc2626;
-  
+
+  --color-primary: #1d5c5c;
+  --color-primary-light: #2a7a7a;
+  --color-primary-dark: #0f3d3d;
+
+  --color-success: #2a6b42;
+  --color-warning: #9a6503;
+  --color-danger: #a93226;
+
   --color-border: #666666;
   --color-border-light: #999999;
-  
-  --status-overdue-bg: #ffebee;
-  --status-overdue-text: #b71c1c;
-  
-  --status-warning-bg: #fff8e1;
-  --status-warning-text: #e65100;
-  
-  --status-success-bg: #e8f5e9;
-  --status-success-text: #1b5e20;
+
+  --status-overdue-bg: #fbe9e7;
+  --status-overdue-text: #a93226;
+
+  --status-warning-bg: #fef5e7;
+  --status-warning-text: #8a5a00;
+
+  --status-success-bg: #e6f3ec;
+  --status-success-text: #2a6b42;
 }
 
 .contrast-high .van-button--primary {
@@ -56,11 +56,11 @@
   top: -40px;
   left: 0;
   background: var(--color-primary);
-  color: white;
-  padding: 8px 16px;
-  z-index: 10000;
+  color: var(--color-bg-card);
+  padding: var(--space-2) var(--space-4);
+  z-index: var(--z-toast);
   text-decoration: none;
-  transition: top 0.3s;
+  transition: top var(--transition-slow);
 }
 
 .skip-link:focus {
@@ -93,12 +93,12 @@
     --color-text-primary: #000000;
     --color-text-regular: #1a1a1a;
     --color-text-secondary: #333333;
-    
+
     --color-border: #666666;
-    
-    --status-overdue-text: #b71c1c;
-    --status-warning-text: #e65100;
-    --status-success-text: #1b5e20;
+
+    --status-overdue-text: #a93226;
+    --status-warning-text: #8a5a00;
+    --status-success-text: #2a6b42;
   }
 }
 
@@ -115,13 +115,13 @@
 
 .van-nav-bar__title,
 .van-nav-bar__text {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .van-cell__title {
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .van-tab--active {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }

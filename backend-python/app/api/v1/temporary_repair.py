@@ -17,14 +17,34 @@ from app.database import get_db
 from app.dependencies import UserInfo, check_data_access, get_current_user_info, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse
 from app.schemas.temporary_repair import (
+    TemporaryRepairApprove,
     TemporaryRepairCreate,
     TemporaryRepairPartialUpdate,
     TemporaryRepairUpdate,
 )
 from app.services.temporary_repair import TemporaryRepairService
+from app.utils.work_order_id_generator import generate_repair_id
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/temporary-repair", tags=["Temporary Repair Management"])
+
+
+@router.get("/generate-id", response_model=ApiResponse)
+def generate_temporary_repair_id(
+    project_id: str = Query(..., description="项目编号"),
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_info)
+):
+    """
+    生成临时维修单编号
+    后端使用数据库序列保证唯一性，避免前端全量拉取数据
+    """
+    repair_id = generate_repair_id(db, project_id)
+    return ApiResponse(
+        code=200,
+        message="success",
+        data={"repair_id": repair_id}
+    )
 
 
 @router.get("/all/list", response_model=ApiResponse)
@@ -44,7 +64,7 @@ def get_all_temporary_repairs(
     return ApiResponse(
         code=200,
         message="success",
-        data=[item.to_dict() for item in items]
+        data=[item.to_list_dict() for item in items]
     )
 
 
@@ -71,7 +91,7 @@ def get_temporary_repairs_list(
         page=page, size=size, project_name=project_name, repair_id=repair_id,
         status=status, maintenance_personnel=maintenance_personnel
     )
-    items_dict = [item.to_dict() for item in items]
+    items_dict = [item.to_list_dict() for item in items]
     return ApiResponse(
         code=200,
         message="success",
@@ -131,7 +151,7 @@ def create_temporary_repair(
     repair = service.create(dto, user_info.id, user_info.name)
     return ApiResponse(
         code=200,
-        message="Created successfully",
+        message="创建成功",
         data=repair.to_dict()
     )
 
@@ -169,7 +189,7 @@ def update_temporary_repair(
     repair = service.update(id, dto, user_info.id, user_info.name)
     return ApiResponse(
         code=200,
-        message="Updated successfully",
+        message="更新成功",
         data=repair.to_dict()
     )
 
@@ -230,7 +250,111 @@ def partial_update_temporary_repair(
     logger.info(f"更新后工单photos: {repair.photos}")
     return ApiResponse(
         code=200,
-        message="Updated successfully",
+        message="更新成功",
+        data=repair.to_dict()
+    )
+
+
+@router.post("/{id}/submit", response_model=ApiResponse)
+def submit_temporary_repair(
+    id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    提交临时维修工单
+    管理员可提交所有工单，运维人员只能提交自己的工单
+    """
+    service = TemporaryRepairService(db)
+    existing = service.get_by_id(id)
+
+    if not check_data_access(user_info, existing.maintenance_personnel):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权提交此工单"
+        )
+
+    repair = service.partial_update(id, TemporaryRepairPartialUpdate(status='待确认'), user_info.id, user_info.name)
+    return ApiResponse(
+        code=200,
+        message="提交成功",
+        data=repair.to_dict()
+    )
+
+
+@router.post("/{id}/recall", response_model=ApiResponse)
+def recall_temporary_repair(
+    id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    撤回临时维修工单
+    仅待确认状态可撤回，撤回后状态变为执行中
+    管理员可撤回所有工单，运维人员只能撤回自己的工单
+    """
+    service = TemporaryRepairService(db)
+    existing = service.get_by_id(id)
+
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="工单不存在"
+        )
+
+    if existing.status != '待确认':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="只有待确认状态的工单才能撤回"
+        )
+
+    if not check_data_access(user_info, existing.maintenance_personnel):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权撤回此工单"
+        )
+
+    repair = service.partial_update(id, TemporaryRepairPartialUpdate(status='执行中'), user_info.id, user_info.name)
+    return ApiResponse(
+        code=200,
+        message="撤回成功",
+        data=repair.to_dict()
+    )
+
+
+@router.post("/{id}/approve", response_model=ApiResponse)
+def approve_temporary_repair(
+    id: int,
+    dto: TemporaryRepairApprove,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
+):
+    """
+    审批临时维修工单
+    需要管理员或部门经理权限
+    """
+    service = TemporaryRepairService(db)
+    
+    if dto.approved:
+        repair = service.partial_update(id, TemporaryRepairPartialUpdate(status='已完成'), user_info.id, user_info.name)
+        message = "审批通过"
+    else:
+        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="请输入工单退回原因，至少10个字符"
+            )
+        repair = service.partial_update(
+            id, 
+            TemporaryRepairPartialUpdate(status='已退回', reject_reason=dto.reject_reason), 
+            user_info.id, 
+            user_info.name
+        )
+        message = "已退回"
+
+    return ApiResponse(
+        code=200,
+        message=message,
         data=repair.to_dict()
     )
 
@@ -249,6 +373,6 @@ def delete_temporary_repair(
     service.delete(id, user_info.id, user_info.name)
     return ApiResponse(
         code=200,
-        message="Deleted successfully",
+        message="删除成功",
         data=None
     )

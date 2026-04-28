@@ -31,7 +31,6 @@ backend-python/
 │   ├── config.py                    # 配置管理
 │   ├── database.py                  # 数据库连接
 │   └── main.py                     # 应用入口
-├── tests/                          # 测试目录
 ├── alembic/                        # 数据库迁移
 ├── pyproject.toml                  # Poetry 依赖管理
 ├── requirements.txt                 # Pip 依赖管理
@@ -122,16 +121,6 @@ alembic upgrade head
 
 # 回滚迁移
 alembic downgrade -1
-```
-
-## 测试
-
-```bash
-# 运行所有测试
-pytest
-
-# 运行测试并生成覆盖率报告
-pytest --cov=app --cov-report=html
 ```
 
 ## 部署

@@ -59,6 +59,9 @@ export const CACHE_KEYS = {
   CUSTOMER: 'customer',
   INSPECTION_ITEMS: 'inspection_items',
   STATISTICS: 'statistics',
+  TEMPORARY_REPAIR_PENDING: 'temporary_repair_pending',
+  SPOT_WORK_PENDING: 'spot_work_pending',
+  PERIODIC_INSPECTION_PENDING: 'periodic_inspection_pending',
 }
 
 export const CACHE_TTL = {

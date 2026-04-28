@@ -114,7 +114,7 @@ def _get_model_stats_with_sql(
 
 
 @router.get("/overview", response_model=ApiResponse)
-def get_statistics_overview(
+async def get_statistics_overview(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
@@ -196,7 +196,7 @@ def _get_completion_stats_with_sql(
 
 
 @router.get("/completion-rate", response_model=ApiResponse)
-def get_completion_rate(
+async def get_completion_rate(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
@@ -277,7 +277,7 @@ def _get_project_stats_with_sql(
 
 
 @router.get("/top-projects", response_model=ApiResponse)
-def get_top_projects(
+async def get_top_projects(
     year: int = Query(..., description="年度"),
     limit: int = Query(5, ge=1, le=10, description="返回数量"),
     db: Session = Depends(get_db),
@@ -313,10 +313,12 @@ def get_top_projects(
     for project_id, count in work_stats.items():
         project_stats[project_id] = project_stats.get(project_id, 0) + count
 
-    projects = db.query(ProjectInfo).all()
-    project_dict = {p.project_id: p.project_name for p in projects}
-
     sorted_projects = sorted(project_stats.items(), key=lambda x: x[1], reverse=True)[:limit]
+
+    needed_project_ids = [pid for pid, _ in sorted_projects]
+    project_dict = {p.project_id: p.project_name for p in db.query(ProjectInfo).filter(
+        ProjectInfo.project_id.in_(needed_project_ids)
+    ).all()} if needed_project_ids else {}
 
     result = []
     for project_id, value in sorted_projects:
@@ -330,7 +332,7 @@ def get_top_projects(
 
 
 @router.get("/top-repairs", response_model=ApiResponse)
-def get_top_repairs(
+async def get_top_repairs(
     year: int = Query(..., description="年度"),
     limit: int = Query(5, ge=1, le=10, description="返回数量"),
     db: Session = Depends(get_db),
@@ -405,7 +407,7 @@ def _get_employee_stats_with_sql(
 
 
 @router.get("/employee-stats", response_model=ApiResponse)
-def get_employee_stats(
+async def get_employee_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
@@ -456,7 +458,7 @@ def get_employee_stats(
 
 
 @router.get("/repair-stats", response_model=ApiResponse)
-def get_repair_stats(
+async def get_repair_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
@@ -493,7 +495,7 @@ def get_repair_stats(
 
 
 @router.get("/spotwork-stats", response_model=ApiResponse)
-def get_spotwork_stats(
+async def get_spotwork_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
@@ -530,7 +532,7 @@ def get_spotwork_stats(
 
 
 @router.get("/inspection-stats", response_model=ApiResponse)
-def get_inspection_stats(
+async def get_inspection_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_info)
@@ -567,7 +569,7 @@ def get_inspection_stats(
 
 
 @router.get("/detail", response_model=ApiResponse)
-def get_statistics_detail(
+async def get_statistics_detail(
     year: int = Query(..., description="年度"),
     data_type: str = Query(..., description="数据类型: nearDue/overdue/yearCompleted/regularInspection/temporaryRepair/spotWork/onTime/delayed/employee/project"),
     employee_name: str | None = Query(None, description="运维人员姓名(运维人员详情时使用)"),
@@ -600,8 +602,7 @@ def get_statistics_detail(
     results = []
     total = 0
 
-    projects = db.query(ProjectInfo).all()
-    project_dict = {p.project_id: p.project_name for p in projects}
+    project_dict = {}
 
     def format_work_order(item, order_type_str: str) -> dict:
         """格式化工单数据"""
@@ -635,13 +636,21 @@ def get_statistics_detail(
         }
 
     def filter_and_paginate(query, model, order_type_str: str, filter_func) -> tuple:
-        """过滤并分页"""
+        """过滤并分页 - 使用SQL过滤而非内存过滤"""
+        nonlocal project_dict
         query = _apply_soft_delete_filter(query, model)
         query = _apply_user_filter(query, model, user_name, is_manager)
-        items = []
-        for item in query.all():
-            if filter_func(item):
-                items.append(format_work_order(item, order_type_str))
+        all_items = query.all()
+        if not project_dict and all_items:
+            needed_ids = {item.project_id for item in all_items if item.project_id}
+            if needed_ids:
+                project_dict.update(
+                    (p.project_id, p.project_name)
+                    for p in db.query(ProjectInfo).filter(
+                        ProjectInfo.project_id.in_(needed_ids)
+                    ).all()
+                )
+        items = [format_work_order(item, order_type_str) for item in all_items if filter_func(item)]
         return items
 
     if data_type == 'nearDue':

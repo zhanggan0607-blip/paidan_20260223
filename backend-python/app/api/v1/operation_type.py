@@ -151,6 +151,9 @@ def init_default_operation_types(
         {"type_code": "submit", "type_name": "提交", "color_code": "#ff976a", "sort_order": 3},
         {"type_code": "approve", "type_name": "审批通过", "color_code": "#07c160", "sort_order": 4},
         {"type_code": "reject", "type_name": "审批退回", "color_code": "#ee0a24", "sort_order": 5},
+        {"type_code": "admin_edit_content", "type_name": "管理员编辑内容", "color_code": "#9c27b0", "sort_order": 6},
+        {"type_code": "admin_add_photo", "type_name": "管理员添加照片", "color_code": "#00bcd4", "sort_order": 7},
+        {"type_code": "admin_delete_photo", "type_name": "管理员删除照片", "color_code": "#ff5722", "sort_order": 8},
     ]
 
     created_count = 0

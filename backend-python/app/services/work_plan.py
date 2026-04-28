@@ -103,7 +103,8 @@ class WorkPlanService:
         project_name: str | None = None,
         client_name: str | None = None,
         status: str | None = None,
-        maintenance_personnel: str | None = None
+        maintenance_personnel: str | None = None,
+        plan_id: str | None = None
     ) -> tuple[list[WorkPlan], int]:
         """
         分页获取工作计划列表
@@ -116,12 +117,13 @@ class WorkPlanService:
             client_name: 客户名称筛选
             status: 状态筛选
             maintenance_personnel: 维保人员筛选
+            plan_id: 计划编号模糊查询
 
         Returns:
             (工作计划列表, 总数) 元组
         """
         return self.repository.find_all(
-            page, size, plan_type, project_name, client_name, status, maintenance_personnel
+            page, size, plan_type, project_name, client_name, status, maintenance_personnel, plan_id
         )
 
     def get_by_id(self, id: int) -> WorkPlan:

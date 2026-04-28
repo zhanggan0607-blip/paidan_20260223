@@ -1,13 +1,11 @@
 <script setup lang="ts">
-/**
- * 首页组件
- * 展示工单统计信息和快捷操作入口
- */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workPlanService } from '../services'
 import { userStore } from '../stores/userStore'
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
+
+import { version as appVersion } from '../../package.json'
 
 const router = useRouter()
 
@@ -15,19 +13,12 @@ onMounted(() => {
   fetchStatistics()
 })
 
-/** 统计数据接口 */
 interface Statistics {
-  /** 临期工单数 */
   expiringSoon: number
-  /** 超期工单数 */
   overdue: number
-  /** 年度已完成数 */
   yearlyCompleted: number
-  /** 定期巡检单数 */
   periodicInspection: number
-  /** 临时维修单数 */
   temporaryRepair: number
-  /** 零星用工单数 */
   spotWork: number
 }
 
@@ -43,11 +34,6 @@ const statistics = ref<Statistics>({
 const loading = ref(false)
 const hasOverdue = computed(() => statistics.value.overdue > 0)
 
-/**
- * 获取统计数据
- * 从后端获取工单统计信息
- * 使用缓存优化性能
- */
 const fetchStatistics = async (forceRefresh = false) => {
   loading.value = true
   try {
@@ -76,10 +62,6 @@ const fetchStatistics = async (forceRefresh = false) => {
 
 const currentYear = new Date().getFullYear()
 
-/**
- * 统计卡片配置
- * 根据用户权限过滤显示的卡片
- */
 const statCards = computed(() => {
   const cards = [
     {
@@ -87,7 +69,8 @@ const statCards = computed(() => {
       label: '临期工单',
       year: `${currentYear}年度`,
       value: statistics.value.expiringSoon,
-      color: '#ff976a',
+      color: 'var(--color-warning)',
+      bg: 'var(--color-warning-subtle)',
       route: '/work-list?type=expiring',
       show: userStore.canViewWorkOrder(),
     },
@@ -96,7 +79,8 @@ const statCards = computed(() => {
       label: '超期工单',
       year: `${currentYear}年度`,
       value: statistics.value.overdue,
-      color: '#ee0a24',
+      color: 'var(--color-danger)',
+      bg: 'var(--color-danger-subtle)',
       route: '/work-list?type=overdue',
       showBadge: hasOverdue.value,
       show: userStore.canViewWorkOrder(),
@@ -106,7 +90,8 @@ const statCards = computed(() => {
       label: '已完成',
       year: `${currentYear}年度`,
       value: statistics.value.yearlyCompleted,
-      color: '#07c160',
+      color: 'var(--color-success)',
+      bg: 'var(--color-success-subtle)',
       route: '/work-list?type=completed',
       show: userStore.canViewWorkOrder(),
     },
@@ -115,7 +100,8 @@ const statCards = computed(() => {
       label: '定期巡检单',
       year: `${currentYear}年度`,
       value: statistics.value.periodicInspection,
-      color: '#1989fa',
+      color: 'var(--color-primary)',
+      bg: 'var(--color-primary-subtle)',
       route: '/work-list?type=periodic',
       show: userStore.canViewPeriodicInspection(),
     },
@@ -124,7 +110,8 @@ const statCards = computed(() => {
       label: '临时维修单',
       year: `${currentYear}年度`,
       value: statistics.value.temporaryRepair,
-      color: '#7232dd',
+      color: 'var(--color-info)',
+      bg: 'var(--color-info-subtle)',
       route: '/work-list?type=repair',
       show: userStore.canViewTemporaryRepair(),
     },
@@ -133,7 +120,8 @@ const statCards = computed(() => {
       label: '零星用工单',
       year: `${currentYear}年度`,
       value: statistics.value.spotWork,
-      color: '#ff976a',
+      color: 'var(--color-accent)',
+      bg: 'var(--color-accent-subtle)',
       route: '/work-list?type=spot',
       show: userStore.canViewSpotWork(),
     },
@@ -141,17 +129,14 @@ const statCards = computed(() => {
   return cards.filter((card) => card.show)
 })
 
-/**
- * 快捷操作配置
- * 根据用户权限过滤显示的操作项
- */
 const quickActions = computed(() => {
   const actions = [
     {
       key: 'periodic',
       label: '定期巡检',
       icon: 'todo-list-o',
-      color: '#1989fa',
+      color: 'var(--color-primary)',
+      bg: 'var(--color-primary-subtle)',
       route: '/periodic-inspection',
       show: userStore.canViewPeriodicInspection(),
     },
@@ -159,7 +144,8 @@ const quickActions = computed(() => {
       key: 'repair',
       label: '临时维修',
       icon: 'warning-o',
-      color: '#ff976a',
+      color: 'var(--color-accent)',
+      bg: 'var(--color-accent-subtle)',
       route: '/temporary-repair',
       show: userStore.canViewTemporaryRepair(),
     },
@@ -167,7 +153,8 @@ const quickActions = computed(() => {
       key: 'spot',
       label: '申报用工',
       icon: 'cluster-o',
-      color: '#07c160',
+      color: 'var(--color-success)',
+      bg: 'var(--color-success-subtle)',
       route: '/spot-work-apply',
       show: userStore.canApplySpotWork(),
     },
@@ -175,7 +162,8 @@ const quickActions = computed(() => {
       key: 'newLog',
       label: '新报维保日志',
       icon: 'edit',
-      color: '#7232dd',
+      color: 'var(--color-info)',
+      bg: 'var(--color-info-subtle)',
       route: '/maintenance-log',
       show: userStore.canFillMaintenanceLog(),
     },
@@ -183,7 +171,8 @@ const quickActions = computed(() => {
       key: 'historyLog',
       label: '维保日志查询',
       icon: 'description',
-      color: '#1989fa',
+      color: 'var(--color-primary)',
+      bg: 'var(--color-primary-subtle)',
       route: '/maintenance-log-list',
       show: userStore.canViewMaintenanceLog() || userStore.canViewAllMaintenanceLog(),
     },
@@ -191,7 +180,8 @@ const quickActions = computed(() => {
       key: 'weeklyReport',
       label: '新报部门周报',
       icon: 'calendar-o',
-      color: '#7232dd',
+      color: 'var(--color-info)',
+      bg: 'var(--color-info-subtle)',
       route: '/weekly-report',
       show: userStore.isDepartmentManager(),
     },
@@ -199,7 +189,8 @@ const quickActions = computed(() => {
       key: 'weeklyHistory',
       label: '已报部门周报',
       icon: 'description',
-      color: '#1989fa',
+      color: 'var(--color-primary)',
+      bg: 'var(--color-primary-subtle)',
       route: '/weekly-report-list',
       show: userStore.isDepartmentManager(),
     },
@@ -207,7 +198,8 @@ const quickActions = computed(() => {
       key: 'viewWeekly',
       label: '查看部门周报',
       icon: 'calendar-o',
-      color: '#7232dd',
+      color: 'var(--color-info)',
+      bg: 'var(--color-info-subtle)',
       route: '/weekly-report-all',
       show: userStore.isAdmin(),
     },
@@ -215,7 +207,8 @@ const quickActions = computed(() => {
       key: 'sparePartsIssue',
       label: '备品备件领用',
       icon: 'shopping-cart-o',
-      color: '#1989fa',
+      color: 'var(--color-primary)',
+      bg: 'var(--color-primary-subtle)',
       route: '/spare-parts-issue',
       show: userStore.canViewSparePartsIssue(),
     },
@@ -223,7 +216,8 @@ const quickActions = computed(() => {
       key: 'sparePartsReturn',
       label: '备品备件归还',
       icon: 'back-top',
-      color: '#07c160',
+      color: 'var(--color-success)',
+      bg: 'var(--color-success-subtle)',
       route: '/spare-parts-return',
       show: userStore.canViewSparePartsIssue(),
     },
@@ -231,7 +225,8 @@ const quickActions = computed(() => {
       key: 'sparePartsStock',
       label: '备品备件库存',
       icon: 'logistics',
-      color: '#07c160',
+      color: 'var(--color-success)',
+      bg: 'var(--color-success-subtle)',
       route: '/spare-parts-stock',
       show: userStore.canViewSparePartsStock(),
     },
@@ -239,7 +234,8 @@ const quickActions = computed(() => {
       key: 'repairToolsIssue',
       label: '维修工具领用',
       icon: 'setting-o',
-      color: '#ff976a',
+      color: 'var(--color-accent)',
+      bg: 'var(--color-accent-subtle)',
       route: '/repair-tools-issue',
       show: userStore.canViewRepairToolsIssue(),
     },
@@ -247,7 +243,8 @@ const quickActions = computed(() => {
       key: 'repairToolsReturn',
       label: '维修工具归还',
       icon: 'back-top',
-      color: '#07c160',
+      color: 'var(--color-success)',
+      bg: 'var(--color-success-subtle)',
       route: '/repair-tools-return',
       show: userStore.canViewRepairToolsIssue(),
     },
@@ -255,7 +252,8 @@ const quickActions = computed(() => {
       key: 'repairToolsStock',
       label: '维修工具库存',
       icon: 'bag-o',
-      color: '#7232dd',
+      color: 'var(--color-info)',
+      bg: 'var(--color-info-subtle)',
       route: '/repair-tools-stock',
       show: userStore.canViewRepairToolsStock(),
     },
@@ -263,26 +261,14 @@ const quickActions = computed(() => {
   return actions.filter((action) => action.show)
 })
 
-/**
- * 处理快捷操作点击
- * @param action 操作配置对象
- */
 const handleQuickAction = (action: { route: string }) => {
   router.push(action.route)
 }
 
-/**
- * 处理统计卡片点击
- * @param card 卡片配置对象
- */
 const handleCardClick = (card: { route: string }) => {
   router.push(card.route)
 }
 
-/**
- * 处理下拉刷新
- * 强制刷新数据，跳过缓存
- */
 const handleRefresh = () => {
   return fetchStatistics(true)
 }
@@ -290,47 +276,51 @@ const handleRefresh = () => {
 
 <template>
   <div class="home-page">
+    <div class="home-header">
+      <div class="header-grid"></div>
+      <div class="header-content">
+        <div class="greeting">
+          <span class="greeting-text">{{ userStore.getUser()?.name || '用户' }}</span>
+          <span class="greeting-label">，您好</span>
+        </div>
+        <div class="header-year">{{ currentYear }} 年度概览</div>
+      </div>
+      <div class="header-version">V{{ appVersion }}</div>
+    </div>
+
     <van-pull-refresh v-model="loading" @refresh="handleRefresh">
       <div class="content">
-        <div class="statistics-section">
-          <van-grid :column-num="2" :border="false">
-            <van-grid-item
-              v-for="card in statCards"
-              :key="card.key"
-              :class="{ 'stat-item-highlight': card.value > 0 }"
-              @click="handleCardClick(card)"
-            >
-              <template #text>
-                <div class="stat-card">
-                  <div
-                    class="stat-value"
-                    :style="{ color: card.color }"
-                    :class="{ 'has-value': card.value > 0 }"
-                  >
-                    {{ card.value }}
-                    <van-badge v-if="card.showBadge" dot class="overdue-badge" />
-                  </div>
-                  <div class="stat-label">{{ card.label }}</div>
-                  <div class="stat-year">{{ card.year }}</div>
-                </div>
-              </template>
-            </van-grid-item>
-          </van-grid>
+        <div class="section-title">工单统计</div>
+        <div class="statistics-grid">
+          <div
+            v-for="card in statCards"
+            :key="card.key"
+            class="stat-card"
+            :class="{ 'stat-card--active': card.value > 0 }"
+            @click="handleCardClick(card)"
+          >
+            <div class="stat-value" :style="{ color: card.color }">
+              {{ card.value }}
+              <van-badge v-if="card.showBadge" dot class="overdue-badge" />
+            </div>
+            <div class="stat-label">{{ card.label }}</div>
+            <div class="stat-year">{{ card.year }}</div>
+          </div>
         </div>
 
-        <div class="actions-section">
-          <van-grid :column-num="2" :border="false">
-            <van-grid-item
-              v-for="action in quickActions"
-              :key="action.key"
-              :text="action.label"
-              @click="handleQuickAction(action)"
-            >
-              <template #icon>
-                <van-icon :name="action.icon" :color="action.color" size="32" />
-              </template>
-            </van-grid-item>
-          </van-grid>
+        <div class="section-title">快捷操作</div>
+        <div class="actions-grid">
+          <div
+            v-for="action in quickActions"
+            :key="action.key"
+            class="action-item"
+            @click="handleQuickAction(action)"
+          >
+            <div class="action-icon" :style="{ background: action.bg }">
+              <van-icon :name="action.icon" :color="action.color" size="22" />
+            </div>
+            <div class="action-label">{{ action.label }}</div>
+          </div>
         </div>
       </div>
     </van-pull-refresh>
@@ -340,65 +330,163 @@ const handleRefresh = () => {
 <style scoped>
 .home-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
+}
+
+.home-header {
+  position: relative;
+  background: var(--color-nav-bg);
+  padding: 20px 20px 28px;
+  overflow: hidden;
+}
+
+.header-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(42, 122, 122, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42, 122, 122, 0.06) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.header-content {
+  position: relative;
+}
+
+.greeting {
+  margin-bottom: 4px;
+}
+
+.greeting-text {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-nav-text-active);
+}
+
+.greeting-label {
+  font-size: var(--text-md);
+  color: var(--color-nav-text);
+}
+
+.header-year {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-primary);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
 }
 
 .content {
-  padding: 12px;
+  padding: var(--space-4);
+  padding-top: var(--space-5);
 }
 
-.actions-section {
-  margin-bottom: 12px;
+.section-title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-3);
+  padding-left: 2px;
 }
 
-.statistics-section {
-  margin-bottom: 12px;
+.statistics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
 }
 
 .stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 8px 0;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow var(--transition-normal), transform var(--transition-fast);
+}
+
+.stat-card--active {
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card:active {
+  transform: scale(0.97);
 }
 
 .stat-value {
-  font-size: 24px;
-  font-weight: bold;
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  line-height: 1;
+  margin-bottom: var(--space-2);
   position: relative;
-  transition: transform 0.2s ease;
-}
-
-.stat-value.has-value {
-  transform: scale(1.1);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stat-label {
-  font-size: 12px;
-  color: #646566;
-  margin-top: 4px;
+  font-size: var(--text-sm);
+  color: var(--color-text-regular);
+  font-weight: var(--weight-medium);
 }
 
 .stat-year {
+  font-family: var(--font-mono);
   font-size: 10px;
-  color: #999;
+  color: var(--color-text-placeholder);
   margin-top: 2px;
+  letter-spacing: 0.02em;
 }
 
 .overdue-badge {
   position: absolute;
-  top: -4px;
-  right: -8px;
+  top: -2px;
+  right: -6px;
 }
 
-:deep(.van-grid-item__content) {
-  padding: 16px 8px;
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
 }
 
-:deep(.van-grid-item.stat-item-highlight .van-grid-item__content) {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(240, 245, 255, 0.9) 100%);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-1);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.action-item:active {
+  background: var(--color-primary-subtle);
+}
+
+.action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-label {
+  font-size: 11px;
+  color: var(--color-text-regular);
+  text-align: center;
+  line-height: 1.3;
+  font-weight: var(--weight-medium);
+}
+
+.header-version {
+  position: absolute;
+  right: 20px;
+  bottom: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-nav-text);
+  opacity: 0.4;
+  letter-spacing: 0.06em;
 }
 </style>

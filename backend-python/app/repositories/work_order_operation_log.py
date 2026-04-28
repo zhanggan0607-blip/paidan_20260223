@@ -34,13 +34,13 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
             work_order_id: 工单ID
 
         Returns:
-            操作日志列表，按创建时间升序排列
+            操作日志列表，按创建时间降序排列（最新的在上面）
         """
         try:
             return self.db.query(WorkOrderOperationLog).filter(
                 WorkOrderOperationLog.work_order_type == work_order_type,
                 WorkOrderOperationLog.work_order_id == work_order_id
-            ).order_by(WorkOrderOperationLog.created_at.asc()).all()
+            ).order_by(WorkOrderOperationLog.created_at.desc(), WorkOrderOperationLog.id.desc()).all()
         except Exception as e:
             logger.error(f"查询操作日志失败 (type={work_order_type}, id={work_order_id}): {str(e)}")
             raise
@@ -58,13 +58,13 @@ class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):
             work_order_no: 工单编号
 
         Returns:
-            操作日志列表，按创建时间升序排列
+            操作日志列表，按创建时间降序排列（最新的在上面）
         """
         try:
             return self.db.query(WorkOrderOperationLog).filter(
                 WorkOrderOperationLog.work_order_type == work_order_type,
                 WorkOrderOperationLog.work_order_no == work_order_no
-            ).order_by(WorkOrderOperationLog.created_at.asc()).all()
+            ).order_by(WorkOrderOperationLog.created_at.desc(), WorkOrderOperationLog.id.desc()).all()
         except Exception as e:
             logger.error(f"查询操作日志失败 (type={work_order_type}, no={work_order_no}): {str(e)}")
             raise

@@ -18,9 +18,20 @@ class Settings(BaseSettings):
 
     database_url: str | None = None
 
+    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    redis_enabled: bool = os.getenv("REDIS_ENABLED", "true").lower() in ("true", "1")
+    redis_cache_ttl: int = int(os.getenv("REDIS_CACHE_TTL", "3600"))
+
     aliyun_access_key_id: str = os.getenv("ALIYUN_ACCESS_KEY_ID", "")
     aliyun_access_key_secret: str = os.getenv("ALIYUN_ACCESS_KEY_SECRET", "")
     aliyun_ocr_region_id: str = os.getenv("ALIYUN_OCR_REGION_ID", "cn-shanghai")
+
+    aliyun_oss_access_key_id: str = os.getenv("ALIYUN_OSS_ACCESS_KEY_ID", "")
+    aliyun_oss_access_key_secret: str = os.getenv("ALIYUN_OSS_ACCESS_KEY_SECRET", "")
+    aliyun_oss_endpoint: str = os.getenv("ALIYUN_OSS_ENDPOINT", "oss-cn-shanghai.aliyuncs.com")
+    aliyun_oss_bucket_name: str = os.getenv("ALIYUN_OSS_BUCKET_NAME", "sstcp-uploads")
+    aliyun_oss_cdn_domain: str = os.getenv("ALIYUN_OSS_CDN_DOMAIN", "")
+    aliyun_oss_enabled: bool = os.getenv("ALIYUN_OSS_ENABLED", "true").lower() in ("true", "1")
 
     dingtalk_agent_id: str = os.getenv("DINGTALK_AGENT_ID", "")
     dingtalk_app_key: str = os.getenv("DINGTALK_APP_KEY", "")
@@ -30,8 +41,12 @@ class Settings(BaseSettings):
     docs_url: str = "/api/docs"
     redoc_url: str = "/api/redoc"
     openapi_url: str = "/api/openapi.json"
+    server_base_url: str = os.getenv("SERVER_BASE_URL", "http://localhost:8000")
 
-    cors_origins: str = "*"
+    cors_origins: str = os.getenv(
+        "CORS_ORIGINS",
+        "https://www.paidan.sstcp.top,https://paidan.sstcp.top,http://localhost:5173,http://localhost:5180"
+    )
 
     page_size: int = 10
     max_page_size: int = 1000
@@ -141,20 +156,3 @@ class PersonnelConfig:
 def get_settings() -> Settings:
     return Settings()
 
-
-def is_troubleshooting_enabled() -> bool:
-    """
-    检查是否启用错误记录管理系统
-    
-    错误记录管理系统只在本地开发环境启用：
-    - environment 必须为 'development' 或 'local'
-    - 或者 debug 为 True
-    
-    Returns:
-        bool: 是否启用错误记录管理系统
-    """
-    settings = get_settings()
-    return (
-        settings.environment.lower() in ("development", "local", "dev") 
-        or settings.debug
-    )

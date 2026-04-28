@@ -31,6 +31,8 @@ class Personnel(Base):
         Index('idx_department', 'department'),
         Index('idx_role', 'role'),
         Index('idx_dingtalk_userid', 'dingtalk_userid'),
+        Index('idx_personnel_dept_role', 'department', 'role'),
+        Index('idx_personnel_created_at', 'created_at'),
         {'comment': '人员信息表'}
     )
 

@@ -15,12 +15,15 @@ export interface CustomerQueryParams {
 }
 
 export interface CustomerCreate {
-  customer_name: string
-  contact_person?: string
-  contact_phone?: string
-  contact_position?: string
+  name: string
   address?: string
   remarks?: string
+  contacts?: Array<{
+    contact_person?: string
+    phone?: string
+    contact_position?: string
+    remarks?: string
+  }>
 }
 
 export interface CustomerUpdate extends CustomerCreate {}

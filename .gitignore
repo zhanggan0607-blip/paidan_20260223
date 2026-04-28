@@ -8,6 +8,8 @@ __pycache__
 .env
 .env.local
 .env.*.local
+.env.test
+.env.production
 *.log
 logs/
 dist/
@@ -34,5 +36,11 @@ backups/
 cleanup_backup/
 *.zip
 *.tar.gz
+*.tar
 *.rar
+*.sql
+*.pdf
 .trae/
+verify_*.py
+test_pdf_export.py
+daemon.json

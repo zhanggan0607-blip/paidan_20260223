@@ -1,14 +1,22 @@
-<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="customer-management">
-    <LoadingSpinner :visible="loading" text="加载中..." />
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <LoadingSpinner
+      :visible="loading"
+      text="加载中..."
+    />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
 
     <div class="search-section">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label class="search-label">客户单位：</label>
+            <label for="search_clientName" class="search-label">客户单位：</label>
             <SearchInput
+              input-id="search_clientName"
               v-model="searchForm.name"
               field-key="CustomerManagement_name"
               placeholder="请输入客户单位"
@@ -16,8 +24,9 @@
             />
           </div>
           <div class="search-item">
-            <label class="search-label">客户联系人：</label>
+            <label for="search_clientContact" class="search-label">客户联系人：</label>
             <SearchInput
+              input-id="search_clientContact"
               v-model="searchForm.contact_person"
               field-key="CustomerManagement_contact_person"
               placeholder="请输入客户联系人"
@@ -27,7 +36,12 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">+ 新增客户</button>
+        <button
+          class="btn btn-add"
+          @click="openModal"
+        >
+          + 新增客户
+        </button>
       </div>
     </div>
 
@@ -55,34 +69,62 @@
             <td>{{ item.address || '-' }}</td>
             <td>
               <template v-if="item.contacts && item.contacts.length > 0">
-                <div v-for="contact in item.contacts" :key="contact.id" class="contact-item">
+                <div
+                  v-for="contact in item.contacts"
+                  :key="contact.id"
+                  class="contact-item"
+                >
                   {{ contact.contact_person }}
                 </div>
               </template>
-              <template v-else>-</template>
+              <template v-else>
+                -
+              </template>
             </td>
             <td>
               <template v-if="item.contacts && item.contacts.length > 0">
-                <div v-for="contact in item.contacts" :key="contact.id" class="contact-item">
+                <div
+                  v-for="contact in item.contacts"
+                  :key="contact.id"
+                  class="contact-item"
+                >
                   {{ contact.phone || '-' }}
                 </div>
               </template>
-              <template v-else>-</template>
+              <template v-else>
+                -
+              </template>
             </td>
             <td>
               <template v-if="item.contacts && item.contacts.length > 0">
-                <div v-for="contact in item.contacts" :key="contact.id" class="contact-item">
+                <div
+                  v-for="contact in item.contacts"
+                  :key="contact.id"
+                  class="contact-item"
+                >
                   {{ contact.contact_position || '-' }}
                 </div>
               </template>
-              <template v-else>-</template>
+              <template v-else>
+                -
+              </template>
             </td>
             <td class="action-cell">
-              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
-                >删除</a
-              >
+              <a
+                href="#"
+                class="action-link action-view"
+                @click.prevent="handleView(item)"
+              >查看</a>
+              <a
+                href="#"
+                class="action-link action-edit"
+                @click.prevent="handleEdit(item)"
+              >编辑</a>
+              <a
+                href="#"
+                class="action-link action-delete"
+                @click.prevent="handleDelete(item)"
+              >删除</a>
             </td>
           </tr>
         </tbody>
@@ -90,9 +132,15 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+      <div class="pagination-info">
+        共 {{ totalElements }} 条记录
+      </div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage === 0"
+          @click="currentPage--"
+        >
           &lt;
         </button>
         <button
@@ -111,160 +159,246 @@
         >
           &gt;
         </button>
-        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
-          <option value="10">10 条 / 页</option>
-          <option value="20">20 条 / 页</option>
-          <option value="50">50 条 / 页</option>
+        <select
+          id="pageSize"
+          name="pageSize"
+          v-model="pageSize"
+          class="page-select"
+          @change="handlePageSizeChange"
+        >
+          <option value="10">
+            10 条 / 页
+          </option>
+          <option value="20">
+            20 条 / 页
+          </option>
+          <option value="50">
+            50 条 / 页
+          </option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+          <input
+            id="jumpPage"
+            v-model="jumpPage"
+            name="jumpPage"
+            type="number"
+            class="page-input"
+            min="1"
+            :max="totalPages"
+            aria-label="跳转页码"
+          >
           <span>页</span>
-          <button class="page-btn page-go" @click="handleJump">Go</button>
+          <button
+            class="page-btn page-go"
+            @click="handleJump"
+          >
+            Go
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+    <div
+      v-if="isModalOpen"
+      class="modal-overlay"
+      @click.self="closeModal"
+    >
       <div class="modal-container modal-large">
         <div class="modal-header">
-          <h3 class="modal-title">{{ isEditMode ? '编辑客户' : '新增客户' }}</h3>
-          <button class="modal-close" @click="closeModal">×</button>
+          <h3 class="modal-title">
+            {{ isEditMode ? '编辑客户' : '新增客户' }}
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 客户单位 </label>
-                <input
+                <label for="clientName" class="form-label"> <span class="required">*</span> 客户单位 </label>
+                <input id="clientName" name="clientName"
                   v-model="formData.name"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="100"
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">客户地址</label>
-                <input
+                <label for="clientAddress" class="form-label">客户地址</label>
+                <input id="clientAddress" name="clientAddress"
                   v-model="formData.address"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="200"
-                />
+                >
               </div>
             </div>
           </div>
 
           <div class="contacts-section">
             <div class="contacts-header">
-              <label class="form-label">联系人信息</label>
-              <button type="button" class="btn btn-add-contact" @click="addContact">
+              <span class="form-label">联系人信息</span>
+              <button
+                type="button"
+                class="btn btn-add-contact"
+                @click="addContact"
+              >
                 + 添加联系人
               </button>
             </div>
-            <div v-if="formData.contacts.length === 0" class="no-contacts">
+            <div
+              v-if="formData.contacts.length === 0"
+              class="no-contacts"
+            >
               暂无联系人，请点击"添加联系人"按钮添加
             </div>
-            <div v-for="(contact, index) in formData.contacts" :key="index" class="contact-row">
-              <div class="contact-index">{{ index + 1 }}</div>
+            <div
+              v-for="(contact, index) in formData.contacts"
+              :key="index"
+              class="contact-row"
+            >
+              <div class="contact-index">
+                {{ index + 1 }}
+              </div>
               <div class="contact-fields">
                 <div class="contact-field">
-                  <label class="contact-label"><span class="required">*</span> 联系人姓名</label>
-                  <input
+                  <label for="contact_contactName" class="contact-label"><span class="required">*</span> 联系人姓名</label>
+                  <input id="contact_contactName" name="contact_contactName"
                     v-model="contact.contact_person"
                     type="text"
                     class="form-input"
                     placeholder="请输入联系人姓名"
                     maxlength="50"
-                  />
+                  >
                 </div>
                 <div class="contact-field">
-                  <label class="contact-label">联系方式</label>
-                  <input
+                  <label for="contact_contactPhone" class="contact-label">联系方式</label>
+                  <input id="contact_contactPhone" name="contact_contactPhone"
                     v-model="contact.phone"
                     type="text"
                     class="form-input"
                     placeholder="请输入手机号码"
                     maxlength="11"
-                  />
+                  >
                 </div>
                 <div class="contact-field">
-                  <label class="contact-label">联系人职位</label>
-                  <input
+                  <label for="contact_contactPosition" class="contact-label">联系人职位</label>
+                  <input id="contact_contactPosition" name="contact_contactPosition"
                     v-model="contact.contact_position"
                     type="text"
                     class="form-input"
                     placeholder="请输入职位"
                     maxlength="50"
-                  />
+                  >
                 </div>
               </div>
-              <button type="button" class="btn btn-remove-contact" @click="removeContact(index)">
+              <button
+                type="button"
+                class="btn btn-remove-contact"
+                @click="removeContact(index)"
+              >
                 删除
               </button>
             </div>
           </div>
 
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="formData.remarks"
               class="form-textarea"
               placeholder="请输入"
               rows="3"
               maxlength="500"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleSave">
+          <button
+            class="btn btn-cancel"
+            @click="closeModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleSave"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container modal-large">
         <div class="modal-header">
-          <h3 class="modal-title">查看客户</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            查看客户
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">客户单位</label>
-                <div class="form-value">{{ viewData.name || '-' }}</div>
+                <span class="form-label">客户单位</span>
+                <div class="form-value">
+                  {{ viewData.name || '-' }}
+                </div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">客户地址</label>
-                <div class="form-value">{{ viewData.address || '-' }}</div>
+                <span class="form-label">客户地址</span>
+                <div class="form-value">
+                  {{ viewData.address || '-' }}
+                </div>
               </div>
             </div>
           </div>
 
           <div class="contacts-section view-mode">
             <div class="contacts-header">
-              <label class="form-label">联系人信息</label>
+              <span class="form-label">联系人信息</span>
             </div>
-            <div v-if="!viewData.contacts || viewData.contacts.length === 0" class="no-contacts">
+            <div
+              v-if="!viewData.contacts || viewData.contacts.length === 0"
+              class="no-contacts"
+            >
               暂无联系人信息
             </div>
-            <div v-else class="contacts-view-list">
+            <div
+              v-else
+              class="contacts-view-list"
+            >
               <div
                 v-for="(contact, index) in viewData.contacts"
                 :key="contact.id"
                 class="contact-view-item"
               >
-                <div class="contact-view-index">{{ index + 1 }}</div>
+                <div class="contact-view-index">
+                  {{ index + 1 }}
+                </div>
                 <div class="contact-view-info">
                   <div class="contact-view-row">
                     <span class="contact-view-label">联系人姓名：</span>
@@ -284,12 +418,19 @@
           </div>
 
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+            <span class="form-label">备注</span>
+            <div class="form-value form-value-textarea">
+              {{ viewData.remarks || '-' }}
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
@@ -316,11 +457,8 @@ import {
   type CustomerContact,
   type CustomerContactCreate,
 } from '../services/customer'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import Toast from '../components/Toast.vue'
-import SearchInput from '../components/SearchInput.vue'
-import { useInputMemory } from '../utils/inputMemory'
-import { createDebounce } from '../utils/debounce'
+import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
+import { useInputMemory, createDebounce } from '../utils'
 
 export default defineComponent({
   name: 'CustomerManagement',
@@ -805,7 +943,7 @@ export default defineComponent({
 
 <style scoped>
 .customer-management {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -818,7 +956,7 @@ export default defineComponent({
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
 }
 
@@ -846,29 +984,29 @@ export default defineComponent({
 .search-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
   white-space: nowrap;
 }
 
 .search-input {
   width: 200px;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .search-actions {
@@ -898,26 +1036,26 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #2e7d32;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover:not(:disabled) {
-  background: #1b5e20;
+  background: var(--color-success);
 }
 
 .btn-search {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .table-section {
   margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   overflow-x: auto;
 }
@@ -929,7 +1067,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .data-table th {
@@ -937,8 +1075,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #d0d0d0;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
@@ -946,22 +1084,22 @@ export default defineComponent({
   padding: 12px 16px;
   text-align: left;
   font-size: 14px;
-  color: #616161;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--color-text-regular);
+  border-bottom: 1px solid var(--color-border-light);
   vertical-align: top;
 }
 
 .data-table tbody tr:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .contact-item {
   padding: 4px 0;
-  border-bottom: 1px dashed #e0e0e0;
+  border-bottom: 1px dashed var(--color-border);
 }
 
 .contact-item:last-child {
@@ -989,15 +1127,15 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .action-edit {
-  color: #2196f3;
+  color: var(--color-primary);
 }
 
 .action-delete {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .pagination-section {
@@ -1009,7 +1147,7 @@ export default defineComponent({
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -1026,11 +1164,11 @@ export default defineComponent({
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -1039,8 +1177,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196f3;
-  color: #2196f3;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -1049,9 +1187,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196f3;
-  color: #fff;
-  border-color: #2196f3;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-nav {
@@ -1060,11 +1198,11 @@ export default defineComponent({
 
 .page-select {
   padding: 6px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 
@@ -1073,31 +1211,31 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
   width: 48px;
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: center;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .page-input:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--color-primary);
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
   border: none;
   border-radius: 3px;
   font-size: 12px;
@@ -1106,7 +1244,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .modal-overlay {
@@ -1123,7 +1261,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 800px;
   max-width: 95vw;
@@ -1141,13 +1279,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -1157,7 +1295,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -1166,7 +1304,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -1204,41 +1342,41 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .required {
-  color: #d32f2f;
+  color: var(--color-danger);
   margin-right: 4px;
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-textarea {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
   resize: vertical;
   font-family: inherit;
@@ -1246,21 +1384,21 @@ export default defineComponent({
 
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-textarea::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -1276,9 +1414,9 @@ export default defineComponent({
 .contacts-section {
   margin-bottom: 24px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .contacts-header {
@@ -1290,8 +1428,8 @@ export default defineComponent({
 
 .btn-add-contact {
   padding: 6px 12px;
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
   border: none;
   border-radius: 3px;
   font-size: 13px;
@@ -1300,12 +1438,12 @@ export default defineComponent({
 }
 
 .btn-add-contact:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .no-contacts {
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
   padding: 20px;
   font-size: 14px;
 }
@@ -1316,9 +1454,9 @@ export default defineComponent({
   gap: 12px;
   padding: 12px;
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .contact-row:last-child {
@@ -1328,8 +1466,8 @@ export default defineComponent({
 .contact-index {
   width: 24px;
   height: 24px;
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1355,15 +1493,15 @@ export default defineComponent({
 .contact-label {
   display: block;
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
 .btn-remove-contact {
   padding: 4px 8px;
-  background: #fff;
-  color: #d32f2f;
-  border: 1px solid #d32f2f;
+  background: var(--color-bg-card);
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
   border-radius: 3px;
   font-size: 12px;
   cursor: pointer;
@@ -1373,12 +1511,12 @@ export default defineComponent({
 }
 
 .btn-remove-contact:hover {
-  background: #d32f2f;
-  color: #fff;
+  background: var(--color-danger);
+  color: var(--color-bg-card);
 }
 
 .contacts-section.view-mode {
-  background: #fff;
+  background: var(--color-bg-card);
   padding: 0;
   border: none;
 }
@@ -1393,16 +1531,16 @@ export default defineComponent({
   display: flex;
   gap: 16px;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
 }
 
 .contact-view-index {
   width: 28px;
   height: 28px;
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1427,13 +1565,13 @@ export default defineComponent({
 
 .contact-view-label {
   width: 100px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 14px;
   flex-shrink: 0;
 }
 
 .contact-view-value {
-  color: #333;
+  color: var(--color-text-primary);
   font-size: 14px;
 }
 
@@ -1442,25 +1580,25 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-save {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 </style>

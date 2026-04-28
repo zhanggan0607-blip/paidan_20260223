@@ -19,13 +19,11 @@ export interface ProjectInfo {
   client_contact?: string
   client_contact_position?: string
   client_contact_info?: string
+  client_contact_id?: number
   created_at: string
   updated_at: string
 }
 
-/**
- * 创建项目信息请求
- */
 export interface ProjectInfoCreate {
   project_id: string
   project_name: string
@@ -39,6 +37,7 @@ export interface ProjectInfoCreate {
   client_contact?: string
   client_contact_position?: string
   client_contact_info?: string
+  client_contact_id?: number
 }
 
 /**

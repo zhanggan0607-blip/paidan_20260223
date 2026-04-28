@@ -7,8 +7,9 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label class="search-label">运维人员：</label>
+                  <label for="search_maintenancePersonnel" class="search-label">运维人员：</label>
                   <SearchInput
+              input-id="search_maintenancePersonnel"
                     v-model="filters.user"
                     field-key="RepairToolsIssue_user"
                     placeholder="请输入运维人员"
@@ -16,8 +17,9 @@
                   />
                 </div>
                 <div class="search-item">
-                  <label class="search-label">工具名称：</label>
+                  <label for="search_toolName" class="search-label">工具名称：</label>
                   <SearchInput
+              input-id="search_toolName"
                     v-model="filters.toolName"
                     field-key="RepairToolsIssue_toolName"
                     placeholder="请输入工具名称"
@@ -25,8 +27,9 @@
                   />
                 </div>
                 <div class="search-item">
-                  <label class="search-label">项目名称：</label>
+                  <label for="search_projectName" class="search-label">项目名称：</label>
                   <SearchInput
+              input-id="search_projectName"
                     v-model="filters.project"
                     field-key="RepairToolsIssue_project"
                     placeholder="请输入项目名称"
@@ -36,7 +39,12 @@
               </div>
             </div>
             <div class="action-buttons">
-              <button class="btn btn-add" @click="handleAdd">新增领用</button>
+              <button
+                class="btn btn-add"
+                @click="handleAdd"
+              >
+                新增领用
+              </button>
             </div>
           </div>
 
@@ -57,15 +65,27 @@
               </thead>
               <tbody>
                 <tr v-if="loading">
-                  <td colspan="9" class="loading-cell">
-                    <div class="loading-spinner"></div>
+                  <td
+                    colspan="9"
+                    class="loading-cell"
+                  >
+                    <div class="loading-spinner" />
                     <span>加载中...</span>
                   </td>
                 </tr>
                 <tr v-else-if="dataList.length === 0">
-                  <td colspan="9" class="empty-cell">暂无数据</td>
+                  <td
+                    colspan="9"
+                    class="empty-cell"
+                  >
+                    暂无数据
+                  </td>
                 </tr>
-                <tr v-for="(item, index) in dataList" v-else :key="item.id">
+                <tr
+                  v-for="(item, index) in dataList"
+                  v-else
+                  :key="item.id"
+                >
                   <td>{{ (currentPage - 1) * pageSize + index + 1 }}</td>
                   <td>{{ item.tool_id }}</td>
                   <td>{{ item.tool_name }}</td>
@@ -107,7 +127,7 @@
                     :min="1"
                     :max="totalPages"
                     class="pagination-input"
-                  />
+                  >
                   <span class="pagination-slash">/</span>
                   <span>{{ totalPages }}</span>
                 </span>
@@ -121,11 +141,25 @@
               </div>
               <div class="page-size-selector">
                 <span>每页</span>
-                <select v-model="pageSize" class="page-size-select" @change="handlePageSizeChange">
-                  <option :value="10">10</option>
-                  <option :value="20">20</option>
-                  <option :value="50">50</option>
-                  <option :value="100">100</option>
+                <select
+                  id="pageSize"
+                  name="pageSize"
+                  v-model="pageSize"
+                  class="page-size-select"
+                  @change="handlePageSizeChange"
+                >
+                  <option :value="10">
+                    10
+                  </option>
+                  <option :value="20">
+                    20
+                  </option>
+                  <option :value="50">
+                    50
+                  </option>
+                  <option :value="100">
+                    100
+                  </option>
                 </select>
                 <span>条</span>
               </div>
@@ -135,25 +169,37 @@
       </div>
     </div>
 
-    <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
+    <div
+      v-if="showAddModal"
+      class="modal-overlay"
+      @click.self="closeAddModal"
+    >
       <div class="modal-content modal-content-large">
         <div class="modal-header">
           <h3>新增工具领用</h3>
-          <button class="close-btn" @click="closeAddModal">&times;</button>
+          <button
+            class="close-btn"
+            @click="closeAddModal"
+          >
+            &times;
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label class="form-label">工具名称<span class="required">*</span></label>
+            <label for="toolName" class="form-label">工具名称<span class="required">*</span></label>
             <div class="tool-search-wrapper">
-              <input
+              <input id="toolName" name="toolName"
                 v-model="toolSearchKeyword"
                 type="text"
                 class="form-input"
                 placeholder="输入关键词搜索工具..."
                 @input="handleToolSearch"
                 @focus="showToolDropdown = true"
-              />
-              <div v-if="showToolDropdown && filteredToolList.length > 0" class="tool-dropdown">
+              >
+              <div
+                v-if="showToolDropdown && filteredToolList.length > 0"
+                class="tool-dropdown"
+              >
                 <div
                   v-for="tool in filteredToolList"
                   :key="tool.id"
@@ -169,38 +215,49 @@
                 v-if="showToolDropdown && toolSearchKeyword && filteredToolList.length === 0"
                 class="tool-dropdown"
               >
-                <div class="tool-empty">未找到匹配的工具</div>
+                <div class="tool-empty">
+                  未找到匹配的工具
+                </div>
               </div>
             </div>
-            <div v-if="selectedTool" class="selected-tool-info">
+            <div
+              v-if="selectedTool"
+              class="selected-tool-info"
+            >
               已选择: {{ selectedTool.tool_name }} ({{ selectedTool.specification || '无规格' }}) -
               库存: {{ selectedTool.stock }}
             </div>
           </div>
           <div class="form-item">
-            <label class="form-label">领用数量<span class="required">*</span></label>
-            <input
+            <label for="issueQuantity" class="form-label">领用数量<span class="required">*</span></label>
+            <input id="issueQuantity" name="issueQuantity"
               v-model.number="formData.quantity"
               type="number"
               :min="1"
               class="form-input"
               placeholder="请输入领用数量"
-            />
+            >
           </div>
           <div class="form-item">
-            <label class="form-label">运维人员</label>
-            <input
+            <label for="maintenancePersonnel" class="form-label">运维人员</label>
+            <input id="maintenancePersonnel" name="maintenancePersonnel"
               :value="currentUser?.name || ''"
               type="text"
               class="form-input"
               readonly
               disabled
-            />
+            >
           </div>
           <div class="form-item">
-            <label class="form-label">所属项目</label>
-            <select v-model="formData.project_id" class="form-select" @change="handleProjectChange">
-              <option value="">请选择项目</option>
+            <label for="project" class="form-label">所属项目</label>
+            <select id="project" name="project"
+              v-model="formData.project_id"
+              class="form-select"
+              @change="handleProjectChange"
+            >
+              <option value="">
+                请选择项目
+              </option>
               <option
                 v-for="project in filteredProjectList"
                 :key="project.project_id"
@@ -211,17 +268,26 @@
             </select>
           </div>
           <div class="form-item">
-            <label class="form-label">备注</label>
-            <textarea
+            <label for="remarks" class="form-label">备注</label>
+            <textarea id="remarks" name="remarks"
               v-model="formData.remark"
               class="form-textarea"
               placeholder="请输入备注"
-            ></textarea>
+            />
           </div>
         </div>
         <div class="modal-footer">
-          <button class="cancel-btn" @click="closeAddModal">取消</button>
-          <button class="confirm-btn" :disabled="submitting" @click="handleSubmit">
+          <button
+            class="cancel-btn"
+            @click="closeAddModal"
+          >
+            取消
+          </button>
+          <button
+            class="confirm-btn"
+            :disabled="submitting"
+            @click="handleSubmit"
+          >
             {{ submitting ? '提交中...' : '确认' }}
           </button>
         </div>
@@ -232,11 +298,12 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
-import apiClient from '@/utils/api'
+import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
 import SearchInput from '@/components/SearchInput.vue'
 import { userStore } from '@/stores/userStore'
+import { ElMessage } from 'element-plus'
 
 interface RepairToolsIssueItem {
   id: number
@@ -361,7 +428,7 @@ export default defineComponent({
         if (filters.value.toolName) params.tool_name = filters.value.toolName
         if (filters.value.project) params.project_name = filters.value.project
 
-        const response = (await apiClient.get('/repair-tools/issue', {
+        const response = (await request.get('/repair-tools/issue', {
           params,
           signal: abortController.signal,
         })) as unknown as PaginatedResponse<RepairToolsIssueItem>
@@ -380,7 +447,7 @@ export default defineComponent({
 
     const loadTools = async () => {
       try {
-        const response = (await apiClient.get('/repair-tools/stock', {
+        const response = (await request.get('/repair-tools/stock', {
           params: { page: 0, size: 500 },
         })) as unknown as PaginatedResponse<Tool>
         if (response && response.code === 200 && response.data) {
@@ -393,7 +460,7 @@ export default defineComponent({
 
     const loadUsers = async () => {
       try {
-        const response = (await apiClient.get('/personnel/all/list')) as unknown as ApiResponse<
+        const response = (await request.get('/personnel/all/list')) as unknown as ApiResponse<
           User[]
         >
         if (response && response.code === 200 && response.data) {
@@ -408,7 +475,7 @@ export default defineComponent({
 
     const loadProjects = async () => {
       try {
-        const response = (await apiClient.get('/project-info/all/list')) as unknown as ApiResponse<
+        const response = (await request.get('/project-info/all/list')) as unknown as ApiResponse<
           Project[]
         >
         if (response && response.code === 200 && response.data) {
@@ -421,7 +488,7 @@ export default defineComponent({
 
     const loadPersonnelProjects = async () => {
       try {
-        const response = (await apiClient.get(
+        const response = (await request.get(
           '/repair-tools/personnel-projects'
         )) as unknown as ApiResponse<PersonnelProject[]>
         if (response && response.code === 200 && response.data) {
@@ -454,7 +521,7 @@ export default defineComponent({
     const handleProjectChange = async () => {
       if (formData.value.project_id) {
         try {
-          const response = (await apiClient.get('/repair-tools/personnel-projects', {
+          const response = (await request.get('/repair-tools/personnel-projects', {
             params: { project_id: formData.value.project_id },
           })) as unknown as ApiResponse<User[]>
           if (response && response.code === 200 && response.data && response.data.length > 0) {
@@ -498,7 +565,7 @@ export default defineComponent({
 
     const handleSubmit = async () => {
       if (!formData.value.tool_id || !formData.value.quantity) {
-        alert('请填写必填项')
+        ElMessage.warning('请填写必填项')
         return
       }
 
@@ -516,21 +583,21 @@ export default defineComponent({
           project_name: project?.project_name || null,
         }
 
-        const response = (await apiClient.post(
+        const response = (await request.post(
           '/repair-tools/issue',
           submitData
         )) as unknown as ApiResponse<any>
         if (response && response.code === 200) {
-          alert('领用成功')
+          ElMessage.success('领用成功')
           closeAddModal()
           loadData()
           loadTools()
         } else {
-          alert(response?.message || '领用失败')
+          ElMessage.error(response?.message || '领用失败')
         }
       } catch (error) {
         console.error('提交失败:', error)
-        alert('提交失败')
+        ElMessage.error('提交失败')
       } finally {
         submitting.value = false
       }
@@ -620,7 +687,7 @@ export default defineComponent({
 <style scoped>
 .repair-tools-issue-container {
   min-height: 100vh;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .main-layout {
@@ -632,7 +699,7 @@ export default defineComponent({
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .content-wrapper {
@@ -650,7 +717,7 @@ export default defineComponent({
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -677,7 +744,7 @@ export default defineComponent({
 
 .search-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -698,8 +765,8 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #4caf50;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover {
@@ -714,14 +781,14 @@ export default defineComponent({
 
 .filter-label {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .filter-select,
 .filter-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   min-width: 180px;
@@ -731,12 +798,12 @@ export default defineComponent({
 .filter-select:focus,
 .filter-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.1);
 }
 
 .table-section {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   overflow: hidden;
@@ -748,25 +815,25 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #f5f7fa;
+  background: var(--color-bg-page);
 }
 
 .data-table th {
   padding: 12px 16px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
 }
 
 .data-table tbody tr {
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   transition: background 0.2s;
 }
 
 .data-table tbody tr:hover {
-  background: #f8f9fa;
+  background: var(--color-bg-page);
 }
 
 .data-table td {
@@ -780,7 +847,7 @@ export default defineComponent({
 .empty-cell {
   padding: 40px 16px;
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
 }
 
@@ -788,7 +855,7 @@ export default defineComponent({
   width: 24px;
   height: 24px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #1976d2;
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 12px;
@@ -811,13 +878,13 @@ export default defineComponent({
 }
 
 .status-issued {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--color-warning-subtle);
+  color: var(--color-warning-dark);
 }
 
 .status-returned {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .pagination-section {
@@ -825,15 +892,15 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: #f5f7fa;
-  border-top: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border-top: 1px solid var(--color-border);
   flex-wrap: wrap;
   gap: 12px;
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -844,8 +911,8 @@ export default defineComponent({
 
 .pagination-button {
   padding: 6px 16px;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
@@ -853,8 +920,8 @@ export default defineComponent({
 }
 
 .pagination-button:hover:not(:disabled) {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .pagination-button:disabled {
@@ -871,14 +938,14 @@ export default defineComponent({
 .pagination-input {
   width: 60px;
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   text-align: center;
   font-size: 14px;
 }
 
 .pagination-slash {
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-size-selector {
@@ -886,12 +953,12 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-size-select {
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   cursor: pointer;
@@ -911,7 +978,7 @@ export default defineComponent({
 }
 
 .modal-content {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 500px;
   max-width: 90%;
@@ -928,13 +995,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .close-btn {
@@ -942,7 +1009,7 @@ export default defineComponent({
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .modal-body {
@@ -957,12 +1024,12 @@ export default defineComponent({
   display: block;
   margin-bottom: 6px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
 .required {
-  color: #f44336;
+  color: var(--color-danger);
   margin-left: 2px;
 }
 
@@ -971,7 +1038,7 @@ export default defineComponent({
 .form-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
@@ -986,7 +1053,7 @@ export default defineComponent({
 .form-input:focus,
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
 }
 
 .tool-search-wrapper {
@@ -998,8 +1065,8 @@ export default defineComponent({
   top: 100%;
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   max-height: 200px;
@@ -1013,7 +1080,7 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .tool-option:last-child {
@@ -1021,21 +1088,21 @@ export default defineComponent({
 }
 
 .tool-option:hover {
-  background: #f5f7fa;
+  background: var(--color-bg-page);
 }
 
 .tool-name {
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .tool-spec {
-  color: #666;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
 .tool-stock {
-  color: #1976d2;
+  color: var(--color-primary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -1043,16 +1110,16 @@ export default defineComponent({
 .tool-empty {
   padding: 20px;
   text-align: center;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .selected-tool-info {
   margin-top: 8px;
   padding: 8px 12px;
-  background: #e3f2fd;
+  background: var(--color-primary-subtle);
   border-radius: 4px;
   font-size: 13px;
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .modal-footer {
@@ -1060,7 +1127,7 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .cancel-btn,
@@ -1074,17 +1141,17 @@ export default defineComponent({
 }
 
 .cancel-btn {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .cancel-btn:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .confirm-btn {
-  background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%);
-  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #42a5f5 100%);
+  color: var(--color-bg-card);
 }
 
 .confirm-btn:hover:not(:disabled) {

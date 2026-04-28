@@ -65,33 +65,3 @@ class RepairToolsIssueCreate(RepairToolsIssueBase):
 class RepairToolsReturn(BaseModel):
     return_quantity: int = Field(..., gt=0, description="归还数量")
     remark: str | None = Field(None, description="备注")
-
-
-class RepairToolsStockResponse(RepairToolsStockBase):
-    id: int
-    tool_id: str | None = None
-    last_stock_time: str | None = None
-
-    class Config:
-        from_attributes = True
-
-
-class RepairToolsIssueResponse(BaseModel):
-    id: int
-    tool_id: str | None = None
-    tool_name: str
-    specification: str | None = None
-    quantity: int
-    return_quantity: int = 0
-    issue_quantity: int
-    user_id: int | None = None
-    user_name: str
-    issue_time: str
-    return_time: str | None = None
-    project_id: str | None = None
-    project_name: str | None = None
-    status: str
-    remark: str | None = None
-
-    class Config:
-        from_attributes = True

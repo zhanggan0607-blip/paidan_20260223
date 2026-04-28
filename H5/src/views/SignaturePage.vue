@@ -262,7 +262,7 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   height: 100dvh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
   display: flex;
   flex-direction: column;
   padding-top: env(safe-area-inset-top);
@@ -275,7 +275,7 @@ onUnmounted(() => {
   justify-content: space-between;
   padding: 8px 16px;
   padding-top: calc(8px + env(safe-area-inset-top));
-  background: #fff;
+  background: var(--color-bg-card);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
 }
@@ -299,9 +299,9 @@ onUnmounted(() => {
 
 .canvas-wrapper {
   flex: 1;
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
-  border: 2px dashed #dcdee0;
+  border: 2px dashed var(--color-border-light);
   overflow: hidden;
   min-height: 0;
 }
@@ -316,14 +316,14 @@ onUnmounted(() => {
 .signature-tip {
   text-align: center;
   padding: 8px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 13px;
   flex-shrink: 0;
 }
 
 .action-buttons {
   padding: 10px 24px;
-  background: #fff;
+  background: var(--color-bg-card);
   display: flex;
   justify-content: center;
   gap: 32px;

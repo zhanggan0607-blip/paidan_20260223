@@ -371,7 +371,7 @@ class SpotWorkService:
 
         items_dict = []
         for item in items:
-            item_dict = item.to_dict()
+            item_dict = item.to_list_dict()
 
             key = (
                 item.project_id,

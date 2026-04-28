@@ -48,13 +48,6 @@ class PersonnelCreate(PersonnelBase):
             raise ValueError('请输入有效的手机号码')
 
         return phone
-    name: str = Field(..., max_length=50, description="姓名")
-    gender: str = Field(..., max_length=10, description="性别")
-    phone: str | None = Field(None, max_length=20, description="联系电话")
-    department: str | None = Field(None, max_length=100, description="所属部门")
-    role: str = Field("运维人员", max_length=20, description="角色")
-    address: str | None = Field(None, max_length=200, description="地址")
-    remarks: str | None = Field(None, max_length=500, description="备注")
 
 class PersonnelUpdate(BaseModel):
     name: str | None = Field(None, max_length=50, description="姓名")

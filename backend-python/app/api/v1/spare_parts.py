@@ -85,6 +85,7 @@ def create_spare_parts_usage(
 
     - 必须先有库存记录才能领用
     - 领用时会自动扣减库存
+    - 使用行锁确保并发安全
 
     需要登录认证
     """
@@ -102,7 +103,7 @@ def create_spare_parts_usage(
             SparePartsStock.product_name == data.product_name,
             SparePartsStock.brand == (data.brand or ''),
             SparePartsStock.model == (data.model or '')
-        ).first()
+        ).with_for_update().first()
 
         if not stock:
             raise HTTPException(
@@ -128,7 +129,9 @@ def create_spare_parts_usage(
 
         project_name = data.project_name
         if data.project_id and not project_name:
-            project = db.query(ProjectInfo).filter(ProjectInfo.project_id == data.project_id).first()
+            project = db.query(ProjectInfo).filter(
+                ProjectInfo.project_id == data.project_id
+            ).first()
             if project:
                 project_name = project.project_name
 
@@ -167,6 +170,7 @@ def create_spare_parts_usage(
             }
         )
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
         db.rollback()
@@ -346,7 +350,7 @@ def get_spare_parts_usage_detail(
             detail="无权查看此记录"
         )
 
-    return ApiResponse(code=200, data=usage.to_dict())
+    return ApiResponse(code=200, message="success", data=usage.to_dict())
 
 
 @router.put("/usage/{usage_id}/return", response_model=ApiResponse)
@@ -361,6 +365,7 @@ def return_spare_parts(
 
     - 如果领用时有库存记录（stock_id不为空），归还时会自动回补库存
     - 如果领用时没有库存记录（stock_id为空），归还时不会回补库存
+    - 使用行锁确保并发安全
 
     需要登录认证
     """
@@ -372,23 +377,23 @@ def return_spare_parts(
 
     logger.info(f"用户 {current_user.name} 备品备件归还: usage_id={usage_id}, data={data}")
 
-    usage = db.query(SparePartsUsage).filter(SparePartsUsage.id == usage_id).first()
-    if not usage:
-        raise HTTPException(status_code=404, detail="领用记录不存在")
-
-    if not current_user.is_manager and usage.user_name != current_user.name:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权操作此记录"
-        )
-
-    if usage.status == "已归还":
-        raise HTTPException(status_code=400, detail="该备品备件已归还")
-
-    if data.return_quantity > usage.quantity - (usage.return_quantity or 0):
-        raise HTTPException(status_code=400, detail="归还数量超过领用数量")
-
     try:
+        usage = db.query(SparePartsUsage).filter(SparePartsUsage.id == usage_id).with_for_update().first()
+        if not usage:
+            raise HTTPException(status_code=404, detail="领用记录不存在")
+
+        if not current_user.is_manager and usage.user_name != current_user.name:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="无权操作此记录"
+            )
+
+        if usage.status == "已归还":
+            raise HTTPException(status_code=400, detail="该备品备件已归还")
+
+        if data.return_quantity > usage.quantity - (usage.return_quantity or 0):
+            raise HTTPException(status_code=400, detail="归还数量超过领用数量")
+
         usage.return_quantity = (usage.return_quantity or 0) + data.return_quantity
         usage.return_time = datetime.now()
 
@@ -399,7 +404,7 @@ def return_spare_parts(
             usage.remark = data.remark
 
         if usage.stock_id:
-            stock = db.query(SparePartsStock).filter(SparePartsStock.id == usage.stock_id).first()
+            stock = db.query(SparePartsStock).filter(SparePartsStock.id == usage.stock_id).with_for_update().first()
             if stock:
                 stock.stock += data.return_quantity
                 logger.info(f"回补库存: stock_id={stock.id}, 增加数量={data.return_quantity}, 当前库存={stock.stock}")
@@ -415,6 +420,7 @@ def return_spare_parts(
 
         return ApiResponse(code=200, data=usage.to_dict(), message="归还成功")
     except HTTPException:
+        db.rollback()
         raise
     except Exception as e:
         db.rollback()

@@ -22,7 +22,7 @@ class CustomerRepository:
                 query = query.filter(Customer.name.in_(client_names))
 
             total = query.count()
-            items = query.order_by(Customer.created_at.desc()).offset(skip).limit(limit).all()
+            items = query.order_by(Customer.created_at.desc(), Customer.id.desc()).offset(skip).limit(limit).all()
 
             return items, total
         except Exception as e:

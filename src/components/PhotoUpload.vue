@@ -1,38 +1,64 @@
 <template>
   <div class="photo-upload">
     <div class="photo-grid">
-      <div v-for="(photo, index) in photos" :key="index" class="photo-item">
-        <img :src="photo" alt="现场图片" loading="lazy" @click="previewPhoto(photo)" />
-        <button class="delete-btn" title="删除" @click.stop="removePhoto(index)">×</button>
+      <div
+        v-for="(photo, index) in photos"
+        :key="index"
+        class="photo-item"
+      >
+        <img
+          :src="photo"
+          alt="现场图片"
+          loading="lazy"
+          @click="previewPhoto(photo)"
+        >
+        <button
+          class="delete-btn"
+          title="删除"
+          @click.stop="removePhoto(index)"
+        >
+          ×
+        </button>
       </div>
-      <div v-if="photos.length < maxCount" class="photo-add">
+      <div
+        v-if="photos.length < maxCount"
+        class="photo-add"
+      >
         <input
+          id="photoUpload"
           ref="fileInputRef"
           type="file"
+          name="photo"
           accept="image/*"
           capture="environment"
           style="display: none"
           @change="handleFileSelect"
-        />
-        <button class="add-btn" @click="triggerFileSelect">
+        >
+        <button
+          class="add-btn"
+          @click="triggerFileSelect"
+        >
           <span class="add-icon">+</span>
           <span class="add-text">添加图片</span>
         </button>
       </div>
     </div>
-    <div class="photo-tip">支持 jpg、png 格式，单张不超过 5MB，最多 {{ maxCount }} 张</div>
+    <div class="photo-tip">
+      支持 jpg、png 格式，单张不超过 5MB，最多 {{ maxCount }} 张
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, watch } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 export default defineComponent({
   name: 'PhotoUpload',
   props: {
     modelValue: {
       type: Array as () => string[],
-      default: () => [],
+      default: (): any[] => [],
     },
     maxCount: {
       type: Number,
@@ -65,7 +91,7 @@ export default defineComponent({
       if (!file) return
 
       if (file.size > props.maxSize) {
-        alert(`图片大小不能超过 ${props.maxSize / 1024 / 1024}MB`)
+        ElMessage.warning(`图片大小不能超过 ${props.maxSize / 1024 / 1024}MB`)
         target.value = ''
         return
       }
@@ -81,10 +107,17 @@ export default defineComponent({
       target.value = ''
     }
 
-    const removePhoto = (index: number) => {
-      if (confirm('是否要删除该图片？')) {
+    const removePhoto = async (index: number) => {
+      try {
+        await ElMessageBox.confirm('是否要删除该图片？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        })
         photos.value.splice(index, 1)
         emit('update:modelValue', [...photos.value])
+      } catch {
+        // cancelled
       }
     }
 
@@ -120,7 +153,7 @@ export default defineComponent({
   aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   cursor: pointer;
 }
 
@@ -139,7 +172,7 @@ export default defineComponent({
   border: none;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.6);
-  color: #fff;
+  color: var(--color-bg-card);
   font-size: 16px;
   cursor: pointer;
   display: flex;
@@ -149,7 +182,7 @@ export default defineComponent({
 }
 
 .delete-btn:hover {
-  background: #f44336;
+  background: var(--color-danger);
 }
 
 .photo-add {
@@ -169,12 +202,12 @@ export default defineComponent({
   background: none;
   border: none;
   cursor: pointer;
-  color: #666;
+  color: var(--color-text-secondary);
   padding: 16px;
 }
 
 .add-btn:hover {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .add-icon {
@@ -190,6 +223,6 @@ export default defineComponent({
 .photo-tip {
   margin-top: 8px;
   font-size: 12px;
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 </style>

@@ -76,12 +76,12 @@ const workDays = computed(() => {
 })
 
 const baseTabs = [
-  { key: '申报用工', title: '申报用工', statuses: [], color: '#07c160' },
-  { key: '待确认', title: '待确认', statuses: ['待确认'], color: '#ff976a' },
-  { key: '已完成', title: '已完成', statuses: ['已确认', '已完成'], color: '#1989fa' },
+  { key: '申报用工', title: '申报用工', statuses: [], color: 'var(--color-success)' },
+  { key: '待确认', title: '待确认', statuses: ['待确认'], color: 'var(--color-warning)' },
+  { key: '已完成', title: '已完成', statuses: ['已确认', '已完成'], color: 'var(--color-primary)' },
 ]
 
-const approvalTab = { key: '审批', title: '审批', statuses: ['待确认'], color: '#1989fa' }
+const approvalTab = { key: '审批', title: '审批', statuses: ['待确认'], color: 'var(--color-primary)' }
 
 const tabs = computed(() => {
   if (canApprove.value) {
@@ -163,9 +163,10 @@ const fetchWorkList = async () => {
         currentTab.value?.statuses.includes(item.status)
       )
       workList.value = filteredItems.sort((a: any, b: any) => {
-        const dateA = new Date(a.updated_at || a.created_at || 0).getTime()
-        const dateB = new Date(b.updated_at || b.created_at || 0).getTime()
-        return dateB - dateA
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        if (dateB !== dateA) return dateB - dateA
+        return (b.id || 0) - (a.id || 0)
       })
     }
   } catch (error) {
@@ -657,18 +658,18 @@ onActivated(() => {
               @click="showEndDatePicker = true"
             />
             <van-cell v-if="workDays > 0" title="用工天数" :value="workDays + ' 工天'" />
-            <van-field
+            <van-field name="client_contact"
               v-model="applyFormData.clientContact"
               label="客户联系人"
               placeholder="请输入客户联系人"
             />
-            <van-field
+            <van-field name="client_contact_info"
               v-model="applyFormData.clientContactInfo"
               label="客户联系电话"
               placeholder="请输入客户联系电话"
               type="tel"
             />
-            <van-field
+            <van-field name="work_content"
               v-model="applyFormData.workContent"
               label="工作内容"
               placeholder="请输入工作内容"
@@ -703,7 +704,7 @@ onActivated(() => {
                 <span v-else class="status-pending">待签字</span>
               </template>
             </van-cell>
-            <van-field
+            <van-field name="remark"
               v-model="applyFormData.remark"
               label="备注"
               placeholder="请输入备注"
@@ -722,7 +723,7 @@ onActivated(() => {
             <van-notice-bar
               :text="'工单已生成，单号：' + generatedWorkId"
               left-icon="info-o"
-              color="#1989fa"
+              color="var(--color-primary)"
               background="#ecf9ff"
             />
           </div>
@@ -815,7 +816,7 @@ onActivated(() => {
     </van-tabs>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
-      <van-picker
+      <van-picker name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         @confirm="handleProjectConfirm"
@@ -881,7 +882,7 @@ onActivated(() => {
 <style scoped>
 .spot-work-apply-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .form-group {
@@ -902,7 +903,7 @@ onActivated(() => {
 }
 
 .work-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -914,8 +915,8 @@ onActivated(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
   flex-wrap: nowrap;
 }
 
@@ -931,7 +932,7 @@ onActivated(() => {
 
 .work-id {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
   white-space: nowrap;
   text-align: right;
   flex: 1;
@@ -960,12 +961,12 @@ onActivated(() => {
 .card-body-cells :deep(.van-cell__title) {
   flex: none;
   width: 70px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 
 .card-body-cells :deep(.van-cell__value) {
   flex: 1;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .card-footer {
@@ -973,7 +974,7 @@ onActivated(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .card-footer .van-button {
@@ -984,7 +985,7 @@ onActivated(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 :deep(.van-tabs__nav) {
@@ -1012,8 +1013,8 @@ onActivated(() => {
   display: inline-block;
   padding: 2px 8px;
   font-size: 12px;
-  color: #fff;
-  background-color: #07c160;
+  color: var(--color-bg-card);
+  background-color: var(--color-success);
   border-radius: 4px;
 }
 
@@ -1021,8 +1022,8 @@ onActivated(() => {
   display: inline-block;
   padding: 2px 8px;
   font-size: 12px;
-  color: #fff;
-  background-color: #1989fa;
+  color: var(--color-bg-card);
+  background-color: var(--color-primary);
   border-radius: 4px;
 }
 
@@ -1030,8 +1031,8 @@ onActivated(() => {
   display: inline-block;
   padding: 3px 10px;
   font-size: 14px;
-  color: #fff;
-  background-color: #ff976a;
+  color: var(--color-bg-card);
+  background-color: var(--color-warning);
   border-radius: 4px;
 }
 
@@ -1039,8 +1040,8 @@ onActivated(() => {
   width: 80px;
   height: 40px;
   object-fit: contain;
-  background-color: #fff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
@@ -1055,7 +1056,7 @@ onActivated(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .popup-title {
@@ -1072,7 +1073,7 @@ onActivated(() => {
 .popup-footer {
   padding: 12px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .popup-footer .van-button {
@@ -1109,7 +1110,7 @@ onActivated(() => {
   top: 4px;
   right: 4px;
   font-size: 18px;
-  color: #ee0a24;
+  color: var(--color-danger);
   background: rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   padding: 2px;
@@ -1117,20 +1118,20 @@ onActivated(() => {
 
 .photo-add {
   aspect-ratio: 1;
-  border: 1px dashed #dcdee0;
+  border: 1px dashed var(--color-border-light);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
 }
 
 .photo-tip {
   margin-top: 8px;
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 </style>

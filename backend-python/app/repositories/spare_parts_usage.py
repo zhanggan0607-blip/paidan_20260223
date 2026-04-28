@@ -21,7 +21,7 @@ class SparePartsUsageRepository:
         status_filter: str | None = None
     ) -> tuple[list[SparePartsUsage], int]:
         try:
-            query = self.db.query(SparePartsUsage)
+            query = self.db.query(SparePartsUsage).filter(SparePartsUsage.is_deleted == False)
 
             if user:
                 query = query.filter(SparePartsUsage.user_name.like(f'%{user}%'))
@@ -36,7 +36,7 @@ class SparePartsUsageRepository:
                 query = query.filter(SparePartsUsage.status == status_filter)
 
             total = query.count()
-            items = query.order_by(SparePartsUsage.issue_time.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(SparePartsUsage.created_at.desc(), SparePartsUsage.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -45,7 +45,7 @@ class SparePartsUsageRepository:
 
     def find_by_id(self, id: int) -> SparePartsUsage | None:
         try:
-            return self.db.query(SparePartsUsage).filter(SparePartsUsage.id == id).first()
+            return self.db.query(SparePartsUsage).filter(SparePartsUsage.id == id, SparePartsUsage.is_deleted == False).first()
         except Exception as e:
             logger.error(f"查询备品备件领用失败 (id={id}): {str(e)}")
             raise

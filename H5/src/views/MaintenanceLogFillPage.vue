@@ -461,7 +461,7 @@ onMounted(async () => {
           />
         </div>
       </div>
-      <van-field
+      <van-field name="work_content"
         v-model="formData.workContent"
         label="工作内容"
         placeholder="请输入工作内容"
@@ -471,7 +471,7 @@ onMounted(async () => {
         show-word-limit
         required
       />
-      <van-field
+      <van-field name="remark"
         v-model="formData.remark"
         label="备注"
         placeholder="请输入备注"
@@ -502,7 +502,7 @@ onMounted(async () => {
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round destroy-on-close>
-      <van-picker
+      <van-picker name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         :loading="projectList.length === 0"
@@ -527,7 +527,7 @@ onMounted(async () => {
 <style scoped>
 .maintenance-log-fill-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 :deep(.van-cell-group--inset) {
@@ -543,7 +543,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .image-section {
@@ -575,7 +575,7 @@ onMounted(async () => {
   top: 4px;
   right: 4px;
   background: rgba(0, 0, 0, 0.5);
-  color: #fff;
+  color: var(--color-bg-card);
   border-radius: 50%;
   padding: 4px;
   font-size: 14px;
@@ -584,13 +584,13 @@ onMounted(async () => {
 .image-add {
   width: 80px;
   height: 80px;
-  border: 1px dashed #dcdee0;
+  border: 1px dashed var(--color-border-light);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #969799;
+  color: var(--color-text-secondary);
   gap: 4px;
 }
 
@@ -604,7 +604,7 @@ onMounted(async () => {
 
 .form-row {
   display: flex;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .form-row:last-child {
@@ -622,11 +622,11 @@ onMounted(async () => {
 
 .form-cell :deep(.van-cell__title) {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
 }
 
 .form-cell :deep(.van-cell__value) {
   font-size: 14px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 </style>

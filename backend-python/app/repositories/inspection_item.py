@@ -47,7 +47,7 @@ class InspectionItemRepository:
     def get_root_items(self) -> list[InspectionItem]:
         try:
             return self.db.query(InspectionItem).filter(
-                InspectionItem.parent_id is None
+                InspectionItem.parent_id.is_(None)
             ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询根节点失败: {str(e)}")

@@ -67,7 +67,7 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
                 query = query.filter(TemporaryRepair.client_name.like(f'%{client_name}%'))
 
             total = query.count()
-            items = query.order_by(TemporaryRepair.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(TemporaryRepair.created_at.desc(), TemporaryRepair.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -166,7 +166,7 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
                 joinedload(TemporaryRepair.project)
             ).filter(
                 TemporaryRepair.is_deleted == False
-            ).all()
+            ).order_by(TemporaryRepair.created_at.desc(), TemporaryRepair.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有临时维修失败: {str(e)}")
             raise

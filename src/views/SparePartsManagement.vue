@@ -1,12 +1,13 @@
-<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="spare-parts-page">
     <div class="content">
       <div class="search-section">
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label class="search-label">产品名称：</label>
+              <label for="search_productName" class="search-label">产品名称：</label>
               <SearchInput
+              input-id="search_productName"
                 v-model="searchForm.productName"
                 field-key="SparePartsManagement_productName"
                 placeholder="请输入产品名称"
@@ -14,8 +15,9 @@
               />
             </div>
             <div class="search-item">
-              <label class="search-label">项目名称：</label>
+              <label for="search_projectName" class="search-label">项目名称：</label>
               <SearchInput
+              input-id="search_projectName"
                 v-model="searchForm.projectName"
                 field-key="SparePartsManagement_projectName"
                 placeholder="请输入项目名称"
@@ -24,7 +26,7 @@
             </div>
           </div>
         </div>
-        <div class="action-buttons"></div>
+        <div class="action-buttons" />
       </div>
 
       <div class="table-section">
@@ -45,10 +47,20 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="10" style="text-align: center; padding: 20px">加载中...</td>
+              <td
+                colspan="10"
+                style="text-align: center; padding: 20px"
+              >
+                加载中...
+              </td>
             </tr>
             <tr v-else-if="partsData.length === 0">
-              <td colspan="10" style="text-align: center; padding: 20px">暂无数据</td>
+              <td
+                colspan="10"
+                style="text-align: center; padding: 20px"
+              >
+                暂无数据
+              </td>
             </tr>
             <tr
               v-for="(item, index) in partsData"
@@ -72,9 +84,15 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+        <div class="pagination-info">
+          共 {{ totalElements }} 条记录
+        </div>
         <div class="pagination-controls">
-          <button class="page-btn page-nav" :disabled="currentPage === 1" @click="currentPage--">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === 1"
+            @click="currentPage--"
+          >
             &lt;
           </button>
           <button
@@ -93,16 +111,41 @@
           >
             &gt;
           </button>
-          <select v-model="pageSize" class="page-select">
-            <option value="10">10 条 / 页</option>
-            <option value="20">20 条 / 页</option>
-            <option value="50">50 条 / 页</option>
+          <select
+            id="pageSize"
+            name="pageSize"
+            v-model="pageSize"
+            class="page-select"
+          >
+            <option value="10">
+              10 条 / 页
+            </option>
+            <option value="20">
+              20 条 / 页
+            </option>
+            <option value="50">
+              50 条 / 页
+            </option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+            <input
+              id="jumpPage"
+              v-model="jumpPage"
+              name="jumpPage"
+              type="number"
+              class="page-input"
+              min="1"
+              :max="totalPages"
+              aria-label="跳转页码"
+            >
             <span>页</span>
-            <button class="page-btn page-go" @click="handleJump">Go</button>
+            <button
+              class="page-btn page-go"
+              @click="handleJump"
+            >
+              Go
+            </button>
           </div>
         </div>
       </div>
@@ -113,7 +156,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue'
 import { sparePartsUsageService, SparePartsUsage } from '../services/sparePartsUsage'
-import SearchInput from '../components/SearchInput.vue'
+import { SearchInput } from '@sstcp/shared'
 
 // TODO: 这个页面功能比较简单，后续可以加入导出功能
 // FIXME: 分页逻辑和别的页面不一致，需要统一
@@ -238,7 +281,7 @@ export default defineComponent({
 
 <style scoped>
 .spare-parts-page {
-  background: #fff;
+  background: var(--color-bg-card);
   min-height: 100vh;
 }
 
@@ -276,7 +319,7 @@ export default defineComponent({
 
 .search-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -291,7 +334,7 @@ export default defineComponent({
 }
 
 .search-input:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -302,12 +345,12 @@ export default defineComponent({
   font-size: 14px;
   outline: none;
   min-width: 150px;
-  background: #fff;
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 
 .search-select:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -327,16 +370,16 @@ export default defineComponent({
 }
 
 .btn-search {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .table-section {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -347,7 +390,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .data-table th {
@@ -355,8 +398,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
 }
 
 .data-table tbody tr {
@@ -368,14 +411,14 @@ export default defineComponent({
 }
 
 .data-table tbody tr.even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .data-table td {
   padding: 12px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-section {
@@ -383,12 +426,12 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -402,15 +445,15 @@ export default defineComponent({
   padding: 6px 12px;
   border: 1px solid #d0d7de;
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #1976d2;
+  background: var(--color-bg-page);
+  border-color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -423,9 +466,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #1976d2;
-  color: #fff;
-  border-color: #1976d2;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-select {
@@ -433,13 +476,13 @@ export default defineComponent({
   border: 1px solid #d0d7de;
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
+  background: var(--color-bg-card);
   cursor: pointer;
   outline: none;
 }
 
 .page-select:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -448,7 +491,7 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
@@ -462,16 +505,16 @@ export default defineComponent({
 }
 
 .page-input:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .page-btn.page-go {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .page-btn.page-go:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 </style>

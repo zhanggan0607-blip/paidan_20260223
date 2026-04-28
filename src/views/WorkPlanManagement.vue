@@ -6,8 +6,9 @@
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label class="search-label">项目名称：</label>
+              <label for="search_projectName" class="search-label">项目名称：</label>
               <SearchInput
+              input-id="search_projectName"
                 v-model="searchForm.project_name"
                 field-key="WorkPlanManagement_project_name"
                 placeholder="请输入项目名称"
@@ -15,13 +16,26 @@
               />
             </div>
             <div class="search-item">
-              <label class="search-label">工单编号：</label>
+              <label for="search_workOrderId" class="search-label">工单编号：</label>
               <SearchInput
+              input-id="search_workOrderId"
                 v-model="searchForm.order_id"
                 field-key="WorkPlanManagement_order_id"
                 placeholder="请输入工单编号"
                 @input="handleSearch"
               />
+            </div>
+            <div class="search-item">
+              <label for="search_planType" class="search-label">工单类型：</label>
+              <select
+                id="search_planType"
+                v-model="searchForm.plan_type"
+                class="search-select"
+                @change="handleSearch"
+              >
+                <option value="">全部类型</option>
+                <option v-for="pt in planTypeOptions" :key="pt.value" :value="pt.value">{{ pt.label }}</option>
+              </select>
             </div>
           </div>
         </div>
@@ -69,8 +83,8 @@
               <td>{{ item.project_id }}</td>
               <td>{{ formatDate(item.plan_start_date) }}</td>
               <td>{{ formatDate(item.plan_end_date) }}</td>
-              <td>{{ item.client_name || '-' }}</td>
-              <td>{{ item.maintenance_personnel || '-' }}</td>
+              <td>{{ item.client_name || '暂无数据' }}</td>
+              <td>{{ item.maintenance_personnel || '暂无数据' }}</td>
               <td>
                 <span :class="getStatusClass(item.status)" class="status-badge">{{
                   item.status
@@ -115,14 +129,14 @@
           >
             &gt;
           </button>
-          <select v-model="pageSize" class="page-select">
+          <select id="pageSize" name="pageSize" v-model="pageSize" class="page-select">
             <option value="10">10 条 / 页</option>
             <option value="20">20 条 / 页</option>
             <option value="50">50 条 / 页</option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+            <input id="jumpPage" name="jumpPage" v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
             <span>页</span>
             <button class="page-btn page-go" @click="handleJump">Go</button>
           </div>
@@ -133,49 +147,49 @@
     <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
       <div class="modal-container modal-container-large">
         <div class="modal-header">
-          <h3 class="modal-title">定期巡检单详情</h3>
+          <h3 class="modal-title">{{ viewData.plan_type || '工单' }}详情</h3>
           <button class="modal-close" @click="closeViewModal">×</button>
         </div>
         <div class="modal-body">
           <div class="detail-section">
             <div class="detail-grid detail-grid-3">
               <div class="detail-item">
-                <label class="detail-label">项目名称</label>
-                <div class="detail-value">{{ viewData.project_name || '-' }}</div>
+                <span class="detail-label">项目名称</span>
+                <div class="detail-value">{{ viewData.project_name || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">项目编号</label>
-                <div class="detail-value">{{ viewData.project_id || '-' }}</div>
+                <span class="detail-label">项目编号</span>
+                <div class="detail-value">{{ viewData.project_id || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">合同剩余时间</label>
+                <span class="detail-label">合同剩余时间</span>
                 <div class="detail-value" :class="getRemainingTimeClass()">
-                  {{ viewData.remainingTime || '-' }}
+                  {{ viewData.remainingTime || '暂无数据' }}
                 </div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">客户单位</label>
-                <div class="detail-value">{{ viewData.client_name || '-' }}</div>
+                <span class="detail-label">客户单位</span>
+                <div class="detail-value">{{ viewData.client_name || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">客户联系人</label>
-                <div class="detail-value">{{ viewData.client_contact || '-' }}</div>
+                <span class="detail-label">客户联系人</span>
+                <div class="detail-value">{{ viewData.client_contact || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">客户联系方式</label>
-                <div class="detail-value">{{ viewData.client_contact_info || '-' }}</div>
+                <span class="detail-label">客户联系方式</span>
+                <div class="detail-value">{{ viewData.client_contact_info || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">运维人员</label>
-                <div class="detail-value">{{ viewData.maintenance_personnel || '-' }}</div>
+                <span class="detail-label">运维人员</span>
+                <div class="detail-value">{{ viewData.maintenance_personnel || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">计划开始日期</label>
-                <div class="detail-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
+                <span class="detail-label">计划开始日期</span>
+                <div class="detail-value">{{ formatDate(viewData.plan_start_date) || '暂无数据' }}</div>
               </div>
               <div class="detail-item">
-                <label class="detail-label">计划结束日期</label>
-                <div class="detail-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
+                <span class="detail-label">计划结束日期</span>
+                <div class="detail-value">{{ formatDate(viewData.plan_end_date) || '暂无数据' }}</div>
               </div>
             </div>
           </div>
@@ -195,14 +209,14 @@
               <tbody>
                 <tr v-for="(item, index) in viewInspectionItems" :key="index">
                   <td>{{ index + 1 }}</td>
-                  <td>{{ item.inspection_item || '-' }}</td>
-                  <td>{{ item.inspection_content || '-' }}</td>
-                  <td>{{ item.check_requirement || '-' }}</td>
-                  <td>{{ item.brief_description || '-' }}</td>
+                  <td>{{ item.inspection_item || '暂无数据' }}</td>
+                  <td>{{ item.inspection_content || '暂无数据' }}</td>
+                  <td>{{ item.check_requirement || '暂无数据' }}</td>
+                  <td>{{ item.brief_description || '暂无数据' }}</td>
                 </tr>
                 <tr v-if="viewInspectionItems.length === 0">
                   <td colspan="5" style="text-align: center; padding: 20px; color: #999">
-                    暂无巡检内容
+                    暂无数据
                   </td>
                 </tr>
               </tbody>
@@ -221,8 +235,8 @@
               </thead>
               <tbody>
                 <tr v-for="(item, index) in viewFieldHandling" :key="index">
-                  <td>{{ item.fault_situation || '-' }}</td>
-                  <td>{{ item.solution || '-' }}</td>
+                  <td>{{ item.fault_situation || '暂无数据' }}</td>
+                  <td>{{ item.solution || '暂无数据' }}</td>
                   <td>
                     <span :class="item.is_resolved ? 'status-resolved' : 'status-unresolved'">
                       {{ item.is_resolved ? '已解决' : '未解决' }}
@@ -231,7 +245,7 @@
                 </tr>
                 <tr v-if="viewFieldHandling.length === 0">
                   <td colspan="3" style="text-align: center; padding: 20px; color: #999">
-                    暂无现场处理内容
+                    暂无数据
                   </td>
                 </tr>
               </tbody>
@@ -242,7 +256,7 @@
             <h4 class="section-title">图片附件</h4>
             <div class="image-attachment-section">
               <div class="image-group">
-                <label class="image-label">巡检组相关图片</label>
+                <span class="image-label">巡检组相关图片</span>
                 <div class="image-list">
                   <div
                     v-for="(img, index) in viewInspectionImages"
@@ -251,7 +265,7 @@
                   >
                     <img :src="img" alt="巡检图片" loading="lazy" @click="previewImage(img)" />
                   </div>
-                  <div v-if="viewInspectionImages.length === 0" class="no-image">暂无图片</div>
+                  <div v-if="viewInspectionImages.length === 0" class="no-image">暂无数据</div>
                 </div>
               </div>
             </div>
@@ -267,7 +281,7 @@
               >
                 <img :src="viewSignature" alt="电子签名" loading="lazy" />
               </div>
-              <div v-else class="no-signature">暂无签名</div>
+              <div v-else class="no-signature">暂无数据</div>
             </div>
           </div>
 
@@ -296,7 +310,7 @@
                 <span v-if="record.reason" class="confirmation-reason">{{ record.reason }}</span>
               </div>
               <div v-if="viewConfirmationRecords.length === 0" class="no-confirmation">
-                暂无确认记录
+                暂无数据
               </div>
             </div>
           </div>
@@ -311,9 +325,12 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, reactive, watch, computed } from 'vue'
-import { periodicInspectionService, type PeriodicInspection } from '@/services/periodicInspection'
-import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
+import { periodicInspectionService } from '@/services/periodicInspection'
+import { temporaryRepairService } from '@/services/temporaryRepair'
+import { spotWorkService } from '@/services/spotWork'
 import { maintenancePlanService } from '@/services/maintenancePlan'
+import { workPlanService, type PlanType } from '@/services/workPlan'
+import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { operationLogService } from '@/services/operationLog'
 import request from '@/api/request'
 import { API_ENDPOINTS } from '@/api/endpoints'
@@ -376,7 +393,13 @@ export default defineComponent({
     const searchForm = ref({
       project_name: '',
       order_id: '',
+      plan_type: PLAN_TYPES.PERIODIC_INSPECTION,
     })
+
+    const planTypeOptions = [
+      { value: PLAN_TYPES.PERIODIC_INSPECTION, label: '定期巡检单' },
+      { value: PLAN_TYPES.PERIODIC_MAINTENANCE, label: '定期维保单' },
+    ]
 
     const viewData = reactive({
       id: 0,
@@ -497,9 +520,10 @@ export default defineComponent({
 
     const getPlanTypeClass = (planType: string) => {
       switch (planType) {
-        case PLAN_TYPES.PERIODIC_MAINTENANCE:
         case PLAN_TYPES.PERIODIC_INSPECTION:
           return 'type-inspection'
+        case PLAN_TYPES.PERIODIC_MAINTENANCE:
+          return 'type-maintenance'
         case PLAN_TYPES.TEMPORARY_REPAIR:
           return 'type-repair'
         case PLAN_TYPES.SPOT_WORK:
@@ -513,6 +537,8 @@ export default defineComponent({
       switch (orderTypeCode) {
         case 'inspection':
           return 'type-inspection'
+        case 'maintenance':
+          return 'type-maintenance'
         case 'repair':
           return 'type-repair'
         case 'spotwork':
@@ -541,34 +567,105 @@ export default defineComponent({
     const loadData = async () => {
       loading.value = true
       try {
-        const response = await periodicInspectionService.getList({
-          page: currentPage.value,
-          size: pageSize.value,
-          project_name: searchForm.value.project_name || undefined,
-          inspection_id: searchForm.value.order_id || undefined,
-        })
+        const planType = searchForm.value.plan_type
 
-        if (response.code === 200 && response.data) {
-          planData.value = (response.data.content || []).map((item: PeriodicInspection) => ({
-            id: item.id,
-            plan_id: item.inspection_id,
-            plan_type: '定期巡检单',
-            order_type_code: 'inspection',
-            project_id: item.project_id,
-            project_name: item.project_name,
-            plan_start_date: item.plan_start_date,
-            plan_end_date: item.plan_end_date,
-            client_name: item.client_name || '',
-            maintenance_personnel: item.maintenance_personnel || '',
-            status: item.status || '执行中',
-            remarks: item.remarks || '',
-            execution_result: item.execution_result || '',
-            signature: item.signature || '',
-          }))
-          totalElements.value = response.data.totalElements ?? 0
-          totalPages.value = response.data.totalPages ?? 0
+        if (planType === PLAN_TYPES.PERIODIC_INSPECTION) {
+          const response = await periodicInspectionService.getList({
+            page: currentPage.value,
+            size: pageSize.value,
+            project_name: searchForm.value.project_name || undefined,
+            inspection_id: searchForm.value.order_id || undefined,
+          })
+
+          if (response.code === 200 && response.data) {
+            planData.value = (response.data.content || []).map((item: any) => {
+              return {
+                id: item.id,
+                plan_id: item.inspection_id,
+                plan_type: '定期巡检单',
+                order_type_code: 'inspection',
+                project_id: item.project_id,
+                project_name: item.project_name,
+                plan_start_date: item.plan_start_date,
+                plan_end_date: item.plan_end_date,
+                client_name: item.client_name || '',
+                maintenance_personnel: item.maintenance_personnel || '',
+                status: item.status || '执行中',
+                remarks: item.remarks || '',
+                execution_result: '',
+                signature: '',
+              }
+            })
+            totalElements.value = response.data.totalElements ?? 0
+            totalPages.value = response.data.totalPages ?? 0
+          } else {
+            showToast(response.message || '加载数据失败', 'error')
+          }
+        } else if (planType === PLAN_TYPES.PERIODIC_MAINTENANCE) {
+          const response = await maintenancePlanService.getList({
+            page: currentPage.value,
+            size: pageSize.value,
+            project_name: searchForm.value.project_name || undefined,
+          })
+
+          if (response.code === 200 && response.data) {
+            const content = response.data.content || response.data.items || []
+            planData.value = content.map((item: any) => {
+              return {
+                id: item.id,
+                plan_id: item.plan_id,
+                plan_type: '定期维保单',
+                order_type_code: 'maintenance',
+                project_id: item.project_id,
+                project_name: item.project_name,
+                plan_start_date: item.plan_start_date,
+                plan_end_date: item.plan_end_date,
+                client_name: item.client_name || '',
+                maintenance_personnel: item.maintenance_personnel || '',
+                status: item.status || item.plan_status || '执行中',
+                remarks: item.remarks || '',
+                execution_result: '',
+                signature: '',
+              }
+            })
+            totalElements.value = response.data.totalElements ?? response.data.total ?? 0
+            totalPages.value = response.data.totalPages ?? 0
+          } else {
+            showToast(response.message || '加载数据失败', 'error')
+          }
         } else {
-          showToast(response.message || '加载数据失败', 'error')
+          const response = await workPlanService.getList({
+            page: currentPage.value,
+            size: pageSize.value,
+            project_name: searchForm.value.project_name || undefined,
+            plan_id: searchForm.value.order_id || undefined,
+            plan_type: (searchForm.value.plan_type as PlanType) || undefined,
+          })
+
+          if (response.code === 200 && response.data) {
+            planData.value = (response.data.content || []).map((item: any) => {
+              return {
+                id: item.source_id || item.id,
+                plan_id: item.plan_id,
+                plan_type: item.plan_type + '单',
+                order_type_code: item.order_type_code || (item.plan_type === '定期维保' ? 'maintenance' : 'inspection'),
+                project_id: item.project_id,
+                project_name: item.project_name,
+                plan_start_date: item.plan_start_date,
+                plan_end_date: item.plan_end_date,
+                client_name: item.client_name || '',
+                maintenance_personnel: item.maintenance_personnel || '',
+                status: item.status || '执行中',
+                remarks: item.remarks || '',
+                execution_result: '',
+                signature: '',
+              }
+            })
+            totalElements.value = response.data.totalElements ?? 0
+            totalPages.value = response.data.totalPages ?? 0
+          } else {
+            showToast(response.message || '加载数据失败', 'error')
+          }
         }
       } catch (error: any) {
         showToast(error.message || '加载数据失败，请检查网络连接', 'error')
@@ -586,6 +683,7 @@ export default defineComponent({
       searchForm.value = {
         project_name: '',
         order_id: '',
+        plan_type: PLAN_TYPES.PERIODIC_INSPECTION,
       }
       currentPage.value = 0
       loadData()
@@ -634,37 +732,82 @@ export default defineComponent({
       viewConfirmationRecords.value = []
 
       try {
-        const detailResponse = await periodicInspectionService.getById(item.id)
+        let detailResponse: any = null
+        if (item.order_type_code === 'repair') {
+          detailResponse = await temporaryRepairService.getById(item.id)
+        } else if (item.order_type_code === 'spotwork') {
+          detailResponse = await spotWorkService.getById(item.id)
+        } else if (item.order_type_code === 'maintenance') {
+          detailResponse = await maintenancePlanService.getById(item.id)
+        } else {
+          detailResponse = await periodicInspectionService.getById(item.id)
+        }
         if (detailResponse.code === 200 && detailResponse.data) {
           const detail = detailResponse.data
           viewData.remarks = detail.remarks || ''
           viewSignature.value = detail.signature || ''
 
-          if (detail.execution_result || detail.remarks) {
-            viewFieldHandling.value.push({
-              fault_situation: detail.execution_result || '',
-              solution: detail.remarks || '',
-              is_resolved: true,
-            })
+          if (item.order_type_code === 'repair') {
+            if (detail.fault_description || detail.solution) {
+              viewFieldHandling.value.push({
+                fault_situation: detail.fault_description || '',
+                solution: detail.solution || '',
+                is_resolved: detail.status === '已完成',
+              })
+            }
+            if (detail.photos && Array.isArray(detail.photos)) {
+              viewInspectionImages.value = detail.photos
+            }
+          } else if (item.order_type_code === 'spotwork') {
+            if (detail.work_content) {
+              viewFieldHandling.value.push({
+                fault_situation: detail.work_content || '',
+                solution: '',
+                is_resolved: detail.status === '已完成',
+              })
+            }
+            if (detail.photos && Array.isArray(detail.photos)) {
+              viewInspectionImages.value = detail.photos
+            }
+          } else if (item.order_type_code === 'maintenance') {
+            if (detail.plan_name || detail.remarks) {
+              viewFieldHandling.value.push({
+                fault_situation: detail.plan_name || '',
+                solution: detail.remarks || '',
+                is_resolved: detail.plan_status === '已完成',
+              })
+            }
+          } else {
+            if (detail.execution_result || detail.remarks) {
+              viewFieldHandling.value.push({
+                fault_situation: detail.execution_result || '',
+                solution: detail.remarks || '',
+                is_resolved: true,
+              })
+            }
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('获取工单详情失败:', error)
+        if (error?.status === 404) {
+          showToast('工单不存在或已被删除', 'error')
+        }
       }
 
       try {
-        const recordsResponse = await request.get<{
-          code: number
-          data: Array<{ photos?: string[] }>
-        }>(API_ENDPOINTS.PERIODIC_INSPECTION.INSPECTION_RECORDS(item.plan_id))
-        if (recordsResponse.code === 200 && recordsResponse.data) {
-          const allPhotos: string[] = []
-          recordsResponse.data.forEach((record) => {
-            if (record.photos && Array.isArray(record.photos)) {
-              allPhotos.push(...record.photos)
-            }
-          })
-          viewInspectionImages.value = allPhotos
+        if (item.order_type_code === 'inspection' || item.order_type_code === 'maintenance') {
+          const recordsResponse = await request.get<Array<{ photos?: string[] }>>(
+            API_ENDPOINTS.PERIODIC_INSPECTION.INSPECTION_RECORDS(item.plan_id)
+          )
+          if (recordsResponse.code === 200 && recordsResponse.data) {
+            const allPhotos: string[] = []
+            recordsResponse.data.forEach((record: { photos?: string[] }) => {
+              if (record.photos && Array.isArray(record.photos)) {
+                allPhotos.push(...record.photos)
+              }
+            })
+            viewInspectionImages.value = allPhotos
+          }
         }
       } catch (error) {
         console.error('获取巡检记录失败:', error)
@@ -691,7 +834,8 @@ export default defineComponent({
       }
 
       try {
-        const response = await maintenancePlanService.getByProjectId(item.project_id)
+        if (item.order_type_code === 'inspection' || item.order_type_code === 'maintenance') {
+          const response = await maintenancePlanService.getByProjectId(item.project_id)
         if (response.code === 200 && response.data) {
           const orderStartDate = item.plan_start_date ? new Date(item.plan_start_date) : null
           const orderEndDate = item.plan_end_date ? new Date(item.plan_end_date) : null
@@ -732,20 +876,27 @@ export default defineComponent({
 
           viewInspectionItems.value = allItems
         }
+        }
       } catch (error) {
         console.error('获取巡检内容失败:', error)
       }
 
       try {
+        const workOrderTypeMap: Record<string, string> = {
+          inspection: 'periodic_inspection',
+          maintenance: 'periodic_maintenance',
+          repair: 'temporary_repair',
+          spotwork: 'spot_work',
+        }
         const logResponse = await operationLogService.getByWorkOrder({
-          work_order_type: 'periodic_inspection',
+          work_order_type: workOrderTypeMap[item.order_type_code] || 'periodic_inspection',
           work_order_id: item.id,
         })
         if (logResponse.code === 200 && logResponse.data) {
           viewConfirmationRecords.value = logResponse.data.map((log: OperationLog) => ({
             time: formatDateTime(log.created_at),
-            user: log.operator_name || '-',
-            status: log.operation_type_name || '-',
+            user: log.operator_name || '暂无数据',
+            status: log.operation_type_name || '暂无数据',
             reason: log.operation_remark || undefined,
           }))
         }
@@ -761,24 +912,51 @@ export default defineComponent({
     }
 
     const handleExport = async (item: PlanItem) => {
+      let defaultFilename = ''
+      let exportUrl = ''
+      
+      switch (item.order_type_code) {
+        case 'inspection':
+          exportUrl = `/api/v1/export/periodic-inspection/${item.id}`
+          defaultFilename = `定期巡检单_${item.plan_id}.pdf`
+          break
+        case 'maintenance':
+          exportUrl = `/api/v1/export/periodic-maintenance/${item.id}`
+          defaultFilename = `定期维保单_${item.plan_id}.pdf`
+          break
+        case 'repair':
+          exportUrl = `/api/v1/export/temporary-repair/${item.id}`
+          defaultFilename = `临时维修单_${item.plan_id}.pdf`
+          break
+        case 'spotwork':
+          exportUrl = `/api/v1/export/spot-work/${item.id}`
+          defaultFilename = `零星用工单_${item.plan_id}.pdf`
+          break
+        default:
+          showToast('不支持的工单类型', 'error')
+          return
+      }
+
+      let fileHandle: any = null
+
+      if ('showSaveFilePicker' in window && window.isSecureContext) {
+        try {
+          fileHandle = await (window as any).showSaveFilePicker({
+            suggestedName: defaultFilename,
+            types: [{
+              description: 'PDF文件',
+              accept: { 'application/pdf': ['.pdf'] },
+            }],
+          })
+        } catch (err: any) {
+          if (err.name === 'AbortError') {
+            return
+          }
+        }
+      }
+
       try {
         const token = localStorage.getItem('token')
-        let exportUrl = ''
-        
-        switch (item.order_type_code) {
-          case 'inspection':
-            exportUrl = `/api/v1/export/periodic-inspection/${item.id}`
-            break
-          case 'repair':
-            exportUrl = `/api/v1/export/temporary-repair/${item.id}`
-            break
-          case 'spotwork':
-            exportUrl = `/api/v1/export/spot-work/${item.id}`
-            break
-          default:
-            showToast('不支持的工单类型', 'error')
-            return
-        }
 
         const response = await fetch(exportUrl, {
           headers: {
@@ -793,15 +971,23 @@ export default defineComponent({
         }
 
         const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${item.plan_type}_${item.plan_id}.pdf`
-        document.body.appendChild(a)
-        a.click()
-        window.URL.revokeObjectURL(url)
-        document.body.removeChild(a)
-        showToast('导出成功', 'success')
+
+        if (fileHandle) {
+          const writable = await fileHandle.createWritable()
+          await writable.write(blob)
+          await writable.close()
+          showToast('导出成功', 'success')
+        } else {
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = defaultFilename
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          setTimeout(() => window.URL.revokeObjectURL(url), 100)
+          showToast('导出成功', 'success')
+        }
       } catch (error) {
         console.error('导出失败:', error)
         showToast('导出失败，请检查网络连接', 'error')
@@ -838,6 +1024,7 @@ export default defineComponent({
 
     return {
       planTypes,
+      planTypeOptions,
       currentPage,
       pageSize,
       jumpPage,
@@ -878,7 +1065,7 @@ export default defineComponent({
 
 <style scoped>
 .work-plan-page {
-  background: #fff;
+  background: var(--color-bg-card);
   min-height: 100vh;
 }
 
@@ -921,7 +1108,7 @@ export default defineComponent({
 
 .search-label {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -936,7 +1123,24 @@ export default defineComponent({
 }
 
 .search-input:focus {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.search-select {
+  padding: 8px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  min-width: 140px;
+  background-color: #fff;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.search-select:focus {
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
@@ -951,8 +1155,8 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #4caf50;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover {
@@ -960,26 +1164,26 @@ export default defineComponent({
 }
 
 .btn-reset {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
   border: 1px solid #d0d7de;
 }
 
 .btn-reset:hover {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .btn-search {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .table-section {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   overflow-x: auto;
@@ -992,7 +1196,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .data-table th {
@@ -1000,8 +1204,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 2px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border-bottom: 2px solid var(--color-border);
   white-space: nowrap;
 }
 
@@ -1014,14 +1218,14 @@ export default defineComponent({
 }
 
 .data-table tbody tr.even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .data-table td {
   padding: 12px 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .action-cell {
@@ -1038,23 +1242,23 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .action-view:hover {
-  color: #1565c0;
+  color: var(--color-primary-dark);
 }
 
 .action-edit {
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .action-edit:hover {
-  color: #1565c0;
+  color: var(--color-primary-dark);
 }
 
 .action-confirm {
-  color: #4caf50;
+  color: var(--color-success);
 }
 
 .action-confirm:hover {
@@ -1062,19 +1266,19 @@ export default defineComponent({
 }
 
 .action-export {
-  color: #ff9800;
+  color: var(--color-warning);
 }
 
 .action-export:hover {
-  color: #f57c00;
+  color: var(--color-warning);
 }
 
 .action-delete {
-  color: #f44336;
+  color: var(--color-danger);
 }
 
 .action-delete:hover {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .type-badge {
@@ -1086,18 +1290,23 @@ export default defineComponent({
 }
 
 .type-inspection {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .type-repair {
-  background: #fff3e0;
-  color: #f57c00;
+  background: var(--color-warning-subtle);
+  color: var(--color-warning);
 }
 
 .type-spot {
-  background: #e8f5e9;
-  color: #388e3c;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
+}
+
+.type-maintenance {
+  background: #e8eaf6;
+  color: #3949ab;
 }
 
 .status-badge {
@@ -1109,28 +1318,28 @@ export default defineComponent({
 }
 
 .status-pending {
-  background: #fff3cd;
+  background: var(--color-bg-card)3cd;
   color: #856404;
 }
 
 .status-waiting {
-  background: #fff7e0;
-  color: #f57c00;
+  background: var(--color-bg-card)7e0;
+  color: var(--color-warning);
 }
 
 .status-in-progress {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .status-completed {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .status-cancelled {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .status-returned {
@@ -1139,12 +1348,12 @@ export default defineComponent({
 }
 
 .remaining-normal {
-  color: #388e3c;
+  color: var(--color-success);
   font-weight: 500;
 }
 
 .remaining-expired {
-  color: #d32f2f;
+  color: var(--color-danger);
   font-weight: 600;
 }
 
@@ -1153,12 +1362,12 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 16px 0;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -1172,15 +1381,15 @@ export default defineComponent({
   padding: 6px 12px;
   border: 1px solid #d0d7de;
   border-radius: 4px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #1976d2;
+  background: var(--color-bg-page);
+  border-color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -1193,9 +1402,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #1976d2;
-  color: #fff;
-  border-color: #1976d2;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-select {
@@ -1203,7 +1412,7 @@ export default defineComponent({
   border: 1px solid #d0d7de;
   border-radius: 4px;
   font-size: 14px;
-  background: #fff;
+  background: var(--color-bg-card);
   cursor: pointer;
   outline: none;
 }
@@ -1213,7 +1422,7 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
@@ -1227,12 +1436,12 @@ export default defineComponent({
 }
 
 .page-btn.page-go {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .page-btn.page-go:hover {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .modal-overlay {
@@ -1249,7 +1458,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 900px;
   max-width: 95vw;
@@ -1263,13 +1472,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -1279,7 +1488,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -1288,7 +1497,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -1325,53 +1534,53 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .required {
-  color: #d32f2f;
+  color: var(--color-danger);
   margin-right: 4px;
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-input-readonly {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
 }
 
 .form-input-readonly:focus {
   outline: none;
-  border-color: #e0e0e0;
+  border-color: var(--color-border);
   box-shadow: none;
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -1389,26 +1598,26 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-save {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1565c0;
+  background: var(--color-primary-dark);
 }
 
 .btn:disabled {
@@ -1424,7 +1633,7 @@ export default defineComponent({
 .detail-section {
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .detail-section:last-child {
@@ -1435,10 +1644,10 @@ export default defineComponent({
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0 0 16px 0;
   padding-left: 8px;
-  border-left: 3px solid #1976d2;
+  border-left: 3px solid var(--color-primary);
 }
 
 .detail-grid {
@@ -1455,13 +1664,13 @@ export default defineComponent({
 
 .detail-label {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   font-weight: 500;
 }
 
 .detail-value {
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   padding: 8px 12px;
   background: #f9f9f9;
   border-radius: 4px;
@@ -1475,18 +1684,18 @@ export default defineComponent({
 }
 
 .inspection-table th {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   padding: 12px 10px;
   text-align: left;
   font-weight: 600;
-  color: #333;
-  border: 1px solid #e0e0e0;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
 }
 
 .inspection-table td {
   padding: 10px;
-  border: 1px solid #e0e0e0;
-  color: #666;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
 }
 
 .inspection-table tbody tr:hover {
@@ -1494,22 +1703,22 @@ export default defineComponent({
 }
 
 .status-normal {
-  color: #2e7d32;
+  color: var(--color-success);
   font-weight: 500;
 }
 
 .status-abnormal {
-  color: #c62828;
+  color: var(--color-danger);
   font-weight: 500;
 }
 
 .status-resolved {
-  color: #2e7d32;
+  color: var(--color-success);
   font-weight: 500;
 }
 
 .status-unresolved {
-  color: #c62828;
+  color: var(--color-danger);
   font-weight: 500;
 }
 
@@ -1524,7 +1733,7 @@ export default defineComponent({
 
 .image-label {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
   display: block;
 }
@@ -1538,7 +1747,7 @@ export default defineComponent({
 .image-item {
   width: 100px;
   height: 100px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   overflow: hidden;
   cursor: pointer;
@@ -1558,7 +1767,7 @@ export default defineComponent({
 .no-image,
 .no-signature,
 .no-confirmation {
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 14px;
   padding: 20px;
   text-align: center;
@@ -1597,12 +1806,12 @@ export default defineComponent({
 }
 
 .confirmation-time {
-  color: #666;
+  color: var(--color-text-secondary);
   min-width: 120px;
 }
 
 .confirmation-user {
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
   min-width: 80px;
 }
@@ -1615,22 +1824,22 @@ export default defineComponent({
 }
 
 .status-confirmed {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .status-returned {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .status-submitted {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .confirmation-reason {
-  color: #666;
+  color: var(--color-text-secondary);
   margin-left: auto;
 }
 </style>

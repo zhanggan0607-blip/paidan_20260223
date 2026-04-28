@@ -1,16 +1,39 @@
 <template>
-  <div v-if="visible" class="confirm-overlay" @click.self="handleCancel">
+  <div
+    v-if="visible"
+    class="confirm-overlay"
+    @click.self="handleCancel"
+  >
     <div class="confirm-container">
       <div class="confirm-header">
-        <h3 class="confirm-title">{{ title }}</h3>
-        <button class="confirm-close" @click="handleCancel">×</button>
+        <h3 class="confirm-title">
+          {{ title }}
+        </h3>
+        <button
+          class="confirm-close"
+          @click="handleCancel"
+        >
+          ×
+        </button>
       </div>
       <div class="confirm-body">
-        <p class="confirm-message">{{ message }}</p>
+        <p class="confirm-message">
+          {{ message }}
+        </p>
       </div>
       <div class="confirm-footer">
-        <button class="btn btn-cancel" @click="handleCancel">取消</button>
-        <button class="btn btn-confirm" @click="handleConfirm">确定</button>
+        <button
+          class="btn btn-cancel"
+          @click="handleCancel"
+        >
+          取消
+        </button>
+        <button
+          class="btn btn-confirm"
+          @click="handleConfirm"
+        >
+          确定
+        </button>
       </div>
     </div>
   </div>
@@ -68,7 +91,7 @@ export default defineComponent({
 }
 
 .confirm-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 400px;
   max-width: 90vw;
@@ -80,13 +103,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .confirm-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -96,7 +119,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -105,7 +128,7 @@ export default defineComponent({
 }
 
 .confirm-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .confirm-body {
@@ -114,7 +137,7 @@ export default defineComponent({
 
 .confirm-message {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
   line-height: 1.6;
   margin: 0;
 }
@@ -124,7 +147,7 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn {
@@ -138,21 +161,21 @@ export default defineComponent({
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-confirm {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-confirm:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 </style>

@@ -126,7 +126,7 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
                 query = query.filter(PeriodicInspection.maintenance_personnel == maintenance_personnel)
 
             total = query.count()
-            items = query.order_by(PeriodicInspection.updated_at.desc().nullslast(), PeriodicInspection.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(PeriodicInspection.created_at.desc(), PeriodicInspection.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -145,7 +145,7 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
                 joinedload(PeriodicInspection.project)
             ).filter(
                 PeriodicInspection.is_deleted == False
-            ).order_by(PeriodicInspection.updated_at.desc().nullslast(), PeriodicInspection.created_at.desc()).all()
+            ).order_by(PeriodicInspection.created_at.desc(), PeriodicInspection.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有定期巡检失败: {str(e)}")
             raise

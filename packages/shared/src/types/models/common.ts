@@ -50,6 +50,7 @@ export interface InspectionItem {
   check_content?: string
   check_standard?: string
   sort_order?: number
+  children?: InspectionItem[]
   created_at: string
   updated_at: string
 }
@@ -137,6 +138,7 @@ export interface OverdueAlertItem {
   overdueDays: number
   daysRemaining?: number
   executor: string
+  created_at?: string
 }
 
 /**
@@ -180,11 +182,12 @@ export interface OnlineStatistics {
  */
 export interface DictionaryItem {
   id: number
-  type: string
-  code: string
-  name: string
+  dict_type: string
+  dict_key: string
+  dict_value: string
+  dict_label?: string
   sort_order?: number
-  parent_code?: string
+  is_active?: boolean
   created_at: string
   updated_at: string
 }

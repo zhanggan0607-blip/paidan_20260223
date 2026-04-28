@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.uploaded_file import UploadedFile
 from app.utils.logging_config import get_logger
+from app.utils import get_inline_content_disposition
 
 logger = get_logger(__name__)
 
@@ -96,7 +97,7 @@ async def get_file(
             media_type=media_type,
             headers={
                 "Cache-Control": "public, max-age=31536000",
-                "Content-Disposition": f'inline; filename="{uploaded_file.original_filename or filename}"'
+                "Content-Disposition": get_inline_content_disposition(uploaded_file.original_filename or filename)
             }
         )
     
@@ -122,7 +123,7 @@ async def get_file(
             media_type=content_type,
             headers={
                 "Cache-Control": "public, max-age=31536000",
-                "Content-Disposition": f'inline; filename="{filename}"'
+                "Content-Disposition": get_inline_content_disposition(filename)
             }
         )
     
@@ -162,7 +163,7 @@ async def get_file_by_id(
         media_type=media_type,
         headers={
             "Cache-Control": "public, max-age=31536000",
-            "Content-Disposition": f'inline; filename="{uploaded_file.original_filename or uploaded_file.stored_filename}"'
+            "Content-Disposition": get_inline_content_disposition(uploaded_file.original_filename or uploaded_file.stored_filename)
         }
     )
 
@@ -198,7 +199,7 @@ async def get_thumbnail(
             media_type="image/jpeg",
             headers={
                 "Cache-Control": "public, max-age=31536000",
-                "Content-Disposition": f'inline; filename="thumb_{filename}"'
+                "Content-Disposition": get_inline_content_disposition(f"thumb_{filename}")
             }
         )
     
@@ -231,6 +232,6 @@ async def get_thumbnail(
         media_type="image/jpeg",
         headers={
             "Cache-Control": "public, max-age=31536000",
-            "Content-Disposition": f'inline; filename="thumb_{filename}"'
+            "Content-Disposition": get_inline_content_disposition(f"thumb_{filename}")
         }
     )

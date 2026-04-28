@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class TemporaryRepairBase(BaseModel):
@@ -13,7 +13,7 @@ class TemporaryRepairBase(BaseModel):
     client_name: str | None = Field(None, max_length=100, description="客户单位")
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
-    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    maintenance_personnel: str = Field(..., max_length=100, description="运维人员")
     status: str = Field("执行中", max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
     fault_description: str | None = Field(None, description="故障描述")
@@ -22,6 +22,15 @@ class TemporaryRepairBase(BaseModel):
     signature: str | None = Field(None, description="用户签字Base64")
     customer_signature: str | None = Field(None, description="客户签字Base64")
     execution_date: str | datetime | None = Field(None, description="执行日期")
+
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.plan_start_date and self.plan_end_date:
+            start = self.plan_start_date if isinstance(self.plan_start_date, datetime) else datetime.fromisoformat(str(self.plan_start_date))
+            end = self.plan_end_date if isinstance(self.plan_end_date, datetime) else datetime.fromisoformat(str(self.plan_end_date))
+            if end < start:
+                raise ValueError('计划结束日期不能早于开始日期')
+        return self
 
     @field_validator('status')
     @classmethod
@@ -42,7 +51,7 @@ class TemporaryRepairCreate(BaseModel):
     client_name: str | None = Field(None, max_length=100, description="客户单位")
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
-    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    maintenance_personnel: str = Field(..., max_length=100, description="运维人员")
     status: str | None = Field(None, max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
     fault_description: str | None = Field(None, description="故障描述")
@@ -63,7 +72,7 @@ class TemporaryRepairUpdate(BaseModel):
     client_name: str | None = Field(None, max_length=100, description="客户单位")
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
-    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    maintenance_personnel: str = Field(..., max_length=100, description="运维人员")
     status: str = Field(..., max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
     fault_description: str | None = Field(None, description="故障描述")
@@ -106,6 +115,11 @@ class TemporaryRepairPartialUpdate(BaseModel):
         return v
 
 
+class TemporaryRepairApprove(BaseModel):
+    approved: bool
+    reject_reason: str | None = Field(None, max_length=500, description="退回原因")
+
+
 class TemporaryRepairResponse(BaseModel):
     id: int
     repair_id: str
@@ -126,6 +140,8 @@ class TemporaryRepairResponse(BaseModel):
     solution: str | None
     photos: list[str] | None
     signature: str | None
+    customer_signature: str | None
+    reject_reason: str | None
     execution_date: datetime | None
     actual_completion_date: datetime | None
     created_at: datetime

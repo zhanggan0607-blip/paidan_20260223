@@ -1,14 +1,22 @@
-<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="project-info-management">
-    <LoadingSpinner :visible="loading" text="加载中..." />
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <LoadingSpinner
+      :visible="loading"
+      text="加载中..."
+    />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
 
     <div class="search-section">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label class="search-label">项目名称：</label>
+            <label for="search_projectName" class="search-label">项目名称：</label>
             <SearchInput
+              input-id="search_projectName"
               v-model="searchForm.projectName"
               field-key="ProjectInfoManagement_projectName"
               placeholder="请输入项目名称"
@@ -16,8 +24,9 @@
             />
           </div>
           <div class="search-item">
-            <label class="search-label">客户名称：</label>
+            <label for="search_clientName" class="search-label">客户名称：</label>
             <SearchInput
+              input-id="search_clientName"
               v-model="searchForm.clientName"
               field-key="ProjectInfoManagement_clientName"
               placeholder="请输入客户名称"
@@ -27,7 +36,12 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">+ 新增项目信息</button>
+        <button
+          class="btn btn-add"
+          @click="openModal"
+        >
+          + 新增项目信息
+        </button>
       </div>
     </div>
 
@@ -61,11 +75,21 @@
             <td>{{ item.client_name }}</td>
             <td>{{ item.project_manager || '-' }}</td>
             <td class="action-cell">
-              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)">编辑</a>
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
-                >删除</a
-              >
+              <a
+                href="#"
+                class="action-link action-view"
+                @click.prevent="handleView(item)"
+              >查看</a>
+              <a
+                href="#"
+                class="action-link action-edit"
+                @click.prevent="handleEdit(item)"
+              >编辑</a>
+              <a
+                href="#"
+                class="action-link action-delete"
+                @click.prevent="handleDelete(item)"
+              >删除</a>
             </td>
           </tr>
         </tbody>
@@ -73,9 +97,15 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+      <div class="pagination-info">
+        共 {{ totalElements }} 条记录
+      </div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage === 0"
+          @click="currentPage--"
+        >
           &lt;
         </button>
         <button
@@ -94,64 +124,122 @@
         >
           &gt;
         </button>
-        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
-          <option value="10">10 条 / 页</option>
-          <option value="20">20 条 / 页</option>
-          <option value="50">50 条 / 页</option>
+        <select
+          id="pageSize"
+          name="pageSize"
+          v-model="pageSize"
+          class="page-select"
+          @change="handlePageSizeChange"
+        >
+          <option value="10">
+            10 条 / 页
+          </option>
+          <option value="20">
+            20 条 / 页
+          </option>
+          <option value="50">
+            50 条 / 页
+          </option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+          <input
+            id="jumpPage"
+            v-model="jumpPage"
+            name="jumpPage"
+            type="number"
+            class="page-input"
+            min="1"
+            :max="totalPages"
+            aria-label="跳转页码"
+          >
           <span>页</span>
-          <button class="page-btn page-go" @click="handleJump">Go</button>
+          <button
+            class="page-btn page-go"
+            @click="handleJump"
+          >
+            Go
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+    <div
+      v-if="isModalOpen"
+      class="modal-overlay"
+      @click.self="closeModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">添加项目信息</h3>
-          <button class="modal-close" @click="closeModal">×</button>
+          <h3 class="modal-title">
+            添加项目信息
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
-                <input
+                <label for="projectName" class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <input id="projectName" name="projectName"
                   v-model="formData.project_name"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="200"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目开始日期 </label>
-                <input v-model="formData.completion_date" type="date" class="form-input" />
+                <label for="projectStartDate" class="form-label"> <span class="required">*</span> 项目开始日期 </label>
+                <input id="projectStartDate" name="projectStartDate"
+                  v-model="formData.completion_date"
+                  type="date"
+                  class="form-input"
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 维保频率 </label>
-                <select v-model="formData.maintenance_period" class="form-input">
-                  <option value="">请选择</option>
-                  <option value="每天">每天</option>
-                  <option value="每周">每周</option>
-                  <option value="每月">每月</option>
-                  <option value="每季度">每季度</option>
-                  <option value="每半年">每半年</option>
+                <label for="maintenancePeriod" class="form-label"> <span class="required">*</span> 维保频率 </label>
+                <select id="maintenancePeriod" name="maintenancePeriod"
+                  v-model="formData.maintenance_period"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option value="每天">
+                    每天
+                  </option>
+                  <option value="每周">
+                    每周
+                  </option>
+                  <option value="每月">
+                    每月
+                  </option>
+                  <option value="每季度">
+                    每季度
+                  </option>
+                  <option value="每半年">
+                    每半年
+                  </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 客户单位 </label>
+                <label for="clientName" class="form-label"> <span class="required">*</span> 客户单位 </label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select
+                    <select id="clientName" name="clientName"
                       v-model="formData.client_source"
                       class="form-input client-select"
                       @change="handleClientSourceChange('formData')"
                     >
-                      <option value="">选择已有客户</option>
+                      <option value="">
+                        选择已有客户
+                      </option>
                       <option
                         v-for="customer in customerList"
                         :key="customer.id"
@@ -162,27 +250,31 @@
                     </select>
                     <span class="client-or">或</span>
                     <input
+                      id="clientNameManual"
+                      name="clientNameManual"
                       v-model="formData.client_name_manual"
                       type="text"
                       class="form-input client-input"
                       placeholder="手动输入客户单位"
                       maxlength="100"
                       @input="handleClientManualInput('formData')"
-                    />
+                    >
                   </div>
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
+                <label for="clientContact" class="form-label">客户联系人</label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select
+                    <select id="clientContact" name="clientContact"
                       v-model="formData.client_contact_id"
                       class="form-input client-select"
                       :disabled="!formData.client_source"
                       @change="handleContactChange('formData')"
                     >
-                      <option value="">选择已有联系人</option>
+                      <option value="">
+                        选择已有联系人
+                      </option>
                       <option
                         v-for="contact in availableContacts"
                         :key="contact.id"
@@ -194,6 +286,8 @@
                     </select>
                     <span class="client-or">或</span>
                     <input
+                      id="clientContactManual"
+                      name="clientContactManual"
                       v-model="formData.client_contact_manual"
                       type="text"
                       class="form-input client-input"
@@ -201,205 +295,298 @@
                       maxlength="50"
                       :disabled="!formData.client_source && !formData.client_name_manual"
                       @input="handleContactManualInput('formData')"
-                    />
+                    >
                   </div>
                 </div>
                 <span
                   v-if="!formData.client_source && !formData.client_name_manual"
                   class="form-hint"
-                  >请先选择或输入客户单位</span
-                >
+                >请先选择或输入客户单位</span>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 客户地址 </label>
-                <input
+                <label for="clientAddress" class="form-label"> <span class="required">*</span> 客户地址 </label>
+                <input id="clientAddress" name="clientAddress"
                   v-model="formData.address"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户地址"
                   maxlength="200"
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目编号 </label>
-                <input
+                <label for="projectId" class="form-label"> <span class="required">*</span> 项目编号 </label>
+                <input id="projectId" name="projectId"
                   v-model="formData.project_id"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="50"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">项目简称</label>
-                <input
+                <label for="projectAbbr" class="form-label">项目简称</label>
+                <input id="projectAbbr" name="projectAbbr"
                   v-model="formData.project_abbr"
                   type="text"
                   class="form-input"
                   placeholder="请输入项目简称"
                   maxlength="50"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目结束日期 </label>
-                <input v-model="formData.maintenance_end_date" type="date" class="form-input" />
+                <label for="projectEndDate" class="form-label"> <span class="required">*</span> 项目结束日期 </label>
+                <input id="projectEndDate" name="projectEndDate"
+                  v-model="formData.maintenance_end_date"
+                  type="date"
+                  class="form-input"
+                >
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select v-model="formData.project_manager" class="form-input">
-                  <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person" :value="person">
+                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                  v-model="formData.project_manager"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option
+                    v-for="person in personnelList"
+                    :key="person"
+                    :value="person"
+                  >
                     {{ person }}
                   </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系方式</label>
-                <input
+                <label for="clientContactInfo" class="form-label">客户联系方式</label>
+                <input id="clientContactInfo" name="clientContactInfo"
                   v-model="formData.client_contact_info"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系方式"
                   maxlength="50"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人职位</label>
-                <input
+                <label for="clientContactPosition" class="form-label">客户联系人职位</label>
+                <input id="clientContactPosition" name="clientContactPosition"
                   v-model="formData.client_contact_position"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人职位"
                   maxlength="20"
-                />
+                >
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleSave">
+          <button
+            class="btn btn-cancel"
+            @click="closeModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleSave"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">查看项目信息</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            查看项目信息
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目名称</label>
-                <div class="form-value">{{ viewData.project_name || '-' }}</div>
+                <span class="form-label">项目名称</span>
+                <div class="form-value">
+                  {{ viewData.project_name || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目开始日期</label>
-                <div class="form-value">{{ formatDate(viewData.completion_date) || '-' }}</div>
+                <span class="form-label">项目开始日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.completion_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">维保频率</label>
-                <div class="form-value">{{ viewData.maintenance_period || '-' }}</div>
+                <span class="form-label">维保频率</span>
+                <div class="form-value">
+                  {{ viewData.maintenance_period || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户单位</label>
-                <div class="form-value">{{ viewData.client_name || '-' }}</div>
+                <span class="form-label">客户单位</span>
+                <div class="form-value">
+                  {{ viewData.client_name || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">运维人员</label>
-                <div class="form-value">{{ viewData.project_manager || '-' }}</div>
+                <span class="form-label">运维人员</span>
+                <div class="form-value">
+                  {{ viewData.project_manager || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户地址</label>
-                <div class="form-value">{{ viewData.address || '-' }}</div>
+                <span class="form-label">客户地址</span>
+                <div class="form-value">
+                  {{ viewData.address || '-' }}
+                </div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+                <span class="form-label">项目编号</span>
+                <div class="form-value">
+                  {{ viewData.project_id || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目简称</label>
-                <div class="form-value">{{ viewData.project_abbr || '-' }}</div>
+                <span class="form-label">项目简称</span>
+                <div class="form-value">
+                  {{ viewData.project_abbr || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">项目结束日期</label>
-                <div class="form-value">{{ formatDate(viewData.maintenance_end_date) || '-' }}</div>
+                <span class="form-label">项目结束日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.maintenance_end_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
-                <div class="form-value">{{ viewData.client_contact || '-' }}</div>
+                <span class="form-label">客户联系人</span>
+                <div class="form-value">
+                  {{ viewData.client_contact || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系方式</label>
-                <div class="form-value">{{ viewData.client_contact_info || '-' }}</div>
+                <span class="form-label">客户联系方式</span>
+                <div class="form-value">
+                  {{ viewData.client_contact_info || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人职位</label>
-                <div class="form-value">{{ viewData.client_contact_position || '-' }}</div>
+                <span class="form-label">客户联系人职位</span>
+                <div class="form-value">
+                  {{ viewData.client_contact_position || '-' }}
+                </div>
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
+    <div
+      v-if="isEditModalOpen"
+      class="modal-overlay"
+      @click.self="closeEditModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">编辑项目信息</h3>
-          <button class="modal-close" @click="closeEditModal">×</button>
+          <h3 class="modal-title">
+            编辑项目信息
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeEditModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
-                <input
+                <label for="projectName" class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <input id="projectName" name="projectName"
                   v-model="editData.project_name"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="200"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目开始日期 </label>
-                <input v-model="editData.completion_date" type="date" class="form-input" />
+                <label for="projectStartDate" class="form-label"> <span class="required">*</span> 项目开始日期 </label>
+                <input id="projectStartDate" name="projectStartDate"
+                  v-model="editData.completion_date"
+                  type="date"
+                  class="form-input"
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 维保频率 </label>
-                <select v-model="editData.maintenance_period" class="form-input">
-                  <option value="">请选择</option>
-                  <option value="每天">每天</option>
-                  <option value="每周">每周</option>
-                  <option value="每月">每月</option>
-                  <option value="每季度">每季度</option>
-                  <option value="每半年">每半年</option>
+                <label for="maintenancePeriod" class="form-label"> <span class="required">*</span> 维保频率 </label>
+                <select id="maintenancePeriod" name="maintenancePeriod"
+                  v-model="editData.maintenance_period"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option value="每天">
+                    每天
+                  </option>
+                  <option value="每周">
+                    每周
+                  </option>
+                  <option value="每月">
+                    每月
+                  </option>
+                  <option value="每季度">
+                    每季度
+                  </option>
+                  <option value="每半年">
+                    每半年
+                  </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 客户单位 </label>
+                <label for="clientName" class="form-label"> <span class="required">*</span> 客户单位 </label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select
+                    <select id="clientName" name="clientName"
                       v-model="editData.client_source"
                       class="form-input client-select"
                       @change="handleClientSourceChange('editData')"
                     >
-                      <option value="">选择已有客户</option>
+                      <option value="">
+                        选择已有客户
+                      </option>
                       <option
                         v-for="customer in customerList"
                         :key="customer.id"
@@ -410,27 +597,31 @@
                     </select>
                     <span class="client-or">或</span>
                     <input
+                      id="editClientNameManual"
+                      name="editClientNameManual"
                       v-model="editData.client_name_manual"
                       type="text"
                       class="form-input client-input"
                       placeholder="手动输入客户单位"
                       maxlength="100"
                       @input="handleClientManualInput('editData')"
-                    />
+                    >
                   </div>
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人</label>
+                <label for="clientContact" class="form-label">客户联系人</label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select
+                    <select id="clientContact" name="clientContact"
                       v-model="editData.client_contact_id"
                       class="form-input client-select"
                       :disabled="!editData.client_source"
                       @change="handleContactChange('editData')"
                     >
-                      <option value="">选择已有联系人</option>
+                      <option value="">
+                        选择已有联系人
+                      </option>
                       <option
                         v-for="contact in availableContacts"
                         :key="contact.id"
@@ -442,6 +633,8 @@
                     </select>
                     <span class="client-or">或</span>
                     <input
+                      id="editClientContactManual"
+                      name="editClientContactManual"
                       v-model="editData.client_contact_manual"
                       type="text"
                       class="form-input client-input"
@@ -449,95 +642,120 @@
                       maxlength="50"
                       :disabled="!editData.client_source && !editData.client_name_manual"
                       @input="handleContactManualInput('editData')"
-                    />
+                    >
                   </div>
                 </div>
                 <span
                   v-if="!editData.client_source && !editData.client_name_manual"
                   class="form-hint"
-                  >请先选择或输入客户单位</span
-                >
+                >请先选择或输入客户单位</span>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 客户地址 </label>
-                <input
+                <label for="clientAddress" class="form-label"> <span class="required">*</span> 客户地址 </label>
+                <input id="clientAddress" name="clientAddress"
                   v-model="editData.address"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户地址"
                   maxlength="200"
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目编号 </label>
-                <input
+                <label for="projectId" class="form-label"> <span class="required">*</span> 项目编号 </label>
+                <input id="projectId" name="projectId"
                   v-model="editData.project_id"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
                   maxlength="50"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">项目简称</label>
-                <input
+                <label for="projectAbbr" class="form-label">项目简称</label>
+                <input id="projectAbbr" name="projectAbbr"
                   v-model="editData.project_abbr"
                   type="text"
                   class="form-input"
                   placeholder="请输入项目简称"
                   maxlength="50"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目结束日期 </label>
-                <input v-model="editData.maintenance_end_date" type="date" class="form-input" />
+                <label for="projectEndDate" class="form-label"> <span class="required">*</span> 项目结束日期 </label>
+                <input id="projectEndDate" name="projectEndDate"
+                  v-model="editData.maintenance_end_date"
+                  type="date"
+                  class="form-input"
+                >
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select v-model="editData.project_manager" class="form-input">
-                  <option value="">请选择</option>
-                  <option v-for="person in personnelList" :key="person" :value="person">
+                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
+                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                  v-model="editData.project_manager"
+                  class="form-input"
+                >
+                  <option value="">
+                    请选择
+                  </option>
+                  <option
+                    v-for="person in personnelList"
+                    :key="person"
+                    :value="person"
+                  >
                     {{ person }}
                   </option>
                 </select>
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系方式</label>
-                <input
+                <label for="clientContactInfo" class="form-label">客户联系方式</label>
+                <input id="clientContactInfo" name="clientContactInfo"
                   v-model="editData.client_contact_info"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系方式"
                   maxlength="50"
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">客户联系人职位</label>
-                <input
+                <label for="clientContactPosition" class="form-label">客户联系人职位</label>
+                <input id="clientContactPosition" name="clientContactPosition"
                   v-model="editData.client_contact_position"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人职位"
                   maxlength="20"
-                />
+                >
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
+          <button
+            class="btn btn-cancel"
+            @click="closeEditModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleUpdate"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
     <ConfirmDialog
       :visible="confirmDialog.visible"
       :title="confirmDialog.title"
@@ -567,11 +785,9 @@ import {
 } from '../services/projectInfo'
 import { personnelService } from '../services/personnel'
 import { customerService, type CustomerContact } from '../services/customer'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import Toast from '../components/Toast.vue'
+import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import SearchInput from '../components/SearchInput.vue'
-import { useInputMemory } from '../utils/inputMemory'
+import { useInputMemory } from '../utils'
 import {
   formatDate as formatDateUtil,
   formatDateForInput as formatDateForInputUtil,
@@ -1121,6 +1337,9 @@ export default defineComponent({
                 loading.value = false
               }
             })
+          } else if (error.status === 404) {
+            showToast('该项目已被删除，请刷新列表', 'warning')
+            await loadData()
           } else if (error.status === 400 && error.message) {
             showToast(error.message, 'warning')
           } else {
@@ -1307,103 +1526,102 @@ export default defineComponent({
 </script>
 <style scoped>
 .project-info-management {
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-5);
   position: relative;
 }
 .search-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding: 20px;
-  background: #f8f9fa;
-  border-radius: 4px;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background: var(--color-bg-page);
+  border-radius: var(--radius-sm);
 }
 .search-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: flex-start;
 }
 .search-row {
   display: flex;
-  gap: 16px;
+  gap: var(--space-4);
   align-items: center;
   flex-wrap: wrap;
 }
 .search-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .search-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #424242;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-regular);
   white-space: nowrap;
 }
 .search-input {
   width: 200px;
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
-  background: #fff;
-  transition: border-color 0.15s;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  transition: border-color var(--transition-fast);
 }
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-subtle);
 }
 .search-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 .search-actions {
   display: flex;
   flex-wrap: nowrap;
-  gap: 10px;
+  gap: var(--space-2);
   overflow-x: auto;
   white-space: nowrap;
   min-width: max-content;
   align-items: center;
 }
 .btn {
-  padding: 8px 16px;
+  padding: var(--space-2) var(--space-4);
   border: none;
-  border-radius: 3px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: all 0.15s;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all var(--transition-fast);
 }
 .btn:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 .btn-add {
-  background: #2e7d32;
+  background: var(--color-primary);
   color: #fff;
 }
 .btn-add:hover:not(:disabled) {
-  background: #1b5e20;
+  background: var(--color-primary-dark);
 }
 .btn-search {
-  background: #2196f3;
+  background: var(--color-primary);
   color: #fff;
 }
 .btn-search:hover {
-  background: #1976d2;
+  background: var(--color-primary-dark);
 }
 .table-section {
-  margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 .data-table {
@@ -1411,70 +1629,74 @@ export default defineComponent({
   border-collapse: collapse;
 }
 .data-table thead {
-  background: #e0e0e0;
+  background: var(--color-bg-page);
 }
 .data-table th {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   text-align: left;
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #d0d0d0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-regular);
+  border-bottom: 1px solid var(--color-border);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 .data-table td {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   text-align: left;
-  font-size: 14px;
-  color: #616161;
-  border-bottom: 1px solid #f0f0f0;
+  font-size: var(--text-sm);
+  color: var(--color-text-regular);
+  border-bottom: 1px solid var(--color-border-light);
 }
 .data-table tbody tr:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 .even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 .action-cell {
   display: flex;
   flex-wrap: nowrap;
-  gap: 16px;
+  gap: var(--space-4);
   overflow-x: auto;
   white-space: nowrap;
   min-width: max-content;
   align-items: center;
 }
 .action-link {
-  font-size: 14px;
+  font-size: var(--text-sm);
   text-decoration: none;
-  transition: opacity 0.15s;
+  transition: opacity var(--transition-fast);
 }
 .action-link:hover {
-  opacity: 0.8;
+  opacity: 0.7;
 }
 .action-view {
-  color: #2e7d32;
+  color: var(--color-primary);
 }
 .action-edit {
-  color: #2196f3;
+  color: var(--color-accent);
 }
 .action-delete {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 .pagination-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
+  padding: var(--space-4) 0;
 }
 .pagination-info {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
 }
 .pagination-controls {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   overflow-x: auto;
   white-space: nowrap;
   min-width: max-content;
@@ -1482,78 +1704,80 @@ export default defineComponent({
 .page-btn {
   min-width: 32px;
   height: 32px;
-  padding: 0 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  background: #fff;
-  font-size: 14px;
-  color: #333;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text-regular);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .page-btn:hover:not(:disabled) {
-  border-color: #2196f3;
-  color: #2196f3;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .page-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 .page-btn.active {
-  background: #2196f3;
+  background: var(--color-primary);
   color: #fff;
-  border-color: #2196f3;
+  border-color: var(--color-primary);
 }
 .page-nav {
-  font-size: 16px;
+  font-size: var(--text-md);
 }
 .page-select {
-  padding: 6px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
-  background: #fff;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-regular);
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 .page-jump {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: #666;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 .page-input {
   width: 48px;
-  padding: 6px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  color: var(--color-text-primary);
   text-align: center;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 .page-input:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--color-primary);
 }
 .page-go {
   min-width: 40px;
   height: 28px;
-  padding: 0 8px;
-  background: #2196f3;
+  padding: 0 var(--space-2);
+  background: var(--color-primary);
   color: #fff;
   border: none;
-  border-radius: 3px;
-  font-size: 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--transition-fast);
 }
 .page-go:hover {
-  background: #1976d2;
+  background: var(--color-primary-dark);
 }
 .modal-overlay {
   position: fixed;
@@ -1561,32 +1785,32 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 .modal-container {
-  background: #fff;
-  border-radius: 8px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   width: 900px;
   max-width: 95vw;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
 }
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
 }
 .modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
   margin: 0;
 }
 .modal-close {
@@ -1594,24 +1818,24 @@ export default defineComponent({
   height: 32px;
   border: none;
   background: none;
-  font-size: 24px;
-  color: #999;
+  font-size: var(--text-xl);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: color 0.15s;
+  transition: color var(--transition-fast);
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 .modal-body {
-  padding: 24px;
+  padding: var(--space-6);
 }
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px 40px;
+  gap: var(--space-5) var(--space-10);
   align-items: start;
 }
 .form-column {
@@ -1621,68 +1845,68 @@ export default defineComponent({
 .form-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   min-height: 90px;
-  padding: 4px 0;
+  padding: var(--space-1) 0;
 }
 .form-item-inline {
   display: flex;
-  gap: 16px;
-  padding: 4px 0;
+  gap: var(--space-4);
+  padding: var(--space-1) 0;
 }
 .form-item-half {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #424242;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-regular);
 }
 .required {
-  color: #d32f2f;
-  margin-right: 4px;
+  color: var(--color-danger);
+  margin-right: var(--space-1);
 }
 .form-input {
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
-  background: #fff;
-  transition: border-color 0.15s;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
+  transition: border-color var(--transition-fast);
 }
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
-  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-subtle);
 }
 .form-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 .form-input-readonly {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
 }
 .form-input-readonly:focus {
   outline: none;
-  border-color: #e0e0e0;
+  border-color: var(--color-border);
   box-shadow: none;
 }
 .form-hint {
-  font-size: 12px;
-  color: #999;
+  font-size: var(--text-xs);
+  color: var(--color-text-placeholder);
 }
 .form-value {
-  padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 3px;
-  font-size: 14px;
-  color: #333;
+  padding: var(--space-2) var(--space-3);
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -1690,42 +1914,42 @@ export default defineComponent({
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--color-border-light);
 }
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 .btn-save {
-  background: #2196f3;
+  background: var(--color-primary);
   color: #fff;
 }
 .btn-save:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--color-primary-dark);
 }
 .client-select-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .client-input-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 .client-select {
   flex: 1;
   cursor: pointer;
 }
 .client-or {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
   white-space: nowrap;
 }
 .client-input {

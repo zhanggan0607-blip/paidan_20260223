@@ -118,7 +118,7 @@ onMounted(() => {
     </van-nav-bar>
 
     <van-cell-group inset title="基本信息">
-      <van-field
+      <van-field name="report_date"
         v-model="formData.reportDate"
         label="填报日期"
         placeholder="选择填报日期"
@@ -127,7 +127,7 @@ onMounted(() => {
         readonly
         @click="showReportDatePicker = true"
       />
-      <van-field
+      <van-field name="report_id"
         v-model="formData.reportId"
         label="周报编号"
         placeholder="自动生成"
@@ -137,7 +137,7 @@ onMounted(() => {
     </van-cell-group>
 
     <van-cell-group inset title="工作内容">
-      <van-field
+      <van-field name="work_summary"
         v-model="formData.workSummary"
         label="本周工作总结"
         placeholder="请输入本周工作总结"
@@ -147,7 +147,7 @@ onMounted(() => {
         show-word-limit
         required
       />
-      <van-field
+      <van-field name="next_week_plan"
         v-model="formData.nextWeekPlan"
         label="下周工作计划"
         placeholder="请输入下周工作计划"
@@ -156,7 +156,7 @@ onMounted(() => {
         maxlength="1000"
         show-word-limit
       />
-      <van-field
+      <van-field name="issues"
         v-model="formData.issues"
         label="存在问题"
         placeholder="请输入存在问题"
@@ -165,7 +165,7 @@ onMounted(() => {
         maxlength="500"
         show-word-limit
       />
-      <van-field
+      <van-field name="suggestions"
         v-model="formData.suggestions"
         label="建议措施"
         placeholder="请输入建议措施"
@@ -196,7 +196,7 @@ onMounted(() => {
 <style scoped>
 .weekly-report-fill-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 :deep(.van-cell-group--inset) {
@@ -212,6 +212,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 </style>

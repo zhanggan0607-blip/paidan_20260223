@@ -1,28 +1,8 @@
-/**
- * 超期预警服务
- * 提供超期工单查询功能
- */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
+import type { ApiResponse, OverdueAlertItem } from '@sstcp/shared'
 
-export interface OverdueItem {
-  id: string
-  workOrderNo: string
-  project_id: string
-  projectName: string
-  customerName: string
-  workOrderType: string
-  planEndDate: string
-  workOrderStatus: string
-  overdueDays: number
-  executor: string
-}
-
-export interface ApiResponse<T = unknown> {
-  code: number
-  message: string
-  data: T
-}
+export type OverdueItem = OverdueAlertItem
 
 export interface OverdueAlertResponse {
   items: OverdueItem[]
@@ -30,9 +10,6 @@ export interface OverdueAlertResponse {
 }
 
 export const overdueAlertService = {
-  /**
-   * 获取超期预警列表
-   */
   async getOverdueAlerts(params?: {
     project_name?: string
     client_name?: string

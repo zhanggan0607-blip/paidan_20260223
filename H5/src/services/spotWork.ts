@@ -113,18 +113,25 @@ export const spotWorkService = {
     return request.post(API_ENDPOINTS.SPOT_WORK.SUBMIT(id))
   },
 
-  /**
-   * 审批通过
-   */
-  async approve(id: number, remark?: string): Promise<ApiResponse<SpotWork>> {
-    return request.post(API_ENDPOINTS.SPOT_WORK.APPROVE(id), { remark })
+  async recall(id: number): Promise<ApiResponse<SpotWork>> {
+    return request.post(API_ENDPOINTS.SPOT_WORK.RECALL(id))
   },
 
   /**
-   * 审批退回
+   * 审批通过
    */
-  async reject(id: number, remark: string): Promise<ApiResponse<SpotWork>> {
-    return request.post(API_ENDPOINTS.SPOT_WORK.REJECT(id), { remark })
+  async approve(id: number, approved: boolean = true, rejectReason?: string): Promise<ApiResponse<SpotWork>> {
+    return request.post(API_ENDPOINTS.SPOT_WORK.APPROVE(id), {
+      approved,
+      reject_reason: rejectReason,
+    })
+  },
+
+  async reject(id: number, rejectReason: string): Promise<ApiResponse<SpotWork>> {
+    return request.post(API_ENDPOINTS.SPOT_WORK.APPROVE(id), {
+      approved: false,
+      reject_reason: rejectReason,
+    })
   },
 
   /**
@@ -154,6 +161,9 @@ export const spotWorkService = {
       name?: string
       project_name?: string
       project_id?: string
+      can_reuse?: boolean
+      work_id?: string
+      work_status?: string
     }>
   > {
     return request.get(API_ENDPOINTS.SPOT_WORK.CHECK_ID_CARD, {

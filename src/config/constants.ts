@@ -1,39 +1,24 @@
 /**
- * PC端常量配置
- * 从shared包导入共享的常量定义
+ * PC 前端常量配置
+ * 所有常量定义已迁移至共享包，此处仅重新导出
  */
 export {
   API_CONFIG,
   PLAN_TYPES,
   PLAN_TYPE_LIST,
   WORK_STATUS,
-  WORK_STATUS_LIST,
   EXECUTION_STATUS,
   SPARE_PARTS_STATUS,
-  SPARE_PARTS_STATUS_LIST,
-  REPAIR_TOOLS_STATUS,
-  REPAIR_TOOLS_STATUS_LIST,
   USER_ROLES,
-  USER_ROLE_LIST,
-  GENDER_OPTIONS,
-  GENDER_LIST,
-  DATE_FORMAT,
-  STATUS_IN_PROGRESS,
-  STATUS_PENDING_CONFIRM,
-  STATUS_COMPLETED,
-  STATUS_REJECTED,
-  ALL_STATUSES,
-  getStatusType,
-  getStatusColor,
-  getStatusClass,
-  getDisplayStatus,
-  isCompletedStatus,
-  isInProgressStatus,
-  isPendingConfirmStatus,
-  isRejectedStatus,
-  isPendingStatus,
-  BASE_WORK_TABS,
-  APPROVAL_TAB,
+  PERMISSIONS,
+  formatDate,
+  formatDateTime,
+  formatDateForInput,
+  formatTime,
+  getCurrentDateTime,
+  getCurrentDate,
+  parseDate,
+  getDaysDiff,
+  isOverdue,
+  getWorkIdFontSize,
 } from '@sstcp/shared'
-
-export { formatDate, formatDateTime, formatDateForInput } from '@sstcp/shared'

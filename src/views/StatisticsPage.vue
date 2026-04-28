@@ -2,78 +2,133 @@
   <div class="statistics-page">
     <div class="top-bar">
       <div class="year-selector">
-        <label class="year-label">年度选择：</label>
-        <select v-model="selectedYear" class="year-select" @change="handleYearChange">
-          <option v-for="year in availableYears" :key="year" :value="year">
+        <label for="search_yearSelect" class="year-label">年度选择：</label>
+        <select id="search_yearSelect" name="search_yearSelect"
+          v-model="selectedYear"
+          class="year-select"
+          @change="handleYearChange"
+        >
+          <option
+            v-for="year in availableYears"
+            :key="year"
+            :value="year"
+          >
             {{ year }}
           </option>
         </select>
       </div>
       <div class="refresh-controls">
-        <button class="btn btn-refresh" @click="handleYearChange">刷新</button>
-        <button class="btn btn-fullscreen" @click="toggleFullscreen">
+        <button
+          class="btn btn-refresh"
+          @click="handleYearChange"
+        >
+          刷新
+        </button>
+        <button
+          class="btn btn-fullscreen"
+          @click="toggleFullscreen"
+        >
           {{ isFullscreen ? '退出全屏' : '全屏' }}
         </button>
       </div>
     </div>
 
-    <div v-if="!loading" class="content">
+    <div
+      v-if="!loading"
+      class="content"
+    >
       <div class="top-cards-section">
         <div
           class="mini-card mini-card-warning clickable"
           @click="openDetailModal('nearDue', '临期工单')"
         >
-          <div class="mini-card-value">{{ overviewData.nearDueCount }}</div>
-          <div class="mini-card-label">临期工单</div>
+          <div class="mini-card-value">
+            {{ overviewData.nearDueCount }}
+          </div>
+          <div class="mini-card-label">
+            临期工单
+          </div>
         </div>
         <div
           class="mini-card mini-card-danger clickable"
           @click="openDetailModal('overdue', '超期工单')"
         >
-          <div class="mini-card-value">{{ overviewData.overdueCount }}</div>
-          <div class="mini-card-label">超期工单</div>
+          <div class="mini-card-value">
+            {{ overviewData.overdueCount }}
+          </div>
+          <div class="mini-card-label">
+            超期工单
+          </div>
         </div>
         <div
           class="mini-card mini-card-success clickable"
           @click="openDetailModal('yearCompleted', '本年完成')"
         >
-          <div class="mini-card-value">{{ overviewData.yearCompletedCount }}</div>
-          <div class="mini-card-label">本年完成</div>
+          <div class="mini-card-value">
+            {{ overviewData.yearCompletedCount }}
+          </div>
+          <div class="mini-card-label">
+            本年完成
+          </div>
         </div>
         <div
           class="mini-card mini-card-info clickable"
           @click="openDetailModal('regularInspection', '定期巡检单')"
         >
-          <div class="mini-card-value">{{ overviewData.regularInspectionCount }}</div>
-          <div class="mini-card-label">定期巡检单</div>
+          <div class="mini-card-value">
+            {{ overviewData.regularInspectionCount }}
+          </div>
+          <div class="mini-card-label">
+            定期巡检单
+          </div>
         </div>
         <div
           class="mini-card mini-card-purple clickable"
           @click="openDetailModal('temporaryRepair', '临时维修单')"
         >
-          <div class="mini-card-value">{{ overviewData.temporaryRepairCount }}</div>
-          <div class="mini-card-label">临时维修单</div>
+          <div class="mini-card-value">
+            {{ overviewData.temporaryRepairCount }}
+          </div>
+          <div class="mini-card-label">
+            临时维修单
+          </div>
         </div>
         <div
           class="mini-card mini-card-cyan clickable"
           @click="openDetailModal('spotWork', '零星用工单')"
         >
-          <div class="mini-card-value">{{ overviewData.spotWorkCount }}</div>
-          <div class="mini-card-label">零星用工单</div>
+          <div class="mini-card-value">
+            {{ overviewData.spotWorkCount }}
+          </div>
+          <div class="mini-card-label">
+            零星用工单
+          </div>
         </div>
       </div>
 
       <div class="cards-section">
         <div class="stat-card card-total employee-chart-card">
           <div class="employee-chart-container">
-            <div class="chart-caption">本年度工单数量（{{ selectedYear }}）</div>
+            <div class="chart-caption">
+              本年度工单数量（{{ selectedYear }}）
+            </div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in yAxisTicks" :key="tick" class="y-axis-tick">{{ tick }}</div>
+                <div
+                  v-for="tick in yAxisTicks"
+                  :key="tick"
+                  class="y-axis-tick"
+                >
+                  {{ tick }}
+                </div>
               </div>
               <div class="chart-content">
                 <div class="chart-grid">
-                  <div v-for="tick in yAxisTicks" :key="'grid-' + tick" class="grid-line"></div>
+                  <div
+                    v-for="tick in yAxisTicks"
+                    :key="'grid-' + tick"
+                    class="grid-line"
+                  />
                 </div>
                 <div class="horizontal-bars">
                   <div
@@ -82,7 +137,9 @@
                     class="horizontal-bar-item clickable-bar"
                     @click="openEmployeeDetail(employee.name)"
                   >
-                    <div class="bar-label">{{ employee.name }}</div>
+                    <div class="bar-label">
+                      {{ employee.name }}
+                    </div>
                     <div class="bar-track">
                       <div
                         class="bar-fill"
@@ -93,7 +150,10 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="employeeStats.employees.length === 0" class="employee-no-data">
+                <div
+                  v-if="employeeStats.employees.length === 0"
+                  class="employee-no-data"
+                >
                   暂无数据
                 </div>
               </div>
@@ -103,10 +163,16 @@
 
         <div class="stat-card card-inspection inspection-chart-card">
           <div class="employee-chart-container">
-            <div class="chart-caption">定期巡检单完成数量（{{ selectedYear }}）</div>
+            <div class="chart-caption">
+              定期巡检单完成数量（{{ selectedYear }}）
+            </div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in inspectionYAxisTicks" :key="tick" class="y-axis-tick">
+                <div
+                  v-for="tick in inspectionYAxisTicks"
+                  :key="tick"
+                  class="y-axis-tick"
+                >
                   {{ tick }}
                 </div>
               </div>
@@ -116,7 +182,7 @@
                     v-for="tick in inspectionYAxisTicks"
                     :key="'grid-' + tick"
                     class="grid-line"
-                  ></div>
+                  />
                 </div>
                 <div class="horizontal-bars">
                   <div
@@ -125,7 +191,9 @@
                     class="horizontal-bar-item clickable-bar"
                     @click="openEmployeeDetail(item.name, 'inspection')"
                   >
-                    <div class="bar-label">{{ item.name }}</div>
+                    <div class="bar-label">
+                      {{ item.name }}
+                    </div>
                     <div class="bar-track">
                       <div
                         class="bar-fill bar-fill-green"
@@ -136,7 +204,10 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="inspectionStats.employees.length === 0" class="employee-no-data">
+                <div
+                  v-if="inspectionStats.employees.length === 0"
+                  class="employee-no-data"
+                >
                   暂无数据
                 </div>
               </div>
@@ -146,10 +217,16 @@
 
         <div class="stat-card card-repair repair-chart-card">
           <div class="employee-chart-container">
-            <div class="chart-caption">临时维修单完成数量（{{ selectedYear }}）</div>
+            <div class="chart-caption">
+              临时维修单完成数量（{{ selectedYear }}）
+            </div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in repairYAxisTicks" :key="tick" class="y-axis-tick">
+                <div
+                  v-for="tick in repairYAxisTicks"
+                  :key="tick"
+                  class="y-axis-tick"
+                >
                   {{ tick }}
                 </div>
               </div>
@@ -159,7 +236,7 @@
                     v-for="tick in repairYAxisTicks"
                     :key="'grid-' + tick"
                     class="grid-line"
-                  ></div>
+                  />
                 </div>
                 <div class="horizontal-bars">
                   <div
@@ -168,7 +245,9 @@
                     class="horizontal-bar-item clickable-bar"
                     @click="openEmployeeDetail(item.name, 'repair')"
                   >
-                    <div class="bar-label">{{ item.name }}</div>
+                    <div class="bar-label">
+                      {{ item.name }}
+                    </div>
                     <div class="bar-track">
                       <div
                         class="bar-fill bar-fill-red"
@@ -179,7 +258,10 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="repairStats.employees.length === 0" class="employee-no-data">
+                <div
+                  v-if="repairStats.employees.length === 0"
+                  class="employee-no-data"
+                >
                   暂无数据
                 </div>
               </div>
@@ -189,10 +271,16 @@
 
         <div class="stat-card card-labor spotwork-chart-card">
           <div class="employee-chart-container">
-            <div class="chart-caption">零星用工单完成数量（{{ selectedYear }}）</div>
+            <div class="chart-caption">
+              零星用工单完成数量（{{ selectedYear }}）
+            </div>
             <div class="horizontal-bar-chart">
               <div class="chart-y-axis">
-                <div v-for="tick in spotworkYAxisTicks" :key="tick" class="y-axis-tick">
+                <div
+                  v-for="tick in spotworkYAxisTicks"
+                  :key="tick"
+                  class="y-axis-tick"
+                >
                   {{ tick }}
                 </div>
               </div>
@@ -202,7 +290,7 @@
                     v-for="tick in spotworkYAxisTicks"
                     :key="'grid-' + tick"
                     class="grid-line"
-                  ></div>
+                  />
                 </div>
                 <div class="horizontal-bars">
                   <div
@@ -211,7 +299,9 @@
                     class="horizontal-bar-item clickable-bar"
                     @click="openEmployeeDetail(item.name, 'spotwork')"
                   >
-                    <div class="bar-label">{{ item.name }}</div>
+                    <div class="bar-label">
+                      {{ item.name }}
+                    </div>
                     <div class="bar-track">
                       <div
                         class="bar-fill"
@@ -222,7 +312,10 @@
                     </div>
                   </div>
                 </div>
-                <div v-if="spotworkStats.employees.length === 0" class="employee-no-data">
+                <div
+                  v-if="spotworkStats.employees.length === 0"
+                  class="employee-no-data"
+                >
                   暂无数据
                 </div>
               </div>
@@ -232,13 +325,18 @@
 
         <div class="stat-card card-total employee-chart-card">
           <div class="employee-chart-container">
-            <div class="chart-caption">准时完成情况分布（{{ selectedYear }}）</div>
+            <div class="chart-caption">
+              准时完成情况分布（{{ selectedYear }}）
+            </div>
             <div class="pie-chart-wrapper">
               <div
                 class="pie-chart-container clickable"
                 @click="openDetailModal('onTime', '准时完成')"
               >
-                <svg class="pie-svg" viewBox="0 0 100 100">
+                <svg
+                  class="pie-svg"
+                  viewBox="0 0 100 100"
+                >
                   <circle
                     cx="50"
                     cy="50"
@@ -266,7 +364,9 @@
                   <div class="pie-percentage">
                     {{ Math.round(completionRate.onTimeRate * 100) }}%
                   </div>
-                  <div class="pie-label">准时率</div>
+                  <div class="pie-label">
+                    准时率
+                  </div>
                 </div>
               </div>
               <div class="pie-legend">
@@ -274,14 +374,14 @@
                   class="legend-item clickable-legend"
                   @click="openDetailModal('onTime', '准时完成')"
                 >
-                  <div class="legend-color legend-color-ontime"></div>
+                  <div class="legend-color legend-color-ontime" />
                   <span>准时完成: {{ completionRate.onTimeCount }}单</span>
                 </div>
                 <div
                   class="legend-item clickable-legend"
                   @click="openDetailModal('delayed', '延期完成')"
                 >
-                  <div class="legend-color legend-color-delayed"></div>
+                  <div class="legend-color legend-color-delayed" />
                   <span>延期完成: {{ completionRate.delayedCount }}单</span>
                 </div>
               </div>
@@ -291,11 +391,17 @@
 
         <div class="stat-card card-inspection inspection-chart-card">
           <div class="employee-chart-container">
-            <div class="chart-caption">临时维修单前五（{{ selectedYear }}）</div>
+            <div class="chart-caption">
+              临时维修单前五（{{ selectedYear }}）
+            </div>
             <div class="vertical-bar-chart">
               <div class="vertical-chart-wrapper">
                 <div class="vertical-chart-yaxis">
-                  <div v-for="tick in topRepairYAxisTicks" :key="tick" class="v-yaxis-tick">
+                  <div
+                    v-for="tick in topRepairYAxisTicks"
+                    :key="tick"
+                    class="v-yaxis-tick"
+                  >
                     {{ tick }}
                   </div>
                 </div>
@@ -305,7 +411,7 @@
                       v-for="tick in topRepairYAxisTicks"
                       :key="'grid-' + tick"
                       class="v-grid-line"
-                    ></div>
+                    />
                   </div>
                   <div class="vertical-bars-container">
                     <div
@@ -327,12 +433,16 @@
                           class="v-bar-label-slanted"
                           :style="{ fontSize: getLabelFontSize(item.name) + 'px' }"
                           :title="item.name"
-                          >{{ item.name }}</span
-                        >
+                        >{{ item.name }}</span>
                       </div>
                     </div>
                   </div>
-                  <div v-if="topRepairs.length === 0" class="employee-no-data">暂无数据</div>
+                  <div
+                    v-if="topRepairs.length === 0"
+                    class="employee-no-data"
+                  >
+                    暂无数据
+                  </div>
                 </div>
               </div>
             </div>
@@ -341,23 +451,43 @@
       </div>
     </div>
 
-    <div v-else class="loading">
-      <div class="loading-spinner"></div>
+    <div
+      v-else
+      class="loading"
+    >
+      <div class="loading-spinner" />
       <p>加载中...</p>
     </div>
 
-    <div v-if="showDetailModal" class="modal-overlay" @click.self="closeDetailModal">
+    <div
+      v-if="showDetailModal"
+      class="modal-overlay"
+      @click.self="closeDetailModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">{{ detailModalTitle }}</h3>
-          <button class="modal-close" @click="closeDetailModal">&times;</button>
+          <h3 class="modal-title">
+            {{ detailModalTitle }}
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeDetailModal"
+          >
+            &times;
+          </button>
         </div>
         <div class="modal-body">
-          <div v-if="detailLoading" class="detail-loading">
-            <div class="loading-spinner small"></div>
+          <div
+            v-if="detailLoading"
+            class="detail-loading"
+          >
+            <div class="loading-spinner small" />
             <span>加载中...</span>
           </div>
-          <div v-else class="detail-content">
+          <div
+            v-else
+            class="detail-content"
+          >
             <div class="detail-stats">
               <span class="detail-total">共 {{ detailTotal }} 条记录</span>
             </div>
@@ -376,7 +506,10 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(item, index) in detailData" :key="index">
+                  <tr
+                    v-for="(item, index) in detailData"
+                    :key="index"
+                  >
                     <td>{{ (detailCurrentPage - 1) * detailPageSize + index + 1 }}</td>
                     <td>{{ item.orderType }}</td>
                     <td>{{ item.orderNumber }}</td>
@@ -391,14 +524,22 @@
                     </td>
                   </tr>
                   <tr v-if="detailData.length === 0">
-                    <td colspan="8" class="no-data">暂无数据</td>
+                    <td
+                      colspan="8"
+                      class="no-data"
+                    >
+                      暂无数据
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
         </div>
-        <div v-if="detailTotal > 0" class="modal-footer">
+        <div
+          v-if="detailTotal > 0"
+          class="modal-footer"
+        >
           <div class="pagination">
             <button
               class="page-btn"
@@ -681,34 +822,15 @@ export default defineComponent({
     const handleYearChange = async () => {
       loading.value = true
       try {
-        const [
-          overview,
-          rate,
-          projects,
-          topRepairsData,
-          employees,
-          inspections,
-          repairs,
-          spotworks,
-        ] = await Promise.all([
-          statisticsService.getStatisticsOverview(selectedYear.value),
-          statisticsService.getCompletionRate(selectedYear.value),
-          statisticsService.getTopProjects(selectedYear.value, 5),
-          statisticsService.getTopRepairs(selectedYear.value, 5),
-          statisticsService.getEmployeeStats(selectedYear.value),
-          statisticsService.getInspectionStats(selectedYear.value),
-          statisticsService.getRepairStats(selectedYear.value),
-          statisticsService.getSpotworkStats(selectedYear.value),
-        ])
-
-        overviewData.value = overview
-        completionRate.value = rate
-        topProjects.value = projects
-        topRepairs.value = topRepairsData
-        employeeStats.value = employees
-        inspectionStats.value = inspections
-        repairStats.value = repairs
-        spotworkStats.value = spotworks
+        // 串行加载统计数据，避免并发请求触发后端限流
+        overviewData.value = await statisticsService.getStatisticsOverview(selectedYear.value)
+        completionRate.value = await statisticsService.getCompletionRate(selectedYear.value)
+        topProjects.value = await statisticsService.getTopProjects(selectedYear.value, 5)
+        topRepairs.value = await statisticsService.getTopRepairs(selectedYear.value, 5)
+        employeeStats.value = await statisticsService.getEmployeeStats(selectedYear.value)
+        inspectionStats.value = await statisticsService.getInspectionStats(selectedYear.value)
+        repairStats.value = await statisticsService.getRepairStats(selectedYear.value)
+        spotworkStats.value = await statisticsService.getSpotworkStats(selectedYear.value)
       } catch (error) {
         console.error('获取统计数据失败:', error)
       } finally {
@@ -881,16 +1003,10 @@ export default defineComponent({
 
 <style scoped>
 .statistics-page {
-  padding: 20px 0;
-  background: #f5f7fa;
+  padding: 0;
+  background: var(--color-bg-page);
   min-height: 100vh;
-  font-family:
-    'Inter',
-    '思源黑体',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
+  font-family: var(--font-sans);
   box-sizing: border-box;
 }
 
@@ -898,195 +1014,172 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  background: white;
-  border-radius: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-  margin-bottom: 24px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-4);
 }
 
 .year-selector {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .year-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--color-text-regular);
 }
 
 .year-select {
-  padding: 8px 12px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  font-size: 14px;
-  background: white;
-  color: #333;
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   outline: none;
+  font-family: var(--font-mono);
 }
 
 .year-select:focus {
-  border-color: #4caf50;
-  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-subtle);
 }
 
 .refresh-controls {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .btn {
-  padding: 8px 16px;
+  padding: var(--space-1) var(--space-3);
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: white;
+  gap: var(--space-1);
+  color: #fff;
 }
 
 .btn-refresh {
-  background: #4caf50;
+  background: var(--color-primary);
 }
 
 .btn-refresh:hover {
-  background: #45a049;
+  background: var(--color-primary-dark);
 }
 
 .btn-fullscreen {
-  background: #4caf50;
+  background: var(--color-info);
 }
 
 .btn-fullscreen:hover {
-  background: #45a049;
+  background: #4a6a8a;
 }
 
 .content {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-4);
 }
 
 .top-cards-section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: #e0e0e0;
+  gap: var(--space-3);
 }
 
 .mini-card {
-  background: white;
-  border-radius: 0;
-  padding: 16px;
-  box-shadow: none;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   text-align: center;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
-.mini-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+.mini-card.clickable {
+  cursor: pointer;
+}
+
+.mini-card.clickable:hover {
+  border-color: var(--color-border-dark);
+  box-shadow: var(--shadow-sm);
 }
 
 .mini-card-value {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  margin-bottom: var(--space-1);
+  line-height: 1;
 }
 
 .mini-card-label {
-  font-size: 12px;
-  color: #666;
-}
-
-.mini-card-warning {
-  border-left: 4px solid #ff9800;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  letter-spacing: 0.04em;
 }
 
 .mini-card-warning .mini-card-value {
-  color: #ff9800;
-}
-
-.mini-card-danger {
-  border-left: 4px solid #f44336;
+  color: var(--color-warning);
 }
 
 .mini-card-danger .mini-card-value {
-  color: #f44336;
-}
-
-.mini-card-success {
-  border-left: 4px solid #4caf50;
+  color: var(--color-danger);
 }
 
 .mini-card-success .mini-card-value {
-  color: #4caf50;
-}
-
-.mini-card-info {
-  border-left: 4px solid #2196f3;
+  color: var(--color-success);
 }
 
 .mini-card-info .mini-card-value {
-  color: #2196f3;
-}
-
-.mini-card-purple {
-  border-left: 4px solid #9c27b0;
+  color: var(--color-info);
 }
 
 .mini-card-purple .mini-card-value {
-  color: #9c27b0;
-}
-
-.mini-card-cyan {
-  border-left: 4px solid #00bcd4;
+  color: var(--color-primary);
 }
 
 .mini-card-cyan .mini-card-value {
-  color: #00bcd4;
+  color: var(--color-accent);
 }
 
 .cards-section {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 1px;
-  background: #e0e0e0;
+  gap: var(--space-3);
   min-height: 300px;
 }
 
 .stat-card {
-  background: white;
-  border-radius: 0;
-  padding: 24px;
-  box-shadow: none;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
   display: flex;
   align-items: center;
-  gap: 16px;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+  gap: var(--space-4);
+  transition: border-color var(--transition-fast);
   min-height: 0;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: var(--color-border-dark);
 }
 
 .card-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1094,23 +1187,23 @@ export default defineComponent({
 }
 
 .card-total .card-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--color-primary-subtle);
+  color: var(--color-primary);
 }
 
 .card-inspection .card-icon {
-  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-  color: white;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .card-repair .card-icon {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .card-labor .card-icon {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-  color: white;
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
 }
 
 .card-content {
@@ -1118,15 +1211,16 @@ export default defineComponent({
 }
 
 .card-label {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 8px;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-2);
 }
 
 .card-value {
-  font-size: 36px;
-  font-weight: 700;
-  color: #333;
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
   line-height: 1;
 }
 
@@ -1145,7 +1239,7 @@ export default defineComponent({
 .employee-chart-container,
 .inspection-chart-container {
   width: 100%;
-  padding: 1rem;
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1154,11 +1248,11 @@ export default defineComponent({
 }
 
 .chart-caption {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #0a1a2f;
-  letter-spacing: -0.02em;
-  margin-bottom: 0.5rem;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--space-2);
   text-align: center;
 }
 
@@ -1173,12 +1267,13 @@ export default defineComponent({
   display: flex;
   justify-content: space-between;
   padding: 0 60px 0 0;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 .y-axis-tick {
+  font-family: var(--font-mono);
   font-size: 9px;
-  color: #999;
+  color: var(--color-text-placeholder);
   text-align: center;
   flex: 1;
 }
@@ -1203,7 +1298,7 @@ export default defineComponent({
 
 .grid-line {
   flex: 1;
-  border-left: 1px dashed #e8e8e8;
+  border-left: 1px dashed var(--color-border-light);
 }
 
 .horizontal-bars {
@@ -1227,9 +1322,9 @@ export default defineComponent({
 .bar-label {
   width: 60px;
   font-size: 11px;
-  color: #333;
+  color: var(--color-text-regular);
   text-align: right;
-  padding-right: 8px;
+  padding-right: var(--space-2);
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1240,35 +1335,36 @@ export default defineComponent({
   flex: 1;
   height: 100%;
   max-height: 18px;
-  background: #f0f0f0;
-  border-radius: 3px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-xs);
   overflow: hidden;
   position: relative;
 }
 
 .bar-fill {
   height: 100%;
-  background: #5470c6;
-  border-radius: 3px;
+  background: var(--color-primary);
+  border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   padding-right: 6px;
   min-width: 24px;
-  transition: width 0.3s ease;
+  transition: width 0.3s ease-out;
 }
 
 .bar-fill-green {
-  background: #5470c6;
+  background: var(--color-success);
 }
 
 .bar-fill-red {
-  background: #5470c6;
+  background: var(--color-danger);
 }
 
 .bar-value {
+  font-family: var(--font-mono);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: white;
 }
 
@@ -1277,7 +1373,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 24px;
+  gap: var(--space-6);
   min-height: 110px;
 }
 
@@ -1302,43 +1398,44 @@ export default defineComponent({
 }
 
 .pie-percentage {
-  font-size: 18px;
-  font-weight: 700;
-  color: #333;
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
 }
 
 .pie-label {
   font-size: 10px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-top: 2px;
 }
 
 .pie-legend {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   font-size: 11px;
-  color: #333;
+  color: var(--color-text-regular);
 }
 
 .legend-color {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: var(--radius-xs);
 }
 
 .legend-color-ontime {
-  background: #4caf50;
+  background: var(--color-success);
 }
 
 .legend-color-delayed {
-  background: #ff9800;
+  background: var(--color-warning);
 }
 
 .employee-no-data {
@@ -1346,100 +1443,8 @@ export default defineComponent({
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #999;
-  font-size: 14px;
-}
-
-.chart-meta-info {
-  margin-top: 0.5rem;
-  font-size: 0.7rem;
-  color: #7b8ba3;
-  border-top: 1px dashed #d0ddeb;
-  padding-top: 0.5rem;
-  text-align: right;
-}
-
-.chartjs-container {
-  flex: 1;
-  min-height: 140px;
-  position: relative;
-}
-
-.chart-container {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  min-height: 400px;
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 24px;
-}
-
-.pie-chart {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 48px;
-  flex: 1;
-}
-
-.pie-chart-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.pie-svg {
-  width: 200px;
-  height: 200px;
-}
-
-.pie-center {
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.pie-percentage {
-  font-size: 32px;
-  font-weight: 700;
-  color: #333;
-}
-
-.pie-label {
-  font-size: 12px;
-  color: #666;
-  margin-top: 4px;
-}
-
-.pie-legend {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: #666;
-}
-
-.legend-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
+  color: var(--color-text-placeholder);
+  font-size: var(--text-sm);
 }
 
 .vertical-bar-chart {
@@ -1466,12 +1471,13 @@ export default defineComponent({
   top: 0;
   bottom: 24px;
   width: 40px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
 }
 
 .v-yaxis-tick {
+  font-family: var(--font-mono);
   font-size: 9px;
-  color: #999;
+  color: var(--color-text-placeholder);
   text-align: right;
   height: 20px;
   line-height: 20px;
@@ -1501,7 +1507,7 @@ export default defineComponent({
 
 .v-grid-line {
   width: 100%;
-  border-bottom: 1px dashed #e8e8e8;
+  border-bottom: 1px dashed var(--color-border-light);
   height: 20px;
 }
 
@@ -1531,8 +1537,8 @@ export default defineComponent({
   max-width: 24px;
   min-width: 12px;
   height: 100px;
-  background: #f0f0f0;
-  border-radius: 3px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-xs);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -1543,32 +1549,22 @@ export default defineComponent({
 
 .v-bar-fill {
   width: 100%;
-  background: #5470c6;
-  border-radius: 3px 3px 0 0;
+  background: var(--color-primary);
+  border-radius: var(--radius-xs) var(--radius-xs) 0 0;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 4px;
+  padding-top: var(--space-1);
   min-height: 20px;
-  transition: height 0.3s ease;
+  transition: height 0.3s ease-out;
   margin: 0 auto;
 }
 
 .v-bar-value {
+  font-family: var(--font-mono);
   font-size: 10px;
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: white;
-}
-
-.v-bar-label {
-  margin-top: 4px;
-  font-size: 10px;
-  color: #333;
-  text-align: center;
-  max-width: 50px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .v-bar-label-wrapper {
@@ -1578,13 +1574,13 @@ export default defineComponent({
   align-items: flex-start;
   justify-content: flex-start;
   overflow: visible;
-  margin-top: 8px;
+  margin-top: var(--space-2);
   margin-left: 10px;
 }
 
 .v-bar-label-slanted {
   display: inline-block;
-  color: #333;
+  color: var(--color-text-regular);
   white-space: normal;
   transform: rotate(-45deg);
   transform-origin: top left;
@@ -1603,21 +1599,17 @@ export default defineComponent({
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #4caf50;
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border-light);
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {
@@ -1631,7 +1623,7 @@ export default defineComponent({
 
   .top-bar {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--space-3);
   }
 }
 
@@ -1639,7 +1631,7 @@ export default defineComponent({
   min-height: 100vh;
   height: 100vh;
   width: 100vw;
-  padding: 16px 24px;
+  padding: var(--space-4);
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -1647,41 +1639,37 @@ export default defineComponent({
 
 :fullscreen .top-bar {
   flex-shrink: 0;
-  padding: 12px 20px;
-  margin-bottom: 12px;
+  padding: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 :fullscreen .content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
   min-height: 0;
   overflow: hidden;
 }
 
 :fullscreen .top-cards-section {
   flex-shrink: 0;
-  gap: 1px;
+  gap: var(--space-3);
   grid-template-columns: repeat(3, 1fr);
 }
 
 :fullscreen .mini-card {
-  padding: 14px 16px;
+  padding: var(--space-3) var(--space-4);
 }
 
 :fullscreen .mini-card-value {
-  font-size: 32px;
-}
-
-:fullscreen .mini-card-label {
-  font-size: 12px;
+  font-size: var(--text-3xl);
 }
 
 :fullscreen .cards-section {
   flex: 1;
   min-height: 0;
-  gap: 1px;
+  gap: var(--space-3);
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(2, 1fr);
@@ -1689,7 +1677,7 @@ export default defineComponent({
 }
 
 :fullscreen .stat-card {
-  padding: 16px 20px;
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -1707,7 +1695,7 @@ export default defineComponent({
 
 :fullscreen .employee-chart-container,
 :fullscreen .inspection-chart-container {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1716,8 +1704,8 @@ export default defineComponent({
 }
 
 :fullscreen .chart-caption {
-  font-size: 1rem;
-  margin-bottom: 8px;
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-2);
   flex-shrink: 0;
 }
 
@@ -1731,7 +1719,7 @@ export default defineComponent({
 
 :fullscreen .chart-y-axis {
   flex-shrink: 0;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-1);
 }
 
 :fullscreen .chart-content {
@@ -1762,7 +1750,7 @@ export default defineComponent({
 }
 
 :fullscreen .bar-label {
-  font-size: 12px;
+  font-size: var(--text-xs);
   width: 70px;
 }
 
@@ -1808,16 +1796,16 @@ export default defineComponent({
 }
 
 :fullscreen .pie-label {
-  font-size: 20px;
+  font-size: var(--text-lg);
 }
 
 :fullscreen .pie-legend {
-  gap: 12px;
+  gap: var(--space-3);
 }
 
 :fullscreen .legend-item {
-  font-size: 14px;
-  gap: 10px;
+  font-size: var(--text-sm);
+  gap: var(--space-2);
 }
 
 :fullscreen .legend-color {
@@ -1892,11 +1880,6 @@ export default defineComponent({
   font-size: 10px;
 }
 
-:fullscreen .v-bar-label {
-  font-size: 10px;
-  margin-top: 4px;
-}
-
 :fullscreen .v-bar-label-wrapper {
   min-height: 25px;
   width: 100px;
@@ -1910,37 +1893,35 @@ export default defineComponent({
 }
 
 :fullscreen .employee-no-data {
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .clickable {
   cursor: pointer;
-  transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .clickable:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--color-border-dark);
+  box-shadow: var(--shadow-sm);
 }
 
 .clickable-bar {
   cursor: pointer;
-  transition: background-color 0.15s ease;
+  transition: background-color var(--transition-fast);
 }
 
 .clickable-bar:hover {
-  background-color: rgba(84, 112, 198, 0.1);
+  background-color: var(--color-primary-subtle);
 }
 
 .clickable-legend {
   cursor: pointer;
-  transition: opacity 0.15s ease;
+  transition: opacity var(--transition-fast);
 }
 
 .clickable-legend:hover {
-  opacity: 0.8;
+  opacity: 0.75;
 }
 
 .modal-overlay {
@@ -1949,67 +1930,68 @@ export default defineComponent({
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--color-bg-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .modal-container {
-  background: white;
-  border-radius: 12px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
   width: 95%;
   max-width: 1400px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
   flex-shrink: 0;
 }
 
 .modal-title {
   margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
 }
 
 .modal-close {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: var(--text-xl);
   cursor: pointer;
-  color: #666;
+  color: var(--color-text-secondary);
   padding: 0;
   line-height: 1;
+  transition: color var(--transition-fast);
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
-  padding: 24px;
+  padding: var(--space-6);
   flex: 1;
   overflow-y: auto;
   min-height: 300px;
 }
 
 .modal-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
-  background: #fafafa;
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-bg-page);
   flex-shrink: 0;
-  border-radius: 0 0 12px 12px;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 }
 
 .detail-loading {
@@ -2017,9 +1999,9 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  color: #666;
-  gap: 12px;
+  padding: var(--space-10);
+  color: var(--color-text-secondary);
+  gap: var(--space-3);
 }
 
 .loading-spinner.small {
@@ -2031,7 +2013,7 @@ export default defineComponent({
 .detail-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
   height: 100%;
 }
 
@@ -2042,8 +2024,8 @@ export default defineComponent({
 }
 
 .detail-total {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
 }
 
 .detail-table-wrapper {
@@ -2056,97 +2038,101 @@ export default defineComponent({
 .detail-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .detail-table th,
 .detail-table td {
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   text-align: left;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .detail-table th {
-  background: #f5f7fa;
-  font-weight: 600;
-  color: #333;
+  background: var(--color-bg-page);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-regular);
   white-space: nowrap;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .detail-table tr:hover {
-  background: #f9f9f9;
+  background: var(--color-bg-page);
 }
 
 .no-data {
   text-align: center;
-  color: #999;
-  padding: 40px;
+  color: var(--color-text-placeholder);
+  padding: var(--space-10);
 }
 
 .status-tag {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
 }
 
 .status-completed {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--status-completed-bg);
+  color: var(--status-completed-text);
 }
 
 .status-in-progress {
-  background: #e3f2fd;
-  color: #1565c0;
+  background: var(--status-executing-bg);
+  color: var(--status-executing-text);
 }
 
 .status-pending {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--status-pending-bg);
+  color: var(--status-pending-text);
 }
 
 .status-overdue {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--status-overdue-bg);
+  color: var(--status-overdue-text);
 }
 
 .status-default {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  padding-top: 16px;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
 }
 
 .page-btn {
-  padding: 8px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  background: white;
-  color: #333;
-  font-size: 14px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  color: var(--color-text-regular);
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast);
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f5f5f5;
-  border-color: #ccc;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .page-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .page-info {
-  font-size: 14px;
-  color: #666;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
 }
 </style>

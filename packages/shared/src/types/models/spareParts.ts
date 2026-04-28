@@ -122,8 +122,8 @@ export interface SparePartsUsageQueryParams {
   page?: number
   size?: number
   pageSize?: number
-  product_name?: string
-  user_name?: string
-  project_name?: string
+  product?: string
+  user?: string
+  project?: string
   status?: string
 }

@@ -130,16 +130,6 @@ export const GENDER_LIST = [
 export const DATE_FORMAT = 'YYYY-MM-DD'
 
 /**
- * API配置
- */
-export const API_CONFIG = {
-  get BASE_URL() {
-    return '/api/v1'
-  },
-  TIMEOUT: 60000
-}
-
-/**
  * 获取状态对应的标签类型（用于Vant组件）
  * @param status 状态字符串
  * @returns Vant Tag 组件的 type 值

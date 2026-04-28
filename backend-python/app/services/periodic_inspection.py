@@ -19,6 +19,7 @@ from app.schemas.periodic_inspection import (
     PeriodicInspectionPartialUpdate,
     PeriodicInspectionUpdate,
 )
+from app.services.base import BaseService
 from app.services.sync_service import PLAN_TYPE_INSPECTION, SyncService
 from app.utils.date_utils import parse_datetime
 from app.utils.dictionary_helper import get_default_periodic_inspection_status
@@ -27,17 +28,17 @@ from app.utils.work_order_id_generator import generate_inspection_id
 logger = logging.getLogger(__name__)
 
 
-class PeriodicInspectionService:
+class PeriodicInspectionService(BaseService):
     """
     定期巡检服务
     提供定期巡检的增删改查等业务逻辑
     """
 
     def __init__(self, db: Session):
+        super().__init__(db)
         self.repository = PeriodicInspectionRepository(db)
         self.personnel_repository = PersonnelRepository(db)
         self.sync_service = SyncService(db)
-        self._db = db
 
     def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
         """解析日期"""
@@ -93,8 +94,7 @@ class PeriodicInspectionService:
             operation_type_name=operation_type_name,
             operation_remark=remark
         )
-        self._db.add(log)
-        self._db.commit()
+        self.db.add(log)
 
     def get_all(
         self,
@@ -192,7 +192,7 @@ class PeriodicInspectionService:
         if not inspection_id:
             inspection_id = generate_inspection_id(self.repository.db, dto.project_id)
 
-        default_status = get_default_periodic_inspection_status(self._db)
+        default_status = get_default_periodic_inspection_status(self.db)
 
         inspection = PeriodicInspection(
             inspection_id=inspection_id,
@@ -222,6 +222,7 @@ class PeriodicInspectionService:
                 remark='创建定期巡检单'
             )
 
+        self.commit()
         return result
 
     def update(
@@ -285,6 +286,7 @@ class PeriodicInspectionService:
                 remark='更新定期巡检单'
             )
 
+        self.commit()
         return result
 
     def delete(self, id: int, user_id: int = None, operator_name: str = None) -> None:
@@ -314,6 +316,7 @@ class PeriodicInspectionService:
             )
 
         self.repository.soft_delete(inspection, user_id)
+        self.commit()
 
     def partial_update(
         self,
@@ -361,7 +364,7 @@ class PeriodicInspectionService:
 
         result = self.repository.update(existing_inspection)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_INSPECTION, result)
-        self._db.commit()
+        self.commit()
         return result
 
     def get_all_unpaginated(self) -> list[PeriodicInspection]:
@@ -380,7 +383,7 @@ class PeriodicInspectionService:
         总数量：该巡检单对应的不同3级节点数量
         已填写数量：已处理的3级节点数量
         """
-        records = self._db.query(PeriodicInspectionRecord).filter(
+        records = self.db.query(PeriodicInspectionRecord).filter(
             PeriodicInspectionRecord.inspection_id == inspection_id
         ).all()
 
@@ -425,7 +428,7 @@ class PeriodicInspectionService:
 
         inspection_ids = [ins.inspection_id for ins in inspections]
 
-        all_records = self._db.query(PeriodicInspectionRecord).filter(
+        all_records = self.db.query(PeriodicInspectionRecord).filter(
             PeriodicInspectionRecord.inspection_id.in_(inspection_ids)
         ).all()
 
@@ -438,7 +441,7 @@ class PeriodicInspectionService:
         plan_ids = list({ins.plan_id for ins in inspections if ins.plan_id})
         plans_by_id = {}
         if plan_ids:
-            plans = self._db.query(MaintenancePlan).filter(
+            plans = self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.plan_id.in_(plan_ids)
             ).all()
             for plan in plans:
@@ -447,7 +450,7 @@ class PeriodicInspectionService:
         project_ids = list({ins.project_id for ins in inspections if ins.project_id})
         plans_by_project = {}
         if project_ids:
-            project_plans = self._db.query(MaintenancePlan).filter(
+            project_plans = self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id.in_(project_ids)
             ).all()
             for plan in project_plans:
@@ -551,7 +554,7 @@ class PeriodicInspectionService:
             return 0
 
         try:
-            plans = self._db.query(MaintenancePlan).filter(
+            plans = self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id == project_id
             ).all()
 

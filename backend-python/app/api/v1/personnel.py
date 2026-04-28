@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_manager_user
+from app.dependencies import UserInfo, get_current_user_required, get_manager_user
 from app.models.online_user import OnlineUser
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.personnel import (
@@ -62,7 +62,8 @@ def _get_online_status_map(db: Session, user_ids: list[int]) -> dict:
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_personnel(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有人员列表（不分页）
@@ -127,7 +128,8 @@ def get_personnel_list(
 @router.get("/{id}", response_model=ApiResponse)
 def get_personnel_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     根据ID获取人员详情

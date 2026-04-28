@@ -120,18 +120,25 @@ export const periodicInspectionService = {
     return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.SUBMIT(id))
   },
 
-  /**
-   * 审批通过
-   */
-  async approve(id: number, remark?: string): Promise<ApiResponse<PeriodicInspection>> {
-    return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.APPROVE(id), { remark })
+  async recall(id: number): Promise<ApiResponse<PeriodicInspection>> {
+    return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.RECALL(id))
   },
 
   /**
-   * 审批退回
+   * 审批通过
    */
-  async reject(id: number, remark: string): Promise<ApiResponse<PeriodicInspection>> {
-    return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.REJECT(id), { remark })
+  async approve(id: number, approved: boolean = true, rejectReason?: string): Promise<ApiResponse<PeriodicInspection>> {
+    return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.APPROVE(id), {
+      approved,
+      reject_reason: rejectReason,
+    })
+  },
+
+  async reject(id: number, rejectReason: string): Promise<ApiResponse<PeriodicInspection>> {
+    return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.APPROVE(id), {
+      approved: false,
+      reject_reason: rejectReason,
+    })
   },
 
   /**

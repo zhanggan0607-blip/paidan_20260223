@@ -14,6 +14,8 @@ export interface Personnel {
   role?: string
   address?: string
   remarks?: string
+  is_online?: boolean
+  device_type?: 'pc' | 'h5' | null
   last_login_at?: string
   created_at?: string
   updated_at?: string

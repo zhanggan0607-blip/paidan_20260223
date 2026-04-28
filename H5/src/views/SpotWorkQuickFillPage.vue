@@ -179,7 +179,7 @@ onMounted(() => {
         required
         @click="showDateRangePicker = true"
       />
-      <van-field
+      <van-field name="work_content"
         v-model="formData.workContent"
         label="工作内容"
         placeholder="请输入工作内容"
@@ -194,7 +194,7 @@ onMounted(() => {
           <van-button type="primary" size="small">施工人员录入</van-button>
         </template>
       </van-cell>
-      <van-field
+      <van-field name="remark"
         v-model="formData.remark"
         label="备注"
         placeholder="请输入备注"
@@ -208,7 +208,7 @@ onMounted(() => {
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
-      <van-picker
+      <van-picker name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         @confirm="handleProjectConfirm"
@@ -224,7 +224,7 @@ onMounted(() => {
       :max-date="maxDate"
       :poppable="true"
       :show-confirm="true"
-      color="#1989fa"
+      color="var(--color-primary)"
       @confirm="handleDateRangeConfirm"
     />
   </div>
@@ -233,7 +233,7 @@ onMounted(() => {
 <style scoped>
 .quick-fill-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 :deep(.van-cell-group--inset) {
@@ -249,6 +249,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 </style>

@@ -2,8 +2,13 @@
 工具模块索引
 统一导出所有工具函数和类
 """
-from .permission_config import MANAGER_ROLES
+from urllib.parse import quote
 
-__all__ = [
-    'MANAGER_ROLES',
-]
+
+def get_inline_content_disposition(filename: str) -> str:
+    ascii_filename = filename.encode("ascii", "replace").decode("ascii")
+    encoded_filename = quote(filename)
+    return f"inline; filename=\"{ascii_filename}\"; filename*=UTF-8''{encoded_filename}"
+
+
+__all__ = ["get_inline_content_disposition"]

@@ -240,7 +240,9 @@ class CustomerService:
 
         customer_name = customer.name
 
-        projects = self.db.query(ProjectInfo).filter(ProjectInfo.client_name == customer_name).all()
+        projects = self.db.query(ProjectInfo).filter(
+            ProjectInfo.client_name == customer_name
+        ).all()
         project_count = len(projects)
 
         if project_count > 0:

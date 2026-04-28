@@ -43,6 +43,8 @@ class TemporaryRepair(Base, SoftDeleteMixin):
         Index('idx_temp_client_name', 'client_name'),
         Index('idx_temp_status', 'status'),
         Index('idx_temp_plan_start_date', 'plan_start_date'),
+        Index('idx_temp_project_status', 'project_name', 'status'),
+        Index('idx_temp_created_status', 'created_at', 'status'),
         {'comment': '临时维修单表'}
     )
 
@@ -92,6 +94,29 @@ class TemporaryRepair(Base, SoftDeleteMixin):
             'customer_signature': self.customer_signature or '',
             'execution_date': self.execution_date.isoformat() if self.execution_date else None,
             'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
+            'reject_reason': self.reject_reason or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+    def to_list_dict(self):
+        project_name = self.project_name
+        client_name = self.client_name
+        if self.project:
+            project_name = self.project.project_name or project_name
+            client_name = self.project.client_name or client_name
+
+        return {
+            'id': self.id,
+            'repair_id': self.repair_id,
+            'project_id': self.project_id,
+            'project_name': project_name,
+            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
+            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
+            'client_name': client_name,
+            'maintenance_personnel': self.maintenance_personnel,
+            'status': self.status,
+            'remarks': self.remarks,
             'reject_reason': self.reject_reason or '',
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

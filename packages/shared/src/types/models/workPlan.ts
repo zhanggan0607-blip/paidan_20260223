@@ -14,6 +14,11 @@ export interface WorkPlan {
   plan_type?: string
   plan_start_date: string
   plan_end_date: string
+  client_name?: string
+  client_contact?: string
+  client_contact_info?: string
+  address?: string
+  maintenance_personnel?: string
   status?: string
   completion_rate?: number
   filled_count?: number

@@ -4,67 +4,11 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse, PaginatedData } from '@sstcp/shared'
+import type { ApiResponse, PaginatedData, PeriodicInspection, PeriodicInspectionCreate, PeriodicInspectionUpdate } from '@sstcp/shared'
 
-export interface PeriodicInspection {
-  id: number
-  inspection_id: string
-  plan_id?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name?: string
-  client_contact?: string
-  client_contact_info?: string
-  client_contact_position?: string
-  address?: string
-  maintenance_personnel?: string
-  status: string
-  filled_count?: number
-  total_count?: number
-  execution_result?: string
-  remarks?: string
-  signature?: string
-  photos?: string
-  created_at: string
-  updated_at: string
-}
-
-export interface PeriodicInspectionCreate {
-  inspection_id: string
-  plan_id?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
-  client_name?: string
-  maintenance_personnel?: string
-  status?: string
-  filled_count?: number
-  total_count?: number
-  execution_result?: string
-  remarks?: string
-  signature?: string
-}
-
-export interface PeriodicInspectionUpdate {
-  inspection_id?: string
-  plan_id?: string
-  project_id?: string
-  project_name?: string
-  plan_start_date?: string
-  plan_end_date?: string
-  client_name?: string
-  maintenance_personnel?: string
-  status?: string
-  filled_count?: number
-  total_count?: number
-  execution_result?: string
-  remarks?: string
-  signature?: string
-  reject_reason?: string
-}
+export type { PeriodicInspection } from '@sstcp/shared'
+export type { PeriodicInspectionCreate } from '@sstcp/shared'
+export type { PeriodicInspectionUpdate } from '@sstcp/shared'
 
 export const periodicInspectionService = {
   /**
@@ -130,5 +74,13 @@ export const periodicInspectionService = {
    */
   async getAll(signal?: AbortSignal): Promise<ApiResponse<PeriodicInspection[]>> {
     return await request.get(API_ENDPOINTS.PERIODIC_INSPECTION.ALL, { signal })
+  },
+
+  async submit(id: number): Promise<ApiResponse<PeriodicInspection>> {
+    return await request.post(API_ENDPOINTS.PERIODIC_INSPECTION.SUBMIT(id))
+  },
+
+  async recall(id: number): Promise<ApiResponse<PeriodicInspection>> {
+    return await request.post(API_ENDPOINTS.PERIODIC_INSPECTION.RECALL(id))
   },
 }

@@ -133,6 +133,11 @@ export function canViewSignature(role: string | undefined | null): boolean {
   return !isMaterialManager(role)
 }
 
+export function canDeleteWorkOrder(role: string | undefined | null): boolean {
+  if (!role) return false
+  return role === RoleCode.ADMIN || role === RoleCode.DEPARTMENT_MANAGER
+}
+
 export function getRoleLevel(role: string | undefined | null): number {
   if (!role) return 0
   const config = ROLE_CONFIGS[role]

@@ -65,18 +65,25 @@ export const temporaryRepairService = {
     return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.SUBMIT(id))
   },
 
-  /**
-   * 审批通过
-   */
-  async approve(id: number, remark?: string): Promise<ApiResponse<TemporaryRepair>> {
-    return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.APPROVE(id), { remark })
+  async recall(id: number): Promise<ApiResponse<TemporaryRepair>> {
+    return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.RECALL(id))
   },
 
   /**
-   * 审批退回
+   * 审批通过
    */
-  async reject(id: number, remark: string): Promise<ApiResponse<TemporaryRepair>> {
-    return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.REJECT(id), { remark })
+  async approve(id: number, approved: boolean = true, rejectReason?: string): Promise<ApiResponse<TemporaryRepair>> {
+    return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.APPROVE(id), {
+      approved,
+      reject_reason: rejectReason,
+    })
+  },
+
+  async reject(id: number, rejectReason: string): Promise<ApiResponse<TemporaryRepair>> {
+    return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.APPROVE(id), {
+      approved: false,
+      reject_reason: rejectReason,
+    })
   },
 
   /**

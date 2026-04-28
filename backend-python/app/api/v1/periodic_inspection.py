@@ -11,6 +11,7 @@ from app.database import get_db
 from app.dependencies import UserInfo, check_data_access, get_current_user_info, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.periodic_inspection import (
+    PeriodicInspectionApprove,
     PeriodicInspectionCreate,
     PeriodicInspectionPartialUpdate,
     PeriodicInspectionUpdate,
@@ -43,7 +44,7 @@ def get_all_periodic_inspection(
 
     result = []
     for item in items:
-        item_dict = item.to_dict()
+        item_dict = item.to_list_dict()
         counts = counts_map.get(item.inspection_id, {'total_count': 0, 'filled_count': 0})
         item_dict['total_count'] = counts['total_count']
         item_dict['filled_count'] = counts['filled_count']
@@ -83,7 +84,7 @@ def get_periodic_inspection_list(
 
     result = []
     for item in items:
-        item_dict = item.to_dict()
+        item_dict = item.to_list_dict()
         counts = counts_map.get(item.inspection_id, {'total_count': 0, 'filled_count': 0})
         item_dict['total_count'] = counts['total_count']
         item_dict['filled_count'] = counts['filled_count']
@@ -189,6 +190,98 @@ def partial_update_periodic_inspection(
 
     inspection = service.partial_update(id, dto, user_info.id, user_info.name)
     return ApiResponse.success(inspection.to_dict(), "Updated successfully")
+
+
+@router.post("/{id}/submit", response_model=ApiResponse)
+def submit_periodic_inspection(
+    id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    提交定期巡检工单
+    管理员可提交所有工单，运维人员只能提交自己的工单
+    """
+    service = PeriodicInspectionService(db)
+    existing = service.get_by_id(id)
+
+    if not check_data_access(user_info, existing.maintenance_personnel):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权提交此工单"
+        )
+
+    inspection = service.partial_update(id, PeriodicInspectionPartialUpdate(status='待确认'), user_info.id, user_info.name)
+    return ApiResponse.success(inspection.to_dict(), "提交成功")
+
+
+@router.post("/{id}/recall", response_model=ApiResponse)
+def recall_periodic_inspection(
+    id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    撤回定期巡检工单
+    仅待确认状态可撤回，撤回后状态变为执行中
+    管理员可撤回所有工单，运维人员只能撤回自己的工单
+    """
+    service = PeriodicInspectionService(db)
+    existing = service.get_by_id(id)
+
+    if not existing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="工单不存在"
+        )
+
+    if existing.status != '待确认':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="只有待确认状态的工单才能撤回"
+        )
+
+    if not check_data_access(user_info, existing.maintenance_personnel):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无权撤回此工单"
+        )
+
+    inspection = service.partial_update(id, PeriodicInspectionPartialUpdate(status='执行中'), user_info.id, user_info.name)
+    return ApiResponse.success(inspection.to_dict(), "撤回成功")
+
+
+@router.post("/{id}/approve", response_model=ApiResponse)
+def approve_periodic_inspection(
+    id: int,
+    dto: PeriodicInspectionApprove,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_manager_user)
+):
+    """
+    审批定期巡检工单
+    需要管理员或部门经理权限
+    """
+    service = PeriodicInspectionService(db)
+    
+    if dto.approved:
+        inspection = service.partial_update(id, PeriodicInspectionPartialUpdate(status='已完成'), user_info.id, user_info.name)
+        message = "审批通过"
+    else:
+        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="请输入工单退回原因，至少10个字符"
+            )
+        inspection = service.partial_update(
+            id, 
+            PeriodicInspectionPartialUpdate(status='已退回', reject_reason=dto.reject_reason), 
+            user_info.id, 
+            user_info.name
+        )
+        message = "已退回"
+
+    return ApiResponse.success(inspection.to_dict(), message)
 
 
 @router.delete("/{id}", response_model=ApiResponse)

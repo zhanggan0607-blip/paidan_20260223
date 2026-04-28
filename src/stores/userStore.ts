@@ -1,21 +1,12 @@
-import { ref, readonly } from 'vue'
+import { ref, readonly, computed } from 'vue'
+import type { User } from '@sstcp/shared'
 import {
   RoleCode,
-  hasPermission,
   isManagerRole,
   isAdminRole,
   canShowMenu,
+  canDeleteWorkOrder as canDeleteWorkOrderPermission,
 } from '../config/permission'
-
-export interface User {
-  id: number
-  name: string
-  role: string
-  department?: string
-  email?: string
-  phone?: string
-  must_change_password?: boolean
-}
 
 const TOKEN_KEY = 'token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
@@ -43,9 +34,27 @@ const loadStoredUser = () => {
 
 loadStoredUser()
 
+window.addEventListener('storage', (e: StorageEvent) => {
+  if (e.key === TOKEN_KEY) {
+    token.value = e.newValue
+  }
+  if (e.key === USER_KEY) {
+    if (e.newValue) {
+      try {
+        currentUser.value = JSON.parse(e.newValue)
+      } catch {
+        currentUser.value = null
+      }
+    } else {
+      currentUser.value = null
+    }
+  }
+})
+
 export const userStore = {
   readonlyCurrentUser: readonly(currentUser),
   readonlyToken: readonly(token),
+  isLoggedIn: computed(() => !!token.value && !!currentUser.value),
 
   getUser: (): User | null => {
     return currentUser.value
@@ -91,100 +100,8 @@ export const userStore = {
     return currentUser.value?.role === RoleCode.DEPARTMENT_MANAGER
   },
 
-  isMaterialManager: (): boolean => {
-    return currentUser.value?.role === RoleCode.MATERIAL_MANAGER
-  },
-
-  isMaterialManagerOnly: (): boolean => {
-    return currentUser.value?.role === RoleCode.MATERIAL_MANAGER
-  },
-
-  isEmployee: (): boolean => {
-    return currentUser.value?.role === RoleCode.EMPLOYEE
-  },
-
-  canViewStatistics: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_statistics')
-  },
-
-  canViewProjectManagement: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_project_management')
-  },
-
-  canViewAlerts: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_alerts')
-  },
-
-  canViewPersonnel: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_personnel')
-  },
-
-  canViewSystemManagement: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_system_management')
-  },
-
-  canViewWorkOrder: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_work_order')
-  },
-
-  canViewSparePartsStock: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_stock')
-  },
-
-  canViewSparePartsIssue: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_issue')
-  },
-
-  canViewRepairToolsInbound: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_stock')
-  },
-
-  canViewRepairToolsIssue: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_issue')
-  },
-
-  canFillMaintenanceLog: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'fill_maintenance_log')
-  },
-
-  canViewMaintenanceLog: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_maintenance_log')
-  },
-
-  canViewAllMaintenanceLog: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_all_maintenance_log')
-  },
-
-  canFillWeeklyReport: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'fill_weekly_report')
-  },
-
-  canViewWeeklyReport: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_weekly_report')
-  },
-
-  canApproveWeeklyReport: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'view_weekly_report')
-  },
-
-  canApprovePeriodicInspection: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'approve_periodic_inspection')
-  },
-
-  canApproveTemporaryRepair: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'approve_temporary_repair')
-  },
-
-  canApproveSpotWork: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'approve_spot_work')
-  },
-
-  canDeletePersonnel: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'delete_personnel')
-  },
-
-  canEditPersonnelRole: (): boolean => {
-    return hasPermission(currentUser.value?.role, 'edit_personnel_role')
+  canDeleteWorkOrder: (): boolean => {
+    return canDeleteWorkOrderPermission(currentUser.value?.role)
   },
 
   canShowMenu: (menuId: string): boolean => {
@@ -195,7 +112,8 @@ export const userStore = {
     return isManagerRole(currentUser.value?.role)
   },
 
-  hasPermission: (permissionId: string): boolean => {
-    return hasPermission(currentUser.value?.role, permissionId)
+  isMaterialManager: (): boolean => {
+    const role = currentUser.value?.role
+    return role === RoleCode.ADMIN || role === RoleCode.DEPARTMENT_MANAGER || role === RoleCode.MATERIAL_MANAGER
   },
 }

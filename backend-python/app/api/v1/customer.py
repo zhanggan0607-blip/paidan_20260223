@@ -1,9 +1,10 @@
-
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.database import get_db
+from app.dependencies import UserInfo, get_current_user_required
+from app.exceptions import NotFoundException
 from app.schemas.common import ApiResponse
 from app.schemas.customer import (
     CustomerCreate,
@@ -43,31 +44,45 @@ def get_customers(
     return ApiResponse(code=200, message="success", data=result)
 
 @router.get("/{customer_id}", response_model=ApiResponse[CustomerResponse])
-def get_customer(customer_id: int, db: Session = Depends(get_db)):
+def get_customer(
+    customer_id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
     service = CustomerService(db)
     result = service.get_by_id(customer_id)
     if not result:
-        raise HTTPException(status_code=404, detail="客户不存在")
+        raise NotFoundException("客户不存在")
     return ApiResponse(code=200, message="success", data=result)
 
 @router.post("", response_model=ApiResponse[CustomerResponse])
-def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
+def create_customer(
+    customer: CustomerCreate,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
     service = CustomerService(db)
     result = service.create(customer)
     return ApiResponse(code=200, message="创建成功", data=result)
 
 @router.put("/{customer_id}", response_model=ApiResponse[CustomerResponse])
-def update_customer(customer_id: int, customer: CustomerUpdate, db: Session = Depends(get_db)):
+def update_customer(
+    customer_id: int,
+    customer: CustomerUpdate,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
     service = CustomerService(db)
     result = service.update(customer_id, customer)
     if not result:
-        raise HTTPException(status_code=404, detail="客户不存在")
+        raise NotFoundException("客户不存在")
     return ApiResponse(code=200, message="更新成功", data=result)
 
 @router.delete("/{customer_id}", response_model=ApiResponse[None])
 def delete_customer(
     customer_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     service = CustomerService(db)
     service.delete(customer_id)
@@ -76,12 +91,9 @@ def delete_customer(
 @router.get("/contacts/by-name", response_model=ApiResponse[list[CustomerContactResponse]])
 def get_contacts_by_customer_name(
     customer_name: str = Query(..., description="客户单位名称"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
-    """
-    根据客户单位名称获取联系人列表
-    用于项目信息页面选择客户联系人
-    """
     service = CustomerService(db)
     contacts = service.get_contacts_by_customer_name(customer_name)
     return ApiResponse(code=200, message="success", data=contacts)

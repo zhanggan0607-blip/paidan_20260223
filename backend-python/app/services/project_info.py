@@ -564,7 +564,7 @@ class ProjectInfoService:
                 remark=f'删除项目信息 {project_info.project_name}'
             )
 
-        self.repository.delete(project_info)
+        self._db.delete(project_info)
         self._db.commit()
 
         return {

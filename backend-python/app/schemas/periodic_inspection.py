@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class PeriodicInspectionBase(BaseModel):
@@ -18,6 +18,15 @@ class PeriodicInspectionBase(BaseModel):
     execution_result: str | None = Field(None, description="发现问题")
     remarks: str | None = Field(None, max_length=500, description="处理结果")
     signature: str | None = Field(None, description="用户签名(base64)")
+
+    @model_validator(mode='after')
+    def validate_dates(self):
+        if self.plan_start_date and self.plan_end_date:
+            start = self.plan_start_date if isinstance(self.plan_start_date, datetime) else datetime.fromisoformat(str(self.plan_start_date))
+            end = self.plan_end_date if isinstance(self.plan_end_date, datetime) else datetime.fromisoformat(str(self.plan_end_date))
+            if end < start:
+                raise ValueError('计划结束日期不能早于开始日期')
+        return self
 
     @field_validator('status')
     @classmethod
@@ -83,6 +92,11 @@ class PeriodicInspectionPartialUpdate(BaseModel):
         return v
 
 
+class PeriodicInspectionApprove(BaseModel):
+    approved: bool
+    reject_reason: str | None = Field(None, max_length=500, description="退回原因")
+
+
 class PeriodicInspectionResponse(BaseModel):
     id: int
     inspection_id: str
@@ -103,6 +117,7 @@ class PeriodicInspectionResponse(BaseModel):
     execution_result: str | None
     remarks: str | None
     signature: str | None
+    reject_reason: str | None
     actual_completion_date: datetime | None
     created_at: datetime
     updated_at: datetime

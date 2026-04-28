@@ -4,58 +4,11 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse, PaginatedData } from '@sstcp/shared'
+import type { ApiResponse, PaginatedData, ProjectInfo, ProjectInfoCreate, ProjectInfoUpdate } from '@sstcp/shared'
 
-export interface ProjectInfo {
-  id: number
-  project_id: string
-  project_name: string
-  completion_date: string
-  maintenance_end_date: string
-  maintenance_period: string
-  client_name: string
-  address: string
-  project_abbr: string | null
-  project_manager: string
-  client_contact_id: number | null
-  client_contact: string | null
-  client_contact_position: string | null
-  client_contact_info: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface ProjectInfoCreate {
-  project_id: string
-  project_name: string
-  completion_date: string
-  maintenance_end_date: string
-  maintenance_period: string
-  client_name: string
-  address: string
-  project_abbr?: string
-  project_manager?: string
-  client_contact_id?: number | null
-  client_contact?: string
-  client_contact_position?: string
-  client_contact_info?: string
-}
-
-export interface ProjectInfoUpdate {
-  project_id: string
-  project_name: string
-  completion_date: string
-  maintenance_end_date: string
-  maintenance_period: string
-  client_name: string
-  address: string
-  project_abbr?: string
-  project_manager?: string
-  client_contact_id?: number | null
-  client_contact?: string
-  client_contact_position?: string
-  client_contact_info?: string
-}
+export type { ProjectInfo } from '@sstcp/shared'
+export type { ProjectInfoCreate } from '@sstcp/shared'
+export type { ProjectInfoUpdate } from '@sstcp/shared'
 
 export const projectInfoService = {
   /**

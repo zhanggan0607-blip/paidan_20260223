@@ -29,6 +29,7 @@ export interface TemporaryRepair {
   customer_signature?: string
   execution_date?: string
   actual_completion_date?: string
+  reject_reason?: string
   created_at: string
   updated_at: string
 }
@@ -61,12 +62,12 @@ export interface TemporaryRepairCreate {
  * 更新临时维修请求
  */
 export interface TemporaryRepairUpdate {
-  repair_id: string
+  repair_id?: string
   plan_id?: string
-  project_id: string
-  project_name: string
-  plan_start_date: string
-  plan_end_date: string
+  project_id?: string
+  project_name?: string
+  plan_start_date?: string
+  plan_end_date?: string
   client_name?: string
   client_contact?: string
   client_contact_info?: string
@@ -77,8 +78,9 @@ export interface TemporaryRepairUpdate {
   signature?: string
   customer_signature?: string
   execution_date?: string
-  status: string
+  status?: string
   remarks?: string
+  reject_reason?: string
 }
 
 /**

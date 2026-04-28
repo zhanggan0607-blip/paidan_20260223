@@ -5,6 +5,7 @@ from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.maintenance_plan import MaintenancePlan
+from app.models.project_info import ProjectInfo
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +102,9 @@ class MaintenancePlanRepository:
                 query = query.filter(MaintenancePlan.plan_name.like(f"%{project_name}%"))
 
             if client_name:
-                query = query.filter(MaintenancePlan.responsible_department.like(f"%{client_name}%"))
+                query = query.join(ProjectInfo, MaintenancePlan.project_id == ProjectInfo.project_id).filter(
+                    ProjectInfo.client_name.like(f"%{client_name}%")
+                )
 
             if plan_type:
                 query = query.filter(MaintenancePlan.plan_type == plan_type)
@@ -110,7 +113,7 @@ class MaintenancePlanRepository:
                 query = query.filter(MaintenancePlan.maintenance_personnel == maintenance_personnel_filter)
 
             total = query.count()
-            items = query.order_by(MaintenancePlan.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(MaintenancePlan.created_at.desc(), MaintenancePlan.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -123,7 +126,7 @@ class MaintenancePlanRepository:
                 joinedload(MaintenancePlan.project)
             ).filter(
                 MaintenancePlan.is_deleted == False
-            ).order_by(MaintenancePlan.created_at.desc()).all()
+            ).order_by(MaintenancePlan.created_at.desc(), MaintenancePlan.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有维保计划失败: {str(e)}")
             raise
@@ -133,7 +136,7 @@ class MaintenancePlanRepository:
             return self.db.query(MaintenancePlan).filter(
                 MaintenancePlan.project_id == project_id,
                 MaintenancePlan.is_deleted == False
-            ).order_by(MaintenancePlan.created_at.desc()).all()
+            ).order_by(MaintenancePlan.created_at.desc(), MaintenancePlan.id.desc()).all()
         except Exception as e:
             logger.error(f"查询项目维保计划失败 (project_id={project_id}): {str(e)}")
             raise

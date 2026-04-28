@@ -71,7 +71,7 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
                 query = query.filter(SpotWork.client_name.like(f'%{client_name}%'))
 
             total = query.count()
-            items = query.order_by(SpotWork.created_at.desc()).offset(page * size).limit(size).all()
+            items = query.order_by(SpotWork.created_at.desc(), SpotWork.id.desc()).offset(page * size).limit(size).all()
 
             return items, total
         except Exception as e:
@@ -161,7 +161,7 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
         try:
             return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
                 SpotWork.is_deleted == False
-            ).all()
+            ).order_by(SpotWork.created_at.desc(), SpotWork.id.desc()).all()
         except Exception as e:
             logger.error(f"查询所有零星用工失败: {str(e)}")
             raise

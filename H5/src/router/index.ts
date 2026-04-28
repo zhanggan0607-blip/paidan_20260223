@@ -1,3 +1,12 @@
+/**
+ * H5端路由配置
+ *
+ * 路由守卫逻辑：
+ * 1. /login页面不需要认证
+ * 2. 无token时跳转登录页，携带redirect参数
+ * 3. must_change_password为true时强制跳转修改密码页
+ * 4. 根据meta.permission检查用户权限
+ */
 import { createRouter, createWebHistory } from 'vue-router'
 import { userStore } from '../stores/userStore'
 
@@ -7,6 +16,12 @@ const routes = [
     name: 'Login',
     component: () => import('../views/LoginPage.vue'),
     meta: { title: '登录' },
+  },
+  {
+    path: '/change-password',
+    name: 'ChangePassword',
+    component: () => import('../views/ChangePasswordPage.vue'),
+    meta: { title: '修改密码' },
   },
   {
     path: '/',
@@ -180,13 +195,23 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   document.title = (to.meta.title as string) || 'SSTCP维保系统'
 
-  if (to.path === '/login') {
+  if (to.path === '/login' || to.path === '/change-password') {
     next()
     return
   }
 
   if (!userStore.isLoggedIn()) {
-    next({ name: 'Login' })
+    next({ name: 'Login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  const user = userStore.getUser()
+  if (
+    user &&
+    (user as { must_change_password?: boolean }).must_change_password &&
+    to.path !== '/change-password'
+  ) {
+    next({ name: 'ChangePassword' })
     return
   }
 

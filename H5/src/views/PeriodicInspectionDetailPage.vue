@@ -90,6 +90,7 @@ const inspectionSystems = ref<InspectionSystem[]>([])
 const inspectionItemsLoading = ref(false)
 const operationLogRef = ref<InstanceType<typeof OperationLogTimeline> | null>(null)
 const isSubmitting = ref(false)
+const isInitialized = ref(false)
 
 const formData = ref({
   execution_result: '',
@@ -119,7 +120,10 @@ const isWorker = computed(() => {
 const isEditable = computed(() => {
   if (!isWorker.value) return false
   const status = detail.value?.status
-  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+  if (status === WORK_STATUS.COMPLETED) return false
+  return status === WORK_STATUS.IN_PROGRESS || 
+         status === WORK_STATUS.PENDING_CONFIRM || 
+         status === WORK_STATUS.RETURNED
 })
 
 const allInspected = computed(() => {
@@ -773,6 +777,32 @@ const handleSubmit = async () => {
   }
 }
 
+const handleRecall = async () => {
+  try {
+    await showConfirmDialog({
+      title: '确认撤回',
+      message: '撤回后工单将回到执行中状态，您可以继续编辑。',
+    })
+
+    const response = await periodicInspectionService.recall(detail.value?.id!)
+    if (response.code === 200) {
+      showSuccessToast('撤回成功')
+      await loadData()
+    } else {
+      showFailToast(response.message || '撤回失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('撤回失败:', error)
+      if (error.response?.data?.detail) {
+        showFailToast(error.response.data.detail)
+      } else {
+        showFailToast('撤回失败')
+      }
+    }
+  }
+}
+
 /**
  * 审批通过
  */
@@ -855,7 +885,7 @@ const confirmReject = async () => {
       title: '退回确认',
       message: '确认退回该工单吗？退回后员工需重新填写。',
       confirmButtonText: '确认退回',
-      confirmButtonColor: '#ee0a24',
+      confirmButtonColor: 'var(--color-danger)',
     })
 
     showRejectDialog.value = false
@@ -937,6 +967,28 @@ watch(
   }
 )
 
+let inspectionFieldSaveTimer: ReturnType<typeof setTimeout> | null = null
+
+const autoSaveInspectionFields = (system: InspectionSystem) => {
+  if (!detail.value?.id || !isEditable.value) return
+
+  if (inspectionFieldSaveTimer) {
+    clearTimeout(inspectionFieldSaveTimer)
+  }
+
+  inspectionFieldSaveTimer = setTimeout(async () => {
+    try {
+      await saveRecordToBackend(system)
+    } catch (error) {
+      console.error('Auto save inspection field failed:', error)
+    }
+  }, 1000)
+}
+
+const handleInspectionFieldChange = (system: InspectionSystem) => {
+  autoSaveInspectionFields(system)
+}
+
 /**
  * 记录操作日志
  * @param operationTypeCode 操作类型编码
@@ -968,15 +1020,20 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 }
 
 onMounted(async () => {
+  if (isInitialized.value) return
+  isInitialized.value = true
   await fetchDetail()
   await fetchInspectionItems()
   loadSignature()
 })
 
 onActivated(async () => {
-  await fetchDetail()
-  await fetchInspectionItems()
-  loadSignature()
+  if (!isInitialized.value) {
+    isInitialized.value = true
+    await fetchDetail()
+    await fetchInspectionItems()
+    loadSignature()
+  }
 })
 
 watch(
@@ -1062,13 +1119,9 @@ watch(
               </div>
             </div>
             <div
-              v-if="system.inspection_content || system.check_content || system.brief_description"
+              v-if="system.check_content || system.brief_description"
               class="inspection-detail"
             >
-              <div v-if="system.inspection_content" class="detail-row">
-                <span class="detail-label">巡查内容:</span>
-                <span class="detail-value">{{ system.inspection_content }}</span>
-              </div>
               <div v-if="system.check_content" class="detail-row">
                 <span class="detail-label">检查要求:</span>
                 <span class="detail-value">{{ system.check_content }}</span>
@@ -1077,6 +1130,31 @@ watch(
                 <span class="detail-label">简要说明:</span>
                 <span class="detail-value">{{ system.brief_description }}</span>
               </div>
+            </div>
+
+            <div class="inspection-inline-fields">
+              <van-field
+                v-model="system.inspection_content"
+                rows="2"
+                autosize
+                label="巡检内容"
+                type="textarea"
+                placeholder="请输入巡检内容"
+                :readonly="!isEditable"
+                class="inline-field"
+                @update:model-value="handleInspectionFieldChange(system)"
+              />
+              <van-field
+                v-model="system.inspection_result"
+                rows="2"
+                autosize
+                label="巡检结果"
+                type="textarea"
+                placeholder="请输入巡检结果"
+                :readonly="!isEditable"
+                class="inline-field"
+                @update:model-value="handleInspectionFieldChange(system)"
+              />
             </div>
 
             <div class="photo-section-inline">
@@ -1115,7 +1193,7 @@ watch(
       </van-cell-group>
 
       <van-cell-group inset title="现场处理">
-        <van-field
+        <van-field name="execution_result"
           v-model="formData.execution_result"
           rows="3"
           autosize
@@ -1126,7 +1204,7 @@ watch(
           maxlength="500"
         />
 
-        <van-field
+        <van-field name="remarks"
           v-model="formData.remarks"
           rows="2"
           autosize
@@ -1163,6 +1241,9 @@ watch(
       />
 
       <div v-if="isEditable" class="action-buttons">
+        <van-button v-if="detail?.status === WORK_STATUS.PENDING_CONFIRM && isWorker" type="warning" size="large" @click="handleRecall"
+          >撤回</van-button
+        >
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
           >提交</van-button
         >
@@ -1206,7 +1287,7 @@ watch(
               <div class="check-value">{{ currentInspectionSystem.check_standard }}</div>
             </div>
           </div>
-          <van-field
+          <van-field name="inspection_content"
             v-model="currentInspectionSystem.inspection_content"
             rows="3"
             autosize
@@ -1215,7 +1296,7 @@ watch(
             placeholder="请输入巡检内容"
             :readonly="!isEditable"
           />
-          <van-field
+          <van-field name="inspection_result"
             v-model="currentInspectionSystem.inspection_result"
             rows="3"
             autosize
@@ -1241,7 +1322,7 @@ watch(
           <van-icon name="cross" @click="showRejectDialog = false" />
         </div>
         <div class="popup-body">
-          <van-field
+          <van-field name="reject_reason"
             v-model="rejectReason"
             rows="4"
             autosize
@@ -1265,7 +1346,7 @@ watch(
 <style scoped>
 .periodic-inspection-detail {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .content {
@@ -1290,7 +1371,7 @@ watch(
 .section-tip {
   padding: 8px 16px;
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   background: #fafafa;
 }
 
@@ -1305,8 +1386,8 @@ watch(
   display: inline-block;
   padding: 2px 8px;
   font-size: 12px;
-  color: #fff;
-  background-color: #07c160;
+  color: var(--color-bg-card);
+  background-color: var(--color-success);
   border-radius: 4px;
 }
 
@@ -1314,8 +1395,8 @@ watch(
   display: inline-block;
   padding: 2px 8px;
   font-size: 12px;
-  color: #fff;
-  background-color: #1989fa;
+  color: var(--color-bg-card);
+  background-color: var(--color-primary);
   border-radius: 4px;
 }
 
@@ -1323,13 +1404,13 @@ watch(
   display: inline-block;
   padding: 3px 10px;
   font-size: 14px;
-  color: #fff;
-  background-color: #ff976a;
+  color: var(--color-bg-card);
+  background-color: var(--color-warning);
   border-radius: 4px;
 }
 
 .status-disabled {
-  color: #c8c9cc;
+  color: var(--color-text-placeholder);
 }
 
 .inspection-list {
@@ -1337,7 +1418,7 @@ watch(
 }
 
 .inspection-item-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   padding: 12px;
@@ -1365,12 +1446,12 @@ watch(
 
 .inspection-title {
   font-size: 14px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .inspection-index {
   font-size: 14px;
-  color: #323233;
+  color: var(--color-text-primary);
   font-weight: 500;
   margin-right: 4px;
 }
@@ -1378,7 +1459,7 @@ watch(
 .inspection-detail {
   margin-top: 8px;
   padding: 8px 12px;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
 }
 
@@ -1394,27 +1475,48 @@ watch(
 }
 
 .detail-label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   min-width: 60px;
 }
 
 .detail-value {
-  color: #323233;
+  color: var(--color-text-primary);
   flex: 1;
   word-break: break-all;
 }
 
+.inspection-inline-fields {
+  margin-top: 8px;
+  padding: 0 4px;
+}
+
+.inspection-inline-fields .inline-field {
+  margin-bottom: 4px;
+  background: var(--color-bg-page);
+  border-radius: 4px;
+}
+
+.inspection-inline-fields .inline-field :deep(.van-field__label) {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  width: 60px;
+}
+
+.inspection-inline-fields .inline-field :deep(.van-field__control) {
+  font-size: 13px;
+}
+
 .inspection-subtitle {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   margin-top: 4px;
 }
 
 .photo-section-inline {
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .photo-grid-inline {
@@ -1443,7 +1545,7 @@ watch(
   top: 4px;
   right: 4px;
   font-size: 18px;
-  color: #fff;
+  color: var(--color-bg-card);
   background: rgba(0, 0, 0, 0.5);
   border-radius: 50%;
   padding: 2px;
@@ -1451,14 +1553,14 @@ watch(
 
 .photo-add-inline {
   aspect-ratio: 1;
-  border: 2px dashed #dcdee0;
+  border: 2px dashed var(--color-border-light);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  color: #969799;
+  color: var(--color-text-secondary);
   font-size: 12px;
   background: #fafafa;
 }
@@ -1473,14 +1575,14 @@ watch(
   width: 80px;
   height: 40px;
   object-fit: contain;
-  background-color: #fff;
-  border: 1px solid #e5e5e5;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
 .action-buttons {
   padding: 12px 16px;
-  background: #fff;
+  background: var(--color-bg-card);
   display: flex;
   flex-direction: row;
   gap: 12px;
@@ -1507,7 +1609,7 @@ watch(
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .popup-title {
@@ -1524,7 +1626,7 @@ watch(
 .popup-footer {
   padding: 12px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .popup-footer .van-button {
@@ -1535,8 +1637,8 @@ watch(
 
 .check-reference {
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .check-item {
@@ -1549,13 +1651,13 @@ watch(
 
 .check-label {
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   margin-bottom: 4px;
 }
 
 .check-value {
   font-size: 14px;
-  color: #323233;
+  color: var(--color-text-primary);
   line-height: 1.5;
 }
 
@@ -1567,7 +1669,7 @@ watch(
 }
 
 .order-id-text {
-  color: #323233;
+  color: var(--color-text-primary);
   word-break: break-all;
   text-align: right;
 }
@@ -1588,27 +1690,27 @@ watch(
 }
 
 .required-star {
-  color: #ee0a24;
+  color: var(--color-danger);
   margin-right: 2px;
 }
 
 .reject-reason-input {
   margin: 12px 16px;
-  background: #f7f8fa;
+  background: var(--color-bg-page);
   border-radius: 8px;
 }
 
 .reject-tip {
   margin: 0 16px;
   font-size: 12px;
-  color: #969799;
+  color: var(--color-text-secondary);
   line-height: 1.5;
 }
 
 .popup-footer {
   padding: 12px 16px;
   padding-bottom: max(12px, env(safe-area-inset-bottom));
-  border-top: 1px solid #ebedf0;
+  border-top: 1px solid var(--color-border-light);
   display: flex;
   gap: 12px;
 }

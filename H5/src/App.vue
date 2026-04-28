@@ -109,5 +109,7 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
 }
 </style>

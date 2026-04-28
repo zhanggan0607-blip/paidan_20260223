@@ -1,14 +1,22 @@
-<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <div class="maintenance-plan-management">
-    <LoadingSpinner :visible="loading" text="加载中..." />
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <LoadingSpinner
+      :visible="loading"
+      text="加载中..."
+    />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
 
     <div class="search-section">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label class="search-label">项目名称：</label>
+            <label for="search_projectName" class="search-label">项目名称：</label>
             <SearchInput
+              input-id="search_projectName"
               v-model="searchForm.projectName"
               field-key="MaintenancePlanManagement_projectName"
               placeholder="请输入项目名称"
@@ -16,8 +24,9 @@
             />
           </div>
           <div class="search-item">
-            <label class="search-label">客户名称：</label>
+            <label for="search_clientName" class="search-label">客户名称：</label>
             <SearchInput
+              input-id="search_clientName"
               v-model="searchForm.clientName"
               field-key="MaintenancePlanManagement_clientName"
               placeholder="请输入客户名称"
@@ -27,7 +36,12 @@
         </div>
       </div>
       <div class="search-actions">
-        <button class="btn btn-add" @click="openModal">+ 新增维保计划</button>
+        <button
+          class="btn btn-add"
+          @click="openModal"
+        >
+          + 新增维保计划
+        </button>
       </div>
     </div>
 
@@ -61,13 +75,21 @@
             <td>{{ item.client_name || '-' }}</td>
             <td>{{ item.address || '-' }}</td>
             <td class="action-cell">
-              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
-              <a href="#" class="action-link action-edit" @click.prevent="handleEdit(item)"
-                >编辑计划</a
-              >
-              <a href="#" class="action-link action-delete" @click.prevent="handleDelete(item)"
-                >删除</a
-              >
+              <a
+                href="#"
+                class="action-link action-view"
+                @click.prevent="handleView(item)"
+              >查看</a>
+              <a
+                href="#"
+                class="action-link action-edit"
+                @click.prevent="handleEdit(item)"
+              >编辑计划</a>
+              <a
+                href="#"
+                class="action-link action-delete"
+                @click.prevent="handleDelete(item)"
+              >删除</a>
             </td>
           </tr>
         </tbody>
@@ -75,9 +97,15 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+      <div class="pagination-info">
+        共 {{ totalElements }} 条记录
+      </div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage === 0"
+          @click="currentPage--"
+        >
           &lt;
         </button>
         <button
@@ -96,32 +124,71 @@
         >
           &gt;
         </button>
-        <select v-model="pageSize" class="page-select" @change="handlePageSizeChange">
-          <option value="10">10 条 / 页</option>
-          <option value="20">20 条 / 页</option>
-          <option value="50">50 条 / 页</option>
+        <select
+          id="pageSize"
+          name="pageSize"
+          v-model="pageSize"
+          class="page-select"
+          @change="handlePageSizeChange"
+        >
+          <option value="10">
+            10 条 / 页
+          </option>
+          <option value="20">
+            20 条 / 页
+          </option>
+          <option value="50">
+            50 条 / 页
+          </option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+          <input
+            id="jumpPage"
+            v-model="jumpPage"
+            name="jumpPage"
+            type="number"
+            class="page-input"
+            min="1"
+            :max="totalPages"
+            aria-label="跳转页码"
+          >
           <span>页</span>
-          <button class="page-btn page-go" @click="handleJump">Go</button>
+          <button
+            class="page-btn page-go"
+            @click="handleJump"
+          >
+            Go
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isModalOpen" class="modal-overlay" @click.self="closeModal">
+    <div
+      v-if="isModalOpen"
+      class="modal-overlay"
+      @click.self="closeModal"
+    >
       <div class="modal-container modal-large">
         <div class="modal-header">
-          <h3 class="modal-title">{{ editingId !== null ? '编辑维保计划' : '新增维保计划' }}</h3>
-          <button class="modal-close" @click="closeModal">×</button>
+          <h3 class="modal-title">
+            {{ editingId !== null ? '编辑维保计划' : '新增维保计划' }}
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
-          <div class="section-title">基础信息</div>
+          <div class="section-title">
+            基础信息
+          </div>
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <span class="form-label"> <span class="required">*</span> 项目名称 </span>
                 <el-select
                   v-model="formData.selectedProjectId"
                   placeholder="请选择或搜索项目"
@@ -139,58 +206,60 @@
                 </el-select>
               </div>
               <div class="form-item">
-                <label class="form-label">维保频率</label>
-                <input
+                <label for="maintenancePeriod" class="form-label">维保频率</label>
+                <input id="maintenancePeriod" name="maintenancePeriod"
                   v-model="formData.maintenance_period"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">项目地址</label>
-                <input
+                <label for="projectAddress" class="form-label">项目地址</label>
+                <input id="projectAddress" name="projectAddress"
                   v-model="formData.address"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <input
+                <label for="projectId" class="form-label">项目编号</label>
+                <input id="projectId" name="projectId"
                   v-model="formData.project_id"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">项目结束日期</label>
-                <input
+                <label for="projectEndDate" class="form-label">项目结束日期</label>
+                <input id="projectEndDate" name="projectEndDate"
                   v-model="formData.maintenance_end_date"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">客户单位</label>
-                <input
+                <label for="clientName" class="form-label">客户单位</label>
+                <input id="clientName" name="clientName"
                   v-model="formData.client_name"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
             </div>
           </div>
 
-          <div class="section-divider"></div>
+          <div class="section-divider" />
 
-          <div class="section-title">维保计划</div>
+          <div class="section-title">
+            维保计划
+          </div>
           <div class="table-section-inner">
             <table class="inner-table">
               <thead>
@@ -204,25 +273,53 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(plan, index) in formData.planList" :key="index">
+                <tr
+                  v-for="(plan, index) in formData.planList"
+                  :key="index"
+                >
                   <td>
                     <input
                       v-model="plan.plan_id"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                    />
+                      :id="'add_plan_id_' + index"
+                      :name="'add_plan_id_' + index"
+                    >
                   </td>
                   <td>
-                    <input v-model="plan.plan_start_date" type="date" class="table-input" />
+                    <input
+                      v-model="plan.plan_start_date"
+                      type="date"
+                      class="table-input"
+                      :id="'add_plan_start_' + index"
+                      :name="'add_plan_start_' + index"
+                    >
                   </td>
                   <td>
-                    <input v-model="plan.plan_end_date" type="date" class="table-input" />
+                    <input
+                      v-model="plan.plan_end_date"
+                      type="date"
+                      class="table-input"
+                      :id="'add_plan_end_' + index"
+                      :name="'add_plan_end_' + index"
+                    >
                   </td>
                   <td>
-                    <select v-model="plan.maintenance_personnel" class="table-input">
-                      <option value="">请选择</option>
-                      <option v-for="person in personnelList" :key="person" :value="person">
+                    <select
+                      v-model="plan.maintenance_personnel"
+                      class="table-input"
+                      :id="'add_plan_personnel_' + index"
+                      :name="'add_plan_personnel_' + index"
+                    >
+                      <option value="">
+                        请选择
+                      </option>
+                      <option
+                        v-for="person in personnelList"
+                        :key="person"
+                        :value="person"
+                      >
                         {{ person }}
                       </option>
                     </select>
@@ -233,29 +330,42 @@
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                    />
+                      :id="'add_plan_remarks_' + index"
+                      :name="'add_plan_remarks_' + index"
+                    >
                   </td>
                   <td class="action-cell">
-                    <a href="#" class="action-link action-delete" @click.prevent="removePlan(index)"
-                      >删除</a
-                    >
+                    <a
+                      href="#"
+                      class="action-link action-delete"
+                      @click.prevent="removePlan(index)"
+                    >删除</a>
                   </td>
                 </tr>
               </tbody>
             </table>
             <div class="table-actions">
-              <button class="btn btn-add-small" @click="addPlan">添加</button>
+              <button
+                class="btn btn-add-small"
+                @click="addPlan"
+              >
+                添加
+              </button>
             </div>
           </div>
 
-          <div class="section-divider"></div>
+          <div class="section-divider" />
 
-          <div class="section-title">维保事项</div>
+          <div class="section-title">
+            维保事项
+          </div>
           <div class="table-section-inner">
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th style="width: 60px">事项编号</th>
+                  <th style="width: 60px">
+                    事项编号
+                  </th>
                   <th>巡查类</th>
                   <th>巡查项</th>
                   <th>巡查内容</th>
@@ -265,17 +375,26 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in formData.itemList" :key="index">
+                <tr
+                  v-for="(item, index) in formData.itemList"
+                  :key="index"
+                >
                   <td>
                     <input
                       type="text"
                       class="table-input table-input-readonly"
                       :value="index + 1"
                       readonly
-                    />
+                      :id="'add_item_no_' + index"
+                      :name="'add_item_no_' + index"
+                    >
                   </td>
                   <td>
-                    <div v-if="item.level1_name" class="selected-text" @click="clearLevel1(item)">
+                    <div
+                      v-if="item.level1_name"
+                      class="selected-text"
+                      @click="clearLevel1(item)"
+                    >
                       {{ item.level1_name }}
                     </div>
                     <el-select
@@ -295,7 +414,11 @@
                     </el-select>
                   </td>
                   <td>
-                    <div v-if="item.level2_name" class="selected-text" @click="clearLevel2(item)">
+                    <div
+                      v-if="item.level2_name"
+                      class="selected-text"
+                      @click="clearLevel2(item)"
+                    >
                       {{ item.level2_name }}
                     </div>
                     <el-select
@@ -316,7 +439,11 @@
                     </el-select>
                   </td>
                   <td>
-                    <div v-if="item.level3_name" class="selected-text" @click="clearLevel3(item)">
+                    <div
+                      v-if="item.level3_name"
+                      class="selected-text"
+                      @click="clearLevel3(item)"
+                    >
                       {{ item.level3_name }}
                     </div>
                     <el-select
@@ -350,42 +477,77 @@
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                    />
+                      :id="'add_item_desc_' + index"
+                      :name="'add_item_desc_' + index"
+                    >
                   </td>
                   <td class="action-cell">
-                    <a href="#" class="action-link action-delete" @click.prevent="removeItem(index)"
-                      >删除</a
-                    >
+                    <a
+                      href="#"
+                      class="action-link action-delete"
+                      @click.prevent="removeItem(index)"
+                    >删除</a>
                   </td>
                 </tr>
               </tbody>
             </table>
             <div class="table-actions">
-              <button class="btn btn-add-small" @click="addItem">添加行</button>
-              <button class="btn btn-add-small" @click="importItems">导入事项</button>
+              <button
+                class="btn btn-add-small"
+                @click="addItem"
+              >
+                添加行
+              </button>
+              <button
+                class="btn btn-add-small"
+                @click="importItems"
+              >
+                导入事项
+              </button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleSave">
+          <button
+            class="btn btn-cancel"
+            @click="closeModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleSave"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">查看维保计划</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            查看维保计划
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
-          <div v-if="viewPlanList.length > 1" class="view-plan-pagination">
-            <span class="view-plan-info"
-              >计划 {{ currentViewPlanIndex + 1 }} / {{ viewPlanList.length }}</span
-            >
+          <div
+            v-if="viewPlanList.length > 1"
+            class="view-plan-pagination"
+          >
+            <span class="view-plan-info">计划 {{ currentViewPlanIndex + 1 }} / {{ viewPlanList.length }}</span>
             <div class="view-plan-nav">
               <button
                 class="view-plan-btn"
@@ -406,108 +568,154 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目名称</label>
-                <div class="form-value">{{ viewData.project_name || '-' }}</div>
+                <span class="form-label">项目名称</span>
+                <div class="form-value">
+                  {{ viewData.project_name || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划开始日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '-' }}</div>
+                <span class="form-label">计划开始日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.plan_start_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">工单类型</label>
-                <div class="form-value">{{ viewData.plan_type || '-' }}</div>
+                <span class="form-label">工单类型</span>
+                <div class="form-value">
+                  {{ viewData.plan_type || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">执行日期</label>
-                <div class="form-value">{{ formatDate(viewData.execution_date) || '-' }}</div>
+                <span class="form-label">执行日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.execution_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">下次维保日期</label>
+                <span class="form-label">下次维保日期</span>
                 <div class="form-value">
                   {{ formatDate(viewData.next_maintenance_date) || '-' }}
                 </div>
               </div>
               <div class="form-item">
-                <label class="form-label">负责部门</label>
-                <div class="form-value">{{ viewData.responsible_department || '-' }}</div>
+                <span class="form-label">负责部门</span>
+                <div class="form-value">
+                  {{ viewData.responsible_department || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">完成率</label>
-                <div class="form-value">{{ viewData.completion_rate || 0 }}%</div>
+                <span class="form-label">完成率</span>
+                <div class="form-value">
+                  {{ viewData.completion_rate || 0 }}%
+                </div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <div class="form-value">{{ viewData.project_id || '-' }}</div>
+                <span class="form-label">项目编号</span>
+                <div class="form-value">
+                  {{ viewData.project_id || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划结束日期</label>
-                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '-' }}</div>
+                <span class="form-label">计划结束日期</span>
+                <div class="form-value">
+                  {{ formatDate(viewData.plan_end_date) || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">工单编号</label>
-                <div class="form-value">{{ viewData.plan_id || '-' }}</div>
+                <span class="form-label">工单编号</span>
+                <div class="form-value">
+                  {{ viewData.plan_id || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">执行状态</label>
-                <div class="form-value">{{ viewData.status || '-' }}</div>
+                <span class="form-label">执行状态</span>
+                <div class="form-value">
+                  {{ viewData.status || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">运维人员</label>
-                <div class="form-value">{{ viewData.maintenance_personnel || '-' }}</div>
+                <span class="form-label">运维人员</span>
+                <div class="form-value">
+                  {{ viewData.maintenance_personnel || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">联系方式</label>
-                <div class="form-value">{{ viewData.contact_info || '-' }}</div>
+                <span class="form-label">联系方式</span>
+                <div class="form-value">
+                  {{ viewData.contact_info || '-' }}
+                </div>
               </div>
               <div class="form-item">
-                <label class="form-label">计划状态</label>
-                <div class="form-value">{{ viewData.plan_status || '-' }}</div>
+                <span class="form-label">计划状态</span>
+                <div class="form-value">
+                  {{ viewData.plan_status || '-' }}
+                </div>
               </div>
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">维保内容</label>
+            <span class="form-label">维保内容</span>
             <div class="form-value form-value-textarea">
               {{ viewData.maintenance_content || '-' }}
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">维保要求</label>
+            <span class="form-label">维保要求</span>
             <div class="form-value form-value-textarea">
               {{ viewData.maintenance_requirements || '-' }}
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">维保标准</label>
+            <span class="form-label">维保标准</span>
             <div class="form-value form-value-textarea">
               {{ viewData.maintenance_standard || '-' }}
             </div>
           </div>
           <div class="form-item-full">
-            <label class="form-label">备注</label>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '-' }}</div>
+            <span class="form-label">备注</span>
+            <div class="form-value form-value-textarea">
+              {{ viewData.remarks || '-' }}
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isEditModalOpen" class="modal-overlay" @click.self="closeEditModal">
+    <div
+      v-if="isEditModalOpen"
+      class="modal-overlay"
+      @click.self="closeEditModal"
+    >
       <div class="modal-container modal-large">
         <div class="modal-header">
-          <h3 class="modal-title">编辑维保计划</h3>
-          <button class="modal-close" @click="closeEditModal">×</button>
+          <h3 class="modal-title">
+            编辑维保计划
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeEditModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
-          <div class="section-title">基础信息</div>
+          <div class="section-title">
+            基础信息
+          </div>
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label"> <span class="required">*</span> 项目名称 </label>
+                <span class="form-label"> <span class="required">*</span> 项目名称 </span>
                 <el-select
                   v-model="editData.selectedProjectId"
                   placeholder="请选择或搜索项目"
@@ -525,63 +733,67 @@
                 </el-select>
               </div>
               <div class="form-item">
-                <label class="form-label">维保频率</label>
-                <input
+                <label for="maintenancePeriod" class="form-label">维保频率</label>
+                <input id="maintenancePeriod" name="maintenancePeriod"
                   v-model="editData.maintenance_period"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">项目地址</label>
-                <input
+                <label for="projectAddress" class="form-label">项目地址</label>
+                <input id="projectAddress" name="projectAddress"
                   v-model="editData.address"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label class="form-label">项目编号</label>
-                <input
+                <label for="projectId" class="form-label">项目编号</label>
+                <input id="projectId" name="projectId"
                   v-model="editData.project_id"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">项目结束日期</label>
-                <input
+                <label for="projectEndDate" class="form-label">项目结束日期</label>
+                <input id="projectEndDate" name="projectEndDate"
                   v-model="editData.maintenance_end_date"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
               <div class="form-item">
-                <label class="form-label">客户单位</label>
-                <input
+                <label for="clientName" class="form-label">客户单位</label>
+                <input id="clientName" name="clientName"
                   v-model="editData.client_name"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
-                />
+                >
               </div>
             </div>
           </div>
 
-          <div class="section-divider"></div>
+          <div class="section-divider" />
 
-          <div class="section-title">维保计划（共 {{ editData.planList.length }} 条）</div>
+          <div class="section-title">
+            维保计划（共 {{ editData.planList.length }} 条）
+          </div>
           <div class="table-section-inner">
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th style="width: 50px">序号</th>
+                  <th style="width: 50px">
+                    序号
+                  </th>
                   <th>工单编号</th>
                   <th>计划开始日期</th>
                   <th>计划结束日期</th>
@@ -591,26 +803,56 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(plan, index) in editData.planList" :key="plan.id || index">
-                  <td class="text-center">{{ index + 1 }}</td>
+                <tr
+                  v-for="(plan, index) in editData.planList"
+                  :key="plan.id || index"
+                >
+                  <td class="text-center">
+                    {{ index + 1 }}
+                  </td>
                   <td>
                     <input
                       v-model="plan.plan_id"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                    />
+                      :id="'edit_plan_id_' + index"
+                      :name="'edit_plan_id_' + index"
+                    >
                   </td>
                   <td>
-                    <input v-model="plan.plan_start_date" type="date" class="table-input" />
+                    <input
+                      v-model="plan.plan_start_date"
+                      type="date"
+                      class="table-input"
+                      :id="'edit_plan_start_' + index"
+                      :name="'edit_plan_start_' + index"
+                    >
                   </td>
                   <td>
-                    <input v-model="plan.plan_end_date" type="date" class="table-input" />
+                    <input
+                      v-model="plan.plan_end_date"
+                      type="date"
+                      class="table-input"
+                      :id="'edit_plan_end_' + index"
+                      :name="'edit_plan_end_' + index"
+                    >
                   </td>
                   <td>
-                    <select v-model="plan.maintenance_personnel" class="table-input">
-                      <option value="">请选择</option>
-                      <option v-for="person in personnelList" :key="person" :value="person">
+                    <select
+                      v-model="plan.maintenance_personnel"
+                      class="table-input"
+                      :id="'edit_plan_personnel_' + index"
+                      :name="'edit_plan_personnel_' + index"
+                    >
+                      <option value="">
+                        请选择
+                      </option>
+                      <option
+                        v-for="person in personnelList"
+                        :key="person"
+                        :value="person"
+                      >
                         {{ person }}
                       </option>
                     </select>
@@ -621,32 +863,42 @@
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                    />
+                      :id="'edit_plan_remarks_' + index"
+                      :name="'edit_plan_remarks_' + index"
+                    >
                   </td>
                   <td class="action-cell">
                     <a
                       href="#"
                       class="action-link action-delete"
                       @click.prevent="deleteEditPlan(index)"
-                      >删除</a
-                    >
+                    >删除</a>
                   </td>
                 </tr>
               </tbody>
             </table>
             <div class="table-actions">
-              <button class="btn btn-add-small" @click="addEditPlan">添加</button>
+              <button
+                class="btn btn-add-small"
+                @click="addEditPlan"
+              >
+                添加
+              </button>
             </div>
           </div>
 
-          <div class="section-divider"></div>
+          <div class="section-divider" />
 
-          <div class="section-title">维保事项</div>
+          <div class="section-title">
+            维保事项
+          </div>
           <div class="table-section-inner">
             <table class="inner-table">
               <thead>
                 <tr>
-                  <th style="width: 60px">事项编号</th>
+                  <th style="width: 60px">
+                    事项编号
+                  </th>
                   <th>巡查类</th>
                   <th>巡查项</th>
                   <th>巡查内容</th>
@@ -656,14 +908,17 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in editData.itemList" :key="index">
+                <tr
+                  v-for="(item, index) in editData.itemList"
+                  :key="index"
+                >
                   <td>
                     <input
                       type="text"
                       class="table-input table-input-readonly"
                       :value="index + 1"
                       readonly
-                    />
+                    >
                   </td>
                   <td>
                     <div
@@ -753,35 +1008,59 @@
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                    />
+                      :id="'edit_item_desc_' + index"
+                      :name="'edit_item_desc_' + index"
+                    >
                   </td>
                   <td class="action-cell">
                     <a
                       href="#"
                       class="action-link action-delete"
                       @click.prevent="removeEditItem(index)"
-                      >删除</a
-                    >
+                    >删除</a>
                   </td>
                 </tr>
               </tbody>
             </table>
             <div class="table-actions">
-              <button class="btn btn-add-small" @click="addEditItem">添加行</button>
-              <button class="btn btn-add-small" @click="importEditItems">导入事项</button>
+              <button
+                class="btn btn-add-small"
+                @click="addEditItem"
+              >
+                添加行
+              </button>
+              <button
+                class="btn btn-add-small"
+                @click="importEditItems"
+              >
+                导入事项
+              </button>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeEditModal">取消</button>
-          <button class="btn btn-save" :disabled="saving" @click="handleUpdate">
+          <button
+            class="btn btn-cancel"
+            @click="closeEditModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-save"
+            :disabled="saving"
+            @click="handleUpdate"
+          >
             {{ saving ? '保存中...' : '保存' }}
           </button>
         </div>
       </div>
     </div>
 
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
     <ConfirmDialog
       :visible="confirmDialog.visible"
       :title="confirmDialog.title"
@@ -817,11 +1096,9 @@ import {
   inspectionItemService,
   type InspectionItem as ApiInspectionItem,
 } from '../services/inspectionItem'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import Toast from '../components/Toast.vue'
+import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
-import SearchInput from '../components/SearchInput.vue'
-import { useInputMemory } from '../utils/inputMemory'
+import { useInputMemory } from '../utils'
 import { formatDate as formatDateUtil, formatDateForInput } from '../config/constants'
 
 // TODO: 这个文件太长了，需要拆分组件
@@ -2360,7 +2637,7 @@ export default defineComponent({
 
 <style scoped>
 .maintenance-plan-management {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   padding: 20px;
@@ -2373,7 +2650,7 @@ export default defineComponent({
   align-items: center;
   margin-bottom: 20px;
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--color-bg-page);
   border-radius: 4px;
 }
 
@@ -2401,29 +2678,29 @@ export default defineComponent({
 .search-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
   white-space: nowrap;
 }
 
 .search-input {
   width: 200px;
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .search-actions {
@@ -2453,26 +2730,26 @@ export default defineComponent({
 }
 
 .btn-add {
-  background: #2e7d32;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
 }
 
 .btn-add:hover:not(:disabled) {
-  background: #1b5e20;
+  background: var(--color-success);
 }
 
 .btn-search {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-search:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .table-section {
   margin-bottom: 20px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   overflow-x: auto;
 }
@@ -2484,7 +2761,7 @@ export default defineComponent({
 }
 
 .data-table thead {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .data-table th {
@@ -2492,8 +2769,8 @@ export default defineComponent({
   text-align: left;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #d0d0d0;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
@@ -2501,16 +2778,16 @@ export default defineComponent({
   padding: 12px 16px;
   text-align: left;
   font-size: 14px;
-  color: #616161;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--color-text-regular);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .data-table tbody tr:hover {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .even-row {
-  background: #fafafa;
+  background: var(--color-bg-page);
 }
 
 .action-cell {
@@ -2534,15 +2811,15 @@ export default defineComponent({
 }
 
 .action-view {
-  color: #2e7d32;
+  color: var(--color-success);
 }
 
 .action-edit {
-  color: #2196f3;
+  color: var(--color-primary);
 }
 
 .action-delete {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .pagination-section {
@@ -2554,7 +2831,7 @@ export default defineComponent({
 
 .pagination-info {
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination-controls {
@@ -2571,11 +2848,11 @@ export default defineComponent({
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
-  background: #fff;
+  background: var(--color-bg-card);
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
@@ -2584,8 +2861,8 @@ export default defineComponent({
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #2196f3;
-  color: #2196f3;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .page-btn:disabled {
@@ -2594,9 +2871,9 @@ export default defineComponent({
 }
 
 .page-btn.active {
-  background: #2196f3;
-  color: #fff;
-  border-color: #2196f3;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
+  border-color: var(--color-primary);
 }
 
 .page-nav {
@@ -2605,11 +2882,11 @@ export default defineComponent({
 
 .page-select {
   padding: 6px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   cursor: pointer;
 }
 
@@ -2618,31 +2895,31 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .page-input {
   width: 48px;
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   text-align: center;
-  background: #fff;
+  background: var(--color-bg-card);
 }
 
 .page-input:focus {
   outline: none;
-  border-color: #2196f3;
+  border-color: var(--color-primary);
 }
 
 .page-go {
   min-width: 40px;
   height: 28px;
   padding: 0 8px;
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
   border: none;
   border-radius: 3px;
   font-size: 12px;
@@ -2651,7 +2928,7 @@ export default defineComponent({
 }
 
 .page-go:hover {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .modal-overlay {
@@ -2668,7 +2945,7 @@ export default defineComponent({
 }
 
 .modal-container {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   width: 1000px;
   max-width: 95vw;
@@ -2686,13 +2963,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin: 0;
 }
 
@@ -2702,7 +2979,7 @@ export default defineComponent({
   border: none;
   background: none;
   font-size: 24px;
-  color: #999;
+  color: var(--color-text-placeholder);
   cursor: pointer;
   transition: color 0.15s;
   display: flex;
@@ -2711,7 +2988,7 @@ export default defineComponent({
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 .modal-body {
@@ -2748,41 +3025,41 @@ export default defineComponent({
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #424242;
+  color: var(--color-text-regular);
 }
 
 .required {
-  color: #d32f2f;
+  color: var(--color-danger);
   margin-right: 4px;
 }
 
 .form-input {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-textarea {
   padding: 8px 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
   resize: vertical;
   font-family: inherit;
@@ -2790,21 +3067,21 @@ export default defineComponent({
 
 .form-textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .form-textarea::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .form-value {
   padding: 8px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 14px;
-  color: #333;
+  color: var(--color-text-primary);
   min-height: 36px;
   display: flex;
   align-items: center;
@@ -2822,40 +3099,40 @@ export default defineComponent({
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .btn-cancel {
-  background: #fff;
-  color: #666;
-  border: 1px solid #e0e0e0;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .btn-cancel:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
 }
 
 .btn-save {
-  background: #2196f3;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .btn-save:hover:not(:disabled) {
-  background: #1976d2;
+  background: var(--color-primary);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text-primary);
   margin-bottom: 16px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #2196f3;
+  border-bottom: 2px solid var(--color-primary);
 }
 
 .section-divider {
   height: 1px;
-  background: #e0e0e0;
+  background: var(--color-border);
   margin: 24px 0;
 }
 
@@ -2871,7 +3148,7 @@ export default defineComponent({
 }
 
 .inner-table thead {
-  background: #e0e0e0;
+  background: var(--color-border);
 }
 
 .inner-table th {
@@ -2879,42 +3156,42 @@ export default defineComponent({
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #d0d0d0;
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
   width: auto;
 }
 
 .inner-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .table-input {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 13px;
-  color: #333;
-  background: #fff;
+  color: var(--color-text-primary);
+  background: var(--color-bg-card);
   transition: border-color 0.15s;
 }
 
 .table-input-readonly {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--color-bg-page);
+  color: var(--color-text-secondary);
   cursor: not-allowed;
 }
 
 .table-input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
 }
 
 .table-input::placeholder {
-  color: #999;
+  color: var(--color-text-placeholder);
 }
 
 .table-actions {
@@ -2925,8 +3202,8 @@ export default defineComponent({
 
 .btn-add-small {
   padding: 6px 12px;
-  background: #2e7d32;
-  color: #fff;
+  background: var(--color-success);
+  color: var(--color-bg-card);
   border: none;
   border-radius: 3px;
   font-size: 13px;
@@ -2937,11 +3214,11 @@ export default defineComponent({
 }
 
 .btn-add-small:hover {
-  background: #1b5e20;
+  background: var(--color-success);
 }
 
 .form-input-readonly {
-  background: #f5f5f5;
+  background: var(--color-bg-page);
   cursor: not-allowed;
 }
 
@@ -2950,7 +3227,7 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #e3f2fd;
+  background: var(--color-primary-subtle);
   border-radius: 4px;
   margin-bottom: 20px;
 }
@@ -2958,7 +3235,7 @@ export default defineComponent({
 .view-plan-info {
   font-size: 14px;
   font-weight: 600;
-  color: #1976d2;
+  color: var(--color-primary);
 }
 
 .view-plan-nav {
@@ -2968,36 +3245,36 @@ export default defineComponent({
 
 .view-plan-btn {
   padding: 6px 16px;
-  border: 1px solid #1976d2;
+  border: 1px solid var(--color-primary);
   border-radius: 3px;
-  background: #fff;
-  color: #1976d2;
+  background: var(--color-bg-card);
+  color: var(--color-primary);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .view-plan-btn:hover:not(:disabled) {
-  background: #1976d2;
-  color: #fff;
+  background: var(--color-primary);
+  color: var(--color-bg-card);
 }
 
 .view-plan-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-  border-color: #ccc;
-  color: #999;
+  border-color: var(--color-border);
+  color: var(--color-text-placeholder);
 }
 
 .edit-plan-scroll-container {
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
 .edit-plan-table-wrapper {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
 }
 
@@ -3011,11 +3288,11 @@ export default defineComponent({
 }
 
 .edit-plan-table-wrapper tbody tr:hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-bg-page);
 }
 
 .edit-plan-table-wrapper tbody tr.row-selected {
-  background-color: #e3f2fd;
+  background-color: var(--color-primary-subtle);
 }
 
 .edit-plan-table-wrapper tbody tr.row-selected:hover {
@@ -3027,13 +3304,13 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  border-top: 1px solid #e0e0e0;
-  background: #fafafa;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-page);
 }
 
 .pagination-total {
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 .pagination {
@@ -3046,8 +3323,8 @@ export default defineComponent({
   padding: 5px 10px;
   border: 1px solid #ddd;
   border-radius: 3px;
-  background: #fff;
-  color: #333;
+  background: var(--color-bg-card);
+  color: var(--color-text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.15s;
@@ -3063,13 +3340,13 @@ export default defineComponent({
 .page-btn.active {
   background: #409eff;
   border-color: #409eff;
-  color: #fff;
+  color: var(--color-bg-card);
 }
 
 .page-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  color: #c0c4cc;
+  color: var(--color-text-placeholder);
 }
 
 .page-btn-nav {
@@ -3082,7 +3359,7 @@ export default defineComponent({
 
 .page-ellipsis {
   padding: 5px 8px;
-  color: #999;
+  color: var(--color-text-placeholder);
   font-size: 12px;
 }
 
@@ -3092,11 +3369,11 @@ export default defineComponent({
 
 .selected-text {
   padding: 6px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border);
   border-radius: 3px;
   font-size: 13px;
-  color: #333;
-  background: #f5f5f5;
+  color: var(--color-text-primary);
+  background: var(--color-bg-page);
   cursor: pointer;
   min-height: 24px;
   line-height: 24px;
@@ -3105,6 +3382,6 @@ export default defineComponent({
 
 .selected-text:hover {
   background: #e8e8e8;
-  border-color: #ccc;
+  border-color: var(--color-border);
 }
 </style>

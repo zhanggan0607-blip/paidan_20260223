@@ -1,4 +1,5 @@
-from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
@@ -27,6 +28,12 @@ class SpotWorkWorker(Base):
     id_card_back = Column(String(500), comment="身份证反面照片URL")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
+
+    spot_work = relationship("SpotWork", foreign_keys=[spot_work_id])
+
+    __table_args__ = (
+        Index('idx_worker_id_card_number', 'id_card_number'),
+    )
 
     def to_dict(self):
         return {

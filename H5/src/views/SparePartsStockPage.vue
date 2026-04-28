@@ -187,7 +187,7 @@ onMounted(() => {
     </van-nav-bar>
 
     <div class="action-bar">
-      <van-search
+      <van-search name="filter_keyword"
         v-model="filterKeyword"
         placeholder="搜索产品名称/品牌/型号"
         shape="round"
@@ -233,7 +233,7 @@ onMounted(() => {
           <van-icon name="cross" @click="showInboundPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field
+          <van-field name="product_name"
             v-model="inboundForm.productName"
             label="产品名称"
             placeholder="请输入或选择产品名称"
@@ -251,19 +251,19 @@ onMounted(() => {
               </datalist>
             </template>
           </van-field>
-          <van-field v-model="inboundForm.brand" label="品牌" placeholder="请输入品牌" />
-          <van-field v-model="inboundForm.model" label="产品型号" placeholder="请输入产品型号" />
-          <van-field
+          <van-field name="brand" v-model="inboundForm.brand" label="品牌" placeholder="请输入品牌" />
+          <van-field name="model" v-model="inboundForm.model" label="产品型号" placeholder="请输入产品型号" />
+          <van-field name="quantity"
             v-model="inboundForm.quantity"
             type="number"
             label="入库数量"
             placeholder="请输入入库数量"
             required
           />
-          <van-field v-model="inboundForm.supplier" label="供应商" placeholder="请输入供应商" />
-          <van-field v-model="inboundForm.unit" label="单位" placeholder="请输入单位">
+          <van-field name="supplier" v-model="inboundForm.supplier" label="供应商" placeholder="请输入供应商" />
+          <van-field name="unit" v-model="inboundForm.unit" label="单位" placeholder="请输入单位">
             <template #input>
-              <select v-model="inboundForm.unit" class="unit-select">
+              <select id="unit" name="unit" v-model="inboundForm.unit" class="unit-select">
                 <option value="件">件</option>
                 <option value="个">个</option>
                 <option value="套">套</option>
@@ -272,7 +272,7 @@ onMounted(() => {
               </select>
             </template>
           </van-field>
-          <van-field
+          <van-field name="remarks"
             v-model="inboundForm.remarks"
             label="备注"
             placeholder="请输入备注"
@@ -293,13 +293,13 @@ onMounted(() => {
 <style scoped>
 .spare-parts-stock-page {
   min-height: 100vh;
-  background-color: #f5f7fa;
+  background-color: var(--color-bg-page);
 }
 
 .action-bar {
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-card);
+  border-bottom: 1px solid var(--color-border-light);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -319,7 +319,7 @@ onMounted(() => {
 }
 
 .stock-card {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   margin-bottom: 12px;
   overflow: hidden;
@@ -331,13 +331,13 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #f7f8fa;
-  border-bottom: 1px solid #ebedf0;
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .stock-name {
   font-weight: 600;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .stock-badge {
@@ -348,13 +348,13 @@ onMounted(() => {
 }
 
 .stock-normal {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .stock-low {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
 }
 
 .card-body {
@@ -370,13 +370,13 @@ onMounted(() => {
 }
 
 .info-row .label {
-  color: #969799;
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   width: 70px;
 }
 
 .info-row .value {
-  color: #323233;
+  color: var(--color-text-primary);
   text-align: right;
   flex: 1;
   margin-left: 12px;
@@ -387,7 +387,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: #323233;
+  color: var(--color-text-primary);
 }
 
 .popup-content {
@@ -401,7 +401,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #ebedf0;
+  border-bottom: 1px solid var(--color-border-light);
 }
 
 .popup-title {
