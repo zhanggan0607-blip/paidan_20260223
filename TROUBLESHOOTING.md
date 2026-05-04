@@ -20,8 +20,69 @@
 11. [2026-05-03 H5端导航栏偏移导致返回按钮不可见修复](#2026-05-03-h5端导航栏偏移导致返回按钮不可见修复)
 12. [2026-05-03 inspection_items JSON.parse重复解析错误修复](#2026-05-03-inspection_items-jsonparse重复解析错误修复)
 13. [2026-05-03 PC端临时抢修详情页日期格式和PUT/PATCH错误修复](#2026-05-03-pc端临时抢修详情页日期格式和putpatch错误修复)
+14. [2026-05-04 H5端定期巡检/临时维修/零星用工页面分页数据读取字段不一致修复](#2026-05-04-h5端定期巡检临时维修零星用工页面分页数据读取字段不一致修复)
 
 ---
+
+## 2026-05-04 H5端定期巡检/临时维修/零星用工页面分页数据读取字段不一致修复
+
+### API-002: 后端PaginatedResponse返回items但前端读取content导致页面无数据（严重）
+- **问题**: H5端定期巡检(`/h5/periodic-inspection`)、临时维修、零星用工页面显示"暂无数据"，但后端API实际返回了数据
+- **根因**: 后端`PaginatedResponse.success()`返回的数据字段为`items`，但H5前端多个页面仍使用`content`读取列表数据，导致`response.data?.content`为`undefined`，数据读取为空数组
+- **影响页面**:
+  - `/h5/periodic-inspection`（定期巡检）
+  - `/h5/temporary-repair`（临时维修）
+  - `/h5/spot-work`（零星用工）
+  - PC端客户管理、项目信息管理（部分影响）
+- **受影响文件**:
+  - `H5/src/views/PeriodicInspectionPage.vue` - 第102行 `r.data?.content` → `r.data?.items`
+  - `H5/src/views/TemporaryRepairPage.vue` - 第107行 `r.data?.content` → `r.data?.items`
+  - `H5/src/views/SpotWorkPage.vue` - 第103行 `r.data?.content || r.data?.items` → `r.data?.items || r.data?.content`
+  - `src/views/CustomerManagement.vue` - 第605行 `response.data.content` → `response.data.items || response.data.content`
+  - `src/views/ProjectInfoManagement.vue` - 第1512行 `response.data.content` → `response.data.items || response.data.content`
+  - `backend-python/app/schemas/common.py` - `PaginatedResponse`同时返回`items`和`content`兼容字段
+- **修复**:
+  1. 前端：所有分页数据读取统一优先使用`items`，`content`作为兜底
+  2. 后端：`PaginatedResponse.success()`同时返回`items`和`content`、`total`和`totalElements`、`page`和`number`，兼容新旧前端
+- **修复前（后端）**:
+  ```python
+  data={
+      'items': items,
+      'total': total,
+      'page': page,
+      'size': size,
+      'totalPages': total_pages,
+      'first': page == 0,
+      'last': size > 0 and page >= total_pages - 1,
+  }
+  ```
+- **修复后（后端）**:
+  ```python
+  data={
+      'items': items,
+      'content': items,
+      'total': total,
+      'totalElements': total,
+      'page': page,
+      'number': page,
+      'size': size,
+      'totalPages': total_pages,
+      'first': page == 0,
+      'last': size > 0 and page >= total_pages - 1,
+  }
+  ```
+- **修复前（前端）**:
+  ```typescript
+  .flatMap(r => r.data?.content || [])
+  ```
+- **修复后（前端）**:
+  ```typescript
+  .flatMap(r => r.data?.items || [])
+  ```
+- **教训**:
+  1. 后端分页响应必须同时返回`items`和`content`两种格式，确保新旧前端兼容
+  2. 前端读取分页数据应优先使用`items`，`content`作为兜底
+  3. 修改后端响应格式时，必须同步检查所有前端页面的数据读取代码
 
 ## 2026-05-02 H5端返回按钮Tab状态丢失修复
 
