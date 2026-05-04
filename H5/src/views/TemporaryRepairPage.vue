@@ -104,7 +104,7 @@ const fetchWorkList = async (forceRefresh = false) => {
         )
         const allItems = responses
           .filter(r => r.code === 200)
-          .flatMap(r => r.data?.content || [])
+          .flatMap(r => r.data?.items || [])
 
         workList.value = sortByTimestampDesc(allItems, {
           secondarySortKey: 'id'

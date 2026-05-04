@@ -602,8 +602,8 @@ export default defineComponent({
         )
 
         if (response.code === 200) {
-          customerData.value = response.data.content || []
-          totalElements.value = response.data.totalElements ?? 0
+          customerData.value = response.data.items || response.data.content || []
+          totalElements.value = response.data.total ?? response.data.totalElements ?? 0
           totalPages.value = response.data.totalPages
         } else {
           showToast(response.message || '加载数据失败', 'error')

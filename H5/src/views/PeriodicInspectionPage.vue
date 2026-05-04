@@ -99,7 +99,7 @@ const fetchWorkList = async (forceRefresh = false) => {
         )
         let allItems = responses
           .filter(r => r.code === 200)
-          .flatMap(r => r.data?.content || [])
+          .flatMap(r => r.data?.items || [])
 
         if (isInProgressTab && !canApprove.value) {
           allItems = allItems.filter(

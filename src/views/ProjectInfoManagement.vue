@@ -1509,7 +1509,7 @@ export default defineComponent({
       try {
         const response = await customerService.getList({ page: 0, size: 100 })
         if (response.code === 200 && response.data) {
-          customerList.value = (response.data.content || []).map((c: any) => ({
+          customerList.value = (response.data.items || response.data.content || []).map((c: any) => ({
             id: c.id,
             name: c.name ?? '',
             contacts: c.contacts || [],

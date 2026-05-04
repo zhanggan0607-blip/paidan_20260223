@@ -64,14 +64,16 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'https://www.paidan.sstcp.top',
         changeOrigin: true,
+        secure: true,
         timeout: 30000,
         proxyTimeout: 30000,
       },
       '/uploads': {
-        target: 'http://localhost:8000',
+        target: 'https://www.paidan.sstcp.top',
         changeOrigin: true,
+        secure: true,
         timeout: 60000,
         proxyTimeout: 60000,
         rewrite: (path) => path.replace(/^\/uploads/, '/api/v1/files'),

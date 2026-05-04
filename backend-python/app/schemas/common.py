@@ -33,8 +33,11 @@ class PaginatedResponse(BaseModel):
             message=message,
             data={
                 'items': items,
+                'content': items,
                 'total': total,
+                'totalElements': total,
                 'page': page,
+                'number': page,
                 'size': size,
                 'totalPages': total_pages,
                 'first': page == 0,
