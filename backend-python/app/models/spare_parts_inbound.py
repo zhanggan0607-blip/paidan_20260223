@@ -2,9 +2,10 @@ from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class SparePartsInbound(Base):
+class SparePartsInbound(Base, SerializationMixin):
     __tablename__ = "spare_parts_inbound"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")

@@ -2,69 +2,87 @@
   "name": "@sstcp/shared",
   "version": "1.0.0",
   "description": "SSTCP维保管理系统共享代码库",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "generate:types": "openapi-typescript http://localhost:8000/openapi.json -o src/types/generated.ts",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "prepublishOnly": "npm run build"
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
     },
     "./utils": {
-      "types": "./src/utils/index.ts",
-      "import": "./src/utils/index.ts"
+      "types": "./dist/utils/index.d.ts",
+      "import": "./dist/utils/index.mjs",
+      "require": "./dist/utils/index.js"
     },
     "./types": {
-      "types": "./src/types/index.ts",
-      "import": "./src/types/index.ts"
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.mjs",
+      "require": "./dist/types/index.js"
     },
     "./api": {
-      "types": "./src/api/index.ts",
-      "import": "./src/api/index.ts"
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.mjs",
+      "require": "./dist/api/index.js"
     },
     "./api/endpoints": {
-      "types": "./src/api/endpoints.ts",
-      "import": "./src/api/endpoints.ts"
+      "types": "./dist/api/endpoints.d.ts",
+      "import": "./dist/api/endpoints.mjs",
+      "require": "./dist/api/endpoints.js"
     },
     "./utils/format": {
-      "types": "./src/utils/format.ts",
-      "import": "./src/utils/format.ts"
+      "types": "./dist/utils/format.d.ts",
+      "import": "./dist/utils/format.mjs",
+      "require": "./dist/utils/format.js"
     },
     "./utils/searchHistory": {
-      "types": "./src/utils/searchHistory.ts",
-      "import": "./src/utils/searchHistory.ts"
+      "types": "./dist/utils/searchHistory.d.ts",
+      "import": "./dist/utils/searchHistory.mjs",
+      "require": "./dist/utils/searchHistory.js"
     },
     "./utils/watermark": {
-      "types": "./src/utils/watermark.ts",
-      "import": "./src/utils/watermark.ts"
+      "types": "./dist/utils/watermark.d.ts",
+      "import": "./dist/utils/watermark.mjs",
+      "require": "./dist/utils/watermark.js"
     },
     "./utils/status": {
-      "types": "./src/utils/status.ts",
-      "import": "./src/utils/status.ts"
+      "types": "./dist/utils/status.d.ts",
+      "import": "./dist/utils/status.mjs",
+      "require": "./dist/utils/status.js"
     },
     "./types/api": {
-      "types": "./src/types/api.ts",
-      "import": "./src/types/api.ts"
+      "types": "./dist/types/api.d.ts",
+      "import": "./dist/types/api.mjs",
+      "require": "./dist/types/api.js"
     },
     "./types/permission": {
-      "types": "./src/types/permission.ts",
-      "import": "./src/types/permission.ts"
+      "types": "./dist/types/permission.d.ts",
+      "import": "./dist/types/permission.mjs",
+      "require": "./dist/types/permission.js"
     },
     "./api/request": {
-      "types": "./src/api/request.ts",
-      "import": "./src/api/request.ts"
+      "types": "./dist/api/request.d.ts",
+      "import": "./dist/api/request.mjs",
+      "require": "./dist/api/request.js"
     }
   },
-  "dependencies": {
-    "axios": "^1.7.7"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "axios": "^1.7.9",
+    "tsup": "^8.0.0",
     "typescript": "^5.6.0",
     "vitest": "^2.1.0",
     "happy-dom": "^15.11.0"

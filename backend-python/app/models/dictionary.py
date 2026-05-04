@@ -2,9 +2,10 @@ from sqlalchemy import BigInteger, Boolean, Column, DateTime, Index, Integer, St
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class Dictionary(Base):
+class Dictionary(Base, SerializationMixin):
     __tablename__ = "dictionary"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
@@ -23,16 +24,3 @@ class Dictionary(Base):
         Index('idx_dict_type_key', 'dict_type', 'dict_key'),
         {'comment': '字典表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'dict_type': self.dict_type,
-            'dict_key': self.dict_key,
-            'dict_value': self.dict_value,
-            'dict_label': self.dict_label,
-            'sort_order': self.sort_order,
-            'is_active': self.is_active,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

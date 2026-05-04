@@ -6,7 +6,7 @@
 - 所有认证必须通过JWT Token完成
 - 密码使用bcrypt加密存储
 - access_token有效期30分钟，refresh_token有效期15天
-- 支持Token黑名单机制（Redis优先，内存降级）
+- Token黑名单使用Redis存储（内存降级）
 """
 import threading
 from datetime import datetime, timedelta, timezone
@@ -39,7 +39,8 @@ def _get_redis_client():
     try:
         from app.services.cache import get_redis_client
         return get_redis_client()
-    except Exception:
+    except (ImportError, ConnectionError, Exception) as e:
+        logger.debug(f"Redis客户端获取失败: {e}")
         return None
 
 
@@ -71,8 +72,8 @@ def is_token_blacklisted(jti: str) -> bool:
     if redis_client:
         try:
             return redis_client.exists(f"token_blacklist:{jti}") > 0
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Redis黑名单检查失败: {e}")
 
     with _memory_blacklist_lock:
         exp = _memory_blacklist.get(jti)
@@ -82,6 +83,11 @@ def is_token_blacklisted(jti: str) -> bool:
             del _memory_blacklist[jti]
             return False
         return True
+
+
+def clear_memory_blacklist() -> None:
+    with _memory_blacklist_lock:
+        _memory_blacklist.clear()
 
 
 def blacklist_all_user_tokens(user_id: int) -> int:
@@ -110,8 +116,8 @@ def _register_user_token(user_id: int, jti: str, exp_seconds: int) -> None:
             key = f"user_tokens:{user_id}"
             redis_client.sadd(key, jti)
             redis_client.expire(key, exp_seconds)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"Redis用户Token注册失败: {e}")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -161,9 +167,7 @@ def verify_refresh_token(token: str) -> dict | None:
         return None
 
 
-async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict | None:
-    if not token:
-        return None
+def decode_jwt_token(token: str) -> dict | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         jti = payload.get("jti")
@@ -174,6 +178,12 @@ async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict |
         return None
 
 
+async def get_current_user(token: str | None = Depends(oauth2_scheme)) -> dict | None:
+    if not token:
+        return None
+    return decode_jwt_token(token)
+
+
 async def get_current_user_required(token: str = Depends(oauth2_scheme)) -> dict:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -182,14 +192,10 @@ async def get_current_user_required(token: str = Depends(oauth2_scheme)) -> dict
     )
     if not token:
         raise credentials_exception
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        jti = payload.get("jti")
-        if jti and is_token_blacklisted(jti):
-            raise credentials_exception
-        return payload
-    except JWTError as e:
-        raise credentials_exception from e
+    payload = decode_jwt_token(token)
+    if payload is None:
+        raise credentials_exception
+    return payload
 
 
 async def get_current_admin_user(

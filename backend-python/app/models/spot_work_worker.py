@@ -3,9 +3,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class SpotWorkWorker(Base):
+class SpotWorkWorker(Base, SerializationMixin):
     """
     施工人员信息
     """
@@ -34,24 +35,3 @@ class SpotWorkWorker(Base):
     __table_args__ = (
         Index('idx_worker_id_card_number', 'id_card_number'),
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'spot_work_id': self.spot_work_id,
-            'project_id': self.project_id,
-            'project_name': self.project_name,
-            'start_date': self.start_date.isoformat() if self.start_date else None,
-            'end_date': self.end_date.isoformat() if self.end_date else None,
-            'name': self.name,
-            'gender': self.gender,
-            'birth_date': self.birth_date,
-            'address': self.address,
-            'id_card_number': self.id_card_number,
-            'issuing_authority': self.issuing_authority,
-            'valid_period': self.valid_period,
-            'id_card_front': self.id_card_front,
-            'id_card_back': self.id_card_back,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

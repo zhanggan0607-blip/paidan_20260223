@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info, get_manager_user
+from app.dependencies import UserInfo, get_current_user_info, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.project_info import (
     ProjectInfoCreate,
@@ -28,7 +28,7 @@ def get_project_info_list(
     project_name: str | None = Query(None, description="项目名称（模糊查询）"),
     client_name: str | None = Query(None, description="客户名称（模糊查询）"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取项目信息列表，支持分页和条件查询
@@ -50,7 +50,7 @@ def get_project_info_list(
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_project_info(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有项目信息列表，不分页
@@ -71,7 +71,8 @@ def get_all_project_info(
 @router.get("/{id}", response_model=ApiResponse)
 def get_project_info_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     根据ID获取项目信息

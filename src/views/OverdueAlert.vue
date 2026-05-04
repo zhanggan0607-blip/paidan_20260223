@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="overdue-alert-page">
     <LoadingSpinner
       :visible="loading"
@@ -10,20 +10,26 @@
           <div class="search-form">
             <div class="search-row">
               <div class="search-item">
-                <label for="search_projectName" class="search-label">项目名称：</label>
+                <label
+                  for="search_projectName"
+                  class="search-label"
+                >项目名称：</label>
                 <SearchInput
-              input-id="search_projectName"
                   v-model="searchForm.projectName"
+                  input-id="search_projectName"
                   field-key="OverdueAlert_projectName"
                   placeholder="请输入项目名称"
                   @input="handleSearch"
                 />
               </div>
               <div class="search-item">
-                <label for="search_clientName" class="search-label">客户名称：</label>
+                <label
+                  for="search_clientName"
+                  class="search-label"
+                >客户名称：</label>
                 <SearchInput
-              input-id="search_clientName"
                   v-model="searchForm.customerName"
+                  input-id="search_clientName"
                   field-key="OverdueAlert_customerName"
                   placeholder="请输入客户名称"
                   @input="handleSearch"
@@ -125,8 +131,8 @@
             </button>
             <select
               id="pageSize"
-              name="pageSize"
               v-model="pageSize"
+              name="pageSize"
               class="page-select"
             >
               <option value="10">
@@ -262,7 +268,7 @@ import { overdueAlertService, type OverdueItem } from '../services/overdueAlert'
 import { periodicInspectionService, type PeriodicInspection } from '../services/periodicInspection'
 import { temporaryRepairService, type TemporaryRepair } from '../services/temporaryRepair'
 import { spotWorkService, type SpotWork } from '../services/spotWork'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
 import { LoadingSpinner, SearchInput } from '@sstcp/shared'
 
 // TODO: 超期提醒页面 - 考虑加入邮件/短信通知功能
@@ -289,6 +295,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const searchForm = reactive({
       projectName: '',
       customerName: '',
@@ -477,7 +484,7 @@ export default defineComponent({
     })
 
     return {
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       searchForm,
       filteredData,
       filteredAllData,

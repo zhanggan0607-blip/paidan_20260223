@@ -4,8 +4,9 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'v
 import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import { useNavigation } from '../composables/useNavigation'
-import { userStore } from '../stores/userStore'
-import type { RepairToolsStock } from '../types/models'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
+import type { RepairToolsStock } from '../types/api'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
@@ -18,7 +19,7 @@ const filterCategory = ref('')
  * 判断是否可以新增入库（管理员或部门经理）
  */
 const canInbound = computed(() => {
-  return userStore.isManager() || userStore.isDepartmentManager()
+  return userStore.isManager || userStore.isDepartmentManager
 })
 
 const existingToolNames = computed(() => {
@@ -426,7 +427,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

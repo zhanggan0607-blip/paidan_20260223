@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="maintenance-plan-management">
     <LoadingSpinner
       :visible="loading"
@@ -14,20 +14,26 @@
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label for="search_projectName" class="search-label">项目名称：</label>
+            <label
+              for="search_projectName"
+              class="search-label"
+            >项目名称：</label>
             <SearchInput
-              input-id="search_projectName"
               v-model="searchForm.projectName"
+              input-id="search_projectName"
               field-key="MaintenancePlanManagement_projectName"
               placeholder="请输入项目名称"
               @input="handleSearch"
             />
           </div>
           <div class="search-item">
-            <label for="search_clientName" class="search-label">客户名称：</label>
+            <label
+              for="search_clientName"
+              class="search-label"
+            >客户名称：</label>
             <SearchInput
-              input-id="search_clientName"
               v-model="searchForm.clientName"
+              input-id="search_clientName"
               field-key="MaintenancePlanManagement_clientName"
               placeholder="请输入客户名称"
               @input="handleSearch"
@@ -126,8 +132,8 @@
         </button>
         <select
           id="pageSize"
-          name="pageSize"
           v-model="pageSize"
+          name="pageSize"
           class="page-select"
           @change="handlePageSizeChange"
         >
@@ -206,18 +212,28 @@
                 </el-select>
               </div>
               <div class="form-item">
-                <label for="maintenancePeriod" class="form-label">维保频率</label>
-                <input id="maintenancePeriod" name="maintenancePeriod"
+                <label
+                  for="maintenancePeriod"
+                  class="form-label"
+                >维保频率</label>
+                <input
+                  id="maintenancePeriod"
                   v-model="formData.maintenance_period"
+                  name="maintenancePeriod"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
                 >
               </div>
               <div class="form-item">
-                <label for="projectAddress" class="form-label">项目地址</label>
-                <input id="projectAddress" name="projectAddress"
+                <label
+                  for="projectAddress"
+                  class="form-label"
+                >项目地址</label>
+                <input
+                  id="projectAddress"
                   v-model="formData.address"
+                  name="projectAddress"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
@@ -226,27 +242,42 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="projectId" class="form-label">项目编号</label>
-                <input id="projectId" name="projectId"
+                <label
+                  for="projectId"
+                  class="form-label"
+                >项目编号</label>
+                <input
+                  id="projectId"
                   v-model="formData.project_id"
+                  name="projectId"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
                 >
               </div>
               <div class="form-item">
-                <label for="projectEndDate" class="form-label">项目结束日期</label>
-                <input id="projectEndDate" name="projectEndDate"
+                <label
+                  for="projectEndDate"
+                  class="form-label"
+                >项目结束日期</label>
+                <input
+                  id="projectEndDate"
                   v-model="formData.maintenance_end_date"
+                  name="projectEndDate"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
                 >
               </div>
               <div class="form-item">
-                <label for="clientName" class="form-label">客户单位</label>
-                <input id="clientName" name="clientName"
+                <label
+                  for="clientName"
+                  class="form-label"
+                >客户单位</label>
+                <input
+                  id="clientName"
                   v-model="formData.client_name"
+                  name="clientName"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
@@ -279,37 +310,37 @@
                 >
                   <td>
                     <input
+                      :id="'add_plan_id_' + index"
                       v-model="plan.plan_id"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                      :id="'add_plan_id_' + index"
                       :name="'add_plan_id_' + index"
                     >
                   </td>
                   <td>
                     <input
+                      :id="'add_plan_start_' + index"
                       v-model="plan.plan_start_date"
                       type="date"
                       class="table-input"
-                      :id="'add_plan_start_' + index"
                       :name="'add_plan_start_' + index"
                     >
                   </td>
                   <td>
                     <input
+                      :id="'add_plan_end_' + index"
                       v-model="plan.plan_end_date"
                       type="date"
                       class="table-input"
-                      :id="'add_plan_end_' + index"
                       :name="'add_plan_end_' + index"
                     >
                   </td>
                   <td>
                     <select
+                      :id="'add_plan_personnel_' + index"
                       v-model="plan.maintenance_personnel"
                       class="table-input"
-                      :id="'add_plan_personnel_' + index"
                       :name="'add_plan_personnel_' + index"
                     >
                       <option value="">
@@ -326,11 +357,11 @@
                   </td>
                   <td>
                     <input
+                      :id="'add_plan_remarks_' + index"
                       v-model="plan.remarks"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                      :id="'add_plan_remarks_' + index"
                       :name="'add_plan_remarks_' + index"
                     >
                   </td>
@@ -381,11 +412,11 @@
                 >
                   <td>
                     <input
+                      :id="'add_item_no_' + index"
                       type="text"
                       class="table-input table-input-readonly"
                       :value="index + 1"
                       readonly
-                      :id="'add_item_no_' + index"
                       :name="'add_item_no_' + index"
                     >
                   </td>
@@ -473,11 +504,11 @@
                   </td>
                   <td>
                     <input
+                      :id="'add_item_desc_' + index"
                       v-model="item.brief_description"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                      :id="'add_item_desc_' + index"
                       :name="'add_item_desc_' + index"
                     >
                   </td>
@@ -733,18 +764,28 @@
                 </el-select>
               </div>
               <div class="form-item">
-                <label for="maintenancePeriod" class="form-label">维保频率</label>
-                <input id="maintenancePeriod" name="maintenancePeriod"
+                <label
+                  for="maintenancePeriod"
+                  class="form-label"
+                >维保频率</label>
+                <input
+                  id="maintenancePeriod"
                   v-model="editData.maintenance_period"
+                  name="maintenancePeriod"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
                 >
               </div>
               <div class="form-item">
-                <label for="projectAddress" class="form-label">项目地址</label>
-                <input id="projectAddress" name="projectAddress"
+                <label
+                  for="projectAddress"
+                  class="form-label"
+                >项目地址</label>
+                <input
+                  id="projectAddress"
                   v-model="editData.address"
+                  name="projectAddress"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
@@ -753,27 +794,42 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="projectId" class="form-label">项目编号</label>
-                <input id="projectId" name="projectId"
+                <label
+                  for="projectId"
+                  class="form-label"
+                >项目编号</label>
+                <input
+                  id="projectId"
                   v-model="editData.project_id"
+                  name="projectId"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
                 >
               </div>
               <div class="form-item">
-                <label for="projectEndDate" class="form-label">项目结束日期</label>
-                <input id="projectEndDate" name="projectEndDate"
+                <label
+                  for="projectEndDate"
+                  class="form-label"
+                >项目结束日期</label>
+                <input
+                  id="projectEndDate"
                   v-model="editData.maintenance_end_date"
+                  name="projectEndDate"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
                 >
               </div>
               <div class="form-item">
-                <label for="clientName" class="form-label">客户单位</label>
-                <input id="clientName" name="clientName"
+                <label
+                  for="clientName"
+                  class="form-label"
+                >客户单位</label>
+                <input
+                  id="clientName"
                   v-model="editData.client_name"
+                  name="clientName"
                   type="text"
                   class="form-input form-input-readonly"
                   readonly
@@ -812,37 +868,37 @@
                   </td>
                   <td>
                     <input
+                      :id="'edit_plan_id_' + index"
                       v-model="plan.plan_id"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                      :id="'edit_plan_id_' + index"
                       :name="'edit_plan_id_' + index"
                     >
                   </td>
                   <td>
                     <input
+                      :id="'edit_plan_start_' + index"
                       v-model="plan.plan_start_date"
                       type="date"
                       class="table-input"
-                      :id="'edit_plan_start_' + index"
                       :name="'edit_plan_start_' + index"
                     >
                   </td>
                   <td>
                     <input
+                      :id="'edit_plan_end_' + index"
                       v-model="plan.plan_end_date"
                       type="date"
                       class="table-input"
-                      :id="'edit_plan_end_' + index"
                       :name="'edit_plan_end_' + index"
                     >
                   </td>
                   <td>
                     <select
+                      :id="'edit_plan_personnel_' + index"
                       v-model="plan.maintenance_personnel"
                       class="table-input"
-                      :id="'edit_plan_personnel_' + index"
                       :name="'edit_plan_personnel_' + index"
                     >
                       <option value="">
@@ -859,11 +915,11 @@
                   </td>
                   <td>
                     <input
+                      :id="'edit_plan_remarks_' + index"
                       v-model="plan.remarks"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                      :id="'edit_plan_remarks_' + index"
                       :name="'edit_plan_remarks_' + index"
                     >
                   </td>
@@ -1004,11 +1060,11 @@
                   </td>
                   <td>
                     <input
+                      :id="'edit_item_desc_' + index"
                       v-model="item.brief_description"
                       type="text"
                       class="table-input"
                       placeholder="请输入"
-                      :id="'edit_item_desc_' + index"
                       :name="'edit_item_desc_' + index"
                     >
                   </td>
@@ -1135,6 +1191,17 @@ export default defineComponent({
     ElInput,
   },
   setup() {
+    const parseInspectionItems = (raw: any): any[] => {
+      if (Array.isArray(raw)) return raw
+      if (typeof raw === 'string') {
+        try { return JSON.parse(raw) } catch { return [] }
+      }
+      if (raw && typeof raw === 'object') {
+        try { return Array.isArray(raw) ? raw : [raw] } catch { return [] }
+      }
+      return []
+    }
+
     const searchForm = reactive({
       projectName: '',
       clientName: '',
@@ -1450,7 +1517,7 @@ export default defineComponent({
       viewData.plan_id = plan.plan_id
       viewData.project_id = plan.project_id
       viewData.project_name = plan.project_name || ''
-      viewData.plan_type = plan.plan_type
+      viewData.plan_type = plan.plan_type ?? ''
       viewData.plan_start_date = plan.plan_start_date
       viewData.plan_end_date = plan.plan_end_date
       viewData.execution_date = plan.execution_date || ''
@@ -1458,11 +1525,11 @@ export default defineComponent({
       viewData.maintenance_personnel = plan.maintenance_personnel || ''
       viewData.responsible_department = plan.responsible_department || ''
       viewData.contact_info = plan.contact_info || ''
-      viewData.maintenance_content = plan.maintenance_content
+      viewData.maintenance_content = plan.maintenance_content ?? ''
       viewData.maintenance_requirements = plan.maintenance_requirements || ''
       viewData.maintenance_standard = plan.maintenance_standard || ''
-      viewData.plan_status = plan.plan_status
-      viewData.status = plan.status
+      viewData.plan_status = plan.plan_status ?? ''
+      viewData.status = plan.status ?? ''
       viewData.completion_rate = plan.completion_rate || 0
       viewData.remarks = plan.remarks || ''
     }
@@ -1604,17 +1671,17 @@ export default defineComponent({
       const selectedProject = projectList.value.find((p) => p.id === formData.selectedProjectId)
       if (selectedProject) {
         formData.project_id = selectedProject.project_id
-        formData.address = selectedProject.address
-        formData.maintenance_period = selectedProject.maintenance_period
-        formData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date)
-        formData.client_name = selectedProject.client_name
+        formData.address = selectedProject.address ?? ''
+        formData.maintenance_period = selectedProject.maintenance_period ?? ''
+        formData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date ?? '')
+        formData.client_name = selectedProject.client_name ?? ''
 
         const projectManager = (selectedProject as any).project_manager || ''
         formData.planList = generatePlanList(
           selectedProject.project_id,
-          new Date(selectedProject.completion_date),
-          new Date(selectedProject.maintenance_end_date),
-          selectedProject.maintenance_period,
+          new Date(selectedProject.completion_date ?? ''),
+          new Date(selectedProject.maintenance_end_date ?? ''),
+          selectedProject.maintenance_period ?? '',
           projectManager
         )
       }
@@ -2163,7 +2230,7 @@ export default defineComponent({
       if (project) {
         editData.maintenance_period = project.maintenance_period || ''
         editData.address = project.address || ''
-        editData.maintenance_end_date = formatDate(project.maintenance_end_date)
+        editData.maintenance_end_date = formatDate(project.maintenance_end_date ?? '')
         editData.client_name = project.client_name || ''
       } else {
         editData.maintenance_period = ''
@@ -2200,7 +2267,7 @@ export default defineComponent({
       const firstPlan = item.plans[0]
       if (firstPlan.inspection_items) {
         try {
-          const items = JSON.parse(firstPlan.inspection_items)
+          const items = parseInspectionItems(firstPlan.inspection_items)
           items.forEach((savedItem: any) => {
             editData.itemList.push({
               item_id: savedItem.item_id || '',
@@ -2263,7 +2330,7 @@ export default defineComponent({
         editData.project_id = selectedProject.project_id
         editData.address = selectedProject.address || ''
         editData.maintenance_period = selectedProject.maintenance_period || ''
-        editData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date)
+        editData.maintenance_end_date = formatDate(selectedProject.maintenance_end_date ?? '')
         editData.client_name = selectedProject.client_name || ''
       }
     }
@@ -2343,7 +2410,7 @@ export default defineComponent({
         const selectedProject = projectList.value.find((p) => p.id === editData.selectedProjectId)
         if (selectedProject && (selectedProject as any).inspection_items) {
           try {
-            const items = JSON.parse((selectedProject as any).inspection_items)
+            const items = parseInspectionItems((selectedProject as any).inspection_items)
             editData.itemList = items.map((item: any) => ({
               item_id: item.item_id || '',
               inspection_item: item.inspection_item || '',

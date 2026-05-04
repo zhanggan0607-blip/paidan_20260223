@@ -3,9 +3,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class InspectionItem(Base):
+class InspectionItem(Base, SerializationMixin):
     __tablename__ = 'inspection_item'
 
     id = Column(Integer, primary_key=True, index=True)
@@ -22,19 +23,3 @@ class InspectionItem(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), comment='更新时间')
 
     children = relationship("InspectionItem", backref="parent", remote_side=[id])
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'item_code': self.item_code,
-            'item_name': self.item_name,
-            'item_type': self.item_type,
-            'level': self.level,
-            'parent_id': self.parent_id,
-            'check_content': self.check_content,
-            'check_standard': self.check_standard,
-            'sort_order': self.sort_order,
-            'deleted_at': self.deleted_at.isoformat() if self.deleted_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

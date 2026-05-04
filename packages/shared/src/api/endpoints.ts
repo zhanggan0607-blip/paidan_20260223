@@ -196,6 +196,7 @@ export const API_ENDPOINTS = {
   UPLOAD: {
     FILE: '/upload',
     BASE64: '/upload/base64',
+    BATCH: '/upload/batch',
   },
 
   OCR: {

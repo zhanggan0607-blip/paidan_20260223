@@ -14,7 +14,8 @@ import {
   sortByTimestampDesc,
 } from '@sstcp/shared'
 import { copyOrderId } from '../utils/clipboard'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 
@@ -47,7 +48,7 @@ const fetchWorkList = async (forceRefresh = false) => {
   loading.value = true
   showLoadingToast({ message: '加载中...', forbidClick: true })
   try {
-    const currentUserName = userStore.getUser()?.name || ''
+    const currentUserName = userStore.currentUser?.name || ''
     const tabKey = currentTab.value?.key
     const isInProgressTab = tabKey === '执行中'
     const isApprovalTab = tabKey === '审批'
@@ -69,7 +70,7 @@ const fetchWorkList = async (forceRefresh = false) => {
           status: '待确认',
         })
         if (response.code === 200) {
-          allItemsCache.value = response.data?.content || response.data?.items || []
+          allItemsCache.value = response.data?.items || []
           apiCache.set(cacheKey, allItemsCache.value, CACHE_TTL.SHORT)
         }
       }

@@ -1,4 +1,6 @@
 
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.exceptions import NotFoundException
@@ -11,6 +13,8 @@ from app.models.spot_work import SpotWork
 from app.models.temporary_repair import TemporaryRepair
 from app.models.work_plan import WorkPlan
 from app.repositories.personnel import PersonnelRepository
+
+logger = logging.getLogger(__name__)
 from app.schemas.personnel import PersonnelCreate, PersonnelUpdate
 
 
@@ -166,7 +170,7 @@ class PersonnelService:
 
         if updated_count > 0:
             db.commit()
-            print(f"[PersonnelService] 同步更新人员姓名: '{old_name}' -> '{new_name}', 共更新 {updated_count} 条记录")
+            logger.info(f"同步更新人员姓名: '{old_name}' -> '{new_name}', 共更新 {updated_count} 条记录")
 
     def _sync_online_user_info(self, user_id: int, name: str, department: str, role: str) -> None:
         """

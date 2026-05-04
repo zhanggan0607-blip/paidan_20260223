@@ -3,8 +3,9 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { sparePartsService } from '../services'
 import { useNavigation } from '../composables/useNavigation'
-import { userStore } from '../stores/userStore'
-import type { SparePartsStock } from '../types/models'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
+import type { SparePartsStock } from '../types/api'
 
 const { goBack } = useNavigation()
 
@@ -13,13 +14,13 @@ const stockList = ref<SparePartsStock[]>([])
 
 const filterKeyword = ref('')
 
-const currentUser = computed(() => userStore.getUser())
+const currentUser = computed(() => userStore.currentUser)
 
 /**
  * 判断是否可以新增入库（管理员或部门经理）
  */
 const canInbound = computed(() => {
-  return userStore.isManager() || userStore.isDepartmentManager()
+  return userStore.isManager || userStore.isDepartmentManager
 })
 
 const existingProductNames = computed(() => {
@@ -387,7 +388,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: sstcp_test
       POSTGRES_USER: sstcp_user
-      POSTGRES_PASSWORD: Sstcp@2026
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     ports:
       - "5432:5432"
     volumes:
@@ -38,7 +38,6 @@ services:
     env_file:
       - backend-python/.env
     environment:
-      - ENVIRONMENT=development
       - DEBUG=True
     volumes:
       - backend-uploads:/app/uploads

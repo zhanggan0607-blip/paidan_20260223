@@ -1,50 +1,78 @@
 <template>
-  <div class="modal-overlay" @click.self="goBack">
+  <div
+    class="modal-overlay"
+    @click.self="goBack"
+  >
     <div class="modal-container">
       <div class="modal-header">
-        <h3 class="modal-title">零星用工工单详情</h3>
-        <button class="modal-close" @click="goBack">×</button>
+        <h3 class="modal-title">
+          零星用工工单详情
+        </h3>
+        <button
+          class="modal-close"
+          @click="goBack"
+        >
+          ×
+        </button>
       </div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-column">
             <div class="form-item">
               <span class="form-label">项目名称</span>
-              <div class="form-value">{{ workData.project_name || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.project_name || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">计划开始日期</span>
-              <div class="form-value">{{ formatDate(workData.plan_start_date) }}</div>
+              <div class="form-value">
+                {{ formatDate(workData.plan_start_date) }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">客户单位</span>
-              <div class="form-value">{{ workData.client_name || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.client_name || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">客户联系人</span>
-              <div class="form-value">{{ workData.client_contact || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.client_contact || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">运维人员</span>
-              <div class="form-value">{{ workData.maintenance_personnel || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.maintenance_personnel || '暂无数据' }}
+              </div>
             </div>
           </div>
           <div class="form-column">
             <div class="form-item">
               <span class="form-label">工单编号</span>
-              <div class="form-value">{{ workData.work_id || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.work_id || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">计划结束日期</span>
-              <div class="form-value">{{ formatDate(workData.plan_end_date) }}</div>
+              <div class="form-value">
+                {{ formatDate(workData.plan_end_date) }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">客户地址</span>
-              <div class="form-value">{{ workData.address || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.address || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">客户联系方式</span>
-              <div class="form-value">{{ workData.client_contact_info || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ workData.client_contact_info || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">工天统计</span>
@@ -57,13 +85,18 @@
 
         <div class="work-content-section">
           <span class="form-label">工作内容</span>
-          <div class="form-value work-content">{{ workData.work_content || '暂无数据' }}</div>
+          <div class="form-value work-content">
+            {{ workData.work_content || '暂无数据' }}
+          </div>
         </div>
 
         <div class="status-section">
           <span class="form-label">状态</span>
           <div class="form-value">
-            <span class="status-tag" :class="getStatusClass(workData.status)">{{
+            <span
+              class="status-tag"
+              :class="getStatusClass(workData.status)"
+            >{{
               workData.status || '暂无数据'
             }}</span>
           </div>
@@ -71,30 +104,59 @@
 
         <div class="form-item-full">
           <span class="form-label">现场图片</span>
-          <div v-if="workData.photos && workData.photos.length > 0" class="photo-grid">
+          <div
+            v-if="workData.photos && workData.photos.length > 0"
+            class="photo-grid"
+          >
             <div
               v-for="(photo, index) in workData.photos"
               :key="index"
               class="photo-item"
               @click="previewPhoto(photo)"
             >
-              <img :src="photo" alt="现场图片" loading="lazy" />
+              <img
+                :src="photo"
+                alt="现场图片"
+                loading="lazy"
+              >
             </div>
           </div>
-          <div v-else class="form-value">暂无数据</div>
+          <div
+            v-else
+            class="form-value"
+          >
+            暂无数据
+          </div>
         </div>
 
         <div class="form-item-full">
           <span class="form-label">班组签字</span>
-          <div v-if="workData.signature" class="signature-container">
-            <img :src="workData.signature" alt="班组签字" class="signature-image" />
+          <div
+            v-if="workData.signature"
+            class="signature-container"
+          >
+            <img
+              :src="workData.signature"
+              alt="班组签字"
+              class="signature-image"
+            >
           </div>
-          <div v-else class="form-value">暂无数据</div>
+          <div
+            v-else
+            class="form-value"
+          >
+            暂无数据
+          </div>
         </div>
 
         <div class="workers-section">
-          <h4 class="section-title">施工人员详情</h4>
-          <table v-if="workers.length > 0" class="workers-table">
+          <h4 class="section-title">
+            施工人员详情
+          </h4>
+          <table
+            v-if="workers.length > 0"
+            class="workers-table"
+          >
             <thead>
               <tr>
                 <th>序号</th>
@@ -105,28 +167,41 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(worker, index) in workers" :key="worker.id">
+              <tr
+                v-for="(worker, index) in workers"
+                :key="worker.id"
+              >
                 <td>{{ index + 1 }}</td>
                 <td>{{ worker.name || '暂无数据' }}</td>
                 <td>{{ worker.gender || '暂无数据' }}</td>
-                <td>{{ worker.id_card_number || '暂无数据' }}</td>
+                <td>{{ maskIdCard(worker.id_card_number) }}</td>
                 <td>{{ worker.address || '暂无数据' }}</td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="form-value">暂无数据</div>
+          <div
+            v-else
+            class="form-value"
+          >
+            暂无数据
+          </div>
         </div>
 
         <div class="operation-log-section">
-          <div class="section-title">内部确认区</div>
-          <div v-if="operationLogs.length > 0" class="timeline">
+          <div class="section-title">
+            内部确认区
+          </div>
+          <div
+            v-if="operationLogs.length > 0"
+            class="timeline"
+          >
             <div
               v-for="(log, index) in operationLogs"
               :key="log.id"
               class="timeline-item"
               :class="{ last: index === operationLogs.length - 1 }"
             >
-              <div class="timeline-dot"></div>
+              <div class="timeline-dot" />
               <div class="timeline-content">
                 <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
                 <span class="timeline-operator">{{ log.operator_name }}</span>
@@ -134,11 +209,21 @@
               </div>
             </div>
           </div>
-          <div v-else class="no-logs">暂无数据</div>
+          <div
+            v-else
+            class="no-logs"
+          >
+            暂无数据
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-cancel" @click="goBack">关闭</button>
+        <button
+          class="btn btn-cancel"
+          @click="goBack"
+        >
+          关闭
+        </button>
       </div>
     </div>
   </div>
@@ -151,6 +236,7 @@ import { spotWorkService } from '@/services/spotWork'
 import type { SpotWorkWorker } from '@/types/api'
 import request from '@/api/request'
 import type { ApiResponse } from '@/types/api'
+import { maskIdCard } from '@sstcp/shared'
 
 interface WorkData {
   id: number
@@ -338,6 +424,7 @@ export default defineComponent({
       getStatusClass,
       previewPhoto,
       goBack,
+      maskIdCard,
     }
   },
 })

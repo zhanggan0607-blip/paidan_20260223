@@ -3,9 +3,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class SparePartsStock(Base):
+class SparePartsStock(Base, SerializationMixin):
     __tablename__ = "spare_parts_stock"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")

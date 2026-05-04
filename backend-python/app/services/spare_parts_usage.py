@@ -13,9 +13,6 @@ class SparePartsUsageService:
     def __init__(self, db: Session):
         self.repository = SparePartsUsageRepository(db)
 
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        return parse_datetime(date_value)
-
     def get_all(
         self,
         page: int = 0,
@@ -42,7 +39,7 @@ class SparePartsUsageService:
             model=dto.model,
             quantity=dto.quantity,
             user_name=dto.user_name,
-            issue_time=self._parse_date(dto.issue_time),
+            issue_time=parse_datetime(dto.issue_time),
             unit=dto.unit,
             project_id=dto.project_id,
             project_name=dto.project_name
@@ -64,7 +61,7 @@ class SparePartsUsageService:
         if dto.user_name is not None:
             existing_usage.user_name = dto.user_name
         if dto.issue_time is not None:
-            existing_usage.issue_time = self._parse_date(dto.issue_time)
+            existing_usage.issue_time = parse_datetime(dto.issue_time)
         if dto.unit is not None:
             existing_usage.unit = dto.unit
         if dto.project_id is not None:

@@ -5,7 +5,7 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse, PaginatedResponse } from '../types/api'
-import type { MaintenancePlan } from '../types/models'
+import type { MaintenancePlan } from '../types/api'
 
 export interface MaintenancePlanQueryParams {
   page?: number

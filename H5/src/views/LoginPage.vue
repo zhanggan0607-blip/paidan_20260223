@@ -3,7 +3,8 @@ import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { authService } from '../services/auth'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { onlineUserService } from '../services/onlineUser'
 
 const router = useRouter()
@@ -101,7 +102,7 @@ const handleLogin = async () => {
       </div>
     </div>
 
-    <div class="login-form">
+    <form class="login-form" @submit.prevent="handleLogin">
       <div class="form-title">账号登录</div>
 
       <div class="form-fields">
@@ -123,12 +124,11 @@ const handleLogin = async () => {
             class="field-input"
             placeholder="请输入密码"
             autocomplete="current-password"
-            @keyup.enter="handleLogin"
           />
         </div>
       </div>
 
-      <button class="login-btn" :disabled="loading" @click="handleLogin">
+      <button type="submit" class="login-btn" :disabled="loading">
         <span v-if="!loading">登 录</span>
         <span v-else>登录中...</span>
       </button>
@@ -136,7 +136,7 @@ const handleLogin = async () => {
       <div class="login-tip">
         <span>默认密码为手机号后6位</span>
       </div>
-    </div>
+    </form>
   </div>
 </template>
 

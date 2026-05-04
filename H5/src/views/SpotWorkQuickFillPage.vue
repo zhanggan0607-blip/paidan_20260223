@@ -5,7 +5,7 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'v
 import { spotWorkService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import { useNavigation } from '../composables/useNavigation'
-import type { ProjectInfo } from '../types/models'
+import type { ProjectInfo } from '../types/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -249,6 +249,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 </style>

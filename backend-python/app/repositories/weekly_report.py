@@ -83,7 +83,7 @@ class WeeklyReportRepository:
     def create(self, report: WeeklyReport) -> WeeklyReport:
         try:
             self.db.add(report)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(report)
             return report
         except Exception as e:
@@ -93,7 +93,7 @@ class WeeklyReportRepository:
 
     def update(self, report: WeeklyReport) -> WeeklyReport:
         try:
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(report)
             return report
         except Exception as e:
@@ -104,7 +104,7 @@ class WeeklyReportRepository:
     def delete(self, report: WeeklyReport) -> None:
         try:
             report.is_deleted = True
-            self.db.commit()
+            self.db.flush()
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除维保周报失败: {str(e)}")

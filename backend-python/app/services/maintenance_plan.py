@@ -3,6 +3,7 @@
 提供维保计划业务逻辑处理
 """
 import logging
+import json
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -14,66 +15,36 @@ from app.models.spot_work import SpotWork
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.maintenance_plan import MaintenancePlanRepository
 from app.schemas.maintenance_plan import MaintenancePlanCreate, MaintenancePlanUpdate
+from app.services.base import BaseService
 from app.services.sync_service import SyncService
 from app.utils.date_utils import parse_datetime
 
 logger = logging.getLogger(__name__)
 
 
-class MaintenancePlanService:
+class MaintenancePlanService(BaseService):
     """
     维保计划服务
     提供维保计划的增删改查等业务逻辑
     """
 
+    @staticmethod
+    def _parse_inspection_items(value):
+        if value is None:
+            return None
+        if isinstance(value, (list, dict)):
+            return value
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except (json.JSONDecodeError, TypeError):
+                return value
+        return value
+
     def __init__(self, db: Session):
         self.repository = MaintenancePlanRepository(db)
         self.sync_service = SyncService(db)
-        self._db = db
-
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        """解析日期"""
-        return parse_datetime(date_value)
-
-    def _create_operation_log(
-        self,
-        work_order_type: str,
-        work_order_id: int,
-        work_order_no: str,
-        operator_name: str,
-        operator_id: int | None,
-        operation_type: str,
-        operation_type_name: str,
-        remark: str
-    ) -> None:
-        """
-        创建操作日志
-
-        Args:
-            work_order_type: 工单类型
-            work_order_id: 工单ID
-            work_order_no: 工单编号
-            operator_name: 操作者名称
-            operator_id: 操作者ID
-            operation_type: 操作类型代码
-            operation_type_name: 操作类型名称
-            remark: 备注
-        """
-        from app.models.work_order_operation_log import WorkOrderOperationLog
-
-        log = WorkOrderOperationLog(
-            work_order_type=work_order_type,
-            work_order_id=work_order_id,
-            work_order_no=work_order_no,
-            operator_name=operator_name,
-            operator_id=operator_id,
-            operation_type=operation_type,
-            operation_type_code=operation_type,
-            operation_type_name=operation_type_name,
-            operation_remark=remark
-        )
-        self._db.add(log)
-        self._db.commit()
+        super().__init__(db)
 
     def get_all(
         self,
@@ -235,10 +206,10 @@ class MaintenancePlanService:
             existing_deleted.equipment_name = dto.equipment_name
             existing_deleted.equipment_model = dto.equipment_model
             existing_deleted.equipment_location = dto.equipment_location
-            existing_deleted.plan_start_date = self._parse_date(dto.plan_start_date)
-            existing_deleted.plan_end_date = self._parse_date(dto.plan_end_date)
-            existing_deleted.execution_date = self._parse_date(dto.execution_date)
-            existing_deleted.next_maintenance_date = self._parse_date(dto.next_maintenance_date)
+            existing_deleted.plan_start_date = parse_datetime(dto.plan_start_date)
+            existing_deleted.plan_end_date = parse_datetime(dto.plan_end_date)
+            existing_deleted.execution_date = parse_datetime(dto.execution_date)
+            existing_deleted.next_maintenance_date = parse_datetime(dto.next_maintenance_date)
             existing_deleted.maintenance_personnel = dto.maintenance_personnel
             existing_deleted.responsible_department = dto.responsible_department
             existing_deleted.contact_info = dto.contact_info
@@ -251,7 +222,7 @@ class MaintenancePlanService:
             existing_deleted.filled_count = dto.filled_count or 0
             existing_deleted.total_count = dto.total_count or 5
             existing_deleted.remarks = dto.remarks
-            existing_deleted.inspection_items = dto.inspection_items
+            existing_deleted.inspection_items = self._parse_inspection_items(dto.inspection_items)
             existing_deleted.is_deleted = False
             existing_deleted.deleted_at = None
             existing_deleted.deleted_by = None
@@ -296,10 +267,10 @@ class MaintenancePlanService:
             equipment_name=dto.equipment_name,
             equipment_model=dto.equipment_model,
             equipment_location=dto.equipment_location,
-            plan_start_date=self._parse_date(dto.plan_start_date),
-            plan_end_date=self._parse_date(dto.plan_end_date),
-            execution_date=self._parse_date(dto.execution_date),
-            next_maintenance_date=self._parse_date(dto.next_maintenance_date),
+            plan_start_date=parse_datetime(dto.plan_start_date),
+            plan_end_date=parse_datetime(dto.plan_end_date),
+            execution_date=parse_datetime(dto.execution_date),
+            next_maintenance_date=parse_datetime(dto.next_maintenance_date),
             maintenance_personnel=dto.maintenance_personnel,
             responsible_department=dto.responsible_department,
             contact_info=dto.contact_info,
@@ -312,7 +283,7 @@ class MaintenancePlanService:
             filled_count=dto.filled_count or 0,
             total_count=dto.total_count or 5,
             remarks=dto.remarks,
-            inspection_items=dto.inspection_items
+            inspection_items=self._parse_inspection_items(dto.inspection_items)
         )
 
         logger.info(f"📥 [Service] 准备保存到数据库: plan_id={maintenance_plan.plan_id}, plan_name={maintenance_plan.plan_name}")
@@ -436,10 +407,10 @@ class MaintenancePlanService:
         existing_plan.equipment_name = dto.equipment_name
         existing_plan.equipment_model = dto.equipment_model
         existing_plan.equipment_location = dto.equipment_location
-        existing_plan.plan_start_date = self._parse_date(dto.plan_start_date)
-        existing_plan.plan_end_date = self._parse_date(dto.plan_end_date)
-        existing_plan.execution_date = self._parse_date(dto.execution_date)
-        existing_plan.next_maintenance_date = self._parse_date(dto.next_maintenance_date)
+        existing_plan.plan_start_date = parse_datetime(dto.plan_start_date)
+        existing_plan.plan_end_date = parse_datetime(dto.plan_end_date)
+        existing_plan.execution_date = parse_datetime(dto.execution_date)
+        existing_plan.next_maintenance_date = parse_datetime(dto.next_maintenance_date)
         existing_plan.maintenance_personnel = dto.maintenance_personnel
         existing_plan.responsible_department = dto.responsible_department
         existing_plan.contact_info = dto.contact_info
@@ -452,7 +423,7 @@ class MaintenancePlanService:
         existing_plan.filled_count = dto.filled_count or 0
         existing_plan.total_count = dto.total_count or 5
         existing_plan.remarks = dto.remarks
-        existing_plan.inspection_items = dto.inspection_items
+        existing_plan.inspection_items = self._parse_inspection_items(dto.inspection_items)
 
         result = self.repository.update(existing_plan)
 

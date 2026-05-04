@@ -3,6 +3,8 @@
  * 为拍照上传的图片添加用户名、时间和经纬度水印
  */
 
+import { formatDateTime as _formatDateTime } from './format'
+
 export interface WatermarkOptions {
   userName: string
   includeLocation?: boolean
@@ -15,16 +17,7 @@ export interface WatermarkOptions {
  * 获取当前格式化时间
  * @returns 格式化后的时间字符串 YYYY-MM-DD HH:mm:ss
  */
-const formatDateTime = (): string => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  const seconds = String(now.getSeconds()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
-}
+const formatDateTime = (): string => _formatDateTime(new Date())
 
 /**
  * 格式化经纬度
@@ -202,54 +195,6 @@ export const compressImage = (file: File, maxSizeKB: number = 500): Promise<Blob
   })
 }
 
-/**
- * 生成正方形缩略图
- * @param file 原始图片文件
- * @param size 缩略图尺寸，默认200px
- * @returns 缩略图Blob对象
- */
-export const generateThumbnail = (file: File, size: number = 200): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const url = URL.createObjectURL(file)
-    
-    img.onload = () => {
-      URL.revokeObjectURL(url)
-      
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      
-      if (!ctx) {
-        reject(new Error('无法创建Canvas上下文'))
-        return
-      }
-      
-      const minDimension = Math.min(img.width, img.height)
-      const sx = (img.width - minDimension) / 2
-      const sy = (img.height - minDimension) / 2
-      
-      canvas.width = size
-      canvas.height = size
-      
-      ctx.drawImage(img, sx, sy, minDimension, minDimension, 0, 0, size, size)
-      
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob)
-        } else {
-          reject(new Error('缩略图生成失败'))
-        }
-      }, 'image/jpeg', 0.8)
-    }
-    
-    img.onerror = () => {
-      URL.revokeObjectURL(url)
-      reject(new Error('图片加载失败'))
-    }
-    
-    img.src = url
-  })
-}
 
 /**
  * 处理拍照图片：添加水印并压缩

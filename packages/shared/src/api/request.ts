@@ -390,17 +390,4 @@ export function createRequest(config: RequestConfig): RequestInstance {
   }
 }
 
-export const handleApiError = (error: unknown, defaultMessage: string = '操作失败'): string => {
-  if (error && typeof error === 'object' && 'message' in error) {
-    return (error as ApiError).message || defaultMessage
-  }
-  return defaultMessage
-}
-
-export const isApiError = (error: unknown): error is ApiError => {
-  return error !== null && typeof error === 'object' && 'status' in error && 'message' in error
-}
-
-export { decodeJwtPayload, shouldRefreshToken }
-
 export default createRequest

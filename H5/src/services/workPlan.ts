@@ -11,7 +11,7 @@ import type {
   WorkPlanCreate,
   WorkPlanUpdate,
   WorkPlanStatistics,
-} from '../types/models'
+} from '../types/api'
 
 export const workPlanService = {
   /**

@@ -2,9 +2,10 @@ from sqlalchemy import BigInteger, Boolean, Column, DateTime, Index, String
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class Personnel(Base):
+class Personnel(Base, SerializationMixin):
     __tablename__ = "personnel"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
@@ -35,24 +36,3 @@ class Personnel(Base):
         Index('idx_personnel_created_at', 'created_at'),
         {'comment': '人员信息表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'name': self.name,
-            'gender': self.gender,
-            'phone': self.phone,
-            'department': self.department,
-            'role': self.role,
-            'address': self.address,
-            'remarks': self.remarks,
-            'dingtalk_userid': self.dingtalk_userid,
-            'dingtalk_unionid': self.dingtalk_unionid,
-            'dingtalk_avatar': self.dingtalk_avatar,
-            'dingtalk_title': self.dingtalk_title,
-            'is_synced': self.is_synced,
-            'must_change_password': self.must_change_password,
-            'last_login_at': self.last_login_at.strftime('%Y-%m-%d %H:%M:%S') if self.last_login_at else None,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

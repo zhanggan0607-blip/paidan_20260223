@@ -7,30 +7,39 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label for="search_maintenancePersonnel" class="search-label">运维人员：</label>
+                  <label
+                    for="search_maintenancePersonnel"
+                    class="search-label"
+                  >运维人员：</label>
                   <SearchInput
-              input-id="search_maintenancePersonnel"
                     v-model="filters.user"
+                    input-id="search_maintenancePersonnel"
                     field-key="RepairToolsIssue_user"
                     placeholder="请输入运维人员"
                     @input="handleSearch"
                   />
                 </div>
                 <div class="search-item">
-                  <label for="search_toolName" class="search-label">工具名称：</label>
+                  <label
+                    for="search_toolName"
+                    class="search-label"
+                  >工具名称：</label>
                   <SearchInput
-              input-id="search_toolName"
                     v-model="filters.toolName"
+                    input-id="search_toolName"
                     field-key="RepairToolsIssue_toolName"
                     placeholder="请输入工具名称"
                     @input="handleSearch"
                   />
                 </div>
                 <div class="search-item">
-                  <label for="search_projectName" class="search-label">项目名称：</label>
+                  <label
+                    for="search_projectName"
+                    class="search-label"
+                  >项目名称：</label>
                   <SearchInput
-              input-id="search_projectName"
                     v-model="filters.project"
+                    input-id="search_projectName"
                     field-key="RepairToolsIssue_project"
                     placeholder="请输入项目名称"
                     @input="handleSearch"
@@ -143,8 +152,8 @@
                 <span>每页</span>
                 <select
                   id="pageSize"
-                  name="pageSize"
                   v-model="pageSize"
+                  name="pageSize"
                   class="page-size-select"
                   @change="handlePageSizeChange"
                 >
@@ -186,10 +195,15 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="toolName" class="form-label">工具名称<span class="required">*</span></label>
+            <label
+              for="toolName"
+              class="form-label"
+            >工具名称<span class="required">*</span></label>
             <div class="tool-search-wrapper">
-              <input id="toolName" name="toolName"
+              <input
+                id="toolName"
                 v-model="toolSearchKeyword"
+                name="toolName"
                 type="text"
                 class="form-input"
                 placeholder="输入关键词搜索工具..."
@@ -229,9 +243,14 @@
             </div>
           </div>
           <div class="form-item">
-            <label for="issueQuantity" class="form-label">领用数量<span class="required">*</span></label>
-            <input id="issueQuantity" name="issueQuantity"
+            <label
+              for="issueQuantity"
+              class="form-label"
+            >领用数量<span class="required">*</span></label>
+            <input
+              id="issueQuantity"
               v-model.number="formData.quantity"
+              name="issueQuantity"
               type="number"
               :min="1"
               class="form-input"
@@ -239,8 +258,13 @@
             >
           </div>
           <div class="form-item">
-            <label for="maintenancePersonnel" class="form-label">运维人员</label>
-            <input id="maintenancePersonnel" name="maintenancePersonnel"
+            <label
+              for="maintenancePersonnel"
+              class="form-label"
+            >运维人员</label>
+            <input
+              id="maintenancePersonnel"
+              name="maintenancePersonnel"
               :value="currentUser?.name || ''"
               type="text"
               class="form-input"
@@ -249,9 +273,14 @@
             >
           </div>
           <div class="form-item">
-            <label for="project" class="form-label">所属项目</label>
-            <select id="project" name="project"
+            <label
+              for="project"
+              class="form-label"
+            >所属项目</label>
+            <select
+              id="project"
               v-model="formData.project_id"
+              name="project"
               class="form-select"
               @change="handleProjectChange"
             >
@@ -268,9 +297,14 @@
             </select>
           </div>
           <div class="form-item">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remark"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入备注"
             />
@@ -301,8 +335,8 @@ import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
-import SearchInput from '@/components/SearchInput.vue'
-import { userStore } from '@/stores/userStore'
+import { SearchInput } from '@sstcp/shared'
+import { useUserStore } from '@/stores/userStore'
 import { ElMessage } from 'element-plus'
 
 interface RepairToolsIssueItem {
@@ -348,6 +382,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const loading = ref(false)
     const submitting = ref(false)
     const dataList = ref<RepairToolsIssueItem[]>([])
@@ -434,8 +469,8 @@ export default defineComponent({
         })) as unknown as PaginatedResponse<RepairToolsIssueItem>
 
         if (response && response.code === 200 && response.data) {
-          dataList.value = response.data.items || response.data.content || []
-          total.value = response.data.total || response.data.totalElements || 0
+          dataList.value = response.data.items || []
+          total.value = response.data.total || 0
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
@@ -451,7 +486,7 @@ export default defineComponent({
           params: { page: 0, size: 500 },
         })) as unknown as PaginatedResponse<Tool>
         if (response && response.code === 200 && response.data) {
-          toolList.value = response.data.items || response.data.content || []
+          toolList.value = response.data.items || []
         }
       } catch (error) {
         console.error('加载工具列表失败:', error)
@@ -579,7 +614,7 @@ export default defineComponent({
           project_id: formData.value.project_id || null,
           remark: formData.value.remark || null,
           user_id: formData.value.user_id ? Number(formData.value.user_id) : null,
-          user_name: userStore.getUser()?.name,
+          user_name: userStore.currentUser?.name,
           project_name: project?.project_name || null,
         }
 
@@ -669,7 +704,7 @@ export default defineComponent({
       selectedTool,
       filteredToolList,
       filteredProjectList,
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       handleSearch,
       handleAdd,
       closeAddModal,

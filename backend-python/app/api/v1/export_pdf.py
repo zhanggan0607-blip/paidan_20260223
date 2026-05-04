@@ -498,6 +498,22 @@ def create_image_from_url(url_or_path: str, width: float, height: float, db: Ses
                     return Image(img_stream, width=width, height=height)
             return None
         elif url_or_path.startswith(("http://", "https://")):
+            from urllib.parse import urlparse
+            from app.config import get_settings
+            parsed = urlparse(url_or_path)
+            allowed_domains = []
+            settings = get_settings()
+            if settings.aliyun_oss_endpoint:
+                allowed_domains.append(settings.aliyun_oss_endpoint)
+            if settings.aliyun_oss_cdn_domain:
+                allowed_domains.append(settings.aliyun_oss_cdn_domain)
+            if settings.server_base_url:
+                server_parsed = urlparse(settings.server_base_url)
+                if server_parsed.hostname:
+                    allowed_domains.append(server_parsed.hostname)
+            if allowed_domains and parsed.hostname not in allowed_domains:
+                logger.warning(f"图片URL域名不在白名单中: {parsed.hostname}, 允许: {allowed_domains}")
+                return None
             response = requests.get(url_or_path, timeout=10)
             if response.status_code == 200:
                 img_data = IOBytesIO(response.content)
@@ -735,11 +751,14 @@ def render_workers_section(label: str, workers, styles, elements: list):
             Paragraph("住址", header_style),
         ]]
         for i, worker in enumerate(workers, 1):
+            id_card = worker.id_card_number or NO_DATA_TEXT
+            if id_card != NO_DATA_TEXT and len(id_card) >= 7:
+                id_card = f"{id_card[:3]}****{id_card[-4:]}"
             worker_data.append([
                 _make_cell_paragraph(str(i), styles, 'WorkerSeq'),
                 _make_cell_paragraph(worker.name or NO_DATA_TEXT, styles, 'WorkerName'),
                 _make_cell_paragraph(worker.gender or NO_DATA_TEXT, styles, 'WorkerGender'),
-                _make_cell_paragraph(worker.id_card_number or NO_DATA_TEXT, styles, 'WorkerIdCard'),
+                _make_cell_paragraph(id_card, styles, 'WorkerIdCard'),
                 _make_cell_paragraph(worker.address or NO_DATA_TEXT, styles, 'WorkerAddr'),
             ])
         worker_table = Table(worker_data, colWidths=[40, 80, 50, 130, 140])

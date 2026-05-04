@@ -10,13 +10,14 @@ import {
   showImagePreview,
 } from 'vant'
 import { temporaryRepairService, uploadService, operationLogService } from '../services'
-import { formatDate } from '@sstcp/shared'
+import { formatDate, processPhoto, getCurrentLocation, getWorkIdFontSize } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import { copyOrderId } from '../utils/clipboard'
-import type { TemporaryRepair } from '../types/models'
+import type { TemporaryRepair } from '../types/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -47,14 +48,9 @@ const isApproveMode = computed(() => {
 })
 
 const isWorker = computed(() => {
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user || !detail.value) return false
   const workerName = detail.value.maintenance_personnel
-  console.log('=== isWorker 计算属性 ===')
-  console.log('当前用户:', user.name)
-  console.log('工单维护人员:', workerName)
-  console.log('匹配结果:', workerName === user.name)
-  console.log('==================')
   return workerName === user.name
 })
 
@@ -161,23 +157,6 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
   })
 }
 
-/**
- * 根据工单编号长度计算字体大小
- * @param workId 工单编号
- * @returns 字体大小(px)
- */
-const getWorkIdFontSize = (workId: string) => {
-  if (!workId) return 14
-  const len = workId.length
-  if (len <= 18) return 14
-  if (len <= 22) return 12
-  if (len <= 26) return 11
-  if (len <= 30) return 10
-  if (len <= 35) return 9
-  if (len <= 40) return 8
-  return 7
-}
-
 const fetchDetail = async () => {
   const id = route.params.id
   if (!id) return
@@ -217,22 +196,17 @@ const fetchDetail = async () => {
 }
 
 const loadSignature = async () => {
-  console.log('=== 加载签字数据 ===')
   const signatureData = localStorage.getItem('temporary_repair_signature')
-  console.log('localStorage中的签字数据:', signatureData ? '存在(长度:' + signatureData.length + ')' : '不存在')
   if (signatureData) {
     formData.value.signature = signatureData
-    console.log('签字数据已加载到formData')
     
     if (detail.value?.id && isEditable.value) {
       try {
-        console.log('立即保存签字数据到后端...')
         const saveData = {
           signature: signatureData,
         }
         const response = await temporaryRepairService.patch(detail.value.id, saveData)
         if (response.code === 200) {
-          console.log('签字数据保存成功，清除localStorage')
           localStorage.removeItem('temporary_repair_signature')
         } else {
           console.error('签字数据保存失败:', response.message)
@@ -242,43 +216,125 @@ const loadSignature = async () => {
       }
     }
   }
-  console.log('formData.signature:', formData.value.signature ? '存在(长度:' + formData.value.signature.length + ')' : '不存在')
-  console.log('==================')
 }
 
 const handlePhotoUpload = () => {
-  console.log('=== 照片查看/上传调试 ===')
-  console.log('isEditable:', isEditable.value)
-  console.log('isWorker:', isWorker.value)
-  console.log('status:', detail.value?.status)
-  console.log('maintenance_personnel:', detail.value?.maintenance_personnel)
-  console.log('user.name:', userStore.getUser()?.name)
-  console.log('==================')
   showPhotoPopup.value = true
 }
 
 const handlePhotoCapture = () => {
-  console.log('========================================')
-  console.log('========= 2026-03-25 v10 =========')
-  console.log('========================================')
-  console.log('=== handlePhotoCapture 被调用 ===')
   const ua = navigator.userAgent.toLowerCase()
-  console.log('navigator.userAgent:', navigator.userAgent)
-  console.log('navigator.platform:', navigator.platform)
-  console.log('navigator.maxTouchPoints:', navigator.maxTouchPoints)
-  
   const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
-  
-  console.log('isIOS检测结果:', isIOS)
-  console.log('isDingTalk检测结果:', isDingTalk)
-  console.log('isMobile检测结果:', isMobile)
-  console.log('navigator.maxTouchPoints > 1:', navigator.maxTouchPoints > 1)
-  console.log('useBase64Upload:', useBase64Upload)
 
-  tryCaptureOnIOS()
+  if (useBase64Upload) {
+    tryCaptureOnIOS()
+  } else {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = true
+    input.capture = 'environment'
+
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const allFiles = target.files
+      if (!allFiles || allFiles.length === 0) return
+
+      const remaining = 9 - currentPhotos.value.length
+      if (remaining <= 0) {
+        showFailToast('已达到最大上传数量')
+        return
+      }
+      const files = Array.from(allFiles).slice(0, remaining)
+
+      showLoadingToast({ message: `处理中(0/${files.length})...`, forbidClick: true })
+
+      const processedFiles: File[] = []
+      let processFailed = 0
+
+      for (let i = 0; i < files.length; i++) {
+        try {
+          showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          const processedFile = await processPhoto(files[i], {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+          processedFiles.push(processedFile)
+        } catch (error) {
+          console.error('Failed to process photo:', error)
+          processFailed++
+        }
+      }
+
+      if (processedFiles.length === 0) {
+        closeToast()
+        showFailToast('图片处理失败')
+        return
+      }
+
+      showLoadingToast({ message: `上传中(${processedFiles.length}张)...`, forbidClick: true })
+
+      try {
+        const response = await uploadService.uploadFiles(processedFiles)
+        let uploadedCount = 0
+        let failedCount = processFailed
+
+        if (response.code === 200 && response.data) {
+          const successList = response.data.success || response.data
+          if (Array.isArray(successList)) {
+            for (const item of successList) {
+              if (item.url) {
+                currentPhotos.value.push(item.url)
+                uploadedCount++
+              }
+            }
+          }
+          const failedList = response.data.failed || []
+          failedCount += failedList.length
+        } else {
+          failedCount += processedFiles.length
+        }
+
+        closeToast()
+        if (uploadedCount > 0) {
+          const photosToSave = [...currentPhotos.value]
+          const detailId = detail.value?.id
+          if (detailId) {
+            showLoadingToast({ message: '保存中...', forbidClick: true })
+            try {
+              const saveData = {
+                photos: photosToSave,
+                signature: formData.value.signature,
+                remarks: formData.value.remarks,
+                fault_description: formData.value.fault_description,
+                solution: formData.value.solution,
+              }
+              await temporaryRepairService.patch(detailId, saveData)
+            } catch (saveError) {
+              console.error('保存失败:', saveError)
+            }
+          }
+          closeToast()
+          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+        } else {
+          showFailToast('上传失败')
+        }
+      } catch (error) {
+        console.error('Batch upload failed:', error)
+        closeToast()
+        showFailToast('上传失败')
+      }
+    }
+
+    input.click()
+  }
 }
 
 const tryCaptureOnIOS = () => {
@@ -286,6 +342,7 @@ const tryCaptureOnIOS = () => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
+  input.multiple = true
   input.style.position = 'fixed'
   input.style.top = '0'
   input.style.left = '0'
@@ -296,8 +353,8 @@ const tryCaptureOnIOS = () => {
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) {
+    const allFiles = target.files
+    if (!allFiles || allFiles.length === 0) {
       isIOSUploading = false
       return
     }
@@ -306,127 +363,109 @@ const tryCaptureOnIOS = () => {
       document.body.removeChild(input)
     }
 
-    showLoadingToast({ message: '上传中...', forbidClick: true, duration: 0 })
+    const remaining = 9 - currentPhotos.value.length
+    if (remaining <= 0) {
+      isIOSUploading = false
+      showFailToast('已达到最大上传数量')
+      return
+    }
+    const files = Array.from(allFiles).slice(0, remaining)
 
-    try {
-      console.log('=== iOS拍照上传流程 ===')
-      console.log('原始文件大小:', file.size, 'bytes')
-      console.log('文件类型:', file.type)
-      
-      const userName = userStore.getUser()?.name || '未知用户'
-      console.log('用户名:', userName)
-      
-      let fileToUpload = file
-      
-      if (file.size > 500 * 1024) {
-        console.log('图片太大，开始压缩...')
-        showLoadingToast({ message: '压缩中...', forbidClick: true, duration: 0 })
-        
-        const compressedBlob = await compressImage(file, 500)
-        fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
-        console.log('压缩后文件大小:', fileToUpload.size, 'bytes')
+    showLoadingToast({ message: `上传中(0/${files.length})...`, forbidClick: true, duration: 0 })
+
+    let uploadedCount = 0
+    let failedCount = 0
+
+    for (const file of files) {
+      try {
+        let fileToUpload = file
+
+        if (file.size > 500 * 1024) {
+          showLoadingToast({ message: `压缩中(${uploadedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+
+          const compressedBlob = await compressImage(file, 500)
+          fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+        }
+
+        showLoadingToast({ message: `添加水印(${uploadedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+        const userName = userStore.currentUser?.name || '未知用户'
+        const location = await getCurrentLocation()
+        const watermarkedFile = await processPhoto(fileToUpload, {
+          userName,
+          includeLocation: true,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+        })
+
+        showLoadingToast({ message: `上传中(${uploadedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+
+        const reader = new FileReader()
+
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onload = (ev) => resolve(ev.target?.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(watermarkedFile)
+        })
+
+        if (!base64Data) {
+          failedCount++
+          continue
+        }
+
+        const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
+
+        if (response.code === 200 && response.data) {
+          currentPhotos.value.push(response.data.url)
+          uploadedCount++
+        } else {
+          console.error('上传失败:', response.message)
+          failedCount++
+        }
+      } catch (uploadError: any) {
+        console.error('上传请求失败:', uploadError)
+        failedCount++
       }
+    }
 
-      console.log('开始上传（使用Base64方式）...')
-      console.log('文件大小:', fileToUpload.size, 'bytes')
-      
-      const reader = new FileReader()
-      
-      reader.onload = async (e) => {
+    if (uploadedCount > 0) {
+      const photosToSave = [...currentPhotos.value]
+      const detailId = detail.value?.id
+      if (detailId) {
+        const saveData = {
+          photos: photosToSave,
+          signature: formData.value.signature,
+          remarks: formData.value.remarks,
+          fault_description: formData.value.fault_description,
+          solution: formData.value.solution,
+        }
+
+        closeToast()
+        showLoadingToast({ message: '保存中...', forbidClick: true, duration: 0 })
+
         try {
-          const base64Data = e.target?.result as string
-          if (!base64Data) {
-            throw new Error('无法读取文件数据')
-          }
-          console.log('Base64数据长度:', base64Data.length)
-          
-          const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
-          console.log('上传响应:', response)
-
-          if (response.code === 200 && response.data) {
-            console.log('上传成功，URL:', response.data.url)
-            const newPhotoUrl = response.data.url
-            console.log('newPhotoUrl:', newPhotoUrl)
-            console.log('push前 currentPhotos:', JSON.stringify(currentPhotos.value))
-            currentPhotos.value.push(newPhotoUrl)
-            console.log('push后 currentPhotos:', JSON.stringify(currentPhotos.value))
-            console.log('currentPhotos.value.length:', currentPhotos.value.length)
-            
-            const photosToSave = [...currentPhotos.value]
-            console.log('photosToSave:', JSON.stringify(photosToSave))
-            
-            console.log('=== 检查保存条件 ===')
-            console.log('detail.value?.id:', detail.value?.id)
-            
-            const detailId = detail.value?.id
-            if (detailId) {
-              console.log('=== iOS直接保存到后端 ===')
-              const saveData = {
-                photos: photosToSave,
-                signature: formData.value.signature,
-                remarks: formData.value.remarks,
-                fault_description: formData.value.fault_description,
-                solution: formData.value.solution,
-              }
-              console.log('保存数据:', JSON.stringify(saveData, null, 2))
-              
-              closeToast()
-              showLoadingToast({ message: '保存中...', forbidClick: true, duration: 0 })
-              
-              try {
-                console.log('调用temporaryRepairService.patch, id:', detailId)
-                const saveResponse = await temporaryRepairService.patch(detailId, saveData)
-                console.log('iOS保存结果:', saveResponse)
-                closeToast()
-                isIOSUploading = false
-                if (saveResponse.code === 200) {
-                  console.log('保存成功! photos:', saveResponse.data?.photos)
-                  showSuccessToast('上传并保存成功')
-                } else {
-                  console.error('保存失败:', saveResponse.message)
-                  showFailToast('保存失败: ' + (saveResponse.message || '未知错误'))
-                }
-              } catch (saveError: any) {
-                console.error('保存请求失败:', saveError)
-                closeToast()
-                isIOSUploading = false
-                showFailToast('保存请求失败: ' + (saveError.message || ''))
-              }
-            } else {
-              closeToast()
-              isIOSUploading = false
-              console.error('条件不满足: detail.value?.id=', detailId)
-              showFailToast('无法保存：缺少工单ID')
-            }
-          } else {
-            console.error('上传失败:', response.message)
-            closeToast()
-            isIOSUploading = false
-            showFailToast('上传失败: ' + (response.message || '未知错误'))
-          }
-        } catch (uploadError: any) {
-          console.error('上传请求失败:', uploadError)
+          const saveResponse = await temporaryRepairService.patch(detailId, saveData)
           closeToast()
           isIOSUploading = false
-          showFailToast('上传失败: ' + (uploadError.message || ''))
+          if (saveResponse.code === 200) {
+            showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+          } else {
+            showFailToast('保存失败: ' + (saveResponse.message || '未知错误'))
+          }
+        } catch (saveError: any) {
+          console.error('保存请求失败:', saveError)
+          closeToast()
+          isIOSUploading = false
+          showFailToast('保存请求失败: ' + (saveError.message || ''))
         }
-      }
-      
-      reader.onerror = (error) => {
-        console.error('FileReader错误:', error)
+      } else {
         closeToast()
         isIOSUploading = false
-        showFailToast('读取文件失败')
+        showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
       }
-      
-      console.log('开始readAsDataURL...')
-      reader.readAsDataURL(fileToUpload)
-      
-    } catch (error: any) {
-      console.error('处理流程失败:', error)
+    } else {
       closeToast()
       isIOSUploading = false
-      showFailToast('处理失败: ' + (error.message || ''))
+      showFailToast('上传失败')
     }
   }
 
@@ -499,17 +538,7 @@ const handleViewSignature = () => {
 }
 
 const handleSubmit = async () => {
-  const user = userStore.getUser()
-  console.log('=== 提交调试信息 ===')
-  console.log('当前用户:', user?.name)
-  console.log('工单维护人员:', detail.value?.maintenance_personnel)
-  console.log('工单状态:', detail.value?.status)
-  console.log('照片数量:', currentPhotos.value.length)
-  console.log('签名数据:', formData.value.signature ? '已存在' : '不存在')
-  console.log('isWorker:', isWorker.value)
-  console.log('isEditable:', isEditable.value)
-  console.log('canSubmit:', canSubmit.value)
-  console.log('===================')
+  const user = userStore.currentUser
 
   const status = detail.value?.status
 
@@ -588,7 +617,7 @@ const handleRecall = async () => {
     const response = await temporaryRepairService.recall(detail.value?.id!)
     if (response.code === 200) {
       showSuccessToast('撤回成功')
-      await loadData()
+      await fetchDetail()
     } else {
       showFailToast(response.message || '撤回失败')
     }
@@ -630,7 +659,24 @@ const handleUpdate = async () => {
 
     if (response.code === 200) {
       await addOperationLog('update', '员工更新工单内容')
-      showSuccessToast('更新成功')
+
+      const currentStatus = detail.value?.status
+      if (currentStatus === WORK_STATUS.IN_PROGRESS || currentStatus === WORK_STATUS.RETURNED) {
+        try {
+          const submitResponse = await temporaryRepairService.submit(detail.value?.id!)
+          if (submitResponse.code === 200) {
+            showSuccessToast('更新成功，已自动提交审核')
+          } else {
+            showSuccessToast('更新成功，但提交审核失败')
+          }
+        } catch (submitError) {
+          console.error('提交审核失败:', submitError)
+          showSuccessToast('更新成功，但提交审核失败')
+        }
+      } else {
+        showSuccessToast('更新成功')
+      }
+
       await fetchDetail()
     }
   } catch (error: any) {
@@ -650,19 +696,11 @@ let isIOSUploading = false
  * 自动保存内容到后端（防抖）
  */
 const autoSaveContent = async () => {
-  console.log('=== autoSaveContent 被调用 ===')
-  console.log('detail.value?.id:', detail.value?.id)
-  console.log('isEditable.value:', isEditable.value)
-  console.log('currentPhotos.value.length:', currentPhotos.value.length)
-  console.log('isIOSUploading:', isIOSUploading)
-
   if (!detail.value?.id || !isEditable.value) {
-    console.log('自动保存被跳过: id或isEditable不满足条件')
     return
   }
 
   if (isIOSUploading) {
-    console.log('自动保存被跳过: iOS正在上传')
     return
   }
 
@@ -672,10 +710,8 @@ const autoSaveContent = async () => {
 
   autoSaveTimer = setTimeout(async () => {
     if (isIOSUploading) {
-      console.log('自动保存被跳过: iOS正在上传')
       return
     }
-    console.log('=== 开始执行自动保存 ===')
     try {
       const saveData: Record<string, any> = {
         signature: formData.value.signature,
@@ -686,10 +722,8 @@ const autoSaveContent = async () => {
       if (currentPhotos.value.length > 0) {
         saveData.photos = currentPhotos.value
       }
-      console.log('保存数据:', JSON.stringify({ ...saveData, photos: saveData.photos ? `[${(saveData.photos as string[]).length}张照片]` : '不更新' }))
 
       const response = await temporaryRepairService.patch(detail.value?.id!, saveData)
-      console.log('保存结果:', response)
     } catch (error) {
       console.error('Auto save failed:', error)
     }
@@ -851,7 +885,7 @@ const confirmReject = async () => {
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
   if (!detail.value?.id) return
 
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user) return
 
   try {
@@ -876,13 +910,13 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 onMounted(async () => {
   if (isInitialized.value) return
   
-  if (!userStore.isLoggedIn()) {
+  if (!userStore.isLoggedIn) {
     console.warn('User not logged in, redirecting to login page')
     router.push('/login')
     return
   }
 
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user) {
     console.warn('User data not found')
     showFailToast('用户信息不存在，请重新登录')
@@ -897,7 +931,7 @@ onMounted(async () => {
 
 onActivated(async () => {
   if (!isInitialized.value) {
-    if (!userStore.isLoggedIn()) {
+    if (!userStore.isLoggedIn) {
       router.push('/login')
       return
     }
@@ -1114,7 +1148,7 @@ watch(
                 <span>拍照</span>
               </div>
             </div>
-            <div v-if="isEditable" class="photo-tip">只支持拍照，最多上传9张</div>
+            <div v-if="isEditable" class="photo-tip">支持拍照或从相册选择，最多上传9张，可多选</div>
           </div>
         </div>
         <div v-if="isEditable" class="popup-footer">

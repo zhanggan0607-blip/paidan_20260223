@@ -1,6 +1,6 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse } from '@sstcp/shared'
+import type { ApiResponse, PaginatedData } from '@sstcp/shared'
 import { PLAN_TYPE_LIST } from '../config/constants'
 
 export type PlanType = (typeof PLAN_TYPE_LIST)[number]
@@ -47,20 +47,6 @@ export interface WorkPlanUpdate {
   remarks?: string
 }
 
-export interface PaginatedResponse {
-  code: number
-  message: string
-  data: {
-    content: WorkPlan[]
-    totalElements: number
-    totalPages: number
-    size: number
-    number: number
-    first: boolean
-    last: boolean
-  }
-}
-
 export const workPlanService = {
   async getList(params?: {
     page?: number
@@ -70,7 +56,7 @@ export const workPlanService = {
     client_name?: string
     status?: string
     plan_id?: string
-  }): Promise<PaginatedResponse> {
+  }): Promise<ApiResponse<PaginatedData<WorkPlan>>> {
     return await request.get(API_ENDPOINTS.WORK_PLAN.LIST, { params })
   },
 

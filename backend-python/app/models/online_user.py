@@ -1,9 +1,10 @@
 from sqlalchemy import Boolean, Column, DateTime, Index, Integer, String
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class OnlineUser(Base):
+class OnlineUser(Base, SerializationMixin):
     __tablename__ = "online_users"
 
     id = Column(Integer, primary_key=True, autoincrement=True, comment="主键ID")
@@ -22,17 +23,3 @@ class OnlineUser(Base):
         Index('idx_online_user_is_active', 'is_active'),
         {'comment': '在线用户表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'user_id': self.user_id,
-            'user_name': self.user_name,
-            'department': self.department,
-            'role': self.role,
-            'login_time': self.login_time.isoformat() if self.login_time else None,
-            'last_activity': self.last_activity.isoformat() if self.last_activity else None,
-            'ip_address': self.ip_address,
-            'device_type': self.device_type,
-            'is_active': self.is_active,
-        }

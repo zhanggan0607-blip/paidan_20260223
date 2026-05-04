@@ -303,7 +303,7 @@ import { ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { ElTree } from 'element-plus'
 import { inspectionItemService, type InspectionItem } from '@/services/inspectionItem'
-import SearchInput from '@/components/SearchInput.vue'
+import { SearchInput } from '@sstcp/shared'
 
 interface TreeNodeData extends InspectionItem {
   label: string
@@ -454,7 +454,7 @@ const handleAdd = (data: TreeNodeData) => {
   dialogForm.parentNode = data
   dialogForm.currentNode = null
   dialogForm.item_name = ''
-  dialogForm.item_type = data.item_type
+  dialogForm.item_type = data.item_type ?? ''
   dialogVisible.value = true
 }
 
@@ -471,7 +471,7 @@ const handleAddSibling = (data: TreeNodeData) => {
   dialogForm.parentNode = null
   dialogForm.currentNode = data
   dialogForm.item_name = ''
-  dialogForm.item_type = data.item_type
+  dialogForm.item_type = data.item_type ?? ''
   dialogVisible.value = true
 }
 
@@ -488,7 +488,7 @@ const handleEdit = (data: TreeNodeData) => {
   dialogForm.parentNode = null
   dialogForm.currentNode = data
   dialogForm.item_name = data.item_name
-  dialogForm.item_type = data.item_type
+  dialogForm.item_type = data.item_type ?? ''
   dialogVisible.value = true
 }
 
@@ -584,7 +584,7 @@ const handleDialogConfirm = async () => {
       const newItem = {
         item_code: `ITEM-${Date.now()}`,
         item_name: dialogForm.item_name.trim(),
-        item_type: dialogForm.item_type || dialogForm.parentNode.item_type,
+        item_type: (dialogForm.item_type || dialogForm.parentNode.item_type) ?? '',
         level: dialogForm.parentNode.level + 1,
         parent_id: dialogForm.parentNode.id,
       }
@@ -594,7 +594,7 @@ const handleDialogConfirm = async () => {
       const newItem = {
         item_code: `ITEM-${Date.now()}`,
         item_name: dialogForm.item_name.trim(),
-        item_type: dialogForm.item_type || dialogForm.currentNode.item_type,
+        item_type: (dialogForm.item_type || dialogForm.currentNode.item_type) ?? '',
         level: dialogForm.currentNode.level,
         parent_id: dialogForm.currentNode.parent_id || null,
       }
@@ -665,7 +665,7 @@ const handleDrop = async (draggingNode: any, dropNode: any, dropType: string, _e
   if (dropType === 'inner') {
     newParentId = dropData.id
   } else {
-    newParentId = dropData.parent_id
+    newParentId = dropData.parent_id ?? null
   }
 
   try {

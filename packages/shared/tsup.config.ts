@@ -1,0 +1,32 @@
+import { defineConfig } from 'tsup'
+
+export default defineConfig({
+  entry: {
+    index: 'src/index.ts',
+    'utils/index': 'src/utils/index.ts',
+    'utils/format': 'src/utils/format.ts',
+    'utils/searchHistory': 'src/utils/searchHistory.ts',
+    'utils/watermark': 'src/utils/watermark.ts',
+    'utils/status': 'src/utils/status.ts',
+    'utils/debounce': 'src/utils/debounce.ts',
+    'utils/inputMemory': 'src/utils/inputMemory.ts',
+    'utils/sort': 'src/utils/sort.ts',
+    'utils/sortInterceptor': 'src/utils/sortInterceptor.ts',
+    'types/index': 'src/types/index.ts',
+    'types/api': 'src/types/api.ts',
+    'types/permission': 'src/types/permission.ts',
+    'api/index': 'src/api/index.ts',
+    'api/endpoints': 'src/api/endpoints.ts',
+    'api/request': 'src/api/request.ts',
+    'config/constants': 'src/config/constants.ts',
+    'components/index': 'src/components/index.ts',
+    'services/index': 'src/services/index.ts',
+  },
+  format: ['esm', 'cjs'],
+  dts: true,
+  splitting: false,
+  sourcemap: false,
+  clean: true,
+  external: ['axios', 'vue'],
+  treeshake: true,
+})

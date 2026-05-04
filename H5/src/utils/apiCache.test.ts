@@ -2,7 +2,7 @@
  * H5端API缓存测试
  * 测试缓存读写、TTL过期、键管理
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 
 describe('ApiCache', () => {

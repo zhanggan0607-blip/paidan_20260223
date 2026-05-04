@@ -4,22 +4,19 @@
 
 安全说明：
 - 所有认证必须通过JWT Token完成
+- JWT解码逻辑统一使用 app.auth.decode_jwt_token
 - 不再支持请求头认证（X-User-Name/X-User-Role已被移除）
-- 这是为了防止身份伪造攻击
 """
 from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.database import get_db
 
 settings = get_settings()
-SECRET_KEY = settings.secret_key
-ALGORITHM = "HS256"
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
@@ -78,16 +75,8 @@ class UserInfo:
 
 
 def _parse_jwt_token(token: str) -> dict | None:
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        jti = payload.get("jti")
-        if jti:
-            from app.auth import is_token_blacklisted
-            if is_token_blacklisted(jti):
-                return None
-        return payload
-    except JWTError:
-        return None
+    from app.auth import decode_jwt_token
+    return decode_jwt_token(token)
 
 
 async def get_current_user_info(

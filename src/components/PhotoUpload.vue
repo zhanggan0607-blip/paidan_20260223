@@ -30,21 +30,22 @@
           type="file"
           name="photo"
           accept="image/*"
-          capture="environment"
+          multiple
           style="display: none"
           @change="handleFileSelect"
         >
         <button
           class="add-btn"
+          :disabled="uploading"
           @click="triggerFileSelect"
         >
           <span class="add-icon">+</span>
-          <span class="add-text">添加图片</span>
+          <span class="add-text">{{ uploading ? '上传中...' : '添加图片' }}</span>
         </button>
       </div>
     </div>
     <div class="photo-tip">
-      支持 jpg、png 格式，单张不超过 5MB，最多 {{ maxCount }} 张
+      支持 jpg、png 格式，单张不超过 5MB，最多 {{ maxCount }} 张，可多选
     </div>
   </div>
 </template>
@@ -52,6 +53,7 @@
 <script lang="ts">
 import { defineComponent, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { request } from '@/api/request'
 
 export default defineComponent({
   name: 'PhotoUpload',
@@ -69,10 +71,11 @@ export default defineComponent({
       default: 5 * 1024 * 1024,
     },
   },
-  emits: ['update:modelValue', 'upload'],
+  emits: ['update:modelValue'],
   setup(props, { emit }) {
     const photos = ref<string[]>([...props.modelValue])
     const fileInputRef = ref<HTMLInputElement | null>(null)
+    const uploading = ref(false)
 
     watch(
       () => props.modelValue,
@@ -82,29 +85,91 @@ export default defineComponent({
     )
 
     const triggerFileSelect = () => {
+      if (uploading.value) return
       fileInputRef.value?.click()
+    }
+
+    const uploadBatch = async (files: File[]): Promise<{ success: string[]; failed: { filename: string; error: string }[] }> => {
+      const formData = new FormData()
+      files.forEach((file) => {
+        formData.append('files', file)
+      })
+      try {
+        const response = await request.post('/upload/batch', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        })
+        if (response.code === 200 && response.data) {
+          const data = response.data as { success?: { url: string }[]; failed?: { filename: string; error: string }[] }
+          const successUrls: string[] = (data.success || []).map((item) => item.url)
+          const failedItems: { filename: string; error: string }[] = (data.failed || []).map((item) => ({
+            filename: item.filename || '未知文件',
+            error: item.error || '上传失败',
+          }))
+          return { success: successUrls, failed: failedItems }
+        }
+        return { success: [], failed: files.map((f) => ({ filename: f.name, error: response.message || '上传失败' })) }
+      } catch (error: any) {
+        return { success: [], failed: files.map((f) => ({ filename: f.name, error: error.message || '网络错误' })) }
+      }
     }
 
     const handleFileSelect = async (event: Event) => {
       const target = event.target as HTMLInputElement
-      const file = target.files?.[0]
-      if (!file) return
+      const files = target.files
+      if (!files || files.length === 0) return
 
-      if (file.size > props.maxSize) {
-        ElMessage.warning(`图片大小不能超过 ${props.maxSize / 1024 / 1024}MB`)
+      const remaining = props.maxCount - photos.value.length
+      if (remaining <= 0) {
+        ElMessage.warning('已达到最大上传数量')
+        target.value = ''
+        return
+      }
+      const filesToProcess = Array.from(files).slice(0, remaining)
+
+      if (files.length > remaining) {
+        ElMessage.info(`最多还能上传${remaining}张图片，已自动截取前${remaining}张`)
+      }
+
+      const oversizedFiles: File[] = []
+      const validFiles: File[] = []
+      for (const file of filesToProcess) {
+        if (file.size > props.maxSize) {
+          oversizedFiles.push(file)
+        } else {
+          validFiles.push(file)
+        }
+      }
+
+      for (const file of oversizedFiles) {
+        ElMessage.warning(`图片 ${file.name} 大小不能超过 ${props.maxSize / 1024 / 1024}MB`)
+      }
+
+      if (validFiles.length === 0) {
         target.value = ''
         return
       }
 
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const dataUrl = e.target?.result as string
-        photos.value.push(dataUrl)
-        emit('update:modelValue', [...photos.value])
-        emit('upload', dataUrl)
+      uploading.value = true
+
+      const { success, failed } = await uploadBatch(validFiles)
+
+      if (success.length > 0) {
+        photos.value.push(...success)
       }
-      reader.readAsDataURL(file)
+
+      for (const item of failed) {
+        ElMessage.error(`${item.filename} 上传失败: ${item.error}`)
+      }
+
+      uploading.value = false
+      emit('update:modelValue', [...photos.value])
       target.value = ''
+
+      if (success.length > 0 && failed.length > 0) {
+        ElMessage.warning(`成功上传${success.length}张图片，${failed.length}张失败`)
+      } else if (success.length > 0) {
+        ElMessage.success(`成功上传${success.length}张图片`)
+      }
     }
 
     const removePhoto = async (index: number) => {
@@ -128,6 +193,7 @@ export default defineComponent({
     return {
       photos,
       fileInputRef,
+      uploading,
       triggerFileSelect,
       handleFileSelect,
       removePhoto,
@@ -208,6 +274,11 @@ export default defineComponent({
 
 .add-btn:hover {
   color: var(--color-primary);
+}
+
+.add-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .add-icon {

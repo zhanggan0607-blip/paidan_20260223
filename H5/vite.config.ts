@@ -26,7 +26,7 @@ function getLocalIP(): string {
 
 const localIP = getLocalIP()
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   plugins: [
     vue(),
     AutoImport({
@@ -50,6 +50,7 @@ export default defineConfig(({ mode }) => ({
         '../packages/shared/src/types/permission.ts'
       ),
     },
+    dedupe: ['vue', 'axios'],
   },
   base: '/h5/',
   server: {
@@ -73,18 +74,12 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         timeout: 60000,
         proxyTimeout: 60000,
+        rewrite: (path) => path.replace(/^\/uploads/, '/api/v1/files'),
       },
     },
   },
   build: {
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: mode === 'production',
-        drop_debugger: mode === 'production',
-        pure_funcs: mode === 'production' ? ['console.log', 'console.info', 'console.debug'] : [],
-      },
-    },
+    minify: 'esbuild',
     sourcemap: false,
     chunkSizeWarningLimit: 500,
     rollupOptions: {
@@ -103,4 +98,4 @@ export default defineConfig(({ mode }) => ({
   optimizeDeps: {
     include: ['vue', 'vue-router', 'pinia', 'vant', 'axios'],
   },
-}))
+})

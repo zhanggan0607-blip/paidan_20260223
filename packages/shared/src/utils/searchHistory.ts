@@ -3,8 +3,9 @@
  * 统一管理搜索历史记录，支持PC端和H5端
  */
 
-const SEARCH_HISTORY_KEY = 'search_history'
-const MAX_HISTORY_SIZE = 20
+const SEARCH_HISTORY_PREFIX = 'search_history_'
+const GLOBAL_HISTORY_KEY = 'search_history'
+const DEFAULT_MAX_ITEMS = 20
 
 export interface SearchHistoryItem {
   keyword: string
@@ -12,212 +13,124 @@ export interface SearchHistoryItem {
   type?: string
 }
 
-/**
- * 获取搜索历史
- * @param type 可选的类型过滤
- * @returns 搜索历史列表
- */
-export const getSearchHistory = (type?: string): SearchHistoryItem[] => {
-  try {
-    const historyStr = localStorage.getItem(SEARCH_HISTORY_KEY)
-    if (!historyStr) return []
-    const history: SearchHistoryItem[] = JSON.parse(historyStr)
-    if (type) {
-      return history.filter(item => item.type === type)
-    }
-    return history
-  } catch {
-    return []
-  }
-}
-
-/**
- * 添加搜索历史
- * @param keyword 搜索关键词
- * @param type 可选的类型
- */
-export const addSearchHistory = (keyword: string, type?: string): void => {
-  if (!keyword.trim()) return
-  
-  try {
-    const history = getSearchHistory()
-    const existingIndex = history.findIndex(
-      item => item.keyword === keyword && (type ? item.type === type : true)
-    )
-    
-    if (existingIndex !== -1) {
-      history.splice(existingIndex, 1)
-    }
-    
-    history.unshift({
-      keyword: keyword.trim(),
-      timestamp: Date.now(),
-      type
-    })
-    
-    if (history.length > MAX_HISTORY_SIZE) {
-      history.splice(MAX_HISTORY_SIZE)
-    }
-    
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history))
-  } catch {
-    console.error('保存搜索历史失败')
-  }
-}
-
-/**
- * 删除单条搜索历史
- * @param keyword 搜索关键词
- * @param type 可选的类型
- */
-export const removeSearchHistory = (keyword: string, type?: string): void => {
-  try {
-    let history = getSearchHistory()
-    history = history.filter(
-      item => !(item.keyword === keyword && (type ? item.type === type : true))
-    )
-    localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history))
-  } catch {
-    console.error('删除搜索历史失败')
-  }
-}
-
-/**
- * 清空搜索历史
- * @param type 可选的类型，不传则清空全部
- */
-export const clearSearchHistory = (type?: string): void => {
-  try {
-    if (type) {
-      let history = getSearchHistory()
-      history = history.filter(item => item.type !== type)
-      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history))
-    } else {
-      localStorage.removeItem(SEARCH_HISTORY_KEY)
-    }
-  } catch {
-    console.error('清空搜索历史失败')
-  }
-}
-
-/**
- * 获取最近搜索关键词列表
- * @param limit 限制数量
- * @param type 可选的类型过滤
- * @returns 关键词列表
- */
-export const getRecentKeywords = (limit: number = 10, type?: string): string[] => {
-  const history = getSearchHistory(type)
-  return history.slice(0, limit).map(item => item.keyword)
-}
-
-/**
- * 搜索历史配置接口（兼容PC/H5端）
- */
 export interface SearchHistoryConfig {
   fieldKey: string
   maxItems?: number
 }
 
-const SEARCH_HISTORY_PREFIX = 'search_history_'
-const MAX_HISTORY_ITEMS = 10
-
-/**
- * 保存搜索历史（按字段键）
- * @param fieldKey 字段键
- * @param value 搜索值
- */
-export function saveSearchHistory(fieldKey: string, value: string): void {
-  if (!value || !value.trim()) return
-  
+function _loadItems(key: string): SearchHistoryItem[] {
   try {
-    const key = SEARCH_HISTORY_PREFIX + fieldKey
     const stored = localStorage.getItem(key)
-    let history: string[] = stored ? JSON.parse(stored) : []
-    
-    history = history.filter(item => item !== value)
-    history.unshift(value)
-    
-    if (history.length > MAX_HISTORY_ITEMS) {
-      history = history.slice(0, MAX_HISTORY_ITEMS)
-    }
-    
-    localStorage.setItem(key, JSON.stringify(history))
-  } catch (error) {
-    console.error('保存搜索历史失败:', error)
-  }
-}
-
-/**
- * 加载搜索历史（按字段键）
- * @param fieldKey 字段键
- * @returns 搜索历史列表
- */
-export function loadSearchHistory(fieldKey: string): string[] {
-  try {
-    const key = SEARCH_HISTORY_PREFIX + fieldKey
-    const stored = localStorage.getItem(key)
-    return stored ? JSON.parse(stored) : []
-  } catch (error) {
-    console.error('加载搜索历史失败:', error)
+    if (!stored) return []
+    return JSON.parse(stored)
+  } catch {
     return []
   }
 }
 
-/**
- * 清除指定字段的搜索历史
- * @param fieldKey 字段键
- */
-export function clearFieldSearchHistory(fieldKey: string): void {
+function _saveItems(key: string, items: SearchHistoryItem[], maxItems: number): void {
   try {
-    const key = SEARCH_HISTORY_PREFIX + fieldKey
-    localStorage.removeItem(key)
-  } catch (error) {
-    console.error('清除搜索历史失败:', error)
+    if (items.length > maxItems) {
+      items = items.slice(0, maxItems)
+    }
+    localStorage.setItem(key, JSON.stringify(items))
+  } catch {
+    console.error('保存搜索历史失败')
   }
 }
 
-/**
- * 过滤搜索历史
- * @param history 搜索历史列表
- * @param keyword 关键词
- * @returns 过滤后的列表
- */
+function _addFieldItem(fieldKey: string, keyword: string, maxItems: number = DEFAULT_MAX_ITEMS): void {
+  if (!keyword.trim()) return
+  const key = SEARCH_HISTORY_PREFIX + fieldKey
+  const items = _loadItems(key)
+  const idx = items.findIndex(i => i.keyword === keyword)
+  if (idx !== -1) items.splice(idx, 1)
+  items.unshift({ keyword: keyword.trim(), timestamp: Date.now() })
+  _saveItems(key, items, maxItems)
+}
+
+function _getFieldItems(fieldKey: string): SearchHistoryItem[] {
+  return _loadItems(SEARCH_HISTORY_PREFIX + fieldKey)
+}
+
+function _removeFieldItem(fieldKey: string, keyword: string): void {
+  const key = SEARCH_HISTORY_PREFIX + fieldKey
+  const items = _loadItems(key)
+  const filtered = items.filter(i => i.keyword !== keyword)
+  _saveItems(key, filtered, DEFAULT_MAX_ITEMS)
+}
+
+function _clearFieldItems(fieldKey: string): void {
+  try {
+    localStorage.removeItem(SEARCH_HISTORY_PREFIX + fieldKey)
+  } catch {
+    console.error('清除搜索历史失败')
+  }
+}
+
+export function getSearchHistory(type?: string): SearchHistoryItem[] {
+  const items = _loadItems(GLOBAL_HISTORY_KEY)
+  if (type) return items.filter(i => i.type === type)
+  return items
+}
+
+export function addSearchHistory(keyword: string, type?: string): void {
+  if (!keyword.trim()) return
+  const items = _loadItems(GLOBAL_HISTORY_KEY)
+  const idx = items.findIndex(i => i.keyword === keyword && (type ? i.type === type : true))
+  if (idx !== -1) items.splice(idx, 1)
+  items.unshift({ keyword: keyword.trim(), timestamp: Date.now(), type })
+  _saveItems(GLOBAL_HISTORY_KEY, items, DEFAULT_MAX_ITEMS)
+}
+
+export function removeSearchHistory(keyword: string, type?: string): void {
+  const items = _loadItems(GLOBAL_HISTORY_KEY)
+  const filtered = items.filter(i => !(i.keyword === keyword && (type ? i.type === type : true)))
+  _saveItems(GLOBAL_HISTORY_KEY, filtered, DEFAULT_MAX_ITEMS)
+}
+
+export function clearSearchHistory(type?: string): void {
+  if (type) {
+    const items = _loadItems(GLOBAL_HISTORY_KEY)
+    const filtered = items.filter(i => i.type !== type)
+    _saveItems(GLOBAL_HISTORY_KEY, filtered, DEFAULT_MAX_ITEMS)
+  } else {
+    try { localStorage.removeItem(GLOBAL_HISTORY_KEY) } catch { /* noop */ }
+  }
+}
+
+export function getRecentKeywords(limit: number = 10, type?: string): string[] {
+  return getSearchHistory(type).slice(0, limit).map(i => i.keyword)
+}
+
+export function saveSearchHistory(fieldKey: string, value: string): void {
+  _addFieldItem(fieldKey, value)
+}
+
+export function loadSearchHistory(fieldKey: string): string[] {
+  return _getFieldItems(fieldKey).map(i => i.keyword)
+}
+
+export function clearFieldSearchHistory(fieldKey: string): void {
+  _clearFieldItems(fieldKey)
+}
+
 export function filterHistoryByKeyword(history: string[], keyword: string): string[] {
   if (!keyword || !keyword.trim()) return history
-  const lowerKeyword = keyword.toLowerCase()
-  return history.filter(item => item.toLowerCase().includes(lowerKeyword))
+  const lower = keyword.toLowerCase()
+  return history.filter(item => item.toLowerCase().includes(lower))
 }
 
-/**
- * 搜索历史组合式函数
- * @param config 配置
- * @returns 搜索历史操作方法
- */
 export function useSearchHistory(config: SearchHistoryConfig) {
-  const { fieldKey } = config
-
-  const save = (value: string) => {
-    saveSearchHistory(fieldKey, value)
-  }
-
-  const load = (): string[] => {
-    return loadSearchHistory(fieldKey)
-  }
-
-  const clear = () => {
-    clearFieldSearchHistory(fieldKey)
-  }
-
-  const filter = (keyword: string): string[] => {
-    const history = load()
-    return filterHistoryByKeyword(history, keyword)
-  }
+  const { fieldKey, maxItems = DEFAULT_MAX_ITEMS } = config
 
   return {
-    save,
-    load,
-    clear,
-    filter
+    save: (value: string) => _addFieldItem(fieldKey, value, maxItems),
+    load: (): string[] => _getFieldItems(fieldKey).map(i => i.keyword),
+    clear: () => _clearFieldItems(fieldKey),
+    filter: (keyword: string): string[] => {
+      const history = _getFieldItems(fieldKey).map(i => i.keyword)
+      return filterHistoryByKeyword(history, keyword)
+    },
   }
 }

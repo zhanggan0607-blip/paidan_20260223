@@ -77,7 +77,7 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
             count = self.db.query(PeriodicInspectionRecord).filter(
                 PeriodicInspectionRecord.inspection_id == inspection_id
             ).delete()
-            self.db.commit()
+            self.db.flush()
             return count
         except Exception as e:
             self.db.rollback()
@@ -134,7 +134,7 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
                     existing.photos = photos
                 if inspection_result is not None:
                     existing.inspection_result = inspection_result
-                self.db.commit()
+                self.db.flush()
                 self.db.refresh(existing)
                 return existing
             else:

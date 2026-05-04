@@ -9,9 +9,10 @@ import {
 } from 'vant'
 import { repairToolsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
-import type { RepairToolsUsage, RepairToolsStock, ProjectInfo } from '../types/models'
+import type { RepairToolsUsage, RepairToolsStock, ProjectInfo } from '../types/api'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
@@ -123,7 +124,7 @@ const handleSubmitIssue = async () => {
       tool_name: selectedTool.value.tool_name,
       specification: selectedTool.value.specification || null,
       quantity: issueForm.value.quantity,
-      user_name: userStore.getUser()?.name,
+      user_name: userStore.currentUser?.name,
       project_id: issueForm.value.projectId || null,
       project_name: issueForm.value.projectName || null,
       remark: issueForm.value.remark || null,
@@ -406,7 +407,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

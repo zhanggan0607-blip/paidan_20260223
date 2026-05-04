@@ -11,10 +11,12 @@ export interface UploadResponse {
   filename: string
 }
 
+export interface BatchUploadResponse {
+  success: UploadResponse[]
+  failed: { filename: string; error: string }[]
+}
+
 export const uploadService = {
-  /**
-   * 上传图片（Base64）
-   */
   async uploadImageBase64(
     base64Data: string,
     filename?: string
@@ -25,13 +27,22 @@ export const uploadService = {
     })
   },
 
-  /**
-   * 上传文件
-   */
   async uploadFile(file: File): Promise<ApiResponse<UploadResponse>> {
     const formData = new FormData()
     formData.append('file', file)
     return request.post(API_ENDPOINTS.UPLOAD.FILE, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  async uploadFiles(files: File[]): Promise<ApiResponse<BatchUploadResponse>> {
+    const formData = new FormData()
+    files.forEach((file) => {
+      formData.append('files', file)
+    })
+    return request.post(API_ENDPOINTS.UPLOAD.BATCH, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

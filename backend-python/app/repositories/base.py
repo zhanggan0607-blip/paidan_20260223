@@ -34,6 +34,11 @@ class BaseRepository(Generic[T]):
         self._db = db
         self._model_class = model_class
 
+    @staticmethod
+    def escape_like(value: str) -> str:
+        """转义 LIKE 查询中的特殊字符 % 和 _"""
+        return value.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+
     @property
     def db(self) -> Session:
         """获取数据库会话"""
@@ -211,16 +216,6 @@ class BaseRepository(Generic[T]):
             raise
 
     def exists_by_field(self, field_name: str, value: Any) -> bool:
-        """
-        检查字段值是否存在
-
-        Args:
-            field_name: 字段名
-            value: 字段值
-
-        Returns:
-            是否存在
-        """
         try:
             if not hasattr(self.model_class, field_name):
                 raise ValueError(f"{self.model_class.__name__} 没有字段 {field_name}")
@@ -230,4 +225,13 @@ class BaseRepository(Generic[T]):
             ).first() is not None
         except Exception as e:
             logger.error(f"检查{self.model_class.__name__}是否存在失败 ({field_name}={value}): {str(e)}")
+            raise
+
+    def soft_delete(self, entity: T, user_id: int = None) -> None:
+        try:
+            entity.soft_delete(user_id)
+            self.db.flush()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除{self.model_class.__name__}失败: {str(e)}")
             raise

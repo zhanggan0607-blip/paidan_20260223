@@ -1,15 +1,17 @@
 services:
   backend:
-    image: sstcp-backend:v2.0.3
+    image: sstcp-backend:v2.0.9
     container_name: sstcp-backend
     restart: unless-stopped
     ports:
       - "8000:8000"
     environment:
-      - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL}
-      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL is required}
       - DEBUG=False
+      - REDIS_URL=${REDIS_URL:-redis://localhost:6379/0}
+      - REDIS_ENABLED=${REDIS_ENABLED:-true}
+      - REDIS_CACHE_TTL=${REDIS_CACHE_TTL:-300}
       - ALIYUN_ACCESS_KEY_ID=${ALIYUN_ACCESS_KEY_ID}
       - ALIYUN_ACCESS_KEY_SECRET=${ALIYUN_ACCESS_KEY_SECRET}
       - ALIYUN_OCR_REGION_ID=cn-shanghai
@@ -17,9 +19,16 @@ services:
       - ALIYUN_OSS_ACCESS_KEY_SECRET=${ALIYUN_OSS_ACCESS_KEY_SECRET}
       - ALIYUN_OSS_ENDPOINT=oss-cn-shanghai.aliyuncs.com
       - ALIYUN_OSS_BUCKET_NAME=sstcp-uploads
+      - ALIYUN_OSS_CDN_DOMAIN=${ALIYUN_OSS_CDN_DOMAIN}
       - ALIYUN_OSS_ENABLED=true
-      - CORS_ORIGINS=https://sstcp.top,https://www.sstcp.top,https://8.153.95.31,http://localhost:8000
-      - SERVER_BASE_URL=https://sstcp.top
+      - DINGTALK_AGENT_ID=${DINGTALK_AGENT_ID}
+      - DINGTALK_APP_KEY=${DINGTALK_APP_KEY}
+      - DINGTALK_APP_SECRET=${DINGTALK_APP_SECRET}
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://paidan.sstcp.top,https://www.paidan.sstcp.top}
+      - SERVER_BASE_URL=${SERVER_BASE_URL:-https://www.paidan.sstcp.top}
+      - DOCS_URL=
+      - REDOC_URL=
+      - OPENAPI_URL=
     volumes:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs
@@ -38,7 +47,7 @@ services:
       retries: 3
 
   frontend-pc:
-    image: sstcp-frontend-pc:v2.0.3
+    image: sstcp-frontend-pc:v2.0.9
     container_name: sstcp-frontend-pc
     restart: unless-stopped
     ports:
@@ -49,7 +58,7 @@ services:
       - sstcp-network
 
   frontend-h5:
-    image: sstcp-frontend-h5:v2.0.3
+    image: sstcp-frontend-h5:v2.0.9
     container_name: sstcp-frontend-h5
     restart: unless-stopped
     ports:

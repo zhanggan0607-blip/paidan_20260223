@@ -1,6 +1,3 @@
-/**
- * 状态工具函数测试
- */
 import { describe, it, expect } from 'vitest'
 import {
   STATUS_IN_PROGRESS,
@@ -10,13 +7,6 @@ import {
   ALL_STATUSES,
   WORK_STATUS,
   getStatusType,
-  getStatusColor,
-  getStatusClass,
-  isCompletedStatus,
-  isInProgressStatus,
-  isPendingConfirmStatus,
-  isRejectedStatus,
-  isPendingStatus,
   BASE_WORK_TABS,
 } from './status'
 
@@ -63,79 +53,6 @@ describe('getStatusType', () => {
 
   it('未知状态应返回default', () => {
     expect(getStatusType('未知')).toBe('default')
-  })
-})
-
-describe('getStatusColor', () => {
-  it('执行中应返回青色', () => {
-    expect(getStatusColor('执行中')).toBe('#00bcd4')
-  })
-
-  it('待确认应返回橙色', () => {
-    expect(getStatusColor('待确认')).toBe('#ff976a')
-  })
-
-  it('已完成应返回绿色', () => {
-    expect(getStatusColor('已完成')).toBe('#07c160')
-  })
-
-  it('已退回应返回灰色', () => {
-    expect(getStatusColor('已退回')).toBe('#969799')
-  })
-
-  it('未知状态应返回灰色', () => {
-    expect(getStatusColor('未知')).toBe('#969799')
-  })
-})
-
-describe('getStatusClass', () => {
-  it('执行中应返回status-in-progress', () => {
-    expect(getStatusClass('执行中')).toBe('status-in-progress')
-  })
-
-  it('待确认应返回status-waiting', () => {
-    expect(getStatusClass('待确认')).toBe('status-waiting')
-  })
-
-  it('已完成应返回status-completed', () => {
-    expect(getStatusClass('已完成')).toBe('status-completed')
-  })
-
-  it('已退回应返回status-returned', () => {
-    expect(getStatusClass('已退回')).toBe('status-returned')
-  })
-
-  it('未知状态应返回空字符串', () => {
-    expect(getStatusClass('未知')).toBe('')
-  })
-})
-
-describe('状态判断函数', () => {
-  it('isCompletedStatus', () => {
-    expect(isCompletedStatus('已完成')).toBe(true)
-    expect(isCompletedStatus('执行中')).toBe(false)
-  })
-
-  it('isInProgressStatus', () => {
-    expect(isInProgressStatus('执行中')).toBe(true)
-    expect(isInProgressStatus('已完成')).toBe(false)
-  })
-
-  it('isPendingConfirmStatus', () => {
-    expect(isPendingConfirmStatus('待确认')).toBe(true)
-    expect(isPendingConfirmStatus('执行中')).toBe(false)
-  })
-
-  it('isRejectedStatus', () => {
-    expect(isRejectedStatus('已退回')).toBe(true)
-    expect(isRejectedStatus('执行中')).toBe(false)
-  })
-
-  it('isPendingStatus应包含执行中和已退回', () => {
-    expect(isPendingStatus('执行中')).toBe(true)
-    expect(isPendingStatus('已退回')).toBe(true)
-    expect(isPendingStatus('待确认')).toBe(false)
-    expect(isPendingStatus('已完成')).toBe(false)
   })
 })
 

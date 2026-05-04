@@ -5,7 +5,7 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse } from '../types/api'
-import type { IDCardOCRResult } from '../types/models'
+import type { IDCardOCRResult } from '../types/api'
 
 export interface IDCardOCRRequest {
   imageBase64: string

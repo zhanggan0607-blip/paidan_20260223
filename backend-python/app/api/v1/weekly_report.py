@@ -86,11 +86,14 @@ def get_weekly_reports(
         code=200,
         message="success",
         data={
+            'items': [item.to_dict() for item in items],
             'content': [item.to_dict() for item in items],
+            'total': total,
             'totalElements': total,
             'totalPages': (total + size - 1) // size,
             'size': size,
             'number': page,
+            'page': page,
             'first': page == 0,
             'last': page >= (total + size - 1) // size
         }

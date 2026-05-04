@@ -4,45 +4,10 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse } from '../types/api'
-
-export interface CompletedWorkOrderItem {
-  id: number
-  order_id: string
-  order_type: string
-  order_type_code: string
-  plan_type: string
-  project_id: number | null
-  project_name: string
-  client_name: string | null
-  plan_start_date: string | null
-  plan_end_date: string | null
-  actual_completion_date: string | null
-  maintenance_personnel: string | null
-  status: string
-  remarks: string | null
-  created_at: string | null
-  updated_at: string | null
-}
-
-export interface CompletedWorkOrderResponse {
-  items: CompletedWorkOrderItem[]
-  total: number
-  page: number
-  size: number
-}
-
-export interface CompletedWorkOrderQueryParams {
-  page?: number
-  size?: number
-}
+import type { ApiResponse, PaginatedData, WorkOrderItem, WorkOrderQueryParams } from '../types/api'
 
 export const workOrderService = {
-  /**
-   * 获取本年已完成的工单列表
-   * 优化：后端直接过滤，减少数据传输量
-   */
-  async getCompletedThisYear(params?: CompletedWorkOrderQueryParams): Promise<ApiResponse<CompletedWorkOrderResponse>> {
+  async getCompletedThisYear(params?: WorkOrderQueryParams): Promise<ApiResponse<PaginatedData<WorkOrderItem>>> {
     const queryParams = {
       page: 0,
       size: 20,

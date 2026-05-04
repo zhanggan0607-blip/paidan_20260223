@@ -14,20 +14,26 @@
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label for="search_name" class="search-label">姓名：</label>
+            <label
+              for="search_name"
+              class="search-label"
+            >姓名：</label>
             <SearchInput
-              input-id="search_name"
               v-model="searchForm.name"
+              input-id="search_name"
               field-key="PersonnelManagement_name"
               placeholder="请输入姓名"
               @input="handleSearch"
             />
           </div>
           <div class="search-item">
-            <label for="search_部门" class="search-label">部门：</label>
+            <label
+              for="search_部门"
+              class="search-label"
+            >部门：</label>
             <SearchInput
-              input-id="search_部门"
               v-model="searchForm.department"
+              input-id="search_部门"
               field-key="PersonnelManagement_department"
               placeholder="请输入部门"
               @input="handleSearch"
@@ -70,7 +76,7 @@
             <td>{{ item.name }}</td>
             <td>{{ item.gender }}</td>
             <td>{{ item.department || '-' }}</td>
-            <td :class="getRoleClass(item.role)">
+            <td :class="getRoleClass(item.role ?? '')">
               {{ item.role }}
             </td>
             <td>{{ item.phone || '-' }}</td>
@@ -209,8 +215,12 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label for="name" class="form-label"> <span class="required">*</span> 姓名 </label>
-                <input id="name"
+                <label
+                  for="name"
+                  class="form-label"
+                > <span class="required">*</span> 姓名 </label>
+                <input
+                  id="name"
                  
                   v-model="formData.name"
                   name="name"
@@ -222,9 +232,14 @@
                 >
               </div>
               <div class="form-item">
-                <label for="gender" class="form-label"> <span class="required">*</span> 性别 </label>
-                <select id="gender" name="gender"
+                <label
+                  for="gender"
+                  class="form-label"
+                > <span class="required">*</span> 性别 </label>
+                <select
+                  id="gender"
                   v-model="formData.gender"
+                  name="gender"
                   class="form-input"
                 >
                   <option value="">
@@ -242,8 +257,12 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="phone" class="form-label">联系电话</label>
-                <input id="phone"
+                <label
+                  for="phone"
+                  class="form-label"
+                >联系电话</label>
+                <input
+                  id="phone"
                  
                   v-model="formData.phone"
                   name="phone"
@@ -257,8 +276,12 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="department" class="form-label">所属部门</label>
-                <input id="department"
+                <label
+                  for="department"
+                  class="form-label"
+                >所属部门</label>
+                <input
+                  id="department"
                  
                   v-model="formData.department"
                   name="department"
@@ -270,9 +293,14 @@
                 >
               </div>
               <div class="form-item">
-                <label for="role" class="form-label"> <span class="required">*</span> 角色 </label>
-                <select id="role" name="role"
+                <label
+                  for="role"
+                  class="form-label"
+                > <span class="required">*</span> 角色 </label>
+                <select
+                  id="role"
                   v-model="formData.role"
+                  name="role"
                   class="form-input"
                   :disabled="!canEditRole()"
                 >
@@ -294,8 +322,12 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="address" class="form-label">地址</label>
-                <input id="address"
+                <label
+                  for="address"
+                  class="form-label"
+                >地址</label>
+                <input
+                  id="address"
                  
                   v-model="formData.address"
                   name="address"
@@ -309,9 +341,14 @@
             </div>
           </div>
           <div class="form-item-full">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remarks"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入"
               rows="3"
@@ -435,7 +472,7 @@ import {
   type PersonnelCreate,
   type PersonnelUpdate,
 } from '../services/personnel'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
 import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
 import { useInputMemory } from '../utils'
 import { useToast, usePageState, useAbortController } from '../composables'
@@ -449,6 +486,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const searchForm = reactive({
       name: '',
       department: '',
@@ -597,8 +635,8 @@ export default defineComponent({
         )
 
         if (response.code === 200 && response.data) {
-          personnelData.value = response.data.content || []
-          totalElements.value = response.data.totalElements ?? 0
+          personnelData.value = response.data.items || []
+          totalElements.value = response.data.total ?? 0
           totalPages.value = response.data.totalPages ?? 0
         } else {
           error(response.message || '加载数据失败')
@@ -723,10 +761,10 @@ export default defineComponent({
     const handleView = (item: Personnel) => {
       viewData.id = item.id
       viewData.name = item.name
-      viewData.gender = item.gender
+      viewData.gender = item.gender ?? ''
       viewData.phone = item.phone || ''
       viewData.department = item.department || ''
-      viewData.role = item.role
+      viewData.role = item.role ?? ''
       viewData.address = item.address || ''
       viewData.remarks = item.remarks || ''
       viewData.last_login_at = item.last_login_at || ''
@@ -736,10 +774,10 @@ export default defineComponent({
     const handleEdit = (item: Personnel) => {
       editingId.value = item.id
       formData.name = item.name
-      formData.gender = item.gender
+      formData.gender = item.gender ?? ''
       formData.phone = item.phone || ''
       formData.department = item.department || ''
-      formData.role = item.role
+      formData.role = item.role ?? ''
       formData.address = item.address || ''
       formData.remarks = item.remarks || ''
       openModal(item.id)
@@ -807,7 +845,7 @@ export default defineComponent({
     })
 
     const handleUserChanged = () => {
-      const user = userStore.getUser()
+      const user = userStore.currentUser
       if (user) {
         currentUserRole.value = user.role
         currentUserDepartment.value = user.department || ''
@@ -816,7 +854,7 @@ export default defineComponent({
     }
 
     onMounted(() => {
-      const user = userStore.getUser()
+      const user = userStore.currentUser
       if (user) {
         currentUserRole.value = user.role
         currentUserDepartment.value = user.department || ''

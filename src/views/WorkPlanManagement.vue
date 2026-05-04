@@ -1,45 +1,66 @@
 <template>
   <div class="work-plan-page">
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
     <div class="content">
       <div class="search-section">
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label for="search_projectName" class="search-label">项目名称：</label>
+              <label
+                for="search_projectName"
+                class="search-label"
+              >项目名称：</label>
               <SearchInput
-              input-id="search_projectName"
                 v-model="searchForm.project_name"
+                input-id="search_projectName"
                 field-key="WorkPlanManagement_project_name"
                 placeholder="请输入项目名称"
                 @input="handleSearch"
               />
             </div>
             <div class="search-item">
-              <label for="search_workOrderId" class="search-label">工单编号：</label>
+              <label
+                for="search_workOrderId"
+                class="search-label"
+              >工单编号：</label>
               <SearchInput
-              input-id="search_workOrderId"
                 v-model="searchForm.order_id"
+                input-id="search_workOrderId"
                 field-key="WorkPlanManagement_order_id"
                 placeholder="请输入工单编号"
                 @input="handleSearch"
               />
             </div>
             <div class="search-item">
-              <label for="search_planType" class="search-label">工单类型：</label>
+              <label
+                for="search_planType"
+                class="search-label"
+              >工单类型：</label>
               <select
                 id="search_planType"
                 v-model="searchForm.plan_type"
                 class="search-select"
                 @change="handleSearch"
               >
-                <option value="">全部类型</option>
-                <option v-for="pt in planTypeOptions" :key="pt.value" :value="pt.value">{{ pt.label }}</option>
+                <option value="">
+                  全部类型
+                </option>
+                <option
+                  v-for="pt in planTypeOptions"
+                  :key="pt.value"
+                  :value="pt.value"
+                >
+                  {{ pt.label }}
+                </option>
               </select>
             </div>
           </div>
         </div>
-        <div class="action-buttons"></div>
+        <div class="action-buttons" />
       </div>
 
       <div class="table-section">
@@ -61,10 +82,20 @@
           </thead>
           <tbody>
             <tr v-if="loading">
-              <td colspan="11" style="text-align: center; padding: 20px">加载中...</td>
+              <td
+                colspan="11"
+                style="text-align: center; padding: 20px"
+              >
+                加载中...
+              </td>
             </tr>
             <tr v-else-if="planData.length === 0">
-              <td colspan="11" style="text-align: center; padding: 20px">暂无数据</td>
+              <td
+                colspan="11"
+                style="text-align: center; padding: 20px"
+              >
+                暂无数据
+              </td>
             </tr>
             <tr
               v-for="(item, index) in planData"
@@ -75,7 +106,10 @@
               <td>{{ currentPage * pageSize + index + 1 }}</td>
               <td>{{ item.plan_id }}</td>
               <td>
-                <span :class="getOrderTypeClass(item.order_type_code)" class="type-badge">{{
+                <span
+                  :class="getOrderTypeClass(item.order_type_code)"
+                  class="type-badge"
+                >{{
                   item.plan_type
                 }}</span>
               </td>
@@ -86,21 +120,25 @@
               <td>{{ item.client_name || '暂无数据' }}</td>
               <td>{{ item.maintenance_personnel || '暂无数据' }}</td>
               <td>
-                <span :class="getStatusClass(item.status)" class="status-badge">{{
+                <span
+                  :class="getStatusClass(item.status)"
+                  class="status-badge"
+                >{{
                   item.status
                 }}</span>
               </td>
               <td class="action-cell">
-                <a href="#" class="action-link action-view" @click.prevent="handleView(item)"
-                  >查看</a
-                >
+                <a
+                  href="#"
+                  class="action-link action-view"
+                  @click.prevent="handleView(item)"
+                >查看</a>
                 <a
                   v-if="item.status === WORK_STATUS.COMPLETED"
                   href="#"
                   class="action-link action-export"
                   @click.prevent="handleExport(item)"
-                  >导出</a
-                >
+                >导出</a>
               </td>
             </tr>
           </tbody>
@@ -108,9 +146,15 @@
       </div>
 
       <div class="pagination-section">
-        <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+        <div class="pagination-info">
+          共 {{ totalElements }} 条记录
+        </div>
         <div class="pagination-controls">
-          <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+          <button
+            class="page-btn page-nav"
+            :disabled="currentPage === 0"
+            @click="currentPage--"
+          >
             &lt;
           </button>
           <button
@@ -129,85 +173,154 @@
           >
             &gt;
           </button>
-          <select id="pageSize" name="pageSize" v-model="pageSize" class="page-select">
-            <option value="10">10 条 / 页</option>
-            <option value="20">20 条 / 页</option>
-            <option value="50">50 条 / 页</option>
+          <select
+            id="pageSize"
+            v-model="pageSize"
+            name="pageSize"
+            class="page-select"
+          >
+            <option value="10">
+              10 条 / 页
+            </option>
+            <option value="20">
+              20 条 / 页
+            </option>
+            <option value="50">
+              50 条 / 页
+            </option>
           </select>
           <div class="page-jump">
             <span>跳至</span>
-            <input id="jumpPage" name="jumpPage" v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+            <input
+              id="jumpPage"
+              v-model="jumpPage"
+              name="jumpPage"
+              type="number"
+              class="page-input"
+              min="1"
+              :max="totalPages"
+            >
             <span>页</span>
-            <button class="page-btn page-go" @click="handleJump">Go</button>
+            <button
+              class="page-btn page-go"
+              @click="handleJump"
+            >
+              Go
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container modal-container-large">
         <div class="modal-header">
-          <h3 class="modal-title">{{ viewData.plan_type || '工单' }}详情</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            {{ viewData.plan_type || '工单' }}详情
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="detail-section">
             <div class="detail-grid detail-grid-3">
               <div class="detail-item">
                 <span class="detail-label">项目名称</span>
-                <div class="detail-value">{{ viewData.project_name || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ viewData.project_name || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">项目编号</span>
-                <div class="detail-value">{{ viewData.project_id || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ viewData.project_id || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">合同剩余时间</span>
-                <div class="detail-value" :class="getRemainingTimeClass()">
+                <div
+                  class="detail-value"
+                  :class="getRemainingTimeClass()"
+                >
                   {{ viewData.remainingTime || '暂无数据' }}
                 </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">客户单位</span>
-                <div class="detail-value">{{ viewData.client_name || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ viewData.client_name || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">客户联系人</span>
-                <div class="detail-value">{{ viewData.client_contact || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ viewData.client_contact || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">客户联系方式</span>
-                <div class="detail-value">{{ viewData.client_contact_info || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ viewData.client_contact_info || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">运维人员</span>
-                <div class="detail-value">{{ viewData.maintenance_personnel || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ viewData.maintenance_personnel || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">计划开始日期</span>
-                <div class="detail-value">{{ formatDate(viewData.plan_start_date) || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ formatDate(viewData.plan_start_date) || '暂无数据' }}
+                </div>
               </div>
               <div class="detail-item">
                 <span class="detail-label">计划结束日期</span>
-                <div class="detail-value">{{ formatDate(viewData.plan_end_date) || '暂无数据' }}</div>
+                <div class="detail-value">
+                  {{ formatDate(viewData.plan_end_date) || '暂无数据' }}
+                </div>
               </div>
             </div>
           </div>
 
           <div class="detail-section">
-            <h4 class="section-title">巡检内容:</h4>
+            <h4 class="section-title">
+              巡检内容:
+            </h4>
             <table class="inspection-table">
               <thead>
                 <tr>
-                  <th style="width: 60px">序号</th>
-                  <th style="width: 150px">巡查项</th>
-                  <th style="width: 200px">巡查内容</th>
-                  <th style="width: 200px">检查要求</th>
-                  <th style="width: 200px">简要说明</th>
+                  <th style="width: 60px">
+                    序号
+                  </th>
+                  <th style="width: 150px">
+                    巡查项
+                  </th>
+                  <th style="width: 200px">
+                    巡查内容
+                  </th>
+                  <th style="width: 200px">
+                    检查要求
+                  </th>
+                  <th style="width: 200px">
+                    简要说明
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in viewInspectionItems" :key="index">
+                <tr
+                  v-for="(item, index) in viewInspectionItems"
+                  :key="index"
+                >
                   <td>{{ index + 1 }}</td>
                   <td>{{ item.inspection_item || '暂无数据' }}</td>
                   <td>{{ item.inspection_content || '暂无数据' }}</td>
@@ -215,7 +328,10 @@
                   <td>{{ item.brief_description || '暂无数据' }}</td>
                 </tr>
                 <tr v-if="viewInspectionItems.length === 0">
-                  <td colspan="5" style="text-align: center; padding: 20px; color: #999">
+                  <td
+                    colspan="5"
+                    style="text-align: center; padding: 20px; color: #999"
+                  >
                     暂无数据
                   </td>
                 </tr>
@@ -224,17 +340,28 @@
           </div>
 
           <div class="detail-section">
-            <h4 class="section-title">现场处理内容</h4>
+            <h4 class="section-title">
+              现场处理内容
+            </h4>
             <table class="inspection-table">
               <thead>
                 <tr>
-                  <th style="width: 300px">实际现场故障情况</th>
-                  <th style="width: 300px">故障解决方案</th>
-                  <th style="width: 80px">是否解决</th>
+                  <th style="width: 300px">
+                    实际现场故障情况
+                  </th>
+                  <th style="width: 300px">
+                    故障解决方案
+                  </th>
+                  <th style="width: 80px">
+                    是否解决
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(item, index) in viewFieldHandling" :key="index">
+                <tr
+                  v-for="(item, index) in viewFieldHandling"
+                  :key="index"
+                >
                   <td>{{ item.fault_situation || '暂无数据' }}</td>
                   <td>{{ item.solution || '暂无数据' }}</td>
                   <td>
@@ -244,7 +371,10 @@
                   </td>
                 </tr>
                 <tr v-if="viewFieldHandling.length === 0">
-                  <td colspan="3" style="text-align: center; padding: 20px; color: #999">
+                  <td
+                    colspan="3"
+                    style="text-align: center; padding: 20px; color: #999"
+                  >
                     暂无数据
                   </td>
                 </tr>
@@ -253,7 +383,9 @@
           </div>
 
           <div class="detail-section">
-            <h4 class="section-title">图片附件</h4>
+            <h4 class="section-title">
+              图片附件
+            </h4>
             <div class="image-attachment-section">
               <div class="image-group">
                 <span class="image-label">巡检组相关图片</span>
@@ -263,30 +395,53 @@
                     :key="'insp-' + index"
                     class="image-item"
                   >
-                    <img :src="img" alt="巡检图片" loading="lazy" @click="previewImage(img)" />
+                    <img
+                      :src="img"
+                      alt="巡检图片"
+                      loading="lazy"
+                      @click="previewImage(img)"
+                    >
                   </div>
-                  <div v-if="viewInspectionImages.length === 0" class="no-image">暂无数据</div>
+                  <div
+                    v-if="viewInspectionImages.length === 0"
+                    class="no-image"
+                  >
+                    暂无数据
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="detail-section">
-            <h4 class="section-title">用户电子签名</h4>
+            <h4 class="section-title">
+              用户电子签名
+            </h4>
             <div class="signature-area">
               <div
                 v-if="viewSignature"
                 class="signature-image"
                 @click="previewImage(viewSignature)"
               >
-                <img :src="viewSignature" alt="电子签名" loading="lazy" />
+                <img
+                  :src="viewSignature"
+                  alt="电子签名"
+                  loading="lazy"
+                >
               </div>
-              <div v-else class="no-signature">暂无数据</div>
+              <div
+                v-else
+                class="no-signature"
+              >
+                暂无数据
+              </div>
             </div>
           </div>
 
           <div class="detail-section">
-            <h4 class="section-title">内部确认</h4>
+            <h4 class="section-title">
+              内部确认
+            </h4>
             <div class="confirmation-list">
               <div
                 v-for="(record, index) in viewConfirmationRecords"
@@ -307,16 +462,27 @@
                 >
                   {{ record.status }}
                 </span>
-                <span v-if="record.reason" class="confirmation-reason">{{ record.reason }}</span>
+                <span
+                  v-if="record.reason"
+                  class="confirmation-reason"
+                >{{ record.reason }}</span>
               </div>
-              <div v-if="viewConfirmationRecords.length === 0" class="no-confirmation">
+              <div
+                v-if="viewConfirmationRecords.length === 0"
+                class="no-confirmation"
+              >
                 暂无数据
               </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">取消</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            取消
+          </button>
         </div>
       </div>
     </div>
@@ -335,8 +501,7 @@ import { operationLogService } from '@/services/operationLog'
 import request from '@/api/request'
 import { API_ENDPOINTS } from '@/api/endpoints'
 import type { OperationLog } from '@/types/api'
-import Toast from '@/components/Toast.vue'
-import SearchInput from '@/components/SearchInput.vue'
+import { Toast, SearchInput } from '@sstcp/shared'
 import {
   PLAN_TYPES,
   WORK_STATUS,
@@ -371,6 +536,17 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const parseInspectionItems = (raw: any): any[] => {
+      if (Array.isArray(raw)) return raw
+      if (typeof raw === 'string') {
+        try { return JSON.parse(raw) } catch { return [] }
+      }
+      if (raw && typeof raw === 'object') {
+        try { return Array.isArray(raw) ? raw : [raw] } catch { return [] }
+      }
+      return []
+    }
+
     const planTypes = [
       PLAN_TYPES.PERIODIC_MAINTENANCE,
       PLAN_TYPES.TEMPORARY_REPAIR,
@@ -578,7 +754,7 @@ export default defineComponent({
           })
 
           if (response.code === 200 && response.data) {
-            planData.value = (response.data.content || []).map((item: any) => {
+            planData.value = (response.data.items || response.data.content || []).map((item: any) => {
               return {
                 id: item.id,
                 plan_id: item.inspection_id,
@@ -596,7 +772,7 @@ export default defineComponent({
                 signature: '',
               }
             })
-            totalElements.value = response.data.totalElements ?? 0
+            totalElements.value = response.data.total ?? response.data.totalElements ?? 0
             totalPages.value = response.data.totalPages ?? 0
           } else {
             showToast(response.message || '加载数据失败', 'error')
@@ -609,7 +785,7 @@ export default defineComponent({
           })
 
           if (response.code === 200 && response.data) {
-            const content = response.data.content || response.data.items || []
+            const content = response.data.items || response.data.content || []
             planData.value = content.map((item: any) => {
               return {
                 id: item.id,
@@ -628,7 +804,7 @@ export default defineComponent({
                 signature: '',
               }
             })
-            totalElements.value = response.data.totalElements ?? response.data.total ?? 0
+            totalElements.value = response.data.total ?? response.data.totalElements ?? 0
             totalPages.value = response.data.totalPages ?? 0
           } else {
             showToast(response.message || '加载数据失败', 'error')
@@ -643,7 +819,7 @@ export default defineComponent({
           })
 
           if (response.code === 200 && response.data) {
-            planData.value = (response.data.content || []).map((item: any) => {
+            planData.value = (response.data.items || response.data.content || []).map((item: any) => {
               return {
                 id: item.source_id || item.id,
                 plan_id: item.plan_id,
@@ -661,7 +837,7 @@ export default defineComponent({
                 signature: '',
               }
             })
-            totalElements.value = response.data.totalElements ?? 0
+            totalElements.value = response.data.total ?? response.data.totalElements ?? 0
             totalPages.value = response.data.totalPages ?? 0
           } else {
             showToast(response.message || '加载数据失败', 'error')
@@ -826,7 +1002,7 @@ export default defineComponent({
             viewData.client_contact_info = project.client_contact_info || ''
             viewData.client_contact_position = project.client_contact_position || ''
             viewData.address = project.address || ''
-            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date ?? '')
           }
         }
       } catch (error) {
@@ -858,7 +1034,7 @@ export default defineComponent({
           filteredPlans.forEach((plan: any) => {
             if (plan.inspection_items) {
               try {
-                const items = JSON.parse(plan.inspection_items)
+                const items = parseInspectionItems(plan.inspection_items)
                 items.forEach((item: any) => {
                   allItems.push({
                     inspection_item: item.inspection_item || '',

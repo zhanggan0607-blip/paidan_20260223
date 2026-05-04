@@ -10,7 +10,7 @@ import type {
   PersonnelQueryParams,
   PersonnelCreate,
   PersonnelUpdate,
-} from '../types/models'
+} from '../types/api'
 
 export const personnelService = {
   /**

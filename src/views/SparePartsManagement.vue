@@ -1,24 +1,30 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="spare-parts-page">
     <div class="content">
       <div class="search-section">
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label for="search_productName" class="search-label">产品名称：</label>
+              <label
+                for="search_productName"
+                class="search-label"
+              >产品名称：</label>
               <SearchInput
-              input-id="search_productName"
                 v-model="searchForm.productName"
+                input-id="search_productName"
                 field-key="SparePartsManagement_productName"
                 placeholder="请输入产品名称"
                 @input="handleSearch"
               />
             </div>
             <div class="search-item">
-              <label for="search_projectName" class="search-label">项目名称：</label>
+              <label
+                for="search_projectName"
+                class="search-label"
+              >项目名称：</label>
               <SearchInput
-              input-id="search_projectName"
                 v-model="searchForm.projectName"
+                input-id="search_projectName"
                 field-key="SparePartsManagement_projectName"
                 placeholder="请输入项目名称"
                 @input="handleSearch"
@@ -113,8 +119,8 @@
           </button>
           <select
             id="pageSize"
-            name="pageSize"
             v-model="pageSize"
+            name="pageSize"
             class="page-select"
           >
             <option value="10">

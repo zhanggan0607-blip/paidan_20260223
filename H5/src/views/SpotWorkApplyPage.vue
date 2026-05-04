@@ -9,11 +9,12 @@ import {
   showConfirmDialog,
 } from 'vant'
 import { spotWorkService, projectInfoService, uploadService } from '../services'
-import { formatDate, formatDateTime, processPhoto, getCurrentLocation } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
+import { formatDate, formatDateTime, processPhoto, getCurrentLocation, getStatusType, getDisplayStatus, getWorkIdFontSize } from '@sstcp/shared'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
 import { copyOrderId } from '../utils/clipboard'
-import type { ProjectInfo } from '../types/models'
+import type { ProjectInfo } from '../types/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -93,41 +94,7 @@ const tabs = computed(() => {
 const currentTab = computed(() => tabs.value[activeTab.value])
 const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
 
-const getStatusType = (status: string) => {
-  switch (status) {
-    case '已完成':
-    case '已确认':
-      return 'success'
-    case '待确认':
-      return 'warning'
-    default:
-      return 'default'
-  }
-}
 
-const getDisplayStatus = (status: string) => {
-  if (status === '未进行' || status === '未下发' || status === '待执行' || status === '执行中')
-    return '执行中'
-  if (status === '待确认' || status === '待审批') return '待确认'
-  if (status === '已确认' || status === '已审批' || status === '已完成') return '已完成'
-  if (status === '已退回') return '已退回'
-  return status
-}
-
-/**
- * 根据工单编号长度计算字体大小
- */
-const getWorkIdFontSize = (workId: string) => {
-  if (!workId) return 14
-  const len = workId.length
-  if (len <= 18) return 14
-  if (len <= 22) return 12
-  if (len <= 26) return 11
-  if (len <= 30) return 10
-  if (len <= 35) return 9
-  if (len <= 40) return 8
-  return 7
-}
 
 /**
  * 获取项目列表
@@ -158,7 +125,7 @@ const fetchWorkList = async () => {
       size: 100,
     })
     if (response.code === 200) {
-      const allItems = response.data?.content || []
+      const allItems = response.data?.items || []
       const filteredItems = allItems.filter((item: any) =>
         currentTab.value?.statuses.includes(item.status)
       )
@@ -404,6 +371,7 @@ const handlePhotoCapture = () => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
+  input.multiple = true
   
   const ua = navigator.userAgent.toLowerCase()
   const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
@@ -417,56 +385,133 @@ const handlePhotoCapture = () => {
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) return
+    const allFiles = target.files
+    if (!allFiles || allFiles.length === 0) return
 
-    showLoadingToast({ message: '处理中...', forbidClick: true })
+    const remaining = 9 - currentPhotos.value.length
+    if (remaining <= 0) {
+      showFailToast('已达到最大上传数量')
+      return
+    }
+    const files = Array.from(allFiles).slice(0, remaining)
 
-    try {
-      let fileToUpload = file
-      
-      if (useBase64Upload) {
-        if (file.size > 500 * 1024) {
-          showLoadingToast({ message: '压缩中...', forbidClick: true })
-          const compressedBlob = await compressImage(file, 500)
-          fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
-        }
-        
-        const reader = new FileReader()
-        const base64Data = await new Promise<string>((resolve, reject) => {
-          reader.onload = (e) => resolve(e.target?.result as string)
-          reader.onerror = reject
-          reader.readAsDataURL(fileToUpload)
-        })
-        
-        const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
-        
-        if (response.code === 200 && response.data) {
-          currentPhotos.value.push(response.data.url)
-          showSuccessToast('上传成功')
-        }
-      } else {
-        const userName = userStore.getUser()?.name || '未知用户'
-        const location = await getCurrentLocation()
-        const processedFile = await processPhoto(file, {
-          userName,
-          includeLocation: true,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
-        })
+    showLoadingToast({ message: `处理中(0/${files.length})...`, forbidClick: true })
 
-        const response = await uploadService.uploadFile(processedFile)
+    if (useBase64Upload) {
+      let uploadedCount = 0
+      let failedCount = 0
 
-        if (response.code === 200 && response.data) {
-          currentPhotos.value.push(response.data.url)
-          showSuccessToast('上传成功')
+      for (const file of files) {
+        try {
+          showLoadingToast({ message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+
+          let fileToUpload = file
+          if (file.size > 500 * 1024) {
+            showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+            const compressedBlob = await compressImage(file, 500)
+            fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+          }
+
+          showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          const watermarkedFile = await processPhoto(fileToUpload, {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+
+          showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+          const reader = new FileReader()
+          const base64Data = await new Promise<string>((resolve, reject) => {
+            reader.onload = (ev) => resolve(ev.target?.result as string)
+            reader.onerror = reject
+            reader.readAsDataURL(watermarkedFile)
+          })
+          
+          const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
+          
+          if (response.code === 200 && response.data) {
+            currentPhotos.value.push(response.data.url)
+            uploadedCount++
+          } else {
+            failedCount++
+          }
+        } catch (error) {
+          console.error('Failed to upload photo:', error)
+          failedCount++
         }
       }
-    } catch (error) {
-      console.error('Failed to upload photo:', error)
-      showFailToast('上传失败')
-    } finally {
+
       closeToast()
+      if (uploadedCount > 0) {
+        showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+      } else {
+        showFailToast('上传失败')
+      }
+    } else {
+      const processedFiles: File[] = []
+      let processFailed = 0
+
+      for (let i = 0; i < files.length; i++) {
+        try {
+          showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          const processedFile = await processPhoto(files[i], {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+          processedFiles.push(processedFile)
+        } catch (error) {
+          console.error('Failed to process photo:', error)
+          processFailed++
+        }
+      }
+
+      if (processedFiles.length === 0) {
+        closeToast()
+        showFailToast('图片处理失败')
+        return
+      }
+
+      showLoadingToast({ message: `上传中(${processedFiles.length}张)...`, forbidClick: true })
+
+      try {
+        const response = await uploadService.uploadFiles(processedFiles)
+        let uploadedCount = 0
+        let failedCount = processFailed
+
+        if (response.code === 200 && response.data) {
+          const successList = response.data.success || response.data
+          if (Array.isArray(successList)) {
+            for (const item of successList) {
+              if (item.url) {
+                currentPhotos.value.push(item.url)
+                uploadedCount++
+              }
+            }
+          }
+          const failedList = response.data.failed || []
+          failedCount += failedList.length
+        } else {
+          failedCount += processedFiles.length
+        }
+
+        closeToast()
+        if (uploadedCount > 0) {
+          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+        } else {
+          showFailToast('上传失败')
+        }
+      } catch (error) {
+        console.error('Batch upload failed:', error)
+        closeToast()
+        showFailToast('上传失败')
+      }
     }
   }
 
@@ -868,7 +913,7 @@ onActivated(() => {
                 <span>拍照</span>
               </div>
             </div>
-            <div class="photo-tip">只支持拍照，最多上传9张</div>
+            <div class="photo-tip">支持拍照或从相册选择，最多上传9张，可多选</div>
           </div>
         </div>
         <div class="popup-footer">
@@ -985,7 +1030,7 @@ onActivated(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 :deep(.van-tabs__nav) {

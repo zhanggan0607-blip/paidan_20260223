@@ -14,71 +14,52 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent, ref, watch } from 'vue'
+<script setup lang="ts">
+import { ref, watch } from 'vue'
 
-export default defineComponent({
-  name: 'Toast',
-  props: {
-    visible: {
-      type: Boolean,
-      default: false,
-    },
-    message: {
-      type: String,
-      required: true,
-    },
-    type: {
-      type: String as () => 'success' | 'error' | 'warning' | 'info',
-      default: 'info',
-    },
-    duration: {
-      type: Number,
-      default: 3000,
-    },
-    position: {
-      type: String as () => 'top-right' | 'top-center' | 'bottom-center',
-      default: 'top-right',
-    },
-  },
-  setup(props) {
-    const show = ref(false)
-    let timer: ReturnType<typeof setTimeout> | null = null
-
-    const handleClick = () => {
-      show.value = false
-    }
-
-    watch(
-      () => props.visible,
-      (newVal) => {
-        if (newVal) {
-          setTimeout(() => {
-            show.value = true
-          }, 10)
-
-          if (timer) {
-            clearTimeout(timer)
-          }
-
-          timer = setTimeout(() => {
-            show.value = false
-          }, props.duration)
-        } else {
-          show.value = false
-          if (timer) {
-            clearTimeout(timer)
-          }
-        }
-      }
-    )
-
-    return {
-      show,
-      handleClick,
-    }
-  },
+const props = withDefaults(defineProps<{
+  visible?: boolean
+  message: string
+  type?: 'success' | 'error' | 'warning' | 'info'
+  duration?: number
+  position?: 'top-right' | 'top-center' | 'bottom-center'
+}>(), {
+  visible: false,
+  type: 'info',
+  duration: 3000,
+  position: 'top-right',
 })
+
+const show = ref(false)
+let timer: ReturnType<typeof setTimeout> | null = null
+
+const handleClick = () => {
+  show.value = false
+}
+
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (newVal) {
+      setTimeout(() => {
+        show.value = true
+      }, 10)
+
+      if (timer) {
+        clearTimeout(timer)
+      }
+
+      timer = setTimeout(() => {
+        show.value = false
+      }, props.duration)
+    } else {
+      show.value = false
+      if (timer) {
+        clearTimeout(timer)
+      }
+    }
+  }
+)
 </script>
 
 <style scoped>

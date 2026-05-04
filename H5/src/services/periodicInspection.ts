@@ -11,7 +11,7 @@ import type {
   PeriodicInspectionCreate,
   PeriodicInspectionUpdate,
   PeriodicInspectionQueryParams,
-} from '../types/models'
+} from '../types/api'
 
 export const periodicInspectionService = {
   /**

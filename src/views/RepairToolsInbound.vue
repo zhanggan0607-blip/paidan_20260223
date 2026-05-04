@@ -7,10 +7,13 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label for="search_toolName" class="search-label">工具名称：</label>
+                  <label
+                    for="search_toolName"
+                    class="search-label"
+                  >工具名称：</label>
                   <SearchInput
-              input-id="search_toolName"
                     v-model="filters.toolName"
+                    input-id="search_toolName"
                     field-key="RepairToolsInbound_toolName"
                     placeholder="请输入工具名称"
                     @input="handleSearch"
@@ -139,8 +142,8 @@
                 <span>每页</span>
                 <select
                   id="pageSize"
-                  name="pageSize"
                   v-model="pageSize"
+                  name="pageSize"
                   class="page-size-select"
                   @change="handlePageSizeChange"
                 >
@@ -182,18 +185,28 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="toolName" class="form-label">工具名称<span class="required">*</span></label>
-            <input id="toolName" name="toolName"
+            <label
+              for="toolName"
+              class="form-label"
+            >工具名称<span class="required">*</span></label>
+            <input
+              id="toolName"
               v-model="formData.tool_name"
+              name="toolName"
               type="text"
               class="form-input"
               placeholder="请输入工具名称"
             >
           </div>
           <div class="form-item">
-            <label for="toolCategory" class="form-label">工具分类<span class="required">*</span></label>
-            <select id="toolCategory" name="toolCategory"
+            <label
+              for="toolCategory"
+              class="form-label"
+            >工具分类<span class="required">*</span></label>
+            <select
+              id="toolCategory"
               v-model="formData.category"
+              name="toolCategory"
               class="form-select"
             >
               <option value="">
@@ -220,9 +233,14 @@
             </select>
           </div>
           <div class="form-item">
-            <label for="specification" class="form-label">规格型号</label>
-            <input id="specification" name="specification"
+            <label
+              for="specification"
+              class="form-label"
+            >规格型号</label>
+            <input
+              id="specification"
               v-model="formData.specification"
+              name="specification"
               type="text"
               class="form-input"
               placeholder="请输入规格型号"
@@ -230,18 +248,28 @@
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label for="unit" class="form-label">单位<span class="required">*</span></label>
-              <input id="unit" name="unit"
+              <label
+                for="unit"
+                class="form-label"
+              >单位<span class="required">*</span></label>
+              <input
+                id="unit"
                 v-model="formData.unit"
+                name="unit"
                 type="text"
                 class="form-input"
                 placeholder="如：个、把、台"
               >
             </div>
             <div class="form-item half">
-              <label for="stockQuantity" class="form-label">库存数量<span class="required">*</span></label>
-              <input id="stockQuantity" name="stockQuantity"
+              <label
+                for="stockQuantity"
+                class="form-label"
+              >库存数量<span class="required">*</span></label>
+              <input
+                id="stockQuantity"
                 v-model.number="formData.stock"
+                name="stockQuantity"
                 type="number"
                 :min="0"
                 class="form-input"
@@ -251,9 +279,14 @@
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label for="minStock" class="form-label">最低库存</label>
-              <input id="minStock" name="minStock"
+              <label
+                for="minStock"
+                class="form-label"
+              >最低库存</label>
+              <input
+                id="minStock"
                 v-model.number="formData.min_stock"
+                name="minStock"
                 type="number"
                 :min="0"
                 class="form-input"
@@ -261,9 +294,14 @@
               >
             </div>
             <div class="form-item half">
-              <label for="location" class="form-label">存放位置</label>
-              <input id="location" name="location"
+              <label
+                for="location"
+                class="form-label"
+              >存放位置</label>
+              <input
+                id="location"
                 v-model="formData.location"
+                name="location"
                 type="text"
                 class="form-input"
                 placeholder="如：A区1号柜"
@@ -271,9 +309,14 @@
             </div>
           </div>
           <div class="form-item">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remark"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入备注"
             />
@@ -314,25 +357,40 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="toolName" class="form-label">工具名称</label>
-            <input id="toolName" name="toolName"
+            <label
+              for="toolName"
+              class="form-label"
+            >工具名称</label>
+            <input
+              id="toolName"
+              name="toolName"
               :value="restockData.tool_name"
               class="form-input"
               disabled
             >
           </div>
           <div class="form-item">
-            <label for="currentStock" class="form-label">当前库存</label>
-            <input id="currentStock" name="currentStock"
+            <label
+              for="currentStock"
+              class="form-label"
+            >当前库存</label>
+            <input
+              id="currentStock"
+              name="currentStock"
               :value="restockData.current_stock"
               class="form-input"
               disabled
             >
           </div>
           <div class="form-item">
-            <label for="inboundQuantity" class="form-label">入库数量<span class="required">*</span></label>
-            <input id="inboundQuantity" name="inboundQuantity"
+            <label
+              for="inboundQuantity"
+              class="form-label"
+            >入库数量<span class="required">*</span></label>
+            <input
+              id="inboundQuantity"
               v-model.number="restockData.quantity"
+              name="inboundQuantity"
               type="number"
               :min="1"
               class="form-input"
@@ -340,9 +398,14 @@
             >
           </div>
           <div class="form-item">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="restockData.remark"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入备注"
             />
@@ -372,8 +435,8 @@
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import SearchInput from '@/components/SearchInput.vue'
-import { userStore } from '@/stores/userStore'
+import { SearchInput } from '@sstcp/shared'
+import { useUserStore } from '@/stores/userStore'
 import { ElMessage } from 'element-plus'
 
 interface RepairToolsStockItem {
@@ -395,6 +458,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const loading = ref(false)
     const submitting = ref(false)
     const dataList = ref<RepairToolsStockItem[]>([])
@@ -459,13 +523,13 @@ export default defineComponent({
         })) as unknown as PaginatedResponse<RepairToolsStockItem>
 
         if (response && response.code === 200 && response.data) {
-          const items = response.data.items || response.data.content || []
+          const items = response.data.items || []
           dataList.value = items.sort((a, b) => {
             if (a.stock === 0 && b.stock !== 0) return -1
             if (a.stock !== 0 && b.stock === 0) return 1
             return 0
           })
-          total.value = response.data.total || response.data.totalElements || 0
+          total.value = response.data.total || 0
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return

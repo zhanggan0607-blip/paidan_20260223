@@ -96,11 +96,14 @@ def get_temporary_repairs_list(
         code=200,
         message="success",
         data={
+            'items': items_dict,
             'content': items_dict,
+            'total': total,
             'totalElements': total,
             'totalPages': (total + size - 1) // size,
             'size': size,
             'number': page,
+            'page': page,
             'first': page == 0,
             'last': page >= (total + size - 1) // size
         }
@@ -209,14 +212,6 @@ def partial_update_temporary_repair(
     - 普通员工只能修改工单内容，不能修改状态为"已完成"或"已退回"
     - 状态审批（改为"已完成"或"已退回"）需要管理员或部门经理权限
     """
-    logger.info(f"=== PATCH临时维修工单 id={id} ===")
-    logger.info(f"用户: {user_info.name}, is_manager: {user_info.is_manager}")
-    logger.info(f"DTO类型: {type(dto)}")
-    logger.info(f"DTO photos字段: {getattr(dto, 'photos', 'NO ATTR')}")
-    logger.info(f"DTO所有字段: {dto.model_dump()}")
-    logger.info(f"DTO非空字段: {dto.model_dump(exclude_none=True)}")
-    logger.info(f"DTO已设置字段: {dto.model_dump(exclude_unset=True)}")
-    
     service = TemporaryRepairService(db)
     existing = service.get_by_id(id)
     
@@ -235,24 +230,11 @@ def partial_update_temporary_repair(
         )
 
     if dto.status == '已退回':
-        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="请输入工单退回原因，至少10个字符"
-            )
-        if len(dto.reject_reason.strip()) > 500:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="退回原因不能超过500个字符"
-            )
+        from app.utils.work_order_utils import validate_reject_reason
+        validate_reject_reason(dto.reject_reason)
 
     repair = service.partial_update(id, dto, user_info.id, user_info.name)
-    logger.info(f"更新后工单photos: {repair.photos}")
-    return ApiResponse(
-        code=200,
-        message="更新成功",
-        data=repair.to_dict()
-    )
+    return ApiResponse.success(repair.to_dict(), "更新成功")
 
 
 @router.post("/{id}/submit", response_model=ApiResponse)
@@ -261,25 +243,10 @@ def submit_temporary_repair(
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_required)
 ):
-    """
-    提交临时维修工单
-    管理员可提交所有工单，运维人员只能提交自己的工单
-    """
+    from app.utils.work_order_utils import submit_work_order
     service = TemporaryRepairService(db)
-    existing = service.get_by_id(id)
-
-    if not check_data_access(user_info, existing.maintenance_personnel):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权提交此工单"
-        )
-
-    repair = service.partial_update(id, TemporaryRepairPartialUpdate(status='待确认'), user_info.id, user_info.name)
-    return ApiResponse(
-        code=200,
-        message="提交成功",
-        data=repair.to_dict()
-    )
+    repair = submit_work_order(id, service, user_info, TemporaryRepairPartialUpdate)
+    return ApiResponse.success(repair.to_dict(), "提交成功")
 
 
 @router.post("/{id}/recall", response_model=ApiResponse)
@@ -288,38 +255,10 @@ def recall_temporary_repair(
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_required)
 ):
-    """
-    撤回临时维修工单
-    仅待确认状态可撤回，撤回后状态变为执行中
-    管理员可撤回所有工单，运维人员只能撤回自己的工单
-    """
+    from app.utils.work_order_utils import recall_work_order
     service = TemporaryRepairService(db)
-    existing = service.get_by_id(id)
-
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="工单不存在"
-        )
-
-    if existing.status != '待确认':
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只有待确认状态的工单才能撤回"
-        )
-
-    if not check_data_access(user_info, existing.maintenance_personnel):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权撤回此工单"
-        )
-
-    repair = service.partial_update(id, TemporaryRepairPartialUpdate(status='执行中'), user_info.id, user_info.name)
-    return ApiResponse(
-        code=200,
-        message="撤回成功",
-        data=repair.to_dict()
-    )
+    repair = recall_work_order(id, service, user_info, TemporaryRepairPartialUpdate)
+    return ApiResponse.success(repair.to_dict(), "撤回成功")
 
 
 @router.post("/{id}/approve", response_model=ApiResponse)
@@ -329,34 +268,10 @@ def approve_temporary_repair(
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_manager_user)
 ):
-    """
-    审批临时维修工单
-    需要管理员或部门经理权限
-    """
+    from app.utils.work_order_utils import approve_work_order
     service = TemporaryRepairService(db)
-    
-    if dto.approved:
-        repair = service.partial_update(id, TemporaryRepairPartialUpdate(status='已完成'), user_info.id, user_info.name)
-        message = "审批通过"
-    else:
-        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="请输入工单退回原因，至少10个字符"
-            )
-        repair = service.partial_update(
-            id, 
-            TemporaryRepairPartialUpdate(status='已退回', reject_reason=dto.reject_reason), 
-            user_info.id, 
-            user_info.name
-        )
-        message = "已退回"
-
-    return ApiResponse(
-        code=200,
-        message=message,
-        data=repair.to_dict()
-    )
+    repair, message = approve_work_order(id, dto, service, user_info, TemporaryRepairPartialUpdate)
+    return ApiResponse.success(repair.to_dict(), message)
 
 
 @router.delete("/{id}", response_model=ApiResponse)

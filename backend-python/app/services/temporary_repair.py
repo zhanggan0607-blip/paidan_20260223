@@ -13,6 +13,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.services.base import BaseService
 from app.exceptions import DuplicateException, NotFoundException, ValidationException
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.personnel import PersonnelRepository
@@ -27,7 +28,7 @@ from app.utils.work_order_id_generator import generate_repair_id
 logger = logging.getLogger(__name__)
 
 
-class TemporaryRepairService:
+class TemporaryRepairService(BaseService):
     """
     临时维修服务
     提供临时维修的增删改查等业务逻辑
@@ -38,11 +39,7 @@ class TemporaryRepairService:
         self.personnel_repository = PersonnelRepository(db)
         self.project_repository = ProjectInfoRepository(db)
         self.sync_service = SyncService(db)
-        self._db = db
-
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        """解析日期"""
-        return parse_datetime(date_value)
+        super().__init__(db)
 
     def _validate_maintenance_personnel(self, personnel_name: str) -> None:
         """
@@ -58,44 +55,6 @@ class TemporaryRepairService:
             raise ValidationException(
                 f"运维人员'{personnel_name}'不存在于人员列表中，请先添加该人员"
             )
-
-    def _create_operation_log(
-        self,
-        work_order_id: int,
-        work_order_no: str,
-        operator_name: str,
-        operator_id: int | None,
-        operation_type: str,
-        operation_type_name: str,
-        remark: str
-    ) -> None:
-        """
-        创建操作日志
-
-        Args:
-            work_order_id: 工单ID
-            work_order_no: 工单编号
-            operator_name: 操作者名称
-            operator_id: 操作者ID
-            operation_type: 操作类型代码
-            operation_type_name: 操作类型名称
-            remark: 备注
-        """
-        from app.models.work_order_operation_log import WorkOrderOperationLog
-
-        log = WorkOrderOperationLog(
-            work_order_type='temporary_repair',
-            work_order_id=work_order_id,
-            work_order_no=work_order_no,
-            operator_name=operator_name,
-            operator_id=operator_id,
-            operation_type=operation_type,
-            operation_type_code=operation_type,
-            operation_type_name=operation_type_name,
-            operation_remark=remark
-        )
-        self._db.add(log)
-        self._db.commit()
 
     def get_all(
         self,
@@ -205,8 +164,8 @@ class TemporaryRepairService:
             repair_id=repair_id,
             project_id=dto.project_id,
             project_name=dto.project_name,
-            plan_start_date=self._parse_date(dto.plan_start_date),
-            plan_end_date=self._parse_date(dto.plan_end_date),
+            plan_start_date=parse_datetime(dto.plan_start_date),
+            plan_end_date=parse_datetime(dto.plan_end_date),
             client_name=dto.client_name,
             client_contact=dto.client_contact if hasattr(dto, 'client_contact') else None,
             client_contact_info=dto.client_contact_info if hasattr(dto, 'client_contact_info') else None,
@@ -220,6 +179,7 @@ class TemporaryRepairService:
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='temporary_repair',
                 work_order_id=result.id,
                 work_order_no=result.repair_id,
                 operator_name=operator_name,
@@ -266,8 +226,8 @@ class TemporaryRepairService:
         existing_repair.repair_id = dto.repair_id
         existing_repair.project_id = dto.project_id
         existing_repair.project_name = dto.project_name
-        existing_repair.plan_start_date = self._parse_date(dto.plan_start_date)
-        existing_repair.plan_end_date = self._parse_date(dto.plan_end_date)
+        existing_repair.plan_start_date = parse_datetime(dto.plan_start_date)
+        existing_repair.plan_end_date = parse_datetime(dto.plan_end_date)
         existing_repair.client_name = dto.client_name
         existing_repair.client_contact = dto.client_contact if hasattr(dto, 'client_contact') else existing_repair.client_contact
         existing_repair.client_contact_info = dto.client_contact_info if hasattr(dto, 'client_contact_info') else existing_repair.client_contact_info
@@ -276,16 +236,17 @@ class TemporaryRepairService:
         existing_repair.remarks = dto.remarks
         existing_repair.fault_description = dto.fault_description
         existing_repair.solution = dto.solution
-        existing_repair.photos = json.dumps(dto.photos) if dto.photos else None
+        existing_repair.photos = dto.photos if dto.photos else None
         existing_repair.signature = dto.signature
         existing_repair.customer_signature = dto.customer_signature
-        existing_repair.execution_date = self._parse_date(dto.execution_date)
+        existing_repair.execution_date = parse_datetime(dto.execution_date)
 
         result = self.repository.update(existing_repair)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='temporary_repair',
                 work_order_id=result.id,
                 work_order_no=result.repair_id,
                 operator_name=operator_name,
@@ -335,9 +296,9 @@ class TemporaryRepairService:
         if dto.project_name is not None:
             existing_repair.project_name = dto.project_name
         if dto.plan_start_date is not None:
-            existing_repair.plan_start_date = self._parse_date(dto.plan_start_date)
+            existing_repair.plan_start_date = parse_datetime(dto.plan_start_date)
         if dto.plan_end_date is not None:
-            existing_repair.plan_end_date = self._parse_date(dto.plan_end_date)
+            existing_repair.plan_end_date = parse_datetime(dto.plan_end_date)
         if dto.client_name is not None:
             existing_repair.client_name = dto.client_name
         if hasattr(dto, 'client_contact') and dto.client_contact is not None:
@@ -357,13 +318,13 @@ class TemporaryRepairService:
         if hasattr(dto, 'solution') and dto.solution is not None:
             existing_repair.solution = dto.solution
         if hasattr(dto, 'photos') and dto.photos is not None and len(dto.photos) > 0:
-            existing_repair.photos = json.dumps(dto.photos)
+            existing_repair.photos = dto.photos
         if hasattr(dto, 'signature') and dto.signature is not None:
             existing_repair.signature = dto.signature
         if hasattr(dto, 'customer_signature') and dto.customer_signature is not None:
             existing_repair.customer_signature = dto.customer_signature
         if hasattr(dto, 'execution_date') and dto.execution_date is not None:
-            existing_repair.execution_date = self._parse_date(dto.execution_date)
+            existing_repair.execution_date = parse_datetime(dto.execution_date)
 
         result = self.repository.update(existing_repair)
         self.sync_service.sync_order_to_work_plan(PLAN_TYPE_REPAIR, result)
@@ -387,6 +348,7 @@ class TemporaryRepairService:
 
         if operator_name and repair.id:
             self._create_operation_log(
+                work_order_type='temporary_repair',
                 work_order_id=repair.id,
                 work_order_no=repair.repair_id,
                 operator_name=operator_name,

@@ -111,13 +111,13 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
             ).filter(PeriodicInspection.is_deleted == False)
 
             if project_name:
-                query = query.filter(PeriodicInspection.project_name.like(f"%{project_name}%"))
+                query = query.filter(PeriodicInspection.project_name.like(f"%{self.escape_like(project_name)}%", escape='\\'))
 
             if client_name:
-                query = query.filter(PeriodicInspection.client_name.like(f"%{client_name}%"))
+                query = query.filter(PeriodicInspection.client_name.like(f"%{self.escape_like(client_name)}%", escape='\\'))
 
             if inspection_id:
-                query = query.filter(PeriodicInspection.inspection_id.like(f"%{inspection_id}%"))
+                query = query.filter(PeriodicInspection.inspection_id.like(f"%{self.escape_like(inspection_id)}%", escape='\\'))
 
             if status:
                 query = query.filter(PeriodicInspection.status == status)
@@ -150,18 +150,3 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
             logger.error(f"查询所有定期巡检失败: {str(e)}")
             raise
 
-    def soft_delete(self, inspection: PeriodicInspection, user_id: int = None) -> None:
-        """
-        软删除定期巡检单
-
-        Args:
-            inspection: 要删除的巡检单对象
-            user_id: 执行删除的用户ID
-        """
-        try:
-            inspection.soft_delete(user_id)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"软删除定期巡检失败: {str(e)}")
-            raise

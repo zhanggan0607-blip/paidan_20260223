@@ -27,10 +27,6 @@ class WeeklyReportService:
         self.repository = WeeklyReportRepository(db)
         self._db = db
 
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        """解析日期"""
-        return parse_datetime(date_value)
-
     def _generate_report_id(self, project_id: str) -> str:
         """生成周报编号"""
         today = datetime.now().strftime("%Y%m%d")
@@ -117,21 +113,21 @@ class WeeklyReportService:
         """
         report_id = dto.report_id or self._generate_report_id(dto.project_id or "")
 
-        images_json = json.dumps(dto.images, ensure_ascii=False) if dto.images else None
+        images_value = dto.images if dto.images else None
 
         report = WeeklyReport(
             report_id=report_id,
             project_id=dto.project_id,
             project_name=dto.project_name,
-            week_start_date=self._parse_date(dto.week_start_date),
-            week_end_date=self._parse_date(dto.week_end_date),
-            report_date=self._parse_date(dto.report_date),
+            week_start_date=parse_datetime(dto.week_start_date),
+            week_end_date=parse_datetime(dto.week_end_date),
+            report_date=parse_datetime(dto.report_date),
             work_summary=dto.work_summary,
             work_content=dto.work_content,
             next_week_plan=dto.next_week_plan,
             issues=dto.issues,
             suggestions=dto.suggestions,
-            images=images_json,
+            images=images_value,
             manager_signature=dto.manager_signature,
             status="submitted",
             created_by=created_by
@@ -165,11 +161,11 @@ class WeeklyReportService:
         if dto.project_name is not None:
             existing_report.project_name = dto.project_name
         if dto.week_start_date is not None:
-            existing_report.week_start_date = self._parse_date(dto.week_start_date)
+            existing_report.week_start_date = parse_datetime(dto.week_start_date)
         if dto.week_end_date is not None:
-            existing_report.week_end_date = self._parse_date(dto.week_end_date)
+            existing_report.week_end_date = parse_datetime(dto.week_end_date)
         if dto.report_date is not None:
-            existing_report.report_date = self._parse_date(dto.report_date)
+            existing_report.report_date = parse_datetime(dto.report_date)
         if dto.work_summary is not None:
             existing_report.work_summary = dto.work_summary
         if dto.work_content is not None:
@@ -181,7 +177,7 @@ class WeeklyReportService:
         if dto.suggestions is not None:
             existing_report.suggestions = dto.suggestions
         if dto.images is not None:
-            existing_report.images = json.dumps(dto.images, ensure_ascii=False)
+            existing_report.images = dto.images
         if dto.manager_signature is not None:
             existing_report.manager_signature = dto.manager_signature
             existing_report.manager_sign_time = datetime.now()

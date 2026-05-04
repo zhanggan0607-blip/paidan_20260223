@@ -5,8 +5,9 @@ import { showToast, showConfirmDialog, showSuccessToast } from 'vant'
 import { projectInfoService, customerService, authService } from '../services'
 import { SearchInput } from '@sstcp/shared'
 import { useNavigation } from '../composables'
-import { userStore } from '../stores/userStore'
-import type { Customer, ProjectInfo } from '../types/models'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
+import type { Customer, ProjectInfo } from '../types/api'
 import type { CustomerContact } from '../services/customer'
 
 const route = useRoute()
@@ -83,7 +84,7 @@ const fetchCustomers = async () => {
   try {
     const response = await customerService.getList({ size: 100 })
     if (response.code === 200 && response.data) {
-      customerList.value = response.data.content || []
+      customerList.value = response.data.items || []
     }
   } catch (error) {
     console.error('Failed to fetch customers:', error)
@@ -331,7 +332,7 @@ const handleBack = () => {
  * 保持会话活跃，定期刷新token
  */
 const keepSessionAlive = async () => {
-  const token = userStore.getToken()
+  const token = userStore.token
   if (!token) {
     return
   }

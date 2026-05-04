@@ -1,5 +1,6 @@
 import { createRequest, type RequestInstance, createSortInterceptor } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+import router from '../router'
 
 function getBaseURL(): string {
   if (import.meta.env.PROD) {
@@ -11,29 +12,27 @@ function getBaseURL(): string {
 const LOGIN_PATH = '/login'
 
 function isLoginPage(): boolean {
-  const pathname = window.location.pathname
-  return pathname === LOGIN_PATH || pathname === LOGIN_PATH + '/'
+  return router.currentRoute.value.path === LOGIN_PATH || router.currentRoute.value.path === LOGIN_PATH + '/'
 }
 
 const requestInstance: RequestInstance = createRequest({
   baseURL: getBaseURL(),
   timeout: 60000,
-  getToken: () => userStore.getToken(),
-  getRefreshToken: () => userStore.getRefreshToken(),
-  getUser: () => userStore.getUser(),
-  setToken: (token: string) => userStore.setToken(token),
-  setRefreshToken: (token: string) => userStore.setRefreshToken(token),
+  getToken: () => useUserStore().token,
+  getRefreshToken: () => useUserStore().refreshToken,
+  getUser: () => useUserStore().currentUser,
+  setToken: (token: string) => useUserStore().setToken(token),
+  setRefreshToken: (token: string) => useUserStore().setRefreshToken(token),
   onUnauthorized: () => {
-    userStore.clearUser()
+    useUserStore().clearUser()
     if (!isLoginPage()) {
-      window.location.href = LOGIN_PATH
+      router.replace(LOGIN_PATH)
     }
   },
   refreshEndpoint: '/auth/refresh',
   enableLogger: import.meta.env.DEV,
 })
 
-// 注册全局排序拦截器
 createSortInterceptor(requestInstance.request)
 
 export const request = requestInstance

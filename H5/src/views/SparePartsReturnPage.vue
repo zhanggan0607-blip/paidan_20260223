@@ -10,7 +10,7 @@ import {
 import { sparePartsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import { useNavigation } from '../composables/useNavigation'
-import type { SparePartsUsage } from '../types/models'
+import type { SparePartsUsage } from '../types/api'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
@@ -342,7 +342,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

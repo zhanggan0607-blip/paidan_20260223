@@ -11,7 +11,7 @@ import type {
   MaintenanceLogCreate,
   MaintenanceLogUpdate,
   OperationLog,
-} from '../types/models'
+} from '../types/api'
 
 export const maintenanceLogService = {
   /**

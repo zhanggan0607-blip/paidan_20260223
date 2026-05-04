@@ -56,10 +56,10 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             )
 
             if project_name:
-                query = query.filter(SpotWork.project_name.like(f'%{project_name}%'))
+                query = query.filter(SpotWork.project_name.like(f'%{self.escape_like(project_name)}%', escape='\\'))
 
             if work_id:
-                query = query.filter(SpotWork.work_id.like(f'%{work_id}%'))
+                query = query.filter(SpotWork.work_id.like(f'%{self.escape_like(work_id)}%', escape='\\'))
 
             if status:
                 query = query.filter(SpotWork.status == status)
@@ -68,7 +68,7 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
                 query = query.filter(SpotWork.maintenance_personnel == maintenance_personnel)
 
             if client_name:
-                query = query.filter(SpotWork.client_name.like(f'%{client_name}%'))
+                query = query.filter(SpotWork.client_name.like(f'%{self.escape_like(client_name)}%', escape='\\'))
 
             total = query.count()
             items = query.order_by(SpotWork.created_at.desc(), SpotWork.id.desc()).offset(page * size).limit(size).all()
@@ -133,22 +133,6 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             ).count()
         except Exception as e:
             logger.error(f"统计工单编号前缀数量失败 (prefix={prefix}): {str(e)}")
-            raise
-
-    def soft_delete(self, work: SpotWork, user_id: int = None) -> None:
-        """
-        软删除零星用工单
-
-        Args:
-            work: 要删除的工单对象
-            user_id: 执行删除的用户ID
-        """
-        try:
-            work.soft_delete(user_id)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"软删除零星用工失败: {str(e)}")
             raise
 
     def find_all_unpaginated(self) -> list[SpotWork]:
@@ -260,6 +244,41 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             logger.error(f"查询工人失败: {str(e)}")
             raise
 
+    def find_worker_in_same_work(
+        self,
+        project_id: str,
+        id_card_number: str,
+        start_date: date | None = None,
+        end_date: date | None = None
+    ) -> SpotWorkWorker | None:
+        """
+        根据项目ID+日期范围+身份证号码查询工人（用于同一工单内身份证去重）
+
+        Args:
+            project_id: 项目编号
+            id_card_number: 身份证号码
+            start_date: 开始日期
+            end_date: 结束日期
+
+        Returns:
+            工人对象，未找到返回None
+        """
+        try:
+            query = self.db.query(SpotWorkWorker).filter(
+                SpotWorkWorker.project_id == project_id,
+                SpotWorkWorker.id_card_number == id_card_number
+            )
+
+            if start_date:
+                query = query.filter(func.date(SpotWorkWorker.start_date) == start_date)
+            if end_date:
+                query = query.filter(func.date(SpotWorkWorker.end_date) == end_date)
+
+            return query.first()
+        except Exception as e:
+            logger.error(f"查询同工单内工人失败: {str(e)}")
+            raise
+
     def find_worker_by_id_card_number(self, id_card_number: str) -> SpotWorkWorker | None:
         """
         根据身份证号码查询工人（全局检查，用于判断身份证是否已录入）
@@ -339,7 +358,7 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
         """
         try:
             self.db.add(worker)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(worker)
             return worker
         except Exception as e:
@@ -359,7 +378,7 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
         """
         try:
             self.db.add_all(workers)
-            self.db.commit()
+            self.db.flush()
             return len(workers)
         except Exception as e:
             self.db.rollback()

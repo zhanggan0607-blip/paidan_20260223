@@ -2,9 +2,10 @@ from sqlalchemy import BigInteger, Column, DateTime, Index, Integer, String, Tex
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class RepairToolsInbound(Base):
+class RepairToolsInbound(Base, SerializationMixin):
     __tablename__ = "repair_tools_inbound"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")

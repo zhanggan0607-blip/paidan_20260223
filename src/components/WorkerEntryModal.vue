@@ -43,7 +43,7 @@
               <td>{{ index + 1 }}</td>
               <td>{{ worker.name || '-' }}</td>
               <td>{{ worker.gender || '-' }}</td>
-              <td>{{ worker.idCardNumber || '-' }}</td>
+              <td>{{ maskIdCard(worker.idCardNumber) }}</td>
               <td>{{ worker.address || '-' }}</td>
               <td>
                 <img
@@ -51,6 +51,7 @@
                   :src="worker.idCardFront"
                   class="id-card-thumb"
                   @click="previewImage(worker.idCardFront)"
+                  @error="onImageError($event, worker, 'idCardFront')"
                 >
                 <span
                   v-else
@@ -63,6 +64,7 @@
                   :src="worker.idCardBack"
                   class="id-card-thumb"
                   @click="previewImage(worker.idCardBack)"
+                  @error="onImageError($event, worker, 'idCardBack')"
                 >
                 <span
                   v-else
@@ -138,8 +140,12 @@
         <div class="worker-form-body">
           <div class="form-row">
             <div class="form-item">
-              <label for="name" class="form-label"><span class="required">*</span> 姓名</label>
-              <input id="name"
+              <label
+                for="name"
+                class="form-label"
+              ><span class="required">*</span> 姓名</label>
+              <input
+                id="name"
                
                 v-model="currentWorker.name"
                 name="name"
@@ -150,9 +156,14 @@
               >
             </div>
             <div class="form-item">
-              <label for="gender" class="form-label"><span class="required">*</span> 性别</label>
-              <select id="gender" name="gender"
+              <label
+                for="gender"
+                class="form-label"
+              ><span class="required">*</span> 性别</label>
+              <select
+                id="gender"
                 v-model="currentWorker.gender"
+                name="gender"
                 class="form-input"
               >
                 <option value="">
@@ -169,8 +180,12 @@
           </div>
           <div class="form-row">
             <div class="form-item">
-              <label for="idCardNumber" class="form-label"><span class="required">*</span> 身份证号码</label>
-              <input id="idCardNumber"
+              <label
+                for="idCardNumber"
+                class="form-label"
+              ><span class="required">*</span> 身份证号码</label>
+              <input
+                id="idCardNumber"
                
                 v-model="currentWorker.idCardNumber"
                 name="idCardNumber"
@@ -187,8 +202,12 @@
               >{{ idCardError }}</span>
             </div>
             <div class="form-item">
-              <label for="birthDate" class="form-label"><span class="required">*</span> 出生日期</label>
-              <input id="birthDate"
+              <label
+                for="birthDate"
+                class="form-label"
+              ><span class="required">*</span> 出生日期</label>
+              <input
+                id="birthDate"
                
                 v-model="currentWorker.birthDate"
                 name="birthDate"
@@ -200,9 +219,14 @@
           </div>
           <div class="form-row">
             <div class="form-item full-width">
-              <label for="address" class="form-label"><span class="required">*</span> 住址</label>
-              <input id="address" name="address"
+              <label
+                for="address"
+                class="form-label"
+              ><span class="required">*</span> 住址</label>
+              <input
+                id="address"
                 v-model="currentWorker.address"
+                name="address"
                 type="text"
                 class="form-input"
                 placeholder="请输入住址"
@@ -211,8 +235,12 @@
           </div>
           <div class="form-row">
             <div class="form-item">
-              <label for="issuingAuthority" class="form-label"><span class="required">*</span> 签发机关</label>
-              <input id="issuingAuthority"
+              <label
+                for="issuingAuthority"
+                class="form-label"
+              ><span class="required">*</span> 签发机关</label>
+              <input
+                id="issuingAuthority"
                
                 v-model="currentWorker.issuingAuthority"
                 name="issuingAuthority"
@@ -223,8 +251,12 @@
               >
             </div>
             <div class="form-item">
-              <label for="validPeriod" class="form-label"><span class="required">*</span> 有效期限</label>
-              <input id="validPeriod"
+              <label
+                for="validPeriod"
+                class="form-label"
+              ><span class="required">*</span> 有效期限</label>
+              <input
+                id="validPeriod"
                
                 v-model="currentWorker.validPeriod"
                 name="validPeriod"
@@ -237,10 +269,15 @@
           </div>
           <div class="form-row id-card-photos">
             <div class="form-item">
-              <label for="idCardFront" class="form-label"><span class="required">*</span> 身份证正面</label>
+              <label
+                for="idCardFront"
+                class="form-label"
+              ><span class="required">*</span> 身份证正面</label>
               <div class="photo-upload-area">
-                <input id="idCardFront" name="idCardFront"
+                <input
+                  id="idCardFront"
                   ref="frontInputRef"
+                  name="idCardFront"
                   type="file"
                   accept="image/*"
                   style="display: none"
@@ -254,6 +291,7 @@
                   <img
                     :src="currentWorker.idCardFront"
                     @click="previewImage(currentWorker.idCardFront)"
+                    @error="onImageError($event, currentWorker, 'idCardFront')"
                   >
                   <button
                     class="remove-btn"
@@ -280,10 +318,15 @@
               </div>
             </div>
             <div class="form-item">
-              <label for="idCardBack" class="form-label"><span class="required">*</span> 身份证反面</label>
+              <label
+                for="idCardBack"
+                class="form-label"
+              ><span class="required">*</span> 身份证反面</label>
               <div class="photo-upload-area">
-                <input id="idCardBack" name="idCardBack"
+                <input
+                  id="idCardBack"
                   ref="backInputRef"
+                  name="idCardBack"
                   type="file"
                   accept="image/*"
                   style="display: none"
@@ -297,6 +340,7 @@
                   <img
                     :src="currentWorker.idCardBack"
                     @click="previewImage(currentWorker.idCardBack)"
+                    @error="onImageError($event, currentWorker, 'idCardBack')"
                   >
                   <button
                     class="remove-btn"
@@ -348,6 +392,7 @@ import { defineComponent, ref, watch } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse } from '@/types/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { maskIdCard } from '@sstcp/shared'
 
 interface WorkerInfo {
   id?: number
@@ -492,10 +537,11 @@ export default defineComponent({
                 
                 try {
                   const checkResponse = (await request.get(
-                    `/spot-work/workers/check-id-card?id_card_number=${ocrData.idCardNumber}`
+                    `/spot-work/workers/check-id-card?id_card_number=${ocrData.idCardNumber}&project_id=${props.projectId}&start_date=${props.workDateStart}&end_date=${props.workDateEnd}`
                   )) as unknown as ApiResponse<{
                     exists: boolean
                     can_reuse: boolean
+                    duplicate_in_work?: boolean
                     name?: string
                     project_name?: string
                     work_status?: string
@@ -504,7 +550,12 @@ export default defineComponent({
                   
                   if (checkResponse.code === 200 && checkResponse.data?.exists) {
                     const existingInfo = checkResponse.data
-                    if (!existingInfo.can_reuse) {
+                    if (existingInfo.duplicate_in_work) {
+                      idCardError.value = '该身份证号码已在本工单中录入，不能重复上传'
+                      ElMessage.warning(
+                        `该身份证已在本工单中录入！姓名：${existingInfo.name}，同一工单中同一身份证只能上传一次`
+                      )
+                    } else if (!existingInfo.can_reuse) {
                       idCardError.value = '该身份证号码已存在，不能重复录入'
                       ElMessage.warning(
                         `该身份证已录入未完成工单！姓名：${existingInfo.name}，项目：${existingInfo.project_name}，工单号：${existingInfo.work_id}，状态：${existingInfo.work_status}`
@@ -575,6 +626,15 @@ export default defineComponent({
       window.open(url, '_blank')
     }
 
+    const onImageError = (event: Event, worker: any, field: 'idCardFront' | 'idCardBack') => {
+      const img = event.target as HTMLImageElement
+      img.style.display = 'none'
+      const placeholder = document.createElement('span')
+      placeholder.className = 'no-photo'
+      placeholder.textContent = '图片加载失败'
+      img.parentNode?.insertBefore(placeholder, img)
+    }
+
     const editWorker = (index: number) => {
       editingIndex.value = index
       currentWorker.value = { ...workers.value[index] }
@@ -642,6 +702,14 @@ export default defineComponent({
         return
       }
 
+      const duplicateInList = workers.value.some(
+        (w, idx) => w.idCardNumber === currentWorker.value.idCardNumber && idx !== editingIndex.value
+      )
+      if (duplicateInList) {
+        ElMessage.warning('该身份证号码已在当前列表中，同一工单中同一身份证只能上传一次')
+        return
+      }
+
       if (editingIndex.value >= 0) {
         workers.value[editingIndex.value] = { ...currentWorker.value }
       } else {
@@ -669,11 +737,13 @@ export default defineComponent({
       handleIdCardUpload,
       triggerUpload,
       previewImage,
+      onImageError,
       editWorker,
       deleteWorker,
       closeWorkerForm,
       saveWorker,
       handleConfirm,
+      maskIdCard,
     }
   },
 })

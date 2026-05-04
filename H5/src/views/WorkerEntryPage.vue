@@ -9,9 +9,9 @@ import {
   showConfirmDialog,
 } from 'vant'
 import { spotWorkService, ocrService, uploadService } from '../services'
-import { userStore } from '../stores/userStore'
-import { processPhoto, getCurrentLocation } from '@sstcp/shared'
-import { validateIdCard } from '../utils/idCardValidator'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
+import { processPhoto, getCurrentLocation, validateIdCard, maskIdCard } from '@sstcp/shared'
 import { useNavigation } from '../composables'
 
 interface WorkerInfo {
@@ -105,7 +105,11 @@ const handleSelectExistingWorker = async () => {
  * @param worker - 选中的人员信息
  */
 const handleExistingWorkerSelect = async (worker: WorkerInfo) => {
-  const checkResponse = await spotWorkService.checkIdCardExists(worker.idCardNumber || '')
+  const checkResponse = await spotWorkService.checkIdCardExists(worker.idCardNumber || '', {
+    project_id: projectId.value,
+    start_date: workDateStart.value,
+    end_date: workDateEnd.value,
+  })
   if (checkResponse.code === 200 && checkResponse.data?.exists) {
     const existingInfo = checkResponse.data
     
@@ -118,6 +122,13 @@ const handleExistingWorkerSelect = async (worker: WorkerInfo) => {
       return
     }
     
+    if (existingInfo.duplicate_in_work) {
+      showFailToast(
+        `该身份证已在本工单中录入！\n姓名：${existingInfo.name}\n同一工单中同一身份证只能上传一次`
+      )
+      return
+    }
+
     if (!existingInfo.can_reuse) {
       showFailToast(
         `该身份证已录入未完成工单！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}\n工单号：${existingInfo.work_id}\n状态：${existingInfo.work_status}`
@@ -202,6 +213,18 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
   showImageSourceSheet.value = true
 }
 
+const onIdCardImageError = (event: Event, field: 'idCardFront' | 'idCardBack') => {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  const parent = img.parentElement
+  if (parent) {
+    const placeholder = document.createElement('div')
+    placeholder.className = 'id-card-placeholder'
+    placeholder.innerHTML = '<span style="color:#999;font-size:12px;">图片加载失败</span>'
+    parent.appendChild(placeholder)
+  }
+}
+
 /**
  * 选择图片来源后的处理
  * @param useCamera - 是否使用相机拍照
@@ -265,11 +288,22 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
               } else {
                 idCardError.value = ''
                 closeToast()
-                const checkResponse = await spotWorkService.checkIdCardExists(ocrData.idCardNumber)
+                const checkResponse = await spotWorkService.checkIdCardExists(ocrData.idCardNumber, {
+                  project_id: projectId.value,
+                  start_date: workDateStart.value,
+                  end_date: workDateEnd.value,
+                })
                 if (checkResponse.code === 200 && checkResponse.data?.exists) {
                   const existingInfo = checkResponse.data
                   
-                  if (!existingInfo.can_reuse) {
+                  if (existingInfo.duplicate_in_work) {
+                    shouldContinue = false
+                    idCardError.value = '该身份证号码已在本工单中录入，不能重复上传'
+                    showFailToast(
+                      `该身份证已在本工单中录入！\n姓名：${existingInfo.name}\n同一工单中同一身份证只能上传一次`
+                    )
+                    return
+                  } else if (!existingInfo.can_reuse) {
                     shouldContinue = false
                     idCardError.value = '该身份证号码已存在，不能重复录入'
                     showFailToast(
@@ -313,20 +347,9 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
 
       if (!shouldContinue) return
 
-      showLoadingToast({ message: '处理图片...', forbidClick: true })
-
-      const userName = userStore.getUser()?.name || '未知用户'
-      const location = await getCurrentLocation()
-      const processedFile = await processPhoto(file, {
-        userName,
-        includeLocation: true,
-        latitude: location?.latitude,
-        longitude: location?.longitude,
-      })
-
       showLoadingToast({ message: '上传图片...', forbidClick: true })
 
-      const response = await uploadService.uploadFile(processedFile)
+      const response = await uploadService.uploadFile(file)
 
       if (response.code === 200 && response.data) {
         const imageUrl = response.data.url
@@ -450,6 +473,14 @@ const handleSaveWorker = () => {
     return
   }
 
+  const duplicateInList = workerList.value.some(
+    (w, idx) => w.idCardNumber === currentWorker.value.idCardNumber && idx !== editingIndex.value
+  )
+  if (duplicateInList) {
+    showFailToast('该身份证号码已在当前列表中，同一工单中同一身份证只能上传一次')
+    return
+  }
+
   if (editingIndex.value >= 0) {
     workerList.value[editingIndex.value] = { ...currentWorker.value }
   } else {
@@ -495,8 +526,6 @@ const handleSubmit = async () => {
       if (worker.validPeriod) data.validPeriod = worker.validPeriod
       return data
     })
-
-    console.log('提交的工人数据:', workersData)
 
     const response = await spotWorkService.saveWorkers({
       project_id: projectId.value,
@@ -612,7 +641,7 @@ onActivated(() => {
           <template #title>
             <div class="worker-item">
               <div class="worker-name">{{ worker.name }}</div>
-              <div class="worker-id">{{ worker.idCardNumber }}</div>
+              <div class="worker-id">{{ maskIdCard(worker.idCardNumber) }}</div>
             </div>
           </template>
           <template #value>
@@ -667,6 +696,7 @@ onActivated(() => {
                     :src="currentWorker.idCardFront"
                     alt="正面"
                     loading="lazy"
+                    @error="onIdCardImageError($event, 'idCardFront')"
                   />
                   <div v-else class="id-card-placeholder">
                     <van-icon name="photograph" size="24" />
@@ -683,6 +713,7 @@ onActivated(() => {
                     :src="currentWorker.idCardBack"
                     alt="反面"
                     loading="lazy"
+                    @error="onIdCardImageError($event, 'idCardBack')"
                   />
                   <div v-else class="id-card-placeholder">
                     <van-icon name="photograph" size="24" />
@@ -793,7 +824,7 @@ onActivated(() => {
               <template #title>
                 <div class="worker-item">
                   <div class="worker-name">{{ worker.name }}</div>
-                  <div class="worker-id">{{ worker.idCardNumber }}</div>
+                  <div class="worker-id">{{ maskIdCard(worker.idCardNumber) }}</div>
                 </div>
               </template>
               <template #value>
@@ -894,7 +925,7 @@ onActivated(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

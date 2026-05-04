@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="spot-work-page">
     <Toast
       :visible="toast.visible"
@@ -10,20 +10,26 @@
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label for="search_projectName" class="search-label">项目名称：</label>
+              <label
+                for="search_projectName"
+                class="search-label"
+              >项目名称：</label>
               <SearchInput
-              input-id="search_projectName"
                 v-model="searchForm.project_name"
+                input-id="search_projectName"
                 field-key="SpotWorkManagement_project_name"
                 placeholder="请输入项目名称"
                 @input="handleSearch"
               />
             </div>
             <div class="search-item">
-              <label for="search_workOrderId" class="search-label">工单编号：</label>
+              <label
+                for="search_workOrderId"
+                class="search-label"
+              >工单编号：</label>
               <SearchInput
-              input-id="search_workOrderId"
                 v-model="searchForm.work_id"
+                input-id="search_workOrderId"
                 field-key="SpotWorkManagement_work_id"
                 placeholder="请输入工单编号"
                 @input="handleSearch"
@@ -182,8 +188,8 @@
           </button>
           <select
             id="pageSize"
-            name="pageSize"
             v-model="pageSize"
+            name="pageSize"
             class="page-select"
           >
             <option value="10">
@@ -241,9 +247,14 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label for="projectName" class="form-label"> <span class="required">*</span> 项目名称 </label>
-                <select id="projectName" name="projectName"
+                <label
+                  for="projectName"
+                  class="form-label"
+                > <span class="required">*</span> 项目名称 </label>
+                <select
+                  id="projectName"
                   v-model="formData.project_name"
+                  name="projectName"
                   class="form-input"
                   @change="handleProjectChange"
                 >
@@ -266,9 +277,14 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="planStartDate" class="form-label"> <span class="required">*</span> 计划开始日期 </label>
-                <input id="planStartDate" name="planStartDate"
+                <label
+                  for="planStartDate"
+                  class="form-label"
+                > <span class="required">*</span> 计划开始日期 </label>
+                <input
+                  id="planStartDate"
                   v-model="formData.plan_start_date"
+                  name="planStartDate"
                   type="date"
                   class="form-input"
                   @change="calculateWorkDays"
@@ -281,9 +297,14 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="clientContact" class="form-label">客户联系人</label>
-                <input id="clientContact" name="clientContact"
+                <label
+                  for="clientContact"
+                  class="form-label"
+                >客户联系人</label>
+                <input
+                  id="clientContact"
                   v-model="formData.client_contact"
+                  name="clientContact"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人"
@@ -292,9 +313,14 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                <label
+                  for="maintenancePersonnel"
+                  class="form-label"
+                > <span class="required">*</span> 运维人员 </label>
+                <select
+                  id="maintenancePersonnel"
                   v-model="formData.maintenance_personnel"
+                  name="maintenancePersonnel"
                   class="form-input"
                 >
                   <option value="">
@@ -316,9 +342,14 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="planEndDate" class="form-label"> <span class="required">*</span> 计划结束日期 </label>
-                <input id="planEndDate" name="planEndDate"
+                <label
+                  for="planEndDate"
+                  class="form-label"
+                > <span class="required">*</span> 计划结束日期 </label>
+                <input
+                  id="planEndDate"
                   v-model="formData.plan_end_date"
+                  name="planEndDate"
                   type="date"
                   class="form-input"
                   @change="calculateWorkDays"
@@ -331,9 +362,14 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="clientContactPhone" class="form-label">客户联系电话</label>
-                <input id="clientContactPhone" name="clientContactPhone"
+                <label
+                  for="clientContactPhone"
+                  class="form-label"
+                >客户联系电话</label>
+                <input
+                  id="clientContactPhone"
                   v-model="formData.client_contact_info"
+                  name="clientContactPhone"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系电话"
@@ -342,9 +378,14 @@
             </div>
           </div>
           <div class="form-item-full">
-            <label for="workContent" class="form-label"> <span class="required">*</span> 工作内容 </label>
-            <textarea id="workContent" name="workContent"
+            <label
+              for="workContent"
+              class="form-label"
+            > <span class="required">*</span> 工作内容 </label>
+            <textarea
+              id="workContent"
               v-model="formData.work_content"
+              name="workContent"
               class="form-input form-textarea"
               placeholder="请输入工作内容"
               maxlength="800"
@@ -401,9 +442,14 @@
           </div>
 
           <div class="form-item-full">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remarks"
+              name="remarks"
               class="form-input form-textarea"
               placeholder="请输入备注"
               maxlength="500"
@@ -461,17 +507,27 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="planStartDate" class="form-label"> <span class="required">*</span> 计划开始日期 </label>
-                <input id="planStartDate" name="planStartDate"
+                <label
+                  for="planStartDate"
+                  class="form-label"
+                > <span class="required">*</span> 计划开始日期 </label>
+                <input
+                  id="planStartDate"
                   v-model="editFormData.plan_start_date"
+                  name="planStartDate"
                   type="date"
                   class="form-input"
                 >
               </div>
               <div class="form-item">
-                <label for="clientContact" class="form-label">客户联系人</label>
-                <input id="clientContact" name="clientContact"
+                <label
+                  for="clientContact"
+                  class="form-label"
+                >客户联系人</label>
+                <input
+                  id="clientContact"
                   v-model="editFormData.client_contact"
+                  name="clientContact"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人"
@@ -480,9 +536,14 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                <label
+                  for="maintenancePersonnel"
+                  class="form-label"
+                > <span class="required">*</span> 运维人员 </label>
+                <select
+                  id="maintenancePersonnel"
                   v-model="editFormData.maintenance_personnel"
+                  name="maintenancePersonnel"
                   class="form-input"
                 >
                   <option value="">
@@ -498,26 +559,41 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="planEndDate" class="form-label"> <span class="required">*</span> 计划结束日期 </label>
-                <input id="planEndDate" name="planEndDate"
+                <label
+                  for="planEndDate"
+                  class="form-label"
+                > <span class="required">*</span> 计划结束日期 </label>
+                <input
+                  id="planEndDate"
                   v-model="editFormData.plan_end_date"
+                  name="planEndDate"
                   type="date"
                   class="form-input"
                 >
               </div>
               <div class="form-item">
-                <label for="clientContactInfo" class="form-label">客户联系方式</label>
-                <input id="clientContactInfo" name="clientContactInfo"
+                <label
+                  for="clientContactInfo"
+                  class="form-label"
+                >客户联系方式</label>
+                <input
+                  id="clientContactInfo"
                   v-model="editFormData.client_contact_info"
+                  name="clientContactInfo"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系方式"
                 >
               </div>
               <div class="form-item">
-                <label for="status" class="form-label">状态</label>
-                <select id="status" name="status"
+                <label
+                  for="status"
+                  class="form-label"
+                >状态</label>
+                <select
+                  id="status"
                   v-model="editFormData.status"
+                  name="status"
                   class="form-input"
                 >
                   <option value="执行中">
@@ -537,9 +613,14 @@
             </div>
           </div>
           <div class="form-item-full">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="editFormData.remarks"
+              name="remarks"
               class="form-input form-textarea"
               placeholder="请输入备注"
               maxlength="500"
@@ -620,9 +701,14 @@
         </div>
         <div class="modal-body">
           <div class="form-item-full">
-            <label for="rejectReason" class="form-label">退回原因 <span class="required">*</span></label>
-            <textarea id="rejectReason" name="rejectReason"
+            <label
+              for="rejectReason"
+              class="form-label"
+            >退回原因 <span class="required">*</span></label>
+            <textarea
+              id="rejectReason"
               v-model="rejectReason"
+              name="rejectReason"
               class="form-input form-textarea"
               placeholder="请输入退回原因（10-500字符）"
               maxlength="500"
@@ -660,13 +746,12 @@ import { ElMessageBox } from 'element-plus'
 import { spotWorkService, type SpotWork } from '@/services/spotWork'
 import { projectInfoService, type ProjectInfo } from '@/services/projectInfo'
 import { personnelService, type Personnel } from '@/services/personnel'
-import Toast from '@/components/Toast.vue'
-import SearchInput from '@/components/SearchInput.vue'
+import { Toast, SearchInput } from '@sstcp/shared'
 import PhotoUpload from '@/components/PhotoUpload.vue'
 import SignaturePad from '@/components/SignaturePad.vue'
 import WorkerEntryModal from '@/components/WorkerEntryModal.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '@/config/constants'
-import { userStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/userStore'
 
 interface WorkerInfo {
   id?: number
@@ -711,6 +796,7 @@ export default defineComponent({
     WorkerEntryModal,
   },
   setup() {
+    const userStore = useUserStore()
     const router = useRouter()
     const currentPage = ref(1)
     const pageSize = ref(10)
@@ -727,7 +813,7 @@ export default defineComponent({
 
     const isAdmin = ref(userStore.isAdmin())
     const isDepartmentManager = ref(userStore.isDepartmentManager?.() || false)
-    const currentUserName = ref(userStore.getUser()?.name || '')
+    const currentUserName = ref(userStore.currentUser?.name || '')
 
     const canEditWork = (item: WorkItem): boolean => {
       if (isAdmin.value) return true
@@ -840,7 +926,7 @@ export default defineComponent({
         })
 
         if (response.code === 200 && response.data) {
-          workData.value = (response.data.content || []).map((item: SpotWork) => ({
+          workData.value = (response.data.items || []).map((item: SpotWork) => ({
             id: item.id,
             work_id: item.work_id,
             project_id: item.project_id,
@@ -858,7 +944,7 @@ export default defineComponent({
             photos: Array.isArray(item.photos) ? item.photos : (typeof item.photos === 'string' ? JSON.parse(item.photos) : []),
             signature: item.signature || '',
           }))
-          totalElements.value = response.data.totalElements || 0
+          totalElements.value = response.data.total || 0
           totalPages.value = response.data.totalPages || 1
         }
       } catch (error: any) {
@@ -905,7 +991,7 @@ export default defineComponent({
       )
       if (selectedProject) {
         formData.value.project_id = selectedProject.project_id
-        formData.value.client_name = selectedProject.client_name
+        formData.value.client_name = selectedProject.client_name ?? ''
         formData.value.client_contact = selectedProject.client_contact || ''
         formData.value.client_contact_info = selectedProject.client_contact_info || ''
         formData.value.maintenance_personnel = selectedProject.project_manager || ''

@@ -10,7 +10,7 @@ import type {
   RepairToolsUsage,
   RepairToolsIssueRequest,
   RepairToolsStockQueryParams,
-} from '../types/models'
+} from '../types/api'
 
 export const repairToolsService = {
   /**

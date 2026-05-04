@@ -1,10 +1,15 @@
 import paramiko
+import os
+import re
 
-SERVER_IP = '8.153.95.31'
+SERVER_IP = os.environ.get('SERVER_IP', '')
 SERVER_PASSWORD = os.environ.get('SERVER_PASSWORD', '')
 
 ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+known_hosts = os.path.expanduser('~/.ssh/known_hosts')
+if os.path.exists(known_hosts):
+    ssh.load_host_keys(known_hosts)
 ssh.connect(SERVER_IP, username='root', password=SERVER_PASSWORD, timeout=15)
 
 def run_cmd(cmd):
@@ -24,7 +29,6 @@ for term in search_terms:
         print(f'  "{term}" NOT found')
 
 print('\n=== 搜索版本号字符串 ===')
-import re
 version_matches = list(re.finditer(r'"(\d+\.\d+\.\d+)"', pc_js))
 for m in version_matches:
     start = max(0, m.start()-50)

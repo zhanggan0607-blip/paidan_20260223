@@ -11,7 +11,7 @@ import type {
   WeeklyReportQueryParams,
   WeeklyReportCreate,
   WeeklyReportUpdate,
-} from '../types/models'
+} from '../types/api'
 
 export const weeklyReportService = {
   /**
@@ -19,7 +19,7 @@ export const weeklyReportService = {
    */
   async getList(
     params?: WeeklyReportQueryParams
-  ): Promise<ApiResponse<{ content: WeeklyReport[] }>> {
+  ): Promise<PaginatedResponse<WeeklyReport>> {
     return request.get(API_ENDPOINTS.WEEKLY_REPORT.LIST, { params })
   },
 

@@ -5,29 +5,17 @@
   </div>
 </template>
 
-<script lang="ts">
-import { defineComponent } from 'vue'
-
-export default defineComponent({
-  name: 'LoadingSpinner',
-  props: {
-    visible: {
-      type: Boolean,
-      default: false,
-    },
-    text: {
-      type: String,
-      default: '加载中...',
-    },
-    size: {
-      type: String,
-      default: '50px',
-    },
-    fullscreen: {
-      type: Boolean,
-      default: true,
-    },
-  },
+<script setup lang="ts">
+withDefaults(defineProps<{
+  visible?: boolean
+  text?: string
+  size?: string
+  fullscreen?: boolean
+}>(), {
+  visible: false,
+  text: '加载中...',
+  size: '50px',
+  fullscreen: true,
 })
 </script>
 

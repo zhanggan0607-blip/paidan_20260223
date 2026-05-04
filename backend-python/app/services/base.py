@@ -42,11 +42,6 @@ class BaseService:
         return self._db
     
     def commit(self) -> None:
-        """
-        提交事务
-        
-        在执行完所有数据库操作后调用此方法提交事务
-        """
         try:
             self._db.commit()
             logger.debug("事务已提交")
@@ -56,11 +51,6 @@ class BaseService:
             raise
     
     def rollback(self) -> None:
-        """
-        回滚事务
-        
-        通常不需要手动调用，异常时会自动回滚
-        """
         try:
             self._db.rollback()
             logger.debug("事务已回滚")
@@ -68,11 +58,6 @@ class BaseService:
             logger.error(f"事务回滚失败: {str(e)}")
     
     def flush(self) -> None:
-        """
-        刷新到数据库（不提交事务）
-        
-        用于获取自增ID等场景
-        """
         try:
             self._db.flush()
         except Exception as e:
@@ -81,25 +66,6 @@ class BaseService:
             raise
     
     def execute_in_transaction(self, func, *args, **kwargs):
-        """
-        在事务中执行函数
-        
-        自动处理提交和回滚
-        
-        Args:
-            func: 要执行的函数
-            *args: 函数参数
-            **kwargs: 函数关键字参数
-            
-        Returns:
-            函数执行结果
-            
-        Example:
-            def create_user(self, dto):
-                return self.execute_in_transaction(
-                    lambda: self._do_create_user(dto)
-                )
-        """
         try:
             result = func(*args, **kwargs)
             self.commit()
@@ -107,3 +73,30 @@ class BaseService:
         except Exception as e:
             self.rollback()
             raise
+
+    def _create_operation_log(
+        self,
+        work_order_type: str,
+        work_order_id: int,
+        work_order_no: str,
+        operator_name: str,
+        operator_id: int | None,
+        operation_type: str,
+        operation_type_name: str,
+        remark: str
+    ) -> None:
+        from app.models.work_order_operation_log import WorkOrderOperationLog
+
+        log = WorkOrderOperationLog(
+            work_order_type=work_order_type,
+            work_order_id=work_order_id,
+            work_order_no=work_order_no,
+            operator_name=operator_name,
+            operator_id=operator_id,
+            operation_type=operation_type,
+            operation_type_code=operation_type,
+            operation_type_name=operation_type_name,
+            operation_remark=remark
+        )
+        self._db.add(log)
+        self._db.flush()

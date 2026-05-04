@@ -128,11 +128,14 @@ def get_spot_works_list(
         code=200,
         message="success",
         data={
+            'items': items_dict,
             'content': items_dict,
+            'total': total,
             'totalElements': total,
             'totalPages': (total + size - 1) // size if size > 0 else 0,
             'size': size,
             'number': page,
+            'page': page,
             'first': page == 0,
             'last': page >= (total + size - 1) // size if size > 0 else True
         }
@@ -179,7 +182,8 @@ def get_workers(
     project_id: str = Query(..., description="项目编号"),
     start_date: str = Query(..., description="开始日期"),
     end_date: str = Query(..., description="结束日期"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取施工人员列表
@@ -198,16 +202,54 @@ def get_workers(
 @router.get("/workers/check-id-card", response_model=ApiResponse)
 def check_id_card_exists(
     id_card_number: str = Query(..., description="身份证号码"),
-    db: Session = Depends(get_db)
+    project_id: str | None = Query(None, description="项目编号（用于同工单去重检查）"),
+    start_date: str | None = Query(None, description="开始日期（用于同工单去重检查）"),
+    end_date: str | None = Query(None, description="结束日期（用于同工单去重检查）"),
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     检查身份证号码是否已存在
     用于前端在OCR识别后立即检查，避免重复录入
     如果关联的工单已完成，则允许复用
+    如果提供了project_id和日期参数，还会检查同一工单内是否已录入
     """
+    from datetime import datetime as dt
     from app.repositories.spot_work import SpotWorkRepository
 
     repository = SpotWorkRepository(db)
+
+    if project_id:
+        start = None
+        end = None
+        try:
+            if start_date:
+                start = dt.strptime(start_date, '%Y-%m-%d').date()
+            if end_date:
+                end = dt.strptime(end_date, '%Y-%m-%d').date()
+        except Exception:
+            pass
+
+        existing_in_work = repository.find_worker_in_same_work(
+            project_id=project_id,
+            id_card_number=id_card_number,
+            start_date=start,
+            end_date=end
+        )
+        if existing_in_work:
+            return ApiResponse(
+                code=200,
+                message="该身份证号码已在本工单中录入",
+                data={
+                    "exists": True,
+                    "can_reuse": False,
+                    "duplicate_in_work": True,
+                    "name": existing_in_work.name,
+                    "project_name": existing_in_work.project_name,
+                    "project_id": existing_in_work.project_id,
+                }
+            )
+
     reuse_check = repository.check_worker_can_be_reused(id_card_number)
 
     if reuse_check['exists']:
@@ -218,6 +260,7 @@ def check_id_card_exists(
             data={
                 "exists": True,
                 "can_reuse": reuse_check['can_reuse'],
+                "duplicate_in_work": False,
                 "name": worker_info['name'],
                 "project_name": worker_info['project_name'],
                 "project_id": worker_info['project_id'],
@@ -229,13 +272,14 @@ def check_id_card_exists(
         return ApiResponse(
             code=200,
             message="身份证号码未录入",
-            data={"exists": False, "can_reuse": True}
+            data={"exists": False, "can_reuse": True, "duplicate_in_work": False}
         )
 
 
 @router.get("/workers/all", response_model=ApiResponse)
 def get_all_workers(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有已录入的施工人员（去重）
@@ -288,7 +332,8 @@ def get_all_workers(
 @router.post("/workers", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def save_workers(
     dto: WorkersRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     保存施工人员信息
@@ -297,7 +342,8 @@ def save_workers(
     """
     logger.info(f"收到施工人员保存请求: project_id={dto.project_id}, workers_count={len(dto.workers)}")
     for i, w in enumerate(dto.workers):
-        logger.info(f"工人{i+1}: name={w.name}, idCardNumber={w.idCardNumber}, idCardFront={bool(w.idCardFront)}, idCardBack={bool(w.idCardBack)}")
+        masked_id = f"{w.idCardNumber[:3]}****{w.idCardNumber[-4:]}" if w.idCardNumber and len(w.idCardNumber) >= 7 else "***"
+        logger.info(f"工人{i+1}: name={w.name}, idCardNumber={masked_id}")
 
     service = SpotWorkService(db)
 
@@ -459,16 +505,8 @@ def partial_update_spot_work(
         )
 
     if dto.status == '已退回':
-        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="请输入工单退回原因，至少10个字符"
-            )
-        if len(dto.reject_reason.strip()) > 500:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="退回原因不能超过500个字符"
-            )
+        from app.utils.work_order_utils import validate_reject_reason
+        validate_reject_reason(dto.reject_reason)
 
     work = service.partial_update(id, dto)
     return ApiResponse(
@@ -484,25 +522,10 @@ def submit_spot_work(
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_required)
 ):
-    """
-    提交零星用工工单
-    管理员可提交所有工单，运维人员只能提交自己的工单
-    """
+    from app.utils.work_order_utils import submit_work_order
     service = SpotWorkService(db)
-    existing = service.get_by_id(id)
-
-    if not check_data_access(user_info, existing.maintenance_personnel):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权提交此工单"
-        )
-
-    work = service.partial_update(id, SpotWorkPartialUpdate(status='待确认'), user_info.id, user_info.name)
-    return ApiResponse(
-        code=200,
-        message="提交成功",
-        data=work.to_dict()
-    )
+    work = submit_work_order(id, service, user_info, SpotWorkPartialUpdate)
+    return ApiResponse.success(work.to_dict(), "提交成功")
 
 
 @router.post("/{id}/recall", response_model=ApiResponse)
@@ -511,38 +534,10 @@ def recall_spot_work(
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_required)
 ):
-    """
-    撤回零星用工工单
-    仅待确认状态可撤回，撤回后状态变为执行中
-    管理员可撤回所有工单，运维人员只能撤回自己的工单
-    """
+    from app.utils.work_order_utils import recall_work_order
     service = SpotWorkService(db)
-    existing = service.get_by_id(id)
-
-    if not existing:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="工单不存在"
-        )
-
-    if existing.status != '待确认':
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只有待确认状态的工单才能撤回"
-        )
-
-    if not check_data_access(user_info, existing.maintenance_personnel):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="无权撤回此工单"
-        )
-
-    work = service.partial_update(id, SpotWorkPartialUpdate(status='执行中'), user_info.id, user_info.name)
-    return ApiResponse(
-        code=200,
-        message="撤回成功",
-        data=work.to_dict()
-    )
+    work = recall_work_order(id, service, user_info, SpotWorkPartialUpdate)
+    return ApiResponse.success(work.to_dict(), "撤回成功")
 
 
 @router.post("/{id}/approve", response_model=ApiResponse)
@@ -552,34 +547,10 @@ def approve_spot_work(
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_manager_user)
 ):
-    """
-    审批零星用工工单
-    需要管理员或部门经理权限
-    """
+    from app.utils.work_order_utils import approve_work_order
     service = SpotWorkService(db)
-    
-    if dto.approved:
-        work = service.partial_update(id, SpotWorkPartialUpdate(status='已完成'), user_info.id, user_info.name)
-        message = "审批通过"
-    else:
-        if not dto.reject_reason or len(dto.reject_reason.strip()) < 10:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="请输入工单退回原因，至少10个字符"
-            )
-        work = service.partial_update(
-            id, 
-            SpotWorkPartialUpdate(status='已退回', reject_reason=dto.reject_reason), 
-            user_info.id, 
-            user_info.name
-        )
-        message = "已退回"
-
-    return ApiResponse(
-        code=200,
-        message=message,
-        data=work.to_dict()
-    )
+    work, message = approve_work_order(id, dto, service, user_info, SpotWorkPartialUpdate)
+    return ApiResponse.success(work.to_dict(), message)
 
 
 @router.delete("/{id}", response_model=ApiResponse)

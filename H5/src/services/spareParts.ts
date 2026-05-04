@@ -13,7 +13,7 @@ import type {
   SparePartsInboundRequest,
   SparePartsStockQueryParams,
   SparePartsUsageQueryParams,
-} from '../types/models'
+} from '../types/api'
 
 export const sparePartsService = {
   /**

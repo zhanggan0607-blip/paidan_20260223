@@ -81,7 +81,7 @@ class PeriodicInspectionRecordService:
         if dto.inspected is not None:
             record.inspected = dto.inspected
         if dto.photos is not None and len(dto.photos) > 0:
-            record.photos = json.dumps(dto.photos)
+            record.photos = dto.photos
         if dto.inspection_result is not None:
             record.inspection_result = dto.inspection_result
 
@@ -110,7 +110,7 @@ class PeriodicInspectionRecordService:
             equipment_name=dto.equipment_name,
             equipment_location=dto.equipment_location,
             inspected=dto.inspected or False,
-            photos=json.dumps(dto.photos) if dto.photos else '[]',
+            photos=dto.photos if dto.photos else [],
             inspection_result=dto.inspection_result
         )
 

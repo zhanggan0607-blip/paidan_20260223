@@ -10,7 +10,7 @@ import type {
   TemporaryRepairCreate,
   TemporaryRepairUpdate,
   TemporaryRepairQueryParams,
-} from '../types/models'
+} from '../types/api'
 
 export const temporaryRepairService = {
   /**

@@ -8,7 +8,7 @@
  * 4. 根据meta.permission检查用户权限
  */
 import { createRouter, createWebHistory } from 'vue-router'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
 
 const routes = [
   {
@@ -185,6 +185,12 @@ const routes = [
     component: () => import('../views/RepairToolsReturnPage.vue'),
     meta: { title: '维修工具归还', permission: 'canViewRepairToolsIssue' },
   },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('../views/NotFoundPage.vue'),
+    meta: { title: '页面不存在' },
+  },
 ]
 
 const router = createRouter({
@@ -192,7 +198,7 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   document.title = (to.meta.title as string) || 'SSTCP维保系统'
 
   if (to.path === '/login' || to.path === '/change-password') {
@@ -200,12 +206,14 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  if (!userStore.isLoggedIn()) {
+  const userStore = useUserStore()
+
+  if (!userStore.isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
     return
   }
 
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (
     user &&
     (user as { must_change_password?: boolean }).must_change_password &&
@@ -216,9 +224,15 @@ router.beforeEach((to, _from, next) => {
   }
 
   if (to.meta.permission) {
-    const permissionMethod = to.meta.permission as string
-    if (typeof (userStore as any)[permissionMethod] === 'function') {
-      if (!(userStore as any)[permissionMethod]()) {
+    const permissionKey = to.meta.permission as string
+    const permValue = (userStore as any)[permissionKey]
+    if (typeof permValue === 'function') {
+      if (!permValue()) {
+        next({ name: 'Home' })
+        return
+      }
+    } else if (typeof permValue === 'boolean') {
+      if (!permValue) {
         next({ name: 'Home' })
         return
       }

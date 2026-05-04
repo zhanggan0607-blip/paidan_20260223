@@ -2,9 +2,14 @@
   <div class="statistics-page">
     <div class="top-bar">
       <div class="year-selector">
-        <label for="search_yearSelect" class="year-label">年度选择：</label>
-        <select id="search_yearSelect" name="search_yearSelect"
+        <label
+          for="search_yearSelect"
+          class="year-label"
+        >年度选择：</label>
+        <select
+          id="search_yearSelect"
           v-model="selectedYear"
+          name="search_yearSelect"
           class="year-select"
           @change="handleYearChange"
         >

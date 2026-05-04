@@ -12,12 +12,15 @@ from app.auth import (
     get_password_hash,
     add_token_to_blacklist,
     is_token_blacklisted,
+    clear_memory_blacklist,
     ACCESS_TOKEN_EXPIRE_MINUTES,
 )
-from app.api.v1.auth import (
-    _check_login_lockout,
-    _record_login_failure,
-    _clear_login_failures,
+from app.services.auth import (
+    check_login_lockout,
+    record_login_failure,
+    clear_login_failures,
+    MAX_LOGIN_ATTEMPTS,
+    LOGIN_LOCKOUT_SECONDS,
 )
 
 
@@ -94,10 +97,13 @@ class TestRefreshToken:
 
 
 class TestTokenBlacklist:
+    def setup_method(self):
+        clear_memory_blacklist()
+
     def test_add_and_check_blacklist(self):
-        jti = "test-jti-12345"
-        assert not is_token_blacklisted(jti)
-        add_token_to_blacklist(jti, 3600)
+        import uuid
+        jti = f"test-jti-{uuid.uuid4().hex[:12]}"
+        add_token_to_blacklist(jti, exp_seconds=3600)
         assert is_token_blacklisted(jti)
 
     def test_non_blacklisted_token_passes(self):
@@ -122,27 +128,25 @@ class TestTokenBlacklist:
 
 class TestLoginLockout:
     def setup_method(self):
-        _clear_login_failures("test_user_lockout")
+        clear_login_failures("test_user_lockout")
 
     def teardown_method(self):
-        _clear_login_failures("test_user_lockout")
+        clear_login_failures("test_user_lockout")
 
     def test_no_lockout_initially(self):
-        result = _check_login_lockout("test_user_lockout")
+        result = check_login_lockout("test_user_lockout")
         assert result is None
 
     def test_lockout_after_max_attempts(self):
-        from app.api.v1.auth import MAX_LOGIN_ATTEMPTS
         for _ in range(MAX_LOGIN_ATTEMPTS):
-            _record_login_failure("test_user_lockout")
-        result = _check_login_lockout("test_user_lockout")
+            record_login_failure("test_user_lockout")
+        result = check_login_lockout("test_user_lockout")
         assert result is not None
         assert result > 0
 
     def test_clear_failures_resets_lockout(self):
-        from app.api.v1.auth import MAX_LOGIN_ATTEMPTS
         for _ in range(MAX_LOGIN_ATTEMPTS):
-            _record_login_failure("test_user_lockout")
-        _clear_login_failures("test_user_lockout")
-        result = _check_login_lockout("test_user_lockout")
+            record_login_failure("test_user_lockout")
+        clear_login_failures("test_user_lockout")
+        result = check_login_lockout("test_user_lockout")
         assert result is None

@@ -4,8 +4,10 @@
 """
 import logging
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.services.base import BaseService
 from app.exceptions import DuplicateException, NotFoundException, ValidationException
 from app.models.project_info import ProjectInfo
 from app.repositories.project_info import ProjectInfoRepository
@@ -14,7 +16,7 @@ from app.schemas.project_info import ProjectInfoCreate, ProjectInfoUpdate
 logger = logging.getLogger(__name__)
 
 
-class ProjectInfoService:
+class ProjectInfoService(BaseService):
     """
     项目信息服务
     提供项目信息的增删改查等业务逻辑
@@ -22,86 +24,42 @@ class ProjectInfoService:
 
     def __init__(self, db: Session):
         self.repository = ProjectInfoRepository(db)
-        self._db = db
+        super().__init__(db)
 
     def _sync_customer_data(self, client_name: str, client_contact: str | None, client_contact_info: str | None, address: str | None, client_contact_position: str | None):
         """
         同步客户数据到customer表
         如果客户不存在则创建，存在则更新
+
+        注意：此方法不自行commit/rollback，由调用方统一管理事务
         """
         from app.models.customer import Customer
 
         if not client_name:
             return
 
-        try:
-            existing_customer = self._db.query(Customer).filter(Customer.name == client_name).first()
+        existing_customer = self._db.query(Customer).filter(Customer.name == client_name).first()
 
-            if existing_customer:
-                if client_contact and client_contact != existing_customer.contact_person:
-                    existing_customer.contact_person = client_contact
-                if client_contact_info and client_contact_info != existing_customer.phone:
-                    existing_customer.phone = client_contact_info
-                if address and address != existing_customer.address:
-                    existing_customer.address = address
-                if client_contact_position and client_contact_position != existing_customer.contact_position:
-                    existing_customer.contact_position = client_contact_position
-                self._db.commit()
-                logger.info(f"同步更新客户信息: {client_name}")
-            else:
-                new_customer = Customer(
-                    name=client_name,
-                    contact_person=client_contact or '',
-                    phone=client_contact_info or '',
-                    address=address or '',
-                    contact_position=client_contact_position or ''
-                )
-                self._db.add(new_customer)
-                self._db.commit()
-                logger.info(f"自动创建客户: {client_name}")
-        except Exception as e:
-            self._db.rollback()
-            logger.error(f"同步客户数据失败: {str(e)}")
-
-    def _create_operation_log(
-        self,
-        work_order_type: str,
-        work_order_id: int,
-        work_order_no: str,
-        operator_name: str,
-        operator_id: int | None,
-        operation_type: str,
-        operation_type_name: str,
-        remark: str
-    ) -> None:
-        """
-        创建操作日志
-
-        Args:
-            work_order_type: 工单类型
-            work_order_id: 工单ID
-            work_order_no: 工单编号
-            operator_name: 操作者名称
-            operator_id: 操作者ID
-            operation_type: 操作类型代码
-            operation_type_name: 操作类型名称
-            remark: 备注
-        """
-        from app.models.work_order_operation_log import WorkOrderOperationLog
-
-        log = WorkOrderOperationLog(
-            work_order_type=work_order_type,
-            work_order_id=work_order_id,
-            work_order_no=work_order_no,
-            operator_name=operator_name,
-            operator_id=operator_id,
-            operation_type=operation_type,
-            operation_type_code=operation_type,
-            operation_type_name=operation_type_name,
-            operation_remark=remark
-        )
-        self._db.add(log)
-        self._db.commit()
+        if existing_customer:
+            if client_contact and client_contact != existing_customer.contact_person:
+                existing_customer.contact_person = client_contact
+            if client_contact_info and client_contact_info != existing_customer.phone:
+                existing_customer.phone = client_contact_info
+            if address and address != existing_customer.address:
+                existing_customer.address = address
+            if client_contact_position and client_contact_position != existing_customer.contact_position:
+                existing_customer.contact_position = client_contact_position
+            logger.info(f"同步更新客户信息: {client_name}")
+        else:
+            new_customer = Customer(
+                name=client_name,
+                contact_person=client_contact or '',
+                phone=client_contact_info or '',
+                address=address or '',
+                contact_position=client_contact_position or ''
+            )
+            self._db.add(new_customer)
+            logger.info(f"自动创建客户: {client_name}")
 
     def get_all(
         self,
@@ -188,6 +146,14 @@ class ProjectInfoService:
             logger.error(f"❌ [Service] 项目编号已存在: {dto.project_id}")
             raise DuplicateException("项目编号已存在")
 
+        if dto.client_contact_id is not None:
+            from app.models.customer_contact import CustomerContact
+            contact = self._db.query(CustomerContact).filter(
+                CustomerContact.id == dto.client_contact_id
+            ).first()
+            if not contact:
+                raise ValidationException(f"客户联系人ID {dto.client_contact_id} 不存在")
+
         project_info = ProjectInfo(
             project_id=dto.project_id,
             project_name=dto.project_name,
@@ -205,30 +171,46 @@ class ProjectInfoService:
         )
 
         logger.info(f"📥 [Service] 准备保存到数据库: project_id={project_info.project_id}, project_name={project_info.project_name}")
-        result = self.repository.create(project_info)
+        self.repository.create(project_info)
 
-        self._sync_customer_data(
-            dto.client_name,
-            dto.client_contact,
-            dto.client_contact_info,
-            dto.address,
-            dto.client_contact_position
-        )
-
-        if operator_name and result.id:
-            self._create_operation_log(
-                work_order_type='project_info',
-                work_order_id=result.id,
-                work_order_no=result.project_id,
-                operator_name=operator_name,
-                operator_id=operator_id,
-                operation_type='create',
-                operation_type_name='创建',
-                remark='创建项目信息'
+        try:
+            self._sync_customer_data(
+                dto.client_name,
+                dto.client_contact,
+                dto.client_contact_info,
+                dto.address,
+                dto.client_contact_position
             )
 
-        logger.info(f"✅ [Service] 数据库保存成功: id={result.id}, project_id={result.project_id}")
-        return result
+            if operator_name and project_info.id:
+                self._create_operation_log(
+                    work_order_type='project_info',
+                    work_order_id=project_info.id,
+                    work_order_no=project_info.project_id,
+                    operator_name=operator_name,
+                    operator_id=operator_id,
+                    operation_type='create',
+                    operation_type_name='创建',
+                    remark='创建项目信息'
+                )
+
+            self._db.commit()
+        except IntegrityError as e:
+            self._db.rollback()
+            logger.error(f"创建项目信息失败（数据库约束违反）: {str(e)}")
+            raise ValidationException("数据约束违反，请检查客户联系人等关联数据是否有效")
+        except (ValidationException, NotFoundException, DuplicateException):
+            self._db.rollback()
+            raise
+        except Exception as e:
+            self._db.rollback()
+            logger.error(f"创建项目信息失败（未预期异常）: {type(e).__name__}: {str(e)}")
+            raise ValidationException(f"创建项目信息失败: {str(e)}")
+
+        self._db.refresh(project_info)
+
+        logger.info(f"✅ [Service] 数据库保存成功: id={project_info.id}, project_id={project_info.project_id}")
+        return project_info
 
     def update(
         self,
@@ -237,26 +219,18 @@ class ProjectInfoService:
         operator_id: int | None = None,
         operator_name: str | None = None
     ) -> ProjectInfo:
-        """
-        更新项目信息
-
-        Args:
-            id: 项目信息ID
-            dto: 更新数据传输对象
-            operator_id: 操作者ID
-            operator_name: 操作者名称
-
-        Returns:
-            更新后的项目信息对象
-
-        Raises:
-            NotFoundException: 项目信息不存在
-            ValidationException: 项目编号不允许修改
-        """
         existing_project = self.get_by_id(id)
 
         if existing_project.project_id != dto.project_id:
             raise ValidationException("项目编号不允许修改")
+
+        if dto.client_contact_id is not None:
+            from app.models.customer_contact import CustomerContact
+            contact = self._db.query(CustomerContact).filter(
+                CustomerContact.id == dto.client_contact_id
+            ).first()
+            if not contact:
+                raise ValidationException(f"客户联系人ID {dto.client_contact_id} 不存在")
 
         old_project_name = existing_project.project_name
         old_client_name = existing_project.client_name
@@ -279,48 +253,69 @@ class ProjectInfoService:
         existing_project.client_contact_position = dto.client_contact_position
         existing_project.client_contact_info = dto.client_contact_info
 
-        result = self.repository.update(existing_project)
+        try:
+            self._db.flush()
+        except IntegrityError as e:
+            self._db.rollback()
+            logger.error(f"更新项目信息flush失败（数据库约束违反）: {str(e)}")
+            raise ValidationException("数据约束违反，请检查客户联系人等关联数据是否有效")
 
-        self._sync_customer_data(
-            dto.client_name,
-            dto.client_contact,
-            dto.client_contact_info,
-            dto.address,
-            dto.client_contact_position
-        )
-
-        if project_name_changed or client_name_changed:
-            self._sync_related_tables(
-                existing_project.project_id,
-                existing_project.id,
-                dto.project_name if project_name_changed else None,
-                dto.client_name if client_name_changed else None
+        try:
+            self._sync_customer_data(
+                dto.client_name,
+                dto.client_contact,
+                dto.client_contact_info,
+                dto.address,
+                dto.client_contact_position
             )
 
-        if project_manager_changed and dto.project_manager:
-            self._sync_maintenance_plan_responsible_person(
-                existing_project.project_id,
-                dto.project_manager
-            )
-            self._sync_work_orders_maintenance_personnel(
-                existing_project.project_id,
-                old_project_manager,
-                dto.project_manager
-            )
+            if project_name_changed or client_name_changed:
+                self._sync_related_tables(
+                    existing_project.project_id,
+                    existing_project.id,
+                    dto.project_name if project_name_changed else None,
+                    dto.client_name if client_name_changed else None
+                )
 
-        if operator_name and result.id:
-            self._create_operation_log(
-                work_order_type='project_info',
-                work_order_id=result.id,
-                work_order_no=result.project_id,
-                operator_name=operator_name,
-                operator_id=operator_id,
-                operation_type='update',
-                operation_type_name='更新',
-                remark='更新项目信息'
-            )
+            if project_manager_changed and dto.project_manager:
+                self._sync_maintenance_plan_responsible_person(
+                    existing_project.project_id,
+                    dto.project_manager
+                )
+                self._sync_work_orders_maintenance_personnel(
+                    existing_project.project_id,
+                    old_project_manager,
+                    dto.project_manager
+                )
 
-        return result
+            if operator_name and existing_project.id:
+                self._create_operation_log(
+                    work_order_type='project_info',
+                    work_order_id=existing_project.id,
+                    work_order_no=existing_project.project_id,
+                    operator_name=operator_name,
+                    operator_id=operator_id,
+                    operation_type='update',
+                    operation_type_name='更新',
+                    remark='更新项目信息'
+                )
+
+            self._db.commit()
+        except IntegrityError as e:
+            self._db.rollback()
+            logger.error(f"更新项目信息失败（数据库约束违反）: {str(e)}")
+            raise ValidationException("数据约束违反，请检查客户联系人等关联数据是否有效")
+        except (ValidationException, NotFoundException, DuplicateException):
+            self._db.rollback()
+            raise
+        except Exception as e:
+            self._db.rollback()
+            logger.error(f"更新项目信息失败（未预期异常）: {type(e).__name__}: {str(e)}")
+            raise ValidationException(f"更新项目信息失败: {str(e)}")
+
+        self._db.refresh(existing_project)
+
+        return existing_project
 
     def _sync_related_tables(
         self,
@@ -331,6 +326,8 @@ class ProjectInfoService:
     ):
         """
         同步更新关联表数据
+
+        注意：此方法不自行commit，由调用方统一管理事务
         """
         from app.models.maintenance_plan import MaintenancePlan
         from app.models.periodic_inspection import PeriodicInspection
@@ -400,30 +397,28 @@ class ProjectInfoService:
             sync_count += spot_work_updated
 
         if sync_count > 0:
-            self._db.commit()
             logger.info(f"✅ [Service] 同步更新关联表数据: project_id={project_id}, 更新记录数={sync_count}")
 
     def _sync_maintenance_plan_responsible_person(self, project_id: str, new_responsible_person: str):
         """
         同步更新维保计划的负责人
+
+        注意：此方法不自行commit/rollback，由调用方统一管理事务
         """
         from app.models.maintenance_plan import MaintenancePlan
 
-        try:
-            updated_count = self._db.query(MaintenancePlan).filter(
-                MaintenancePlan.project_id == project_id
-            ).update({"maintenance_personnel": new_responsible_person}, synchronize_session=False)
+        updated_count = self._db.query(MaintenancePlan).filter(
+            MaintenancePlan.project_id == project_id
+        ).update({"maintenance_personnel": new_responsible_person}, synchronize_session=False)
 
-            if updated_count > 0:
-                self._db.commit()
-                logger.info(f"✅ [Service] 同步更新维保计划负责人: project_id={project_id}, 新负责人={new_responsible_person}, 更新记录数={updated_count}")
-        except Exception as e:
-            self._db.rollback()
-            logger.error(f"❌ [Service] 同步更新维保计划负责人失败: {str(e)}")
+        if updated_count > 0:
+            logger.info(f"✅ [Service] 同步更新维保计划负责人: project_id={project_id}, 新负责人={new_responsible_person}, 更新记录数={updated_count}")
 
     def _sync_work_orders_maintenance_personnel(self, project_id: str, old_personnel: str, new_personnel: str):
         """
         同步更新工单的运维人员
+
+        注意：此方法不自行commit/rollback，由调用方统一管理事务
         """
         from app.models.periodic_inspection import PeriodicInspection
         from app.models.spot_work import SpotWork
@@ -431,37 +426,31 @@ class ProjectInfoService:
 
         total_updated = 0
 
-        try:
-            periodic_updated = self._db.query(PeriodicInspection).filter(
-                PeriodicInspection.project_id == project_id,
-                PeriodicInspection.maintenance_personnel == old_personnel
-            ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
-            total_updated += periodic_updated
-            logger.info(f"📝 [Service] 更新定期巡检工单运维人员: {periodic_updated} 条")
+        periodic_updated = self._db.query(PeriodicInspection).filter(
+            PeriodicInspection.project_id == project_id,
+            PeriodicInspection.maintenance_personnel == old_personnel
+        ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
+        total_updated += periodic_updated
+        logger.info(f"📝 [Service] 更新定期巡检工单运维人员: {periodic_updated} 条")
 
-            repair_updated = self._db.query(TemporaryRepair).filter(
-                TemporaryRepair.project_id == project_id,
-                TemporaryRepair.maintenance_personnel == old_personnel
-            ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
-            total_updated += repair_updated
-            logger.info(f"📝 [Service] 更新临时维修工单运维人员: {repair_updated} 条")
+        repair_updated = self._db.query(TemporaryRepair).filter(
+            TemporaryRepair.project_id == project_id,
+            TemporaryRepair.maintenance_personnel == old_personnel
+        ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
+        total_updated += repair_updated
+        logger.info(f"📝 [Service] 更新临时维修工单运维人员: {repair_updated} 条")
 
-            spot_work_updated = self._db.query(SpotWork).filter(
-                SpotWork.project_id == project_id,
-                SpotWork.maintenance_personnel == old_personnel
-            ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
-            total_updated += spot_work_updated
-            logger.info(f"📝 [Service] 更新零星用工工单运维人员: {spot_work_updated} 条")
+        spot_work_updated = self._db.query(SpotWork).filter(
+            SpotWork.project_id == project_id,
+            SpotWork.maintenance_personnel == old_personnel
+        ).update({"maintenance_personnel": new_personnel}, synchronize_session=False)
+        total_updated += spot_work_updated
+        logger.info(f"📝 [Service] 更新零星用工工单运维人员: {spot_work_updated} 条")
 
-            if total_updated > 0:
-                self._db.commit()
-                logger.info(f"✅ [Service] 同步更新工单运维人员完成: project_id={project_id}, {old_personnel} -> {new_personnel}, 共更新 {total_updated} 条记录")
-            else:
-                logger.info(f"ℹ️ [Service] 无需更新工单运维人员: project_id={project_id}, 未找到原运维人员 {old_personnel} 的工单")
-
-        except Exception as e:
-            self._db.rollback()
-            logger.error(f"❌ [Service] 同步更新工单运维人员失败: {str(e)}")
+        if total_updated > 0:
+            logger.info(f"✅ [Service] 同步更新工单运维人员完成: project_id={project_id}, {old_personnel} -> {new_personnel}, 共更新 {total_updated} 条记录")
+        else:
+            logger.info(f"ℹ️ [Service] 无需更新工单运维人员: project_id={project_id}, 未找到原运维人员 {old_personnel} 的工单")
 
     def delete(self, id: int, cascade: bool = False, user_id: int = None, operator_name: str = None) -> dict:
         """
@@ -565,7 +554,17 @@ class ProjectInfoService:
             )
 
         self._db.delete(project_info)
-        self._db.commit()
+
+        try:
+            self._db.commit()
+        except IntegrityError as e:
+            self._db.rollback()
+            logger.error(f"删除项目信息失败（数据库约束违反）: {str(e)}")
+            raise ValidationException("删除失败，该项目存在关联数据无法删除")
+        except Exception as e:
+            self._db.rollback()
+            logger.error(f"删除项目信息失败（未预期异常）: {type(e).__name__}: {str(e)}")
+            raise ValidationException(f"删除项目信息失败: {str(e)}")
 
         return {
             'project_name': project_info.project_name,

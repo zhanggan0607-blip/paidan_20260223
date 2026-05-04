@@ -40,10 +40,6 @@ class PeriodicInspectionService(BaseService):
         self.personnel_repository = PersonnelRepository(db)
         self.sync_service = SyncService(db)
 
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        """解析日期"""
-        return parse_datetime(date_value)
-
     def _validate_maintenance_personnel(self, personnel_name: str) -> None:
         """
         验证运维人员是否存在
@@ -58,43 +54,6 @@ class PeriodicInspectionService(BaseService):
             raise ValidationException(
                 f"运维人员'{personnel_name}'不存在于人员列表中，请先添加该人员"
             )
-
-    def _create_operation_log(
-        self,
-        work_order_id: int,
-        work_order_no: str,
-        operator_name: str,
-        operator_id: int | None,
-        operation_type: str,
-        operation_type_name: str,
-        remark: str
-    ) -> None:
-        """
-        创建操作日志
-
-        Args:
-            work_order_id: 工单ID
-            work_order_no: 工单编号
-            operator_name: 操作者名称
-            operator_id: 操作者ID
-            operation_type: 操作类型代码
-            operation_type_name: 操作类型名称
-            remark: 备注
-        """
-        from app.models.work_order_operation_log import WorkOrderOperationLog
-
-        log = WorkOrderOperationLog(
-            work_order_type='periodic_inspection',
-            work_order_id=work_order_id,
-            work_order_no=work_order_no,
-            operator_name=operator_name,
-            operator_id=operator_id,
-            operation_type=operation_type,
-            operation_type_code=operation_type,
-            operation_type_name=operation_type_name,
-            operation_remark=remark
-        )
-        self.db.add(log)
 
     def get_all(
         self,
@@ -198,8 +157,8 @@ class PeriodicInspectionService(BaseService):
             inspection_id=inspection_id,
             project_id=dto.project_id,
             project_name=dto.project_name,
-            plan_start_date=self._parse_date(dto.plan_start_date),
-            plan_end_date=self._parse_date(dto.plan_end_date),
+            plan_start_date=parse_datetime(dto.plan_start_date),
+            plan_end_date=parse_datetime(dto.plan_end_date),
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
             status=dto.status or default_status,
@@ -213,6 +172,7 @@ class PeriodicInspectionService(BaseService):
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='periodic_inspection',
                 work_order_id=result.id,
                 work_order_no=result.inspection_id,
                 operator_name=operator_name,
@@ -260,8 +220,8 @@ class PeriodicInspectionService(BaseService):
         existing_inspection.inspection_id = dto.inspection_id
         existing_inspection.project_id = dto.project_id
         existing_inspection.project_name = dto.project_name
-        existing_inspection.plan_start_date = self._parse_date(dto.plan_start_date)
-        existing_inspection.plan_end_date = self._parse_date(dto.plan_end_date)
+        existing_inspection.plan_start_date = parse_datetime(dto.plan_start_date)
+        existing_inspection.plan_end_date = parse_datetime(dto.plan_end_date)
         existing_inspection.client_name = dto.client_name
         existing_inspection.maintenance_personnel = dto.maintenance_personnel
         existing_inspection.status = dto.status
@@ -277,6 +237,7 @@ class PeriodicInspectionService(BaseService):
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='periodic_inspection',
                 work_order_id=result.id,
                 work_order_no=result.inspection_id,
                 operator_name=operator_name,
@@ -306,6 +267,7 @@ class PeriodicInspectionService(BaseService):
 
         if operator_name and inspection.id:
             self._create_operation_log(
+                work_order_type='periodic_inspection',
                 work_order_id=inspection.id,
                 work_order_no=inspection.inspection_id,
                 operator_name=operator_name,

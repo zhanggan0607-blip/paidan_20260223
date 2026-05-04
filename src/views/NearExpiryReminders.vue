@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="near-expiry-page">
     <LoadingSpinner
       :visible="loading"
@@ -14,20 +14,26 @@
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label for="search_projectName" class="search-label">项目名称：</label>
+            <label
+              for="search_projectName"
+              class="search-label"
+            >项目名称：</label>
             <SearchInput
-              input-id="search_projectName"
               v-model="searchForm.projectName"
+              input-id="search_projectName"
               field-key="NearExpiryReminders_projectName"
               placeholder="请输入项目名称"
               @input="handleSearch"
             />
           </div>
           <div class="search-item">
-            <label for="search_clientName" class="search-label">客户名称：</label>
+            <label
+              for="search_clientName"
+              class="search-label"
+            >客户名称：</label>
             <SearchInput
-              input-id="search_clientName"
               v-model="searchForm.clientName"
+              input-id="search_clientName"
               field-key="NearExpiryReminders_clientName"
               placeholder="请输入客户名称"
               @input="handleSearch"
@@ -120,8 +126,8 @@
         </button>
         <select
           id="pageSize"
-          name="pageSize"
           v-model="pageSize"
+          name="pageSize"
           class="page-select"
           @change="handlePageSizeChange"
         >
@@ -290,7 +296,7 @@
 import { defineComponent, ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
 import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
 import { USER_ROLES, WORK_STATUS } from '../config/constants'
 import type { ApiResponse as ApiResponseType } from '../types/api'
@@ -314,6 +320,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const loading = ref(false)
     const isViewModalOpen = ref(false)
     const searchForm = reactive({
@@ -411,7 +418,7 @@ export default defineComponent({
     const filteredData = computed(() => {
       let result = allData.value
 
-      const user = userStore.getUser()
+      const user = userStore.currentUser
       if (user && user.role === USER_ROLES.EMPLOYEE) {
         result = result.filter((item) => item.executor === user.name)
       }
@@ -505,7 +512,7 @@ export default defineComponent({
             viewData.clientContactInfo = project.client_contact_info || ''
             viewData.clientContactPosition = project.client_contact_position || ''
             viewData.address = project.address || ''
-            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date ?? '')
           }
         }
       } catch (error) {
@@ -597,7 +604,7 @@ export default defineComponent({
 
     return {
       loading,
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       searchForm,
       currentPage,
       pageSize,

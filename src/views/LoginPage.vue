@@ -103,7 +103,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { userStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/userStore'
 import { request } from '@/api/request'
 import type { ApiResponse, LoginResponse } from '@sstcp/shared'
 import { getDefaultPath } from '@/config/permission'
@@ -111,6 +111,7 @@ import { getDefaultPath } from '@/config/permission'
 export default defineComponent({
   name: 'LoginPage',
   setup() {
+    const userStore = useUserStore()
     const router = useRouter()
     const route = useRoute()
 
@@ -123,7 +124,7 @@ export default defineComponent({
     const errorMessage = ref('')
 
     onMounted(() => {
-      const token = userStore.getToken()
+      const token = userStore.token
       if (token) {
         router.push('/')
       }

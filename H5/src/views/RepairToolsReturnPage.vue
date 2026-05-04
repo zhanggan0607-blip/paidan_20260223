@@ -10,7 +10,7 @@ import {
 import { repairToolsService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import { useNavigation } from '../composables/useNavigation'
-import type { RepairToolsUsage } from '../types/models'
+import type { RepairToolsUsage } from '../types/api'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
@@ -321,7 +321,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

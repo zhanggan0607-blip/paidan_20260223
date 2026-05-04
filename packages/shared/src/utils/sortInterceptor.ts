@@ -5,6 +5,7 @@
  */
 
 import type { AxiosResponse } from 'axios'
+import { getSortTimestamp, sortByTimestampDesc as _sortByTimestampDesc } from './sort'
 
 /**
  * 排序配置接口
@@ -63,36 +64,6 @@ export function resetSortConfig(): void {
 }
 
 /**
- * 从数据对象中提取排序时间戳
- * 优先级：updated_at > created_at > 其他时间字段 > id
- */
-function getSortTimestamp(item: any): number {
-  if (!item) return 0
-
-  const timeFields = [
-    'updated_at',
-    'created_at',
-    'last_activity',
-    'actual_completion_date',
-    'plan_end_date',
-    'plan_start_date',
-    'execution_date',
-    'deleted_at',
-  ]
-
-  for (const field of timeFields) {
-    if (item[field]) {
-      const timestamp = new Date(item[field]).getTime()
-      if (!isNaN(timestamp)) {
-        return timestamp
-      }
-    }
-  }
-
-  return 0
-}
-
-/**
  * 按时间戳降序排序
  */
 function sortByTimestampDesc<T extends Record<string, any>>(
@@ -100,30 +71,7 @@ function sortByTimestampDesc<T extends Record<string, any>>(
   secondarySortKey: string = 'id',
   ascending: boolean = false
 ): T[] {
-  if (!Array.isArray(items)) {
-    console.warn('sortByTimestampDesc: input is not an array')
-    return []
-  }
-
-  return [...items].sort((a, b) => {
-    const timeA = getSortTimestamp(a)
-    const timeB = getSortTimestamp(b)
-
-    if (timeB !== timeA) {
-      return ascending ? timeA - timeB : timeB - timeA
-    }
-
-    const valueA = a[secondarySortKey] || 0
-    const valueB = b[secondarySortKey] || 0
-
-    if (typeof valueA === 'number' && typeof valueB === 'number') {
-      return ascending ? valueA - valueB : valueB - valueA
-    }
-
-    const strA = String(valueA)
-    const strB = String(valueB)
-    return ascending ? strA.localeCompare(strB) : strB.localeCompare(strA)
-  })
+  return _sortByTimestampDesc(items, { secondarySortKey: secondarySortKey as keyof T, ascending })
 }
 
 /**

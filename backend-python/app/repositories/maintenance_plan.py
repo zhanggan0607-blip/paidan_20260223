@@ -179,7 +179,7 @@ class MaintenancePlanRepository:
             logger.info(f"📥 [Repository] 准备插入数据: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
 
             self.db.add(maintenance_plan)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(maintenance_plan)
             logger.info(f"✅ [Repository] 数据库插入成功: id={maintenance_plan.id}, plan_id={maintenance_plan.plan_id}")
             return maintenance_plan
@@ -191,28 +191,12 @@ class MaintenancePlanRepository:
 
     def update(self, maintenance_plan: MaintenancePlan) -> MaintenancePlan:
         try:
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(maintenance_plan)
             return maintenance_plan
         except Exception as e:
             self.db.rollback()
             logger.error(f"更新维保计划失败: {str(e)}")
-            raise
-
-    def soft_delete(self, maintenance_plan: MaintenancePlan, user_id: int = None) -> None:
-        """
-        软删除维保计划
-
-        Args:
-            maintenance_plan: 要删除的维保计划对象
-            user_id: 执行删除的用户ID
-        """
-        try:
-            maintenance_plan.soft_delete(user_id)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"软删除维保计划失败: {str(e)}")
             raise
 
     def delete(self, maintenance_plan: MaintenancePlan) -> None:
@@ -221,7 +205,7 @@ class MaintenancePlanRepository:
         """
         try:
             self.db.delete(maintenance_plan)
-            self.db.commit()
+            self.db.flush()
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除维保计划失败: {str(e)}")
@@ -232,7 +216,7 @@ class MaintenancePlanRepository:
             maintenance_plan = self.find_by_id(id)
             if maintenance_plan:
                 maintenance_plan.status = status
-                self.db.commit()
+                self.db.flush()
                 self.db.refresh(maintenance_plan)
             return maintenance_plan
         except Exception as e:
@@ -245,7 +229,7 @@ class MaintenancePlanRepository:
             maintenance_plan = self.find_by_id(id)
             if maintenance_plan:
                 maintenance_plan.completion_rate = rate
-                self.db.commit()
+                self.db.flush()
                 self.db.refresh(maintenance_plan)
             return maintenance_plan
         except Exception as e:

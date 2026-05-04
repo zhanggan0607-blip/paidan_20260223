@@ -1,63 +1,64 @@
-import os
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic import field_validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_FILE_PATH = Path(__file__).parent.parent / ".env"
 
 
 class Settings(BaseSettings):
     app_name: str = "SSTCP Maintenance System"
-    app_version: str = "1.0.0"
-    debug: bool = os.getenv("DEBUG", "False").lower() in ("true", "1")
-    environment: str = os.getenv("ENVIRONMENT", "production")
+    app_version: str = "2.0.8"
+    debug: bool = False
     secret_key: str | None = None
-    port: int = 8000
 
     database_url: str | None = None
 
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    redis_enabled: bool = os.getenv("REDIS_ENABLED", "true").lower() in ("true", "1")
-    redis_cache_ttl: int = int(os.getenv("REDIS_CACHE_TTL", "3600"))
+    redis_url: str = "redis://localhost:6379/0"
+    redis_enabled: bool = True
+    redis_cache_ttl: int = 3600
 
-    aliyun_access_key_id: str = os.getenv("ALIYUN_ACCESS_KEY_ID", "")
-    aliyun_access_key_secret: str = os.getenv("ALIYUN_ACCESS_KEY_SECRET", "")
-    aliyun_ocr_region_id: str = os.getenv("ALIYUN_OCR_REGION_ID", "cn-shanghai")
+    rate_limit_per_minute: int = 600
+    rate_limit_per_hour: int = 10000
 
-    aliyun_oss_access_key_id: str = os.getenv("ALIYUN_OSS_ACCESS_KEY_ID", "")
-    aliyun_oss_access_key_secret: str = os.getenv("ALIYUN_OSS_ACCESS_KEY_SECRET", "")
-    aliyun_oss_endpoint: str = os.getenv("ALIYUN_OSS_ENDPOINT", "oss-cn-shanghai.aliyuncs.com")
-    aliyun_oss_bucket_name: str = os.getenv("ALIYUN_OSS_BUCKET_NAME", "sstcp-uploads")
-    aliyun_oss_cdn_domain: str = os.getenv("ALIYUN_OSS_CDN_DOMAIN", "")
-    aliyun_oss_enabled: bool = os.getenv("ALIYUN_OSS_ENABLED", "true").lower() in ("true", "1")
+    aliyun_access_key_id: str = ""
+    aliyun_access_key_secret: str = ""
+    aliyun_ocr_region_id: str = "cn-shanghai"
 
-    dingtalk_agent_id: str = os.getenv("DINGTALK_AGENT_ID", "")
-    dingtalk_app_key: str = os.getenv("DINGTALK_APP_KEY", "")
-    dingtalk_app_secret: str = os.getenv("DINGTALK_APP_SECRET", "")
+    aliyun_oss_access_key_id: str = ""
+    aliyun_oss_access_key_secret: str = ""
+    aliyun_oss_endpoint: str = "oss-cn-shanghai.aliyuncs.com"
+    aliyun_oss_bucket_name: str = "sstcp-uploads"
+    aliyun_oss_cdn_domain: str = ""
+    aliyun_oss_enabled: bool = True
+
+    dingtalk_agent_id: str = ""
+    dingtalk_app_key: str = ""
+    dingtalk_app_secret: str = ""
 
     api_prefix: str = "/api/v1"
     docs_url: str = "/api/docs"
     redoc_url: str = "/api/redoc"
     openapi_url: str = "/api/openapi.json"
-    server_base_url: str = os.getenv("SERVER_BASE_URL", "http://localhost:8000")
+    server_base_url: str = "http://localhost:8000"
 
-    cors_origins: str = os.getenv(
-        "CORS_ORIGINS",
-        "https://www.paidan.sstcp.top,https://paidan.sstcp.top,http://localhost:5173,http://localhost:5180"
-    )
-
-    page_size: int = 10
-    max_page_size: int = 1000
+    cors_origins: str = "https://www.paidan.sstcp.top,https://paidan.sstcp.top,http://localhost:5173,http://localhost:5180"
 
     @field_validator('cors_origins', mode='after')
     @classmethod
     def parse_cors_origins(cls, v):
         if v == "*":
+            import logging
+            logging.getLogger(__name__).warning("CORS_ORIGINS 设置为 '*'，允许所有来源访问，仅建议在开发环境使用！")
             return ["*"]
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(',')]
+            origins = [origin.strip() for origin in v.split(',')]
+            for origin in origins:
+                if origin.startswith('http://') and origin not in ('http://localhost:5173', 'http://localhost:5180', 'http://localhost:8000', 'http://localhost:3000'):
+                    import logging
+                    logging.getLogger(__name__).warning(f"CORS 包含不安全的 HTTP 源: {origin}，生产环境建议仅使用 HTTPS")
+            return origins
         return v
 
     @field_validator('secret_key', mode='after')
@@ -79,13 +80,12 @@ class Settings(BaseSettings):
     class Config:
         env_file = str(ENV_FILE_PATH)
         case_sensitive = False
+        extra = 'ignore'
 
 
 class OverdueAlertConfig:
     VALID_STATUSES: list[str] = ['执行中', '待确认', '已退回']
     COMPLETED_STATUSES: list[str] = ['已完成']
-    WORK_ORDER_TYPES: list[str] = ['定期巡检', '临时维修', '零星用工', '维保计划']
-    OVERDUE_THRESHOLD_DAYS: int = 0
 
     @classmethod
     def get_valid_statuses(cls) -> list[str]:
@@ -99,40 +99,6 @@ class OverdueAlertConfig:
     def is_completed(cls, status: str) -> bool:
         return status in cls.COMPLETED_STATUSES
 
-    @classmethod
-    def get_work_order_types(cls) -> list[str]:
-        return cls.WORK_ORDER_TYPES
-
-    @classmethod
-    def get_overdue_threshold_days(cls) -> int:
-        return cls.OVERDUE_THRESHOLD_DAYS
-
-    @classmethod
-    def set_overdue_threshold_days(cls, days: int):
-        if days < 0:
-            raise ValueError("超期天数阈值必须大于等于 0")
-        cls.OVERDUE_THRESHOLD_DAYS = days
-
-    @classmethod
-    def add_valid_status(cls, status: str):
-        if status not in cls.VALID_STATUSES:
-            cls.VALID_STATUSES.append(status)
-
-    @classmethod
-    def remove_valid_status(cls, status: str):
-        if status in cls.VALID_STATUSES:
-            cls.VALID_STATUSES.remove(status)
-
-    @classmethod
-    def add_work_order_type(cls, work_order_type: str):
-        if work_order_type not in cls.WORK_ORDER_TYPES:
-            cls.WORK_ORDER_TYPES.append(work_order_type)
-
-    @classmethod
-    def remove_work_order_type(cls, work_order_type: str):
-        if work_order_type in cls.WORK_ORDER_TYPES:
-            cls.WORK_ORDER_TYPES.remove(work_order_type)
-
 
 class PersonnelConfig:
     VALID_ROLES: list[str] = ['管理员', '部门经理', '材料员', '运维人员']
@@ -140,16 +106,6 @@ class PersonnelConfig:
     @classmethod
     def get_valid_roles(cls) -> list[str]:
         return cls.VALID_ROLES
-
-    @classmethod
-    def add_valid_role(cls, role: str):
-        if role not in cls.VALID_ROLES:
-            cls.VALID_ROLES.append(role)
-
-    @classmethod
-    def remove_valid_role(cls, role: str):
-        if role in cls.VALID_ROLES:
-            cls.VALID_ROLES.remove(role)
 
 
 @lru_cache

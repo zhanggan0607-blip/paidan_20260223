@@ -148,21 +148,31 @@ class CacheService:
     def delete_pattern(self, pattern: str) -> int:
         """
         删除匹配模式的所有缓存键
-        
+        使用SCAN替代KEYS，避免阻塞Redis
+
         Args:
             pattern: 键模式（如 "dict:*"）
-            
+
         Returns:
             删除的键数量
         """
         if not self.is_available:
             return 0
-        
+
         try:
-            keys = self.client.keys(pattern)
-            if keys:
-                return self.client.delete(*keys)
-            return 0
+            deleted = 0
+            cursor = 0
+            while True:
+                cursor, keys = self.client.scan(
+                    cursor=cursor,
+                    match=pattern,
+                    count=100
+                )
+                if keys:
+                    deleted += self.client.delete(*keys)
+                if cursor == 0:
+                    break
+            return deleted
         except Exception as e:
             logger.warning(f"批量缓存删除失败 [{pattern}]: {e}")
             return 0
@@ -191,49 +201,6 @@ class CacheService:
         value = getter()
         self.set(key, value, ttl)
         return value
-
-
-def cache_result(
-    key_prefix: str,
-    ttl: int | None = None,
-    key_builder: Callable[..., str] | None = None
-):
-    """
-    缓存装饰器
-    
-    Args:
-        key_prefix: 缓存键前缀
-        ttl: 过期时间
-        key_builder: 自定义键构建函数
-        
-    Example:
-        @cache_result("user", ttl=300)
-        def get_user(user_id: int):
-            return db.query(User).get(user_id)
-    """
-    def decorator(func: Callable[..., T]) -> Callable[..., T]:
-        @wraps(func)
-        def wrapper(*args, **kwargs) -> T:
-            cache = CacheService()
-            
-            if key_builder:
-                cache_key = key_builder(*args, **kwargs)
-            else:
-                key_parts = [key_prefix, func.__name__]
-                key_parts.extend(str(arg) for arg in args)
-                key_parts.extend(f"{k}:{v}" for k, v in sorted(kwargs.items()))
-                cache_key = ":".join(key_parts)
-            
-            cached = cache.get(cache_key)
-            if cached is not None:
-                return cached
-            
-            result = func(*args, **kwargs)
-            cache.set(cache_key, result, ttl)
-            return result
-        
-        return wrapper
-    return decorator
 
 
 cache_service = CacheService()

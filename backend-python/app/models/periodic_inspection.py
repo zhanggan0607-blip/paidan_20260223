@@ -3,11 +3,22 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
-from app.models.mixins import SoftDeleteMixin
+from app.models.mixins import SoftDeleteMixin, SerializationMixin
 
 
-class PeriodicInspection(Base, SoftDeleteMixin):
+class PeriodicInspection(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "periodic_inspection"
+
+    _relation_overrides = {
+        'project_name': ('project', 'project_name'),
+        'client_name': ('project', 'client_name'),
+    }
+    _relation_extras = {
+        'client_contact': ('project', 'client_contact'),
+        'client_contact_info': ('project', 'client_contact_info'),
+        'address': ('project', 'address'),
+        'client_contact_position': ('project', 'client_contact_position'),
+    }
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     inspection_id = Column(String(50), unique=True, nullable=False, comment="工单编号")
@@ -33,6 +44,11 @@ class PeriodicInspection(Base, SoftDeleteMixin):
     project = relationship("ProjectInfo", back_populates="periodic_inspections")
     maintenance_plan = relationship("MaintenancePlan", back_populates="periodic_inspections")
 
+    _list_exclude_fields = {'signature', 'reject_reason'}
+
+    def to_list_dict(self) -> dict:
+        return self.to_dict(exclude=self._list_exclude_fields)
+
     __table_args__ = (
         Index('idx_periodic_inspection_id', 'inspection_id'),
         Index('idx_periodic_project_id', 'project_id'),
@@ -42,69 +58,3 @@ class PeriodicInspection(Base, SoftDeleteMixin):
         Index('idx_periodic_plan_start_date', 'plan_start_date'),
         {'comment': '定期巡检单表'}
     )
-
-    def to_dict(self):
-        project_name = self.project_name
-        client_name = self.client_name
-        client_contact = ''
-        client_contact_info = ''
-        address = ''
-        client_contact_position = ''
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or client_name
-            client_contact = self.project.client_contact or ''
-            client_contact_info = self.project.client_contact_info or ''
-            address = self.project.address or ''
-            client_contact_position = self.project.client_contact_position or ''
-
-        return {
-            'id': self.id,
-            'inspection_id': self.inspection_id,
-            'plan_id': self.plan_id,
-            'project_id': self.project_id,
-            'project_name': project_name,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': client_name,
-            'client_contact': client_contact,
-            'client_contact_info': client_contact_info,
-            'address': address,
-            'client_contact_position': client_contact_position,
-            'maintenance_personnel': self.maintenance_personnel,
-            'status': self.status,
-            'filled_count': self.filled_count or 0,
-            'total_count': self.total_count or 5,
-            'inspection_item_ids': self.inspection_item_ids,
-            'execution_result': self.execution_result,
-            'remarks': self.remarks,
-            'signature': self.signature,
-            'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
-            'reject_reason': self.reject_reason or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }
-
-    def to_list_dict(self):
-        project_name = self.project_name
-        client_name = self.client_name
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or client_name
-
-        return {
-            'id': self.id,
-            'inspection_id': self.inspection_id,
-            'project_id': self.project_id,
-            'project_name': project_name,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': client_name,
-            'maintenance_personnel': self.maintenance_personnel,
-            'status': self.status,
-            'filled_count': self.filled_count or 0,
-            'total_count': self.total_count or 5,
-            'reject_reason': self.reject_reason or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

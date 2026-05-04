@@ -7,20 +7,26 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label for="search_maintenancePersonnel" class="search-label">运维人员：</label>
+                  <label
+                    for="search_maintenancePersonnel"
+                    class="search-label"
+                  >运维人员：</label>
                   <SearchInput
-              input-id="search_maintenancePersonnel"
                     v-model="filters.user"
+                    input-id="search_maintenancePersonnel"
                     field-key="RepairToolsReturn_user"
                     placeholder="请输入运维人员"
                     @input="handleSearch"
                   />
                 </div>
                 <div class="search-item">
-                  <label for="search_toolName" class="search-label">工具名称：</label>
+                  <label
+                    for="search_toolName"
+                    class="search-label"
+                  >工具名称：</label>
                   <SearchInput
-              input-id="search_toolName"
                     v-model="filters.toolName"
+                    input-id="search_toolName"
                     field-key="RepairToolsReturn_toolName"
                     placeholder="请输入工具名称"
                     @input="handleSearch"
@@ -141,8 +147,8 @@
                 <span>每页</span>
                 <select
                   id="pageSize"
-                  name="pageSize"
                   v-model="pageSize"
+                  name="pageSize"
                   class="page-size-select"
                   @change="handlePageSizeChange"
                 >
@@ -184,8 +190,13 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="toolName" class="form-label">工具名称</label>
-            <input id="toolName" name="toolName"
+            <label
+              for="toolName"
+              class="form-label"
+            >工具名称</label>
+            <input
+              id="toolName"
+              name="toolName"
               :value="selectedItem?.tool_name"
               type="text"
               class="form-input"
@@ -194,8 +205,13 @@
             >
           </div>
           <div class="form-item">
-            <label for="specification" class="form-label">规格型号</label>
-            <input id="specification" name="specification"
+            <label
+              for="specification"
+              class="form-label"
+            >规格型号</label>
+            <input
+              id="specification"
+              name="specification"
               :value="selectedItem?.specification || '-'"
               type="text"
               class="form-input"
@@ -204,8 +220,13 @@
             >
           </div>
           <div class="form-item">
-            <label for="issueQuantity" class="form-label">领用数量</label>
-            <input id="issueQuantity" name="issueQuantity"
+            <label
+              for="issueQuantity"
+              class="form-label"
+            >领用数量</label>
+            <input
+              id="issueQuantity"
+              name="issueQuantity"
               :value="selectedItem?.quantity"
               type="number"
               class="form-input"
@@ -214,8 +235,13 @@
             >
           </div>
           <div class="form-item">
-            <label for="returnedQuantity" class="form-label">已归还</label>
-            <input id="returnedQuantity" name="returnedQuantity"
+            <label
+              for="returnedQuantity"
+              class="form-label"
+            >已归还</label>
+            <input
+              id="returnedQuantity"
+              name="returnedQuantity"
               :value="selectedItem?.return_quantity || 0"
               type="number"
               class="form-input"
@@ -224,8 +250,13 @@
             >
           </div>
           <div class="form-item">
-            <label for="pendingReturn" class="form-label">待归还</label>
-            <input id="pendingReturn" name="pendingReturn"
+            <label
+              for="pendingReturn"
+              class="form-label"
+            >待归还</label>
+            <input
+              id="pendingReturn"
+              name="pendingReturn"
               :value="getPendingReturn(selectedItem)"
               type="number"
               class="form-input"
@@ -234,9 +265,14 @@
             >
           </div>
           <div class="form-item">
-            <label for="returnQuantity" class="form-label">归还数量<span class="required">*</span></label>
-            <input id="returnQuantity" name="returnQuantity"
+            <label
+              for="returnQuantity"
+              class="form-label"
+            >归还数量<span class="required">*</span></label>
+            <input
+              id="returnQuantity"
               v-model.number="returnQuantity"
+              name="returnQuantity"
               type="number"
               :min="1"
               :max="maxReturnQuantity"
@@ -270,7 +306,7 @@ import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
 import { USER_ROLES } from '@/config/constants'
-import SearchInput from '@/components/SearchInput.vue'
+import { SearchInput } from '@sstcp/shared'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 interface RepairToolsIssueItem {
@@ -353,8 +389,8 @@ export default defineComponent({
         })) as unknown as PaginatedResponse<RepairToolsIssueItem>
 
         if (response && response.code === 200 && response.data) {
-          dataList.value = response.data.items || response.data.content || []
-          total.value = response.data.total || response.data.totalElements || 0
+          dataList.value = response.data.items || []
+          total.value = response.data.total || 0
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return

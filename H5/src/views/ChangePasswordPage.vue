@@ -3,8 +3,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { request } from '../api/request'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
 
+const userStore = useUserStore()
 const router = useRouter()
 
 const formData = ref({
@@ -43,7 +44,7 @@ const handleChangePassword = async () => {
     const response = await request.post('/auth/change-password', formData.value) as any
 
     if (response.code === 200) {
-      const user = userStore.getUser()
+      const user = userStore.currentUser
       if (user) {
         userStore.setUser({
           ...user,
@@ -83,7 +84,7 @@ const handleChangePassword = async () => {
       </div>
     </div>
 
-    <div class="change-password-form">
+    <form class="change-password-form" @submit.prevent="handleChangePassword">
       <div class="form-title">设置新密码</div>
 
       <div class="form-fields">
@@ -91,7 +92,7 @@ const handleChangePassword = async () => {
           <label for="oldPassword" class="field-label">旧密码</label>
           <input
             v-model="formData.old_password"
-            type="password" id="oldPassword"
+            type="password" id="oldPassword" name="oldPassword"
             class="field-input"
             placeholder="请输入旧密码"
             autocomplete="current-password"
@@ -101,7 +102,7 @@ const handleChangePassword = async () => {
           <label for="newPassword" class="field-label">新密码</label>
           <input
             v-model="formData.new_password"
-            type="password" id="newPassword"
+            type="password" id="newPassword" name="newPassword"
             class="field-input"
             placeholder="请输入新密码（至少6位）"
             autocomplete="new-password"
@@ -111,20 +112,19 @@ const handleChangePassword = async () => {
           <label for="confirmPassword" class="field-label">确认新密码</label>
           <input
             v-model="confirmPassword"
-            type="password" id="confirmPassword"
+            type="password" id="confirmPassword" name="confirmPassword"
             class="field-input"
             placeholder="请再次输入新密码"
             autocomplete="new-password"
-            @keyup.enter="handleChangePassword"
           />
         </div>
       </div>
 
-      <button class="submit-btn" :disabled="loading" @click="handleChangePassword">
+      <button type="submit" class="submit-btn" :disabled="loading">
         <span v-if="!loading">确认修改</span>
         <span v-else>修改中...</span>
       </button>
-    </div>
+    </form>
   </div>
 </template>
 

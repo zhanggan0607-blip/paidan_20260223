@@ -10,7 +10,7 @@ import type {
   ProjectInfoCreate,
   ProjectInfoUpdate,
   ProjectInfoQueryParams,
-} from '../types/models'
+} from '../types/api'
 
 export const projectInfoService = {
   /**

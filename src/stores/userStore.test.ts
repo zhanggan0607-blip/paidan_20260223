@@ -1,26 +1,28 @@
-/**
- * PC端用户Store测试
- * 测试用户状态管理、权限判断、持久化
- */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { userStore } from './userStore'
+import { useUserStore } from './userStore'
+import { setActivePinia, createPinia } from 'pinia'
 
 describe('userStore', () => {
   beforeEach(() => {
     localStorage.clear()
-    userStore.clearUser()
+    setActivePinia(createPinia())
   })
+
+  function getStore() {
+    return useUserStore()
+  }
 
   describe('初始状态', () => {
     it('初始状态应为未登录', () => {
-      expect(userStore.isLoggedIn.value).toBe(false)
-      expect(userStore.getUser()).toBeNull()
-      expect(userStore.getToken()).toBeNull()
+      expect(getStore().isLoggedIn).toBe(false)
+      expect(getStore().currentUser).toBeNull()
+      expect(getStore().token).toBeNull()
     })
   })
 
   describe('setUser', () => {
     it('设置用户后应更新currentUser', () => {
+      const store = getStore()
       const user = {
         id: 1,
         name: '测试管理员',
@@ -28,167 +30,181 @@ describe('userStore', () => {
         department: '技术部',
         phone: '13800000001',
       }
-      userStore.setUser(user)
-      expect(userStore.getUser()).toEqual(user)
+      store.setUser(user)
+      expect(store.currentUser).toEqual(user)
     })
 
     it('设置管理员后isAdmin应为true', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 1,
         name: '管理员',
         role: '管理员',
         department: '技术部',
         phone: '13800000001',
       })
-      expect(userStore.isAdmin()).toBe(true)
-      expect(userStore.isManager()).toBe(true)
+      expect(store.isAdmin()).toBe(true)
+      expect(store.isManager()).toBe(true)
     })
 
     it('设置运维人员后isAdmin应为false', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 2,
         name: '运维人员',
         role: '运维人员',
         department: '运维部',
         phone: '13800000002',
       })
-      expect(userStore.isAdmin()).toBe(false)
-      expect(userStore.isManager()).toBe(false)
+      expect(store.isAdmin()).toBe(false)
+      expect(store.isManager()).toBe(false)
     })
 
-    it('设置部门经理后isManager应为true，isAdmin也应为true（ADMIN_ROLES包含部门经理）', () => {
-      userStore.setUser({
+    it('设置部门经理后isManager应为true，isAdmin也应为true', () => {
+      const store = getStore()
+      store.setUser({
         id: 3,
         name: '部门经理',
         role: '部门经理',
         department: '运维部',
         phone: '13800000003',
       })
-      expect(userStore.isManager()).toBe(true)
-      expect(userStore.isAdmin()).toBe(true)
+      expect(store.isManager()).toBe(true)
+      expect(store.isAdmin()).toBe(true)
     })
   })
 
   describe('setToken', () => {
     it('设置token后应更新token值', () => {
-      userStore.setToken('test-token-123')
-      expect(userStore.getToken()).toBe('test-token-123')
+      const store = getStore()
+      store.setToken('test-token-123')
+      expect(store.token).toBe('test-token-123')
     })
 
     it('设置token和user后isLoggedIn应为true', () => {
-      userStore.setToken('test-token')
-      userStore.setUser({
+      const store = getStore()
+      store.setToken('test-token')
+      store.setUser({
         id: 1,
         name: '测试',
         role: '管理员',
         department: '技术部',
         phone: '13800000001',
       })
-      expect(userStore.isLoggedIn.value).toBe(true)
+      expect(store.isLoggedIn).toBe(true)
     })
 
     it('仅设置token不设置user时isLoggedIn应为false', () => {
-      userStore.setToken('test-token')
-      expect(userStore.isLoggedIn.value).toBe(false)
+      const store = getStore()
+      store.setToken('test-token')
+      expect(store.isLoggedIn).toBe(false)
     })
   })
 
   describe('clearUser', () => {
     it('清除用户后所有状态应重置', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 1,
         name: '测试',
         role: '管理员',
         department: '技术部',
         phone: '13800000001',
       })
-      userStore.setToken('test-token')
-      userStore.setRefreshToken('refresh-token')
+      store.setToken('test-token')
+      store.setRefreshToken('refresh-token')
 
-      userStore.clearUser()
+      store.clearUser()
 
-      expect(userStore.getUser()).toBeNull()
-      expect(userStore.getToken()).toBeNull()
-      expect(userStore.getRefreshToken()).toBeNull()
-      expect(userStore.isLoggedIn.value).toBe(false)
+      expect(store.currentUser).toBeNull()
+      expect(store.token).toBeNull()
+      expect(store.refreshToken).toBeNull()
+      expect(store.isLoggedIn).toBe(false)
     })
   })
 
   describe('权限判断', () => {
     it('管理员和部门经理应能删除工单', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 1,
         name: '管理员',
         role: '管理员',
         department: '技术部',
         phone: '13800000001',
       })
-      expect(userStore.canDeleteWorkOrder()).toBe(true)
+      expect(store.canDeleteWorkOrder()).toBe(true)
 
-      userStore.setUser({
+      store.setUser({
         id: 3,
         name: '部门经理',
         role: '部门经理',
         department: '运维部',
         phone: '13800000003',
       })
-      expect(userStore.canDeleteWorkOrder()).toBe(true)
+      expect(store.canDeleteWorkOrder()).toBe(true)
     })
 
     it('运维人员不能删除工单', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 2,
         name: '运维人员',
         role: '运维人员',
         department: '运维部',
         phone: '13800000002',
       })
-      expect(userStore.canDeleteWorkOrder()).toBe(false)
+      expect(store.canDeleteWorkOrder()).toBe(false)
     })
 
     it('canShowMenu应根据角色返回正确结果', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 1,
         name: '管理员',
         role: '管理员',
         department: '技术部',
         phone: '13800000001',
       })
-      expect(userStore.canShowMenu('statistics')).toBe(true)
-      expect(userStore.canShowMenu('personnel')).toBe(true)
+      expect(store.canShowMenu('statistics')).toBe(true)
+      expect(store.canShowMenu('personnel')).toBe(true)
     })
 
-    it('运维人员也能看到统计菜单（STATISTICS_VIEW_ROLES包含运维人员）', () => {
-      userStore.setUser({
+    it('运维人员也能看到统计菜单', () => {
+      const store = getStore()
+      store.setUser({
         id: 2,
         name: '运维人员',
         role: '运维人员',
         department: '运维部',
         phone: '13800000002',
       })
-      expect(userStore.canShowMenu('statistics')).toBe(true)
+      expect(store.canShowMenu('statistics')).toBe(true)
     })
 
     it('isMaterialManager应正确判断', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 4,
         name: '材料员',
         role: '材料员',
         department: '材料部',
         phone: '13800000004',
       })
-      expect(userStore.isMaterialManager()).toBe(true)
+      expect(store.isMaterialManager()).toBe(true)
     })
   })
 
   describe('localStorage持久化', () => {
     it('setToken后应同步到localStorage', () => {
-      userStore.setToken('persisted-token')
+      const store = getStore()
+      store.setToken('persisted-token')
       expect(localStorage.getItem('token')).toBe('persisted-token')
     })
 
     it('setUser后应同步到localStorage', () => {
-      userStore.setUser({
+      const store = getStore()
+      store.setUser({
         id: 1,
         name: '持久化用户',
         role: '管理员',
@@ -201,21 +217,23 @@ describe('userStore', () => {
     })
 
     it('clearUser后应清除localStorage', () => {
-      userStore.setToken('token-to-clear')
-      userStore.setUser({
+      const store = getStore()
+      store.setToken('token-to-clear')
+      store.setUser({
         id: 1,
         name: '待清除',
         role: '管理员',
         department: '技术部',
         phone: '13800000001',
       })
-      userStore.clearUser()
+      store.clearUser()
       expect(localStorage.getItem('token')).toBeNull()
       expect(localStorage.getItem('user')).toBeNull()
     })
 
     it('setRefreshToken后应同步到localStorage', () => {
-      userStore.setRefreshToken('refresh-persisted')
+      const store = getStore()
+      store.setRefreshToken('refresh-persisted')
       expect(localStorage.getItem('refresh_token')).toBe('refresh-persisted')
     })
   })

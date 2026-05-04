@@ -1,13 +1,23 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
-from app.models.mixins import SoftDeleteMixin
+from app.models.mixins import SoftDeleteMixin, SerializationMixin
 
 
-class TemporaryRepair(Base, SoftDeleteMixin):
+class TemporaryRepair(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "temporary_repair"
+
+    _relation_overrides = {
+        'project_name': ('project', 'project_name'),
+        'client_name': ('project', 'client_name'),
+    }
+    _relation_extras = {
+        'address': ('project', 'address'),
+        'client_contact_position': ('project', 'client_contact_position'),
+    }
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     repair_id = Column(String(50), unique=True, nullable=False, comment="维修单编号")
@@ -24,7 +34,7 @@ class TemporaryRepair(Base, SoftDeleteMixin):
     remarks = Column(String(500), comment="备注")
     fault_description = Column(Text, comment="故障描述")
     solution = Column(Text, comment="解决方案")
-    photos = Column(Text, comment="现场图片JSON数组")
+    photos = Column(JSONB, default=list, comment="现场图片JSON数组")
     signature = Column(Text, comment="用户签字Base64")
     customer_signature = Column(Text, comment="客户签字Base64")
     execution_date = Column(DateTime, comment="执行日期")
@@ -35,6 +45,11 @@ class TemporaryRepair(Base, SoftDeleteMixin):
 
     project = relationship("ProjectInfo", back_populates="temporary_repairs")
     maintenance_plan = relationship("MaintenancePlan", back_populates="temporary_repairs")
+
+    _list_exclude_fields = {'photos', 'signature', 'customer_signature', 'reject_reason'}
+
+    def to_list_dict(self) -> dict:
+        return self.to_dict(exclude=self._list_exclude_fields)
 
     __table_args__ = (
         Index('idx_temp_repair_id', 'repair_id'),
@@ -47,77 +62,3 @@ class TemporaryRepair(Base, SoftDeleteMixin):
         Index('idx_temp_created_status', 'created_at', 'status'),
         {'comment': '临时维修单表'}
     )
-
-    def to_dict(self):
-        project_name = self.project_name
-        client_name = self.client_name
-        client_contact = ''
-        client_contact_info = ''
-        address = ''
-        client_contact_position = ''
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or client_name
-            client_contact = self.project.client_contact or ''
-            client_contact_info = self.project.client_contact_info or ''
-            address = self.project.address or ''
-            client_contact_position = self.project.client_contact_position or ''
-
-        import json
-        photos = []
-        if self.photos:
-            try:
-                photos = json.loads(self.photos)
-            except (json.JSONDecodeError, TypeError):
-                photos = []
-
-        return {
-            'id': self.id,
-            'repair_id': self.repair_id,
-            'plan_id': self.plan_id,
-            'project_id': self.project_id,
-            'project_name': project_name,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': client_name,
-            'client_contact': self.client_contact or client_contact,
-            'client_contact_info': self.client_contact_info or client_contact_info,
-            'address': address,
-            'client_contact_position': client_contact_position,
-            'maintenance_personnel': self.maintenance_personnel,
-            'status': self.status,
-            'remarks': self.remarks,
-            'fault_description': self.fault_description or '',
-            'solution': self.solution or '',
-            'photos': photos,
-            'signature': self.signature or '',
-            'customer_signature': self.customer_signature or '',
-            'execution_date': self.execution_date.isoformat() if self.execution_date else None,
-            'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
-            'reject_reason': self.reject_reason or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }
-
-    def to_list_dict(self):
-        project_name = self.project_name
-        client_name = self.client_name
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or client_name
-
-        return {
-            'id': self.id,
-            'repair_id': self.repair_id,
-            'project_id': self.project_id,
-            'project_name': project_name,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': client_name,
-            'maintenance_personnel': self.maintenance_personnel,
-            'status': self.status,
-            'remarks': self.remarks,
-            'reject_reason': self.reject_reason or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

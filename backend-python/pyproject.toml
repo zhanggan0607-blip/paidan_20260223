@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sstcp-maintenance-system"
-version = "1.0.3"
+version = "2.0.8"
 description = "Backend system for SSTCP maintenance management"
 authors = ["SSTCP Team"]
 readme = "README.md"

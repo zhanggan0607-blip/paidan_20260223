@@ -4,32 +4,12 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse } from '../types'
+import type { ApiResponse, OnlineUser as OnlineUserType, OnlineStatistics as OnlineStatisticsType } from '../types'
 
 interface OnlineLoginRequest {
   device_type: string
   user_id: number
   user_name: string
-}
-
-interface OnlineUser {
-  id: number
-  user_id: number
-  user_name: string
-  department: string | null
-  role: string | null
-  login_time: string | null
-  last_activity: string | null
-  ip_address: string | null
-  device_type: string
-  is_active: boolean
-}
-
-interface OnlineStatistics {
-  total_online: number
-  h5_count: number
-  pc_count: number
-  today_logins: number
 }
 
 export const onlineUserService = {
@@ -91,14 +71,14 @@ export const onlineUserService = {
   /**
    * 获取在线用户列表
    */
-  async getUsers(): Promise<ApiResponse<OnlineUser[]>> {
+  async getUsers(): Promise<ApiResponse<OnlineUserType[]>> {
     return request.get(API_ENDPOINTS.ONLINE_USER.USERS)
   },
 
   /**
    * 获取在线用户统计
    */
-  async getStatistics(): Promise<ApiResponse<OnlineStatistics>> {
+  async getStatistics(): Promise<ApiResponse<OnlineStatisticsType>> {
     return request.get(API_ENDPOINTS.ONLINE_USER.STATISTICS)
   },
 }

@@ -2,7 +2,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workPlanService } from '../services'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
 
 import { version as appVersion } from '../../package.json'
@@ -183,7 +184,7 @@ const quickActions = computed(() => {
       color: 'var(--color-info)',
       bg: 'var(--color-info-subtle)',
       route: '/weekly-report',
-      show: userStore.isDepartmentManager(),
+      show: userStore.isDepartmentManager,
     },
     {
       key: 'weeklyHistory',
@@ -192,7 +193,7 @@ const quickActions = computed(() => {
       color: 'var(--color-primary)',
       bg: 'var(--color-primary-subtle)',
       route: '/weekly-report-list',
-      show: userStore.isDepartmentManager(),
+      show: userStore.isDepartmentManager,
     },
     {
       key: 'viewWeekly',
@@ -201,7 +202,7 @@ const quickActions = computed(() => {
       color: 'var(--color-info)',
       bg: 'var(--color-info-subtle)',
       route: '/weekly-report-all',
-      show: userStore.isAdmin(),
+      show: userStore.isAdmin,
     },
     {
       key: 'sparePartsIssue',
@@ -280,7 +281,7 @@ const handleRefresh = () => {
       <div class="header-grid"></div>
       <div class="header-content">
         <div class="greeting">
-          <span class="greeting-text">{{ userStore.getUser()?.name || '用户' }}</span>
+          <span class="greeting-text">{{ userStore.currentUser?.name || '用户' }}</span>
           <span class="greeting-label">，您好</span>
         </div>
         <div class="header-year">{{ currentYear }} 年度概览</div>

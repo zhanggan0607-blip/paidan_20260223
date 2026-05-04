@@ -13,7 +13,7 @@ import type {
   SpotWorkQueryParams,
   QuickFillRequest,
   WorkersSaveRequest,
-} from '../types/models'
+} from '../types/api'
 
 export const spotWorkService = {
   /**
@@ -155,19 +155,27 @@ export const spotWorkService = {
   /**
    * 检查身份证号码是否已存在
    */
-  async checkIdCardExists(idCardNumber: string): Promise<
+  async checkIdCardExists(
+    idCardNumber: string,
+    params?: {
+      project_id?: string
+      start_date?: string
+      end_date?: string
+    }
+  ): Promise<
     ApiResponse<{
       exists: boolean
       name?: string
       project_name?: string
       project_id?: string
       can_reuse?: boolean
+      duplicate_in_work?: boolean
       work_id?: string
       work_status?: string
     }>
   > {
     return request.get(API_ENDPOINTS.SPOT_WORK.CHECK_ID_CARD, {
-      params: { id_card_number: idCardNumber },
+      params: { id_card_number: idCardNumber, ...params },
     })
   },
 

@@ -52,10 +52,10 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             ).filter(TemporaryRepair.is_deleted == False)
 
             if project_name:
-                query = query.filter(TemporaryRepair.project_name.like(f'%{project_name}%'))
+                query = query.filter(TemporaryRepair.project_name.like(f'%{self.escape_like(project_name)}%', escape='\\'))
 
             if repair_id:
-                query = query.filter(TemporaryRepair.repair_id.like(f'%{repair_id}%'))
+                query = query.filter(TemporaryRepair.repair_id.like(f'%{self.escape_like(repair_id)}%', escape='\\'))
 
             if status:
                 query = query.filter(TemporaryRepair.status == status)
@@ -64,7 +64,7 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
                 query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
 
             if client_name:
-                query = query.filter(TemporaryRepair.client_name.like(f'%{client_name}%'))
+                query = query.filter(TemporaryRepair.client_name.like(f'%{self.escape_like(client_name)}%', escape='\\'))
 
             total = query.count()
             items = query.order_by(TemporaryRepair.created_at.desc(), TemporaryRepair.id.desc()).offset(page * size).limit(size).all()
@@ -136,22 +136,6 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             return query.first() is not None
         except Exception as e:
             logger.error(f"检查临时维修是否存在失败 (repair_id={repair_id}): {str(e)}")
-            raise
-
-    def soft_delete(self, repair: TemporaryRepair, user_id: int = None) -> None:
-        """
-        软删除临时维修单
-
-        Args:
-            repair: 要删除的维修单对象
-            user_id: 执行删除的用户ID
-        """
-        try:
-            repair.soft_delete(user_id)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"软删除临时维修失败: {str(e)}")
             raise
 
     def find_all_unpaginated(self) -> list[TemporaryRepair]:

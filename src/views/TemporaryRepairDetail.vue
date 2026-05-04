@@ -1,91 +1,158 @@
 <template>
-  <div class="modal-overlay" @click.self="goBack">
+  <div
+    class="modal-overlay"
+    @click.self="goBack"
+  >
     <div class="modal-container">
       <div class="modal-header">
-        <h3 class="modal-title">{{ isEditMode ? '编辑临时维修工单' : '临时维修工单详情' }}</h3>
-        <button class="modal-close" @click="goBack">×</button>
+        <h3 class="modal-title">
+          {{ isEditMode ? '编辑临时维修工单' : '临时维修工单详情' }}
+        </h3>
+        <button
+          class="modal-close"
+          @click="goBack"
+        >
+          ×
+        </button>
       </div>
       <div class="modal-body">
         <div class="form-grid">
           <div class="form-column">
             <div class="form-item">
               <span class="form-label">项目名称</span>
-              <div class="form-value">{{ repairData.project_name || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ repairData.project_name || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
-              <label for="planStartDate" class="form-label">计划开始日期</label>
-              <input id="planStartDate" name="planStartDate"
+              <label
+                for="planStartDate"
+                class="form-label"
+              >计划开始日期</label>
+              <input
                 v-if="isEditMode"
-                v-model="repairData.plan_start_date"
+                id="planStartDate"
+                v-model="planStartDate"
+                name="planStartDate"
                 type="date"
                 class="form-input"
-              />
-              <div v-else class="form-value">{{ formatDate(repairData.plan_start_date) }}</div>
+              >
+              <div
+                v-else
+                class="form-value"
+              >
+                {{ formatDate(repairData.plan_start_date) }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">运维人员</span>
-              <div class="form-value">{{ repairData.maintenance_personnel || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ repairData.maintenance_personnel || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">客户单位</span>
-              <div class="form-value">{{ repairData.client_name || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ repairData.client_name || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
-              <label for="clientContact" class="form-label">客户联系人</label>
-              <input id="clientContact" name="clientContact"
+              <label
+                for="clientContact"
+                class="form-label"
+              >客户联系人</label>
+              <input
                 v-if="isEditMode"
+                id="clientContact"
                 v-model="repairData.client_contact"
+                name="clientContact"
                 type="text"
                 class="form-input"
                 placeholder="请输入客户联系人"
-              />
-              <div v-else class="form-value">{{ repairData.client_contact || '暂无数据' }}</div>
+              >
+              <div
+                v-else
+                class="form-value"
+              >
+                {{ repairData.client_contact || '暂无数据' }}
+              </div>
             </div>
           </div>
           <div class="form-column">
             <div class="form-item">
               <span class="form-label">项目编号</span>
-              <div class="form-value">{{ repairData.project_id || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ repairData.project_id || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
-              <label for="planEndDate" class="form-label">计划结束日期</label>
-              <input id="planEndDate" name="planEndDate"
+              <label
+                for="planEndDate"
+                class="form-label"
+              >计划结束日期</label>
+              <input
                 v-if="isEditMode"
-                v-model="repairData.plan_end_date"
+                id="planEndDate"
+                v-model="planEndDate"
+                name="planEndDate"
                 type="date"
                 class="form-input"
-              />
-              <div v-else class="form-value">{{ formatDate(repairData.plan_end_date) }}</div>
+              >
+              <div
+                v-else
+                class="form-value"
+              >
+                {{ formatDate(repairData.plan_end_date) }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">工单编号</span>
-              <div class="form-value">{{ repairData.repair_id || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ repairData.repair_id || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
               <span class="form-label">客户地址</span>
-              <div class="form-value">{{ repairData.address || '暂无数据' }}</div>
+              <div class="form-value">
+                {{ repairData.address || '暂无数据' }}
+              </div>
             </div>
             <div class="form-item">
-              <label for="clientContactInfo" class="form-label">客户联系方式</label>
-              <input id="clientContactInfo" name="clientContactInfo"
+              <label
+                for="clientContactInfo"
+                class="form-label"
+              >客户联系方式</label>
+              <input
                 v-if="isEditMode"
+                id="clientContactInfo"
                 v-model="repairData.client_contact_info"
+                name="clientContactInfo"
                 type="text"
                 class="form-input"
                 placeholder="请输入客户联系方式"
-              />
-              <div v-else class="form-value">{{ repairData.client_contact_info || '暂无数据' }}</div>
+              >
+              <div
+                v-else
+                class="form-value"
+              >
+                {{ repairData.client_contact_info || '暂无数据' }}
+              </div>
             </div>
           </div>
         </div>
         <div class="form-item-full">
-          <label for="repairContent" class="form-label">报修内容</label>
-          <textarea id="repairContent" name="repairContent"
+          <label
+            for="repairContent"
+            class="form-label"
+          >报修内容</label>
+          <textarea
+            id="repairContent"
             v-model="repairData.remarks"
+            name="repairContent"
             class="form-textarea"
             placeholder="请输入报修内容"
             maxlength="500"
-          ></textarea>
+          />
         </div>
 
         <div class="section-divider">
@@ -101,42 +168,73 @@
 
         <div class="form-item-full">
           <span class="form-label">解决方案</span>
-          <div class="form-value form-value-large">{{ repairData.solution || '暂无数据' }}</div>
+          <div class="form-value form-value-large">
+            {{ repairData.solution || '暂无数据' }}
+          </div>
         </div>
 
         <div class="form-item-full">
           <span class="form-label">现场图片</span>
-          <div v-if="repairData.photos && repairData.photos.length > 0" class="photo-grid">
+          <div
+            v-if="repairData.photos && repairData.photos.length > 0"
+            class="photo-grid"
+          >
             <div
               v-for="(photo, index) in repairData.photos"
               :key="index"
               class="photo-item"
               @click="previewPhoto(photo)"
             >
-              <img :src="photo" alt="现场图片" loading="lazy" />
+              <img
+                :src="photo"
+                alt="现场图片"
+                loading="lazy"
+              >
             </div>
           </div>
-          <div v-else class="form-value">暂无数据</div>
+          <div
+            v-else
+            class="form-value"
+          >
+            暂无数据
+          </div>
         </div>
 
         <div class="form-item-full">
           <span class="form-label">用户签字</span>
-          <div v-if="repairData.signature" class="signature-container">
-            <img :src="repairData.signature" alt="用户签字" class="signature-image" />
+          <div
+            v-if="repairData.signature"
+            class="signature-container"
+          >
+            <img
+              :src="repairData.signature"
+              alt="用户签字"
+              class="signature-image"
+            >
           </div>
-          <div v-else class="form-value">暂无数据</div>
+          <div
+            v-else
+            class="form-value"
+          >
+            暂无数据
+          </div>
         </div>
 
         <div class="operation-log-section">
-          <div class="section-title">内部确认区</div>
-          <div v-if="operationLogs.length > 0" class="timeline">
+          <div class="section-title">
+            内部确认区
+          </div>
+          <div
+            v-if="operationLogs.length > 0"
+            class="timeline"
+          >
             <div
               v-for="(log, index) in operationLogs"
               :key="log.id"
               class="timeline-item"
               :class="{ last: index === operationLogs.length - 1 }"
             >
-              <div class="timeline-dot"></div>
+              <div class="timeline-dot" />
               <div class="timeline-content">
                 <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
                 <span class="timeline-operator">{{ log.operator_name }}</span>
@@ -144,12 +242,27 @@
               </div>
             </div>
           </div>
-          <div v-else class="no-logs">暂无数据</div>
+          <div
+            v-else
+            class="no-logs"
+          >
+            暂无数据
+          </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-cancel" @click="goBack">关闭</button>
-        <button v-if="isEditMode" class="btn btn-save" :disabled="saving" @click="handleSave">
+        <button
+          class="btn btn-cancel"
+          @click="goBack"
+        >
+          关闭
+        </button>
+        <button
+          v-if="isEditMode"
+          class="btn btn-save"
+          :disabled="saving"
+          @click="handleSave"
+        >
           {{ saving ? '保存中...' : '保存' }}
         </button>
       </div>
@@ -158,7 +271,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue'
+import { defineComponent, ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { temporaryRepairService } from '@/services/temporaryRepair'
 import request from '@/api/request'
@@ -235,6 +348,21 @@ export default defineComponent({
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
     }
 
+    const toDateString = (value: any): string => {
+      if (!value) return ''
+      return String(value).split('T')[0]
+    }
+
+    const planStartDate = computed({
+      get: () => toDateString(repairData.value.plan_start_date),
+      set: (val: string) => { repairData.value.plan_start_date = val }
+    })
+
+    const planEndDate = computed({
+      get: () => toDateString(repairData.value.plan_end_date),
+      set: (val: string) => { repairData.value.plan_end_date = val }
+    })
+
     /**
      * 格式化操作时间
      */
@@ -289,8 +417,12 @@ export default defineComponent({
 
       saving.value = true
       try {
-        const response = await temporaryRepairService.update(repairData.value.id, {
-          remarks: repairData.value.remarks || '',
+        const response = await temporaryRepairService.patch(repairData.value.id, {
+          plan_start_date: repairData.value.plan_start_date || undefined,
+          plan_end_date: repairData.value.plan_end_date || undefined,
+          client_contact: repairData.value.client_contact || undefined,
+          client_contact_info: repairData.value.client_contact_info || undefined,
+          remarks: repairData.value.remarks || undefined,
         })
         if (response.code === 200) {
           if (repairData.value.status === '执行中' || repairData.value.status === '已退回') {
@@ -334,8 +466,8 @@ export default defineComponent({
               repair_id: item.repair_id,
               project_id: item.project_id,
               project_name: item.project_name,
-              plan_start_date: item.plan_start_date,
-              plan_end_date: item.plan_end_date,
+              plan_start_date: item.plan_start_date ? item.plan_start_date.split('T')[0] : '',
+              plan_end_date: item.plan_end_date ? item.plan_end_date.split('T')[0] : '',
               client_name: item.client_name || '',
               client_contact: item.client_contact || '',
               client_contact_info: item.client_contact_info || '',
@@ -372,6 +504,8 @@ export default defineComponent({
       goBack,
       previewPhoto,
       handleSave,
+      planStartDate,
+      planEndDate,
     }
   },
 })

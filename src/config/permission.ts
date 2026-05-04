@@ -17,7 +17,7 @@ import {
 } from '@sstcp/shared'
 
 export { RoleCode, isAdminRole, isManagerRole, canDeleteWorkOrder }
-export type { UserRole, RoleCodeType, RoleConfig, PermissionConfig } from '@sstcp/shared'
+export type { UserRole, RoleCodeType, PermissionConfig } from '@sstcp/shared'
 
 const PERMISSION_CONFIGS: Record<string, PermissionConfig> = {
   view_statistics: {
@@ -190,11 +190,35 @@ const DEFAULT_ROUTE_ORDER = [
   'weekly-report-list',
 ]
 
+const MENU_PATH_MAP: Record<string, string> = {
+  statistics: '/statistics',
+  'project-info': '/project-info',
+  'maintenance-plan': '/maintenance-plan',
+  'overdue-alert': '/overdue-alert',
+  'near-expiry-alert': '/near-expiry-alert',
+  personnel: '/personnel',
+  customer: '/customer',
+  'inspection-item': '/inspection-item',
+  'work-plan': '/work-plan',
+  'temporary-repair': '/work-order/temporary-repair',
+  'spot-work': '/work-order/spot-work',
+  'spare-parts-stock': '/spare-parts/stock',
+  'spare-parts-issue': '/spare-parts/issue',
+  'spare-parts-return': '/spare-parts/return',
+  'repair-tools-inbound': '/repair-tools/inbound',
+  'repair-tools-issue': '/repair-tools/issue',
+  'repair-tools-return': '/repair-tools/return',
+  'maintenance-log-fill': '/maintenance-log/fill',
+  'maintenance-log-list': '/maintenance-log/list',
+  'weekly-report-fill': '/weekly-report/fill',
+  'weekly-report-list': '/weekly-report/list',
+}
+
 export function getDefaultPath(role: string | undefined | null): string {
   if (!role) return '/login'
   for (const menuId of DEFAULT_ROUTE_ORDER) {
     if (canShowMenu(menuId, role)) {
-      return `/${menuId}`
+      return MENU_PATH_MAP[menuId] || `/${menuId}`
     }
   }
   return '/login'

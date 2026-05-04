@@ -57,7 +57,6 @@ export const CACHE_KEYS = {
   PROJECT_INFO: 'project_info',
   PERSONNEL: 'personnel',
   CUSTOMER: 'customer',
-  INSPECTION_ITEMS: 'inspection_items',
   STATISTICS: 'statistics',
   TEMPORARY_REPAIR_PENDING: 'temporary_repair_pending',
   SPOT_WORK_PENDING: 'spot_work_pending',

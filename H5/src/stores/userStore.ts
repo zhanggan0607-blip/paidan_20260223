@@ -4,9 +4,6 @@
  *
  * 状态存储：localStorage (token/refresh_token/user)
  * 登录判断：isLoggedIn = !!token && !!currentUser
- *
- * TODO: 启动时应调用 /auth/me 验证token有效性，避免过期token仍显示已登录
- * TODO: 后端应支持Token黑名单机制，登出/改密码时使旧token失效
  */
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
@@ -33,6 +30,76 @@ function loadUserFromStorage(): User | null {
     }
   }
   return null
+}
+
+function decodeJwtPayload(token: string): { exp?: number; [key: string]: unknown } | null {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const jsonStr = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    return JSON.parse(jsonStr)
+  } catch {
+    return null
+  }
+}
+
+function isTokenExpired(token: string): boolean {
+  const payload = decodeJwtPayload(token)
+  if (!payload || !payload.exp) return true
+  return Date.now() >= payload.exp * 1000
+}
+
+async function refreshAccessToken(refreshTokenValue: string): Promise<{ accessToken: string; refreshToken: string } | null> {
+  try {
+    const basePath = import.meta.env.PROD ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1')
+    const response = await fetch(`${basePath}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshTokenValue }),
+    })
+    if (!response.ok) return null
+    const result = await response.json()
+    if (result.code === 200 && result.data?.access_token) {
+      return {
+        accessToken: result.data.access_token,
+        refreshToken: result.data.refresh_token || refreshTokenValue,
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+async function fetchCurrentUser(tokenValue: string): Promise<User | null> {
+  if (isTokenExpired(tokenValue)) return null
+  try {
+    const basePath = import.meta.env.PROD ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1')
+    const response = await fetch(`${basePath}/auth/me`, {
+      headers: { Authorization: `Bearer ${tokenValue}` },
+    })
+    if (!response.ok) return null
+    const result = await response.json()
+    if (result.code === 200 && result.data) {
+      return {
+        id: result.data.id,
+        name: result.data.name,
+        role: result.data.role,
+        department: result.data.department,
+        phone: result.data.phone,
+        must_change_password: result.data.must_change_password,
+      } as User
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -107,6 +174,35 @@ export const useUserStore = defineStore('user', () => {
     token.value = null
     refreshToken.value = null
     window.dispatchEvent(new CustomEvent('user-changed', { detail: null }))
+  }
+
+  async function validateToken(): Promise<boolean> {
+    if (!token.value) {
+      clearUser()
+      return false
+    }
+
+    let user = await fetchCurrentUser(token.value)
+    if (user) {
+      currentUser.value = user
+      return true
+    }
+
+    if (refreshToken.value) {
+      const tokens = await refreshAccessToken(refreshToken.value)
+      if (tokens) {
+        token.value = tokens.accessToken
+        refreshToken.value = tokens.refreshToken
+        user = await fetchCurrentUser(tokens.accessToken)
+        if (user) {
+          currentUser.value = user
+          return true
+        }
+      }
+    }
+
+    clearUser()
+    return false
   }
 
   function setToken(newToken: string): void {
@@ -257,6 +353,7 @@ export const useUserStore = defineStore('user', () => {
     isManager,
     setUser,
     clearUser,
+    validateToken,
     setToken,
     setRefreshToken,
     canViewAllWorkOrders,
@@ -293,190 +390,3 @@ export const useUserStore = defineStore('user', () => {
     checkPermission,
   }
 })
-
-export const userStore = {
-  get readonlyCurrentUser() {
-    const store = useUserStore()
-    return store.currentUser
-  },
-
-  getUser(): User | null {
-    return useUserStore().currentUser
-  },
-
-  setUser(user: User): void {
-    useUserStore().setUser(user)
-  },
-
-  clearUser(): void {
-    useUserStore().clearUser()
-  },
-
-  getToken(): string | null {
-    return useUserStore().token
-  },
-
-  setToken(token: string): void {
-    useUserStore().setToken(token)
-  },
-
-  getRefreshToken(): string | null {
-    return useUserStore().refreshToken
-  },
-
-  setRefreshToken(refreshToken: string): void {
-    useUserStore().setRefreshToken(refreshToken)
-  },
-
-  isLoggedIn(): boolean {
-    return useUserStore().isLoggedIn
-  },
-
-  isAdmin(): boolean {
-    return useUserStore().isAdmin
-  },
-
-  isDepartmentManager(): boolean {
-    return useUserStore().isDepartmentManager
-  },
-
-  isMaterialManager(): boolean {
-    return useUserStore().isMaterialManagerRole
-  },
-
-  isEmployee(): boolean {
-    return useUserStore().isEmployee
-  },
-
-  canViewAllWorkOrders(): boolean {
-    return useUserStore().canViewAllWorkOrders()
-  },
-
-  canViewPersonnel(): boolean {
-    return useUserStore().canViewPersonnel()
-  },
-
-  canViewStatistics(): boolean {
-    return useUserStore().canViewStatistics()
-  },
-
-  canViewProjectManagement(): boolean {
-    return useUserStore().canViewProjectManagement()
-  },
-
-  canViewWorkOrder(): boolean {
-    return useUserStore().canViewWorkOrder()
-  },
-
-  canViewSparePartsInventory(): boolean {
-    return useUserStore().canViewSparePartsInventory()
-  },
-
-  canViewSparePartsStock(): boolean {
-    return useUserStore().canViewSparePartsStock()
-  },
-
-  canViewSparePartsIssue(): boolean {
-    return useUserStore().canViewSparePartsIssue()
-  },
-
-  canViewRepairToolsStock(): boolean {
-    return useUserStore().canViewRepairToolsStock()
-  },
-
-  canViewRepairToolsInbound(): boolean {
-    return useUserStore().canViewRepairToolsInbound()
-  },
-
-  canViewRepairToolsIssue(): boolean {
-    return useUserStore().canViewRepairToolsIssue()
-  },
-
-  canViewAlerts(): boolean {
-    return useUserStore().canViewAlerts()
-  },
-
-  canViewSystemManagement(): boolean {
-    return useUserStore().canViewSystemManagement()
-  },
-
-  canViewPeriodicInspection(): boolean {
-    return useUserStore().canViewPeriodicInspection()
-  },
-
-  canApprovePeriodicInspection(): boolean {
-    return useUserStore().canApprovePeriodicInspection()
-  },
-
-  canApproveTemporaryRepair(): boolean {
-    return useUserStore().canApproveTemporaryRepair()
-  },
-
-  canApproveSpotWork(): boolean {
-    return useUserStore().canApproveSpotWork()
-  },
-
-  canViewTemporaryRepair(): boolean {
-    return useUserStore().canViewTemporaryRepair()
-  },
-
-  canViewSpotWork(): boolean {
-    return useUserStore().canViewSpotWork()
-  },
-
-  canApplySpotWork(): boolean {
-    return useUserStore().canApplySpotWork()
-  },
-
-  canViewProjectInfo(): boolean {
-    return useUserStore().canViewProjectInfo()
-  },
-
-  canQuickFillSpotWork(): boolean {
-    return useUserStore().canQuickFillSpotWork()
-  },
-
-  canViewMaintenanceLog(): boolean {
-    return useUserStore().canViewMaintenanceLog()
-  },
-
-  canViewMaintenanceLogDetail(): boolean {
-    return useUserStore().canViewMaintenanceLogDetail()
-  },
-
-  canFillMaintenanceLog(): boolean {
-    return useUserStore().canFillMaintenanceLog()
-  },
-
-  canViewAllMaintenanceLog(): boolean {
-    return useUserStore().canViewAllMaintenanceLog()
-  },
-
-  canViewDepartmentWeeklyReport(): boolean {
-    return useUserStore().canViewDepartmentWeeklyReport()
-  },
-
-  canViewAllWeeklyReport(): boolean {
-    return useUserStore().canViewAllWeeklyReport()
-  },
-
-  canApproveWeeklyReport(): boolean {
-    return useUserStore().canApproveWeeklyReport()
-  },
-
-  canViewWorkList(): boolean {
-    return useUserStore().canViewWorkList()
-  },
-
-  canViewSignature(): boolean {
-    return useUserStore().canViewSignature()
-  },
-
-  isManager(): boolean {
-    return useUserStore().isManager
-  },
-
-  hasPermission(permissionId: string): boolean {
-    return useUserStore().checkPermission(permissionId)
-  },
-}

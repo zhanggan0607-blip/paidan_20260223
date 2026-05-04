@@ -3,18 +3,20 @@ import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import { Loading, Document, FolderOpened, Folder } from '@element-plus/icons-vue'
 import App from './App.vue'
 import router from './router'
 import './styles/variables.css'
+import './styles/components.css'
 import './styles/main.css'
 
 const app = createApp(App)
 const pinia = createPinia()
 
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
+app.component('Loading', Loading)
+app.component('Document', Document)
+app.component('FolderOpened', FolderOpened)
+app.component('Folder', Folder)
 
 app.config.errorHandler = (err, instance, info) => {
   console.error('[Global Error Handler]', {

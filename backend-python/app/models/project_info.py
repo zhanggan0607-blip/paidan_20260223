@@ -4,9 +4,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class ProjectInfo(Base):
+class ProjectInfo(Base, SerializationMixin):
     __tablename__ = "project_info"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
@@ -42,23 +43,3 @@ class ProjectInfo(Base):
         Index('idx_project_info_project_name', 'project_name'),
         {'comment': '项目信息表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'project_id': self.project_id,
-            'project_name': self.project_name,
-            'completion_date': self.completion_date.isoformat() if self.completion_date else None,
-            'maintenance_end_date': self.maintenance_end_date.isoformat() if self.maintenance_end_date else None,
-            'maintenance_period': self.maintenance_period,
-            'client_name': self.client_name,
-            'address': self.address,
-            'project_abbr': self.project_abbr,
-            'project_manager': self.project_manager,
-            'client_contact_id': self.client_contact_id,
-            'client_contact': self.client_contact,
-            'client_contact_position': self.client_contact_position,
-            'client_contact_info': self.client_contact_info,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

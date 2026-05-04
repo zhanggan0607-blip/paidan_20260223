@@ -7,10 +7,13 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label for="search_productName" class="search-label">产品名称：</label>
+                  <label
+                    for="search_productName"
+                    class="search-label"
+                  >产品名称：</label>
                   <SearchInput
-              input-id="search_productName"
                     v-model="filters.productName"
+                    input-id="search_productName"
                     field-key="SparePartsStock_productName"
                     placeholder="请输入产品名称"
                     @input="handleSearch"
@@ -126,8 +129,8 @@
                 <span>每页</span>
                 <select
                   id="pageSize"
-                  name="pageSize"
                   v-model="pageSize"
+                  name="pageSize"
                   class="page-size-select"
                   @change="handlePageSizeChange"
                 >
@@ -169,9 +172,14 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="productName" class="form-label">产品名称<span class="required">*</span></label>
-            <input id="productName" name="productName"
+            <label
+              for="productName"
+              class="form-label"
+            >产品名称<span class="required">*</span></label>
+            <input
+              id="productName"
               v-model="formData.productName"
+              name="productName"
               type="text"
               class="form-input"
               placeholder="请输入产品名称"
@@ -179,18 +187,28 @@
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label for="brand" class="form-label">品牌</label>
-              <input id="brand" name="brand"
+              <label
+                for="brand"
+                class="form-label"
+              >品牌</label>
+              <input
+                id="brand"
                 v-model="formData.brand"
+                name="brand"
                 type="text"
                 class="form-input"
                 placeholder="请输入品牌"
               >
             </div>
             <div class="form-item half">
-              <label for="productModel" class="form-label">产品型号</label>
-              <input id="productModel" name="productModel"
+              <label
+                for="productModel"
+                class="form-label"
+              >产品型号</label>
+              <input
+                id="productModel"
                 v-model="formData.model"
+                name="productModel"
                 type="text"
                 class="form-input"
                 placeholder="请输入产品型号"
@@ -199,9 +217,14 @@
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label for="inboundQuantity" class="form-label">入库数量<span class="required">*</span></label>
-              <input id="inboundQuantity" name="inboundQuantity"
+              <label
+                for="inboundQuantity"
+                class="form-label"
+              >入库数量<span class="required">*</span></label>
+              <input
+                id="inboundQuantity"
                 v-model.number="formData.quantity"
+                name="inboundQuantity"
                 type="number"
                 class="form-input"
                 placeholder="请输入入库数量"
@@ -209,9 +232,14 @@
               >
             </div>
             <div class="form-item half">
-              <label for="unit" class="form-label">单位</label>
-              <select id="unit" name="unit"
+              <label
+                for="unit"
+                class="form-label"
+              >单位</label>
+              <select
+                id="unit"
                 v-model="formData.unit"
+                name="unit"
                 class="form-select"
               >
                 <option value="件">
@@ -233,18 +261,28 @@
             </div>
           </div>
           <div class="form-item">
-            <label for="supplier" class="form-label">供应商</label>
-            <input id="supplier" name="supplier"
+            <label
+              for="supplier"
+              class="form-label"
+            >供应商</label>
+            <input
+              id="supplier"
               v-model="formData.supplier"
+              name="supplier"
               type="text"
               class="form-input"
               placeholder="请输入供应商"
             >
           </div>
           <div class="form-item">
-            <label for="inboundUser" class="form-label">入库人<span class="required">*</span></label>
-            <select id="inboundUser" name="inboundUser"
+            <label
+              for="inboundUser"
+              class="form-label"
+            >入库人<span class="required">*</span></label>
+            <select
+              id="inboundUser"
               v-model="formData.userName"
+              name="inboundUser"
               class="form-select"
             >
               <option value="">
@@ -260,9 +298,14 @@
             </select>
           </div>
           <div class="form-item">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remarks"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入备注（可选）"
             />
@@ -303,8 +346,13 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="productName" class="form-label">产品名称</label>
-            <input id="productName" name="productName"
+            <label
+              for="productName"
+              class="form-label"
+            >产品名称</label>
+            <input
+              id="productName"
+              name="productName"
               :value="restockData.productName"
               class="form-input"
               disabled
@@ -312,16 +360,26 @@
           </div>
           <div class="form-row">
             <div class="form-item half">
-              <label for="brand" class="form-label">品牌</label>
-              <input id="brand" name="brand"
+              <label
+                for="brand"
+                class="form-label"
+              >品牌</label>
+              <input
+                id="brand"
+                name="brand"
                 :value="restockData.brand || '-'"
                 class="form-input"
                 disabled
               >
             </div>
             <div class="form-item half">
-              <label for="productModel" class="form-label">产品型号</label>
-              <input id="productModel" name="productModel"
+              <label
+                for="productModel"
+                class="form-label"
+              >产品型号</label>
+              <input
+                id="productModel"
+                name="productModel"
                 :value="restockData.model || '-'"
                 class="form-input"
                 disabled
@@ -329,17 +387,27 @@
             </div>
           </div>
           <div class="form-item">
-            <label for="currentStock" class="form-label">当前库存</label>
-            <input id="currentStock" name="currentStock"
+            <label
+              for="currentStock"
+              class="form-label"
+            >当前库存</label>
+            <input
+              id="currentStock"
+              name="currentStock"
               :value="restockData.currentStock"
               class="form-input"
               disabled
             >
           </div>
           <div class="form-item">
-            <label for="inboundQuantity" class="form-label">入库数量<span class="required">*</span></label>
-            <input id="inboundQuantity" name="inboundQuantity"
+            <label
+              for="inboundQuantity"
+              class="form-label"
+            >入库数量<span class="required">*</span></label>
+            <input
+              id="inboundQuantity"
               v-model.number="restockData.quantity"
+              name="inboundQuantity"
               type="number"
               :min="1"
               class="form-input"
@@ -347,9 +415,14 @@
             >
           </div>
           <div class="form-item">
-            <label for="inboundUser" class="form-label">入库人<span class="required">*</span></label>
-            <select id="inboundUser" name="inboundUser"
+            <label
+              for="inboundUser"
+              class="form-label"
+            >入库人<span class="required">*</span></label>
+            <select
+              id="inboundUser"
               v-model="restockData.userName"
+              name="inboundUser"
               class="form-select"
             >
               <option value="">
@@ -365,9 +438,14 @@
             </select>
           </div>
           <div class="form-item">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="restockData.remarks"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入备注"
             />
@@ -404,10 +482,9 @@
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import Toast from '@/components/Toast.vue'
-import SearchInput from '@/components/SearchInput.vue'
+import { Toast, SearchInput } from '@sstcp/shared'
 import { USER_ROLES } from '@/config/constants'
-import { userStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/userStore'
 
 interface SparePartsStockItem {
   id: number
@@ -434,6 +511,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const loading = ref(false)
     const submitting = ref(false)
     const stockList = ref<SparePartsStockItem[]>([])

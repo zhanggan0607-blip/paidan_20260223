@@ -54,13 +54,20 @@ def recognize_idcard(request: IdCardRecognizeRequest):
             data=None
         )
 
+    if request.side not in ('face', 'back'):
+        return ApiResponse(
+            code=400,
+            message="side参数必须为face或back",
+            data=None
+        )
+
     try:
         if request.imageUrl:
             result = ocr_service.recognize_idcard(request.imageUrl, request.side)
         else:
             result = ocr_service.recognize_idcard_base64(request.imageBase64, request.side)
 
-        logger.info(f"OCR识别结果: {result}")
+        logger.info(f"OCR识别结果: side={request.side}, success={result['success']}")
 
         if result['success']:
             data = result.get('data', {})

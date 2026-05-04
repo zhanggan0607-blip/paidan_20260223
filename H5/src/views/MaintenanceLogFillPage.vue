@@ -9,9 +9,10 @@ import {
   showNotify,
 } from 'vant'
 import { maintenanceLogService, projectInfoService, uploadService } from '../services'
-import type { ProjectInfo } from '../types/models'
+import type { ProjectInfo } from '../types/api'
 import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
 
 interface LogImage {
@@ -145,6 +146,11 @@ const handleDateConfirm = ({ selectedValues }: { selectedValues: string[] }) => 
  * 拍照上传
  */
 const handleTakePhoto = async () => {
+  if (images.value.length >= 9) {
+    showFailToast('最多上传9张图片')
+    return
+  }
+
   const ua = navigator.userAgent.toLowerCase()
   const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
@@ -154,42 +160,72 @@ const handleTakePhoto = async () => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
+  input.multiple = true
   if (!useBase64Upload) {
     input.capture = 'environment'
   }
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (file) {
-      showLoadingToast({ message: '处理中...', forbidClick: true })
+    const allFiles = target.files
+    if (!allFiles || allFiles.length === 0) return
+
+    const remaining = 9 - images.value.length
+    if (remaining <= 0) {
+      showFailToast('已达到最大上传数量')
+      return
+    }
+    const files = Array.from(allFiles).slice(0, remaining)
+
+    showLoadingToast({ message: `处理中(0/${files.length})...`, forbidClick: true })
+
+    let uploadedCount = 0
+    let failedCount = 0
+
+    for (const file of files) {
       try {
+        showLoadingToast({ message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+
         let fileToUpload = file
         
         if (useBase64Upload) {
           if (file.size > 500 * 1024) {
-            showLoadingToast({ message: '压缩中...', forbidClick: true })
+            showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
             const compressedBlob = await compressImage(file, 500)
             fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
           }
-          
+
+          showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          const watermarkedFile = await processPhoto(fileToUpload, {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+
+          showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
           const reader = new FileReader()
           const base64Data = await new Promise<string>((resolve, reject) => {
-            reader.onload = (e) => resolve(e.target?.result as string)
+            reader.onload = (ev) => resolve(ev.target?.result as string)
             reader.onerror = reject
-            reader.readAsDataURL(fileToUpload)
+            reader.readAsDataURL(watermarkedFile)
           })
           
-          const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
+          const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
           if (response.code === 200 && response.data) {
             images.value.push({
               file: null,
               url: response.data.url,
               description: '',
             })
+            uploadedCount++
+          } else {
+            failedCount++
           }
         } else {
-          const userName = userStore.getUser()?.name || '未知用户'
+          const userName = userStore.currentUser?.name || '未知用户'
           const location = await getCurrentLocation()
           const processedFile = await processPhoto(file, {
             userName,
@@ -203,18 +239,19 @@ const handleTakePhoto = async () => {
             url: url,
             description: '',
           })
+          uploadedCount++
         }
       } catch (error) {
         console.error('Failed to process photo:', error)
-        const url = URL.createObjectURL(file)
-        images.value.push({
-          file: file,
-          url: url,
-          description: '',
-        })
-      } finally {
-        closeToast()
+        failedCount++
       }
+    }
+
+    closeToast()
+    if (uploadedCount > 0) {
+      showSuccessToast(`成功添加${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+    } else {
+      showFailToast('处理图片失败')
     }
   }
 
@@ -337,6 +374,56 @@ const uploadImage = async (image: LogImage): Promise<string | null> => {
   }
 }
 
+const batchUploadImages = async (imageList: LogImage[]): Promise<string[]> => {
+  const filesToUpload: { file: File; index: number }[] = []
+  const existingUrls: { url: string; originalIndex: number }[] = []
+
+  imageList.forEach((image, index) => {
+    if (image.file) {
+      filesToUpload.push({ file: image.file, index })
+    } else if (image.url && !image.url.startsWith('blob:')) {
+      existingUrls.push({ url: image.url, originalIndex: index })
+    }
+  })
+
+  const uploadedUrls: string[] = []
+
+  if (filesToUpload.length > 0) {
+    try {
+      const files = filesToUpload.map((item) => item.file)
+      const response = await uploadService.uploadFiles(files)
+      if (response.code === 200 && response.data) {
+        const successList = response.data.success || response.data
+        if (Array.isArray(successList)) {
+          for (const item of successList) {
+            if (item.url) {
+              uploadedUrls.push(item.url)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Batch upload failed, falling back to single upload:', error)
+      for (const { file } of filesToUpload) {
+        try {
+          const response = await uploadService.uploadFile(file)
+          if (response.code === 200 && response.data) {
+            uploadedUrls.push(response.data.url)
+          }
+        } catch (singleError) {
+          console.error('Single upload also failed:', singleError)
+        }
+      }
+    }
+  }
+
+  for (const { url } of existingUrls) {
+    uploadedUrls.push(url)
+  }
+
+  return uploadedUrls
+}
+
 /**
  * 提交表单
  */
@@ -350,17 +437,7 @@ const handleSubmit = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
 
   try {
-    const uploadedUrls: string[] = []
-    for (const image of images.value) {
-      if (image.file) {
-        const url = await uploadImage(image)
-        if (url) {
-          uploadedUrls.push(url)
-        }
-      } else if (image.url && !image.url.startsWith('blob:')) {
-        uploadedUrls.push(image.url)
-      }
-    }
+    const uploadedUrls = await batchUploadImages(images.value)
 
     const submitData = {
       project_id: formData.value.projectId,
@@ -487,11 +564,12 @@ onMounted(async () => {
             <img :src="image.url" alt="现场照片" loading="lazy" />
             <van-icon name="delete" class="delete-icon" @click="handleDeleteImage(index)" />
           </div>
-          <div class="image-add" @click="handleTakePhoto">
+          <div v-if="images.length < 9" class="image-add" @click="handleTakePhoto">
             <van-icon name="photograph" size="24" />
             <span>拍照</span>
           </div>
         </div>
+        <div class="image-tip">支持拍照或从相册选择，最多上传9张，可多选</div>
       </div>
     </van-cell-group>
 
@@ -543,7 +621,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .image-section {
@@ -596,6 +674,12 @@ onMounted(async () => {
 
 .image-add span {
   font-size: 12px;
+}
+
+.image-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
 }
 
 .two-column-form {

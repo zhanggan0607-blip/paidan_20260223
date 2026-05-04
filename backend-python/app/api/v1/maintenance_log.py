@@ -131,11 +131,14 @@ def get_maintenance_logs(
         code=200,
         message="success",
         data={
+            'items': [item.to_dict() for item in items],
             'content': [item.to_dict() for item in items],
+            'total': total,
             'totalElements': total,
             'totalPages': (total + size - 1) // size,
             'size': size,
             'number': page,
+            'page': page,
             'first': page == 0,
             'last': page >= (total + size - 1) // size
         }
@@ -201,11 +204,14 @@ def get_my_maintenance_logs(
         code=200,
         message="success",
         data={
+            'items': [item.to_dict() for item in items],
             'content': [item.to_dict() for item in items],
+            'total': total,
             'totalElements': total,
             'totalPages': (total + size - 1) // size,
             'size': size,
             'number': page,
+            'page': page,
             'first': page == 0,
             'last': page >= (total + size - 1) // size
         }
@@ -300,7 +306,7 @@ def create_maintenance_log(
     
     log_id = generate_log_id(dto.project_id, dto.log_type, db)
 
-    images_json = json.dumps(dto.images, ensure_ascii=False) if dto.images else None
+    images_value = dto.images if dto.images else None
 
     project_id = dto.project_id if dto.project_id else None
     project_name = dto.project_name if dto.project_name else None
@@ -312,7 +318,7 @@ def create_maintenance_log(
         log_type=dto.log_type,
         log_date=datetime.strptime(dto.log_date, "%Y-%m-%d"),
         work_content=dto.work_content,
-        images=images_json,
+        images=images_value,
         remark=dto.remark,
         created_by=user_info.name
     )
@@ -379,7 +385,7 @@ def update_maintenance_log(
     log.log_type = dto.log_type
     log.log_date = datetime.strptime(dto.log_date, "%Y-%m-%d")
     log.work_content = dto.work_content
-    log.images = json.dumps(dto.images, ensure_ascii=False) if dto.images else None
+    log.images = dto.images if dto.images else None
     log.remark = dto.remark
 
     db.commit()

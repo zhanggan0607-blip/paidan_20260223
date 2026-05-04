@@ -1,26 +1,39 @@
 <template>
   <div class="periodic-inspection-query">
-    <LoadingSpinner :visible="loading" text="加载中..." />
-    <Toast :visible="toast.visible" :message="toast.message" :type="toast.type" />
+    <LoadingSpinner
+      :visible="loading"
+      text="加载中..."
+    />
+    <Toast
+      :visible="toast.visible"
+      :message="toast.message"
+      :type="toast.type"
+    />
 
     <div class="search-section">
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label for="search_projectName" class="search-label">项目名称：</label>
+            <label
+              for="search_projectName"
+              class="search-label"
+            >项目名称：</label>
             <SearchInput
-              input-id="search_projectName"
               v-model="searchForm.projectName"
+              input-id="search_projectName"
               field-key="PeriodicInspectionQuery_projectName"
               placeholder="请输入项目名称"
               @input="handleSearch"
             />
           </div>
           <div class="search-item">
-            <label for="search_clientName" class="search-label">客户名称：</label>
+            <label
+              for="search_clientName"
+              class="search-label"
+            >客户名称：</label>
             <SearchInput
-              input-id="search_clientName"
               v-model="searchForm.clientName"
+              input-id="search_clientName"
               field-key="PeriodicInspectionQuery_clientName"
               placeholder="请输入客户名称"
               @input="handleSearch"
@@ -61,40 +74,43 @@
             <td>{{ item.client_name || '暂无数据' }}</td>
             <td>{{ item.maintenance_personnel || '暂无数据' }}</td>
             <td>
-              <span :class="getStatusClass(item.status)" class="status-badge">{{
+              <span
+                :class="getStatusClass(item.status)"
+                class="status-badge"
+              >{{
                 item.status
               }}</span>
             </td>
             <td class="action-cell">
-              <a href="#" class="action-link action-view" @click.prevent="handleView(item)">查看</a>
+              <a
+                href="#"
+                class="action-link action-view"
+                @click.prevent="handleView(item)"
+              >查看</a>
               <a
                 v-if="canEditWork(item)"
                 href="#"
                 class="action-link action-edit"
                 @click.prevent="handleEdit(item)"
-                >编辑</a
-              >
+              >编辑</a>
               <a
                 v-if="isAdmin && item.status === WORK_STATUS.PENDING_CONFIRM"
                 href="#"
                 class="action-link action-reject"
                 @click.prevent="handleReject(item)"
-                >退回</a
-              >
+              >退回</a>
               <a
                 v-if="canRecallWork(item)"
                 href="#"
                 class="action-link action-recall"
                 @click.prevent="handleRecall(item)"
-                >撤回</a
-              >
+              >撤回</a>
               <a
                 v-if="item.status === WORK_STATUS.COMPLETED"
                 href="#"
                 class="action-link action-export"
                 @click.prevent="handleExport(item)"
-                >导出</a
-              >
+              >导出</a>
             </td>
           </tr>
         </tbody>
@@ -102,9 +118,15 @@
     </div>
 
     <div class="pagination-section">
-      <div class="pagination-info">共 {{ totalElements }} 条记录</div>
+      <div class="pagination-info">
+        共 {{ totalElements }} 条记录
+      </div>
       <div class="pagination-controls">
-        <button class="page-btn page-nav" :disabled="currentPage === 0" @click="currentPage--">
+        <button
+          class="page-btn page-nav"
+          :disabled="currentPage === 0"
+          @click="currentPage--"
+        >
           &lt;
         </button>
         <button
@@ -123,135 +145,238 @@
         >
           &gt;
         </button>
-        <select id="pageSize" name="pageSize" v-model="pageSize" class="page-select" @change="handlePageSizeChange">
-          <option value="10">10 条 / 页</option>
-          <option value="20">20 条 / 页</option>
-          <option value="50">50 条 / 页</option>
+        <select
+          id="pageSize"
+          v-model="pageSize"
+          name="pageSize"
+          class="page-select"
+          @change="handlePageSizeChange"
+        >
+          <option value="10">
+            10 条 / 页
+          </option>
+          <option value="20">
+            20 条 / 页
+          </option>
+          <option value="50">
+            50 条 / 页
+          </option>
         </select>
         <div class="page-jump">
           <span>跳至</span>
-          <input id="jumpPage" name="jumpPage" v-model="jumpPage" type="number" class="page-input" min="1" :max="totalPages" />
+          <input
+            id="jumpPage"
+            v-model="jumpPage"
+            name="jumpPage"
+            type="number"
+            class="page-input"
+            min="1"
+            :max="totalPages"
+          >
           <span>页</span>
-          <button class="page-btn page-go" @click="handleJump">Go</button>
+          <button
+            class="page-btn page-go"
+            @click="handleJump"
+          >
+            Go
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="isViewModalOpen" class="modal-overlay" @click.self="closeViewModal">
+    <div
+      v-if="isViewModalOpen"
+      class="modal-overlay"
+      @click.self="closeViewModal"
+    >
       <div class="modal-container">
         <div class="modal-header">
-          <h3 class="modal-title">查看巡检单</h3>
-          <button class="modal-close" @click="closeViewModal">×</button>
+          <h3 class="modal-title">
+            查看巡检单
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeViewModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
                 <span class="form-label">巡检单编号</span>
-                <div class="form-value">{{ viewData.inspection_id || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.inspection_id || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">项目编号</span>
-                <div class="form-value">{{ viewData.project_id || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.project_id || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">项目名称</span>
-                <div class="form-value">{{ viewData.project_name || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.project_name || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">客户单位</span>
-                <div class="form-value">{{ viewData.client_name || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.client_name || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">客户联系人</span>
-                <div class="form-value">{{ viewData.client_contact || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.client_contact || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">联系人职位</span>
-                <div class="form-value">{{ viewData.client_contact_position || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.client_contact_position || '暂无数据' }}
+                </div>
               </div>
             </div>
             <div class="form-column">
               <div class="form-item">
                 <span class="form-label">计划开始日期</span>
-                <div class="form-value">{{ formatDate(viewData.plan_start_date) || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ formatDate(viewData.plan_start_date) || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">计划结束日期</span>
-                <div class="form-value">{{ formatDate(viewData.plan_end_date) || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ formatDate(viewData.plan_end_date) || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">运维人员</span>
-                <div class="form-value">{{ viewData.maintenance_personnel || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.maintenance_personnel || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">客户联系方式</span>
-                <div class="form-value">{{ viewData.client_contact_info || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.client_contact_info || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">客户地址</span>
-                <div class="form-value">{{ viewData.address || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ viewData.address || '暂无数据' }}
+                </div>
               </div>
               <div class="form-item">
                 <span class="form-label">合同剩余时间</span>
-                <div class="form-value" :class="getRemainingTimeClass()">
+                <div
+                  class="form-value"
+                  :class="getRemainingTimeClass()"
+                >
                   {{ viewData.remainingTime || '暂无数据' }}
                 </div>
               </div>
               <div class="form-item">
                 <span class="form-label">状态</span>
-                <div class="form-value" :class="getStatusClass(viewData.status)">
+                <div
+                  class="form-value"
+                  :class="getStatusClass(viewData.status)"
+                >
                   {{ viewData.status || '暂无数据' }}
                 </div>
               </div>
               <div class="form-item">
                 <span class="form-label">创建时间</span>
-                <div class="form-value">{{ formatDateTime(viewData.created_at) || '暂无数据' }}</div>
+                <div class="form-value">
+                  {{ formatDateTime(viewData.created_at) || '暂无数据' }}
+                </div>
               </div>
             </div>
           </div>
           <div class="form-item-full">
             <span class="form-label">发现问题</span>
-            <div class="form-value form-value-textarea">{{ viewData.execution_result || '暂无数据' }}</div>
+            <div class="form-value form-value-textarea">
+              {{ viewData.execution_result || '暂无数据' }}
+            </div>
           </div>
           <div class="form-item-full">
             <span class="form-label">处理结果</span>
-            <div class="form-value form-value-textarea">{{ viewData.remarks || '暂无数据' }}</div>
+            <div class="form-value form-value-textarea">
+              {{ viewData.remarks || '暂无数据' }}
+            </div>
           </div>
           <div class="form-item-full">
             <span class="form-label">用户签字</span>
-            <div v-if="viewData.signature" class="form-value signature-container">
-              <img :src="viewData.signature" alt="用户签字" class="signature-image" />
+            <div
+              v-if="viewData.signature"
+              class="form-value signature-container"
+            >
+              <img
+                :src="viewData.signature"
+                alt="用户签字"
+                class="signature-image"
+              >
             </div>
-            <div v-else class="form-value">暂无数据</div>
+            <div
+              v-else
+              class="form-value"
+            >
+              暂无数据
+            </div>
           </div>
           <div class="form-item-full">
             <span class="form-label">现场照片</span>
-            <div v-if="inspectionRecords.length > 0" class="photos-container">
-              <div v-for="record in inspectionRecords" :key="record.id" class="record-photos">
+            <div
+              v-if="inspectionRecords.length > 0"
+              class="photos-container"
+            >
+              <div
+                v-for="record in inspectionRecords"
+                :key="record.id"
+                class="record-photos"
+              >
                 <div
                   v-for="(photo, photoIndex) in record.photos"
                   :key="photoIndex"
                   class="photo-item"
                   @click="previewPhoto(record.photos, photoIndex)"
                 >
-                  <img :src="photo" alt="现场照片" loading="lazy" />
+                  <img
+                    :src="photo"
+                    alt="现场照片"
+                    loading="lazy"
+                  >
                 </div>
               </div>
             </div>
-            <div v-else class="form-value">暂无数据</div>
+            <div
+              v-else
+              class="form-value"
+            >
+              暂无数据
+            </div>
           </div>
 
           <div class="operation-log-section">
-            <div class="section-title">内部确认区</div>
-            <div v-if="operationLogs.length > 0" class="timeline">
+            <div class="section-title">
+              内部确认区
+            </div>
+            <div
+              v-if="operationLogs.length > 0"
+              class="timeline"
+            >
               <div
                 v-for="(log, index) in operationLogs"
                 :key="log.id"
                 class="timeline-item"
                 :class="{ last: index === operationLogs.length - 1 }"
               >
-                <div class="timeline-dot"></div>
+                <div class="timeline-dot" />
                 <div class="timeline-content">
                   <span class="timeline-time">{{ formatOperationTime(log.created_at) }}</span>
                   <span class="timeline-operator">{{ log.operator_name }}</span>
@@ -259,37 +384,74 @@
                 </div>
               </div>
             </div>
-            <div v-else class="no-logs">暂无数据</div>
+            <div
+              v-else
+              class="no-logs"
+            >
+              暂无数据
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeViewModal">关闭</button>
+          <button
+            class="btn btn-cancel"
+            @click="closeViewModal"
+          >
+            关闭
+          </button>
         </div>
       </div>
     </div>
 
-    <div v-if="showRejectModal" class="modal-overlay" @click.self="closeRejectModal">
+    <div
+      v-if="showRejectModal"
+      class="modal-overlay"
+      @click.self="closeRejectModal"
+    >
       <div class="modal-container modal-small">
         <div class="modal-header">
-          <h3 class="modal-title">退回确认</h3>
-          <button class="modal-close" @click="closeRejectModal">×</button>
+          <h3 class="modal-title">
+            退回确认
+          </h3>
+          <button
+            class="modal-close"
+            @click="closeRejectModal"
+          >
+            ×
+          </button>
         </div>
         <div class="modal-body">
           <div class="form-item-full">
-            <label for="rejectReason" class="form-label">退回原因 <span class="required">*</span></label>
-            <textarea id="rejectReason" name="rejectReason"
+            <label
+              for="rejectReason"
+              class="form-label"
+            >退回原因 <span class="required">*</span></label>
+            <textarea
+              id="rejectReason"
               v-model="rejectReason"
+              name="rejectReason"
               class="form-input form-textarea"
               placeholder="请输入退回原因（10-500字符）"
               maxlength="500"
               rows="4"
-            ></textarea>
-            <div class="char-count">{{ rejectReason.length }}/500</div>
+            />
+            <div class="char-count">
+              {{ rejectReason.length }}/500
+            </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-cancel" @click="closeRejectModal">取消</button>
-          <button class="btn btn-reject" :disabled="saving" @click="confirmReject">
+          <button
+            class="btn btn-cancel"
+            @click="closeRejectModal"
+          >
+            取消
+          </button>
+          <button
+            class="btn btn-reject"
+            :disabled="saving"
+            @click="confirmReject"
+          >
             {{ saving ? '处理中...' : '确认退回' }}
           </button>
         </div>
@@ -324,12 +486,10 @@ import { workPlanService } from '../services/workPlan'
 import { projectInfoService, type ProjectInfo } from '../services/projectInfo'
 import request from '@/api/request'
 import type { ApiResponse } from '../types/api'
-import LoadingSpinner from '../components/LoadingSpinner.vue'
-import Toast from '../components/Toast.vue'
-import SearchInput from '../components/SearchInput.vue'
+import { LoadingSpinner, Toast, SearchInput } from '@sstcp/shared'
 import PdfPreviewModal from '../components/PdfPreviewModal.vue'
 import { WORK_STATUS, formatDate as formatDateUtil } from '../config/constants'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
 
 interface OperationLogItem {
   id: number
@@ -385,6 +545,7 @@ export default defineComponent({
     PdfPreviewModal,
   },
   setup() {
+    const userStore = useUserStore()
     const route = useRoute()
     const router = useRouter()
     const searchForm = reactive({
@@ -401,7 +562,7 @@ export default defineComponent({
 
     const isAdmin = ref(userStore.isAdmin())
     const isDepartmentManager = ref(userStore.isDepartmentManager?.() || false)
-    const currentUserName = ref(userStore.getUser()?.name || '')
+    const currentUserName = ref(userStore.currentUser?.name || '')
 
     const canEditWork = (item: InspectionItem): boolean => {
       if (isAdmin.value) return true
@@ -645,7 +806,7 @@ export default defineComponent({
         )
 
         if (response.code === 200 && response.data) {
-          inspectionData.value = (response.data.content || []).map((item: PeriodicInspection) => ({
+          inspectionData.value = (response.data.items || []).map((item: PeriodicInspection) => ({
             id: item.id,
             inspection_id: item.inspection_id,
             project_id: item.project_id,
@@ -665,7 +826,7 @@ export default defineComponent({
             created_at: item.created_at,
             updated_at: item.updated_at,
           }))
-          totalElements.value = response.data.totalElements ?? 0
+          totalElements.value = response.data.total ?? 0
           totalPages.value = response.data.totalPages ?? 0
         } else {
           showToast(response.message || '加载数据失败', 'error')
@@ -714,7 +875,7 @@ export default defineComponent({
             (p: ProjectInfo) => p.project_id === item.project_id
           )
           if (project) {
-            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+            viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date ?? '')
           }
         }
       } catch (error) {
@@ -772,7 +933,7 @@ export default defineComponent({
               (p: ProjectInfo) => p.project_id === item.project_id
             )
             if (project) {
-              remainingTime = calculateRemainingTime(project.maintenance_end_date)
+              remainingTime = calculateRemainingTime(project.maintenance_end_date ?? '')
             }
           }
         } catch (error) {
@@ -997,7 +1158,7 @@ export default defineComponent({
                 (p: ProjectInfo) => p.project_id === item.project_id
               )
               if (project) {
-                viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date)
+                viewData.remainingTime = calculateRemainingTime(project.maintenance_end_date ?? '')
               }
             }
           } catch (error) {

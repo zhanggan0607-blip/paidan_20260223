@@ -67,7 +67,7 @@ class PersonnelRepository:
     def create(self, personnel: Personnel) -> Personnel:
         try:
             self.db.add(personnel)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(personnel)
             return personnel
         except Exception as e:
@@ -77,7 +77,7 @@ class PersonnelRepository:
 
     def update(self, personnel: Personnel) -> Personnel:
         try:
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(personnel)
             return personnel
         except Exception as e:
@@ -88,7 +88,7 @@ class PersonnelRepository:
     def delete(self, personnel: Personnel) -> None:
         try:
             self.db.delete(personnel)
-            self.db.commit()
+            self.db.flush()
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除人员信息失败: {str(e)}")

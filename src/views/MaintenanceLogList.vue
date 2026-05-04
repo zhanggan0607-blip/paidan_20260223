@@ -5,10 +5,13 @@
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label for="search_projectName" class="search-label">项目名称：</label>
+              <label
+                for="search_projectName"
+                class="search-label"
+              >项目名称：</label>
               <SearchInput
-              input-id="search_projectName"
                 v-model="filters.project"
+                input-id="search_projectName"
                 field-key="MaintenanceLogList_project"
                 placeholder="请输入项目名称"
                 @input="handleSearch"
@@ -27,10 +30,13 @@
               v-if="canViewAll"
               class="search-item"
             >
-              <label for="search_submitter" class="search-label">提交人：</label>
+              <label
+                for="search_submitter"
+                class="search-label"
+              >提交人：</label>
               <SearchInput
-              input-id="search_submitter"
                 v-model="filters.createdBy"
+                input-id="search_submitter"
                 field-key="MaintenanceLogList_created_by"
                 placeholder="请输入提交人"
                 @input="handleSearch"
@@ -156,8 +162,8 @@
           </button>
           <select
             id="pageSize"
-            name="pageSize"
             v-model="pageSize"
+            name="pageSize"
             class="page-select"
             @change="handlePageSizeChange"
           >
@@ -375,9 +381,14 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label for="rejectReason" class="form-label">退回原因 <span class="required">*</span></label>
-            <textarea id="rejectReason" name="rejectReason"
+            <label
+              for="rejectReason"
+              class="form-label"
+            >退回原因 <span class="required">*</span></label>
+            <textarea
+              id="rejectReason"
               v-model="rejectReason"
+              name="rejectReason"
               class="form-textarea"
               placeholder="请输入退回原因"
               rows="4"
@@ -408,9 +419,9 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import { userStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/userStore'
 import { formatDate, formatDateTime } from '@/config/constants'
-import SearchInput from '@/components/SearchInput.vue'
+import { SearchInput } from '@sstcp/shared'
 import { ElMessage } from 'element-plus'
 
 /**
@@ -455,6 +466,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const loading = ref(false)
     const dataList = ref<MaintenanceLogItem[]>([])
     const total = ref(0)
@@ -561,7 +573,7 @@ export default defineComponent({
           if (filters.value.createdBy) params.created_by = filters.value.createdBy
         } else {
           // 普通员工只能看到自己的数据
-          const user = userStore.getUser()
+          const user = userStore.currentUser
           if (user && user.name) {
             params.created_by = user.name
           }
@@ -762,7 +774,7 @@ export default defineComponent({
       jumpPage,
       displayedPages,
       filters,
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       isAdmin,
       isDepartmentManager,
       canViewAll,

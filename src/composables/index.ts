@@ -5,3 +5,5 @@
 export { useToast } from './useToast'
 export { useAbortController } from './useAbortController'
 export { usePageState } from './usePageState'
+export { useHeartbeat } from './useHeartbeat'
+export { useMenu } from './useMenu'

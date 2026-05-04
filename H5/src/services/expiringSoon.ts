@@ -5,7 +5,7 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse } from '../types/api'
-import type { OverdueAlertItem } from '../types/models'
+import type { OverdueAlertItem } from '../types/api'
 
 export interface ExpiringSoonResponse {
   items: OverdueAlertItem[]

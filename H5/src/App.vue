@@ -2,27 +2,27 @@
 import { RouterView } from 'vue-router'
 import { onMounted, onUnmounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { userStore } from './stores/userStore'
+import { useUserStore } from './stores/userStore'
 import { dingtalkService } from './services/dingtalk'
 import { onlineUserService } from './services/onlineUser'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { useHeartbeatControl } from './composables/useHeartbeatControl'
 
 const router = useRouter()
+const userStore = useUserStore()
 const isInitialized = ref(false)
 let heartbeatTimer: number | null = null
 const HEARTBEAT_INTERVAL = 2 * 60 * 1000
 
 const sendHeartbeat = async () => {
   if (useHeartbeatControl.isPaused()) return
-  
-  const user = userStore.getUser()
-  if (!user || !userStore.isLoggedIn()) return
+
+  const user = userStore.currentUser
+  if (!user || !userStore.isLoggedIn) return
 
   try {
     await onlineUserService.heartbeat('h5', user.id, user.name)
   } catch {
-    // 忽略心跳错误
   }
 }
 
@@ -44,10 +44,14 @@ const stopHeartbeat = () => {
 }
 
 onMounted(async () => {
-  if (userStore.isLoggedIn()) {
-    isInitialized.value = true
-    startHeartbeat()
-    return
+  if (userStore.isLoggedIn) {
+    const isValid = await userStore.validateToken()
+    if (isValid) {
+      isInitialized.value = true
+      startHeartbeat()
+      return
+    }
+    userStore.clearUser()
   }
 
   if (dingtalkService.isInDingTalk()) {
@@ -94,7 +98,7 @@ onUnmounted(() => {
 
 <template>
   <router-view v-if="isInitialized" v-slot="{ Component }">
-    <keep-alive>
+    <keep-alive :include="['WorkListPage', 'MaintenanceLogPage', 'WeeklyReportListPage']">
       <component :is="Component" />
     </keep-alive>
   </router-view>

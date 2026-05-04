@@ -1,13 +1,18 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
-from app.models.mixins import SoftDeleteMixin
+from app.models.mixins import SoftDeleteMixin, SerializationMixin
 
 
-class WeeklyReport(Base, SoftDeleteMixin):
+class WeeklyReport(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "weekly_report"
+
+    _date_only_fields = {
+        'week_start_date', 'week_end_date', 'report_date',
+    }
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     report_id = Column(String(50), unique=True, nullable=False, comment="周报编号")
@@ -17,11 +22,11 @@ class WeeklyReport(Base, SoftDeleteMixin):
     week_end_date = Column(DateTime, nullable=True, comment="周结束日期")
     report_date = Column(DateTime, nullable=False, comment="填报日期")
     work_summary = Column(Text, comment="本周工作总结")
-    work_content = Column(Text, comment="具体工作内容JSON数组")
+    work_content = Column(JSONB, default=list, comment="具体工作内容JSON数组")
     next_week_plan = Column(Text, comment="下周工作计划")
     issues = Column(Text, comment="存在问题")
     suggestions = Column(Text, comment="建议措施")
-    images = Column(Text, comment="现场照片JSON数组")
+    images = Column(JSONB, default=list, comment="现场照片JSON数组")
     manager_signature = Column(Text, comment="部门经理签字图片")
     manager_sign_time = Column(DateTime, comment="部门经理签字时间")
     status = Column(String(20), default="draft", comment="状态: draft草稿/submitted已提交/approved已审核/rejected已退回")
@@ -44,29 +49,3 @@ class WeeklyReport(Base, SoftDeleteMixin):
         Index('idx_weekly_report_created_by', 'created_by'),
         {'comment': '维保周报表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'report_id': self.report_id,
-            'project_id': self.project_id,
-            'project_name': self.project_name,
-            'week_start_date': self.week_start_date.strftime('%Y-%m-%d') if self.week_start_date else None,
-            'week_end_date': self.week_end_date.strftime('%Y-%m-%d') if self.week_end_date else None,
-            'report_date': self.report_date.strftime('%Y-%m-%d') if self.report_date else None,
-            'work_summary': self.work_summary,
-            'work_content': self.work_content,
-            'next_week_plan': self.next_week_plan,
-            'issues': self.issues,
-            'suggestions': self.suggestions,
-            'images': self.images,
-            'manager_signature': self.manager_signature,
-            'manager_sign_time': self.manager_sign_time.strftime('%Y-%m-%d %H:%M:%S') if self.manager_sign_time else None,
-            'status': self.status,
-            'approved_by': self.approved_by,
-            'approved_at': self.approved_at.strftime('%Y-%m-%d %H:%M:%S') if self.approved_at else None,
-            'reject_reason': self.reject_reason,
-            'created_by': self.created_by,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

@@ -17,9 +17,14 @@
               <div class="form-card-body">
                 <div class="form-grid">
                   <div class="form-item">
-                    <label for="projectName" class="form-label">项目名称</label>
-                    <select id="projectName" name="projectName"
+                    <label
+                      for="projectName"
+                      class="form-label"
+                    >项目名称</label>
+                    <select
+                      id="projectName"
                       v-model="formData.projectId"
+                      name="projectName"
                       class="form-select"
                       @change="handleProjectChange"
                     >
@@ -36,9 +41,14 @@
                     </select>
                   </div>
                   <div class="form-item">
-                    <label for="projectId" class="form-label">项目编号</label>
-                    <input id="projectId" name="projectId"
+                    <label
+                      for="projectId"
+                      class="form-label"
+                    >项目编号</label>
+                    <input
+                      id="projectId"
                       v-model="formData.projectId"
+                      name="projectId"
                       type="text"
                       class="form-input"
                       readonly
@@ -46,9 +56,14 @@
                     >
                   </div>
                   <div class="form-item">
-                    <label for="reportDate" class="form-label">填报日期</label>
-                    <input id="reportDate" name="reportDate"
+                    <label
+                      for="reportDate"
+                      class="form-label"
+                    >填报日期</label>
+                    <input
+                      id="reportDate"
                       v-model="formData.logDate"
+                      name="reportDate"
                       type="date"
                       class="form-input"
                       readonly
@@ -65,9 +80,14 @@
               </div>
               <div class="form-card-body">
                 <div class="form-item full-width">
-                  <label for="workContent" class="form-label"> <span class="required">*</span> 工作内容 </label>
-                  <textarea id="workContent" name="workContent"
+                  <label
+                    for="workContent"
+                    class="form-label"
+                  > <span class="required">*</span> 工作内容 </label>
+                  <textarea
+                    id="workContent"
                     v-model="formData.workContent"
+                    name="workContent"
                     class="form-textarea"
                     placeholder="请输入工作内容"
                     rows="5"
@@ -79,9 +99,14 @@
                   </div>
                 </div>
                 <div class="form-item full-width">
-                  <label for="remarks" class="form-label">备注</label>
-                  <textarea id="remarks" name="remarks"
+                  <label
+                    for="remarks"
+                    class="form-label"
+                  >备注</label>
+                  <textarea
+                    id="remarks"
                     v-model="formData.remark"
+                    name="remarks"
                     class="form-textarea"
                     placeholder="请输入备注"
                     rows="3"
@@ -125,7 +150,7 @@ import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { request } from '@/api/request'
 import type { ApiResponse } from '@/types/api'
-import { userStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/userStore'
 import { formatDate } from '@/config/constants'
 import { ElNotification, ElMessage } from 'element-plus'
 
@@ -149,6 +174,7 @@ interface MaintenanceLog {
 export default defineComponent({
   name: 'MaintenanceLogFill',
   setup() {
+    const userStore = useUserStore()
     const router = useRouter()
     const submitting = ref(false)
     const projectList = ref<ProjectInfo[]>([])
@@ -306,7 +332,7 @@ export default defineComponent({
     })
 
     return {
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       isDepartmentManager,
       pageTitle,
       formData,

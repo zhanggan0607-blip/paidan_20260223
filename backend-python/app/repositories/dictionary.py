@@ -73,7 +73,7 @@ class DictionaryRepository:
     def create(self, dictionary: Dictionary) -> Dictionary:
         try:
             self.db.add(dictionary)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(dictionary)
             return dictionary
         except Exception as e:
@@ -83,7 +83,7 @@ class DictionaryRepository:
 
     def update(self, dictionary: Dictionary) -> Dictionary:
         try:
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(dictionary)
             return dictionary
         except Exception as e:
@@ -94,7 +94,7 @@ class DictionaryRepository:
     def delete(self, dictionary: Dictionary) -> None:
         try:
             self.db.delete(dictionary)
-            self.db.commit()
+            self.db.flush()
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除字典失败: {str(e)}")

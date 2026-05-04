@@ -10,6 +10,7 @@ from typing import Any
 from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
+from app.services.base import BaseService
 from app.exceptions import DuplicateException, NotFoundException, ValidationException
 from app.models.spot_work import SpotWork
 from app.models.spot_work_worker import SpotWorkWorker
@@ -23,7 +24,7 @@ from app.utils.work_order_id_generator import generate_spot_work_id
 logger = logging.getLogger(__name__)
 
 
-class SpotWorkService:
+class SpotWorkService(BaseService):
     """
     零星用工服务
     提供零星用工的增删改查等业务逻辑
@@ -32,11 +33,7 @@ class SpotWorkService:
     def __init__(self, db: Session):
         self.repository = SpotWorkRepository(db)
         self.sync_service = SyncService(db)
-        self._db = db
-
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        """解析日期"""
-        return parse_datetime(date_value)
+        super().__init__(db)
 
     def get_all(
         self,
@@ -137,20 +134,20 @@ class SpotWorkService:
 
         default_status = get_default_spot_work_status(self._db)
 
-        photos_json = json.dumps(dto.photos, ensure_ascii=False) if dto.photos else None
+        photos_value = dto.photos if dto.photos else None
 
         work = SpotWork(
             work_id=work_id,
             project_id=dto.project_id,
             project_name=dto.project_name,
-            plan_start_date=self._parse_date(dto.plan_start_date),
-            plan_end_date=self._parse_date(dto.plan_end_date),
+            plan_start_date=parse_datetime(dto.plan_start_date),
+            plan_end_date=parse_datetime(dto.plan_end_date),
             client_name=dto.client_name,
             client_contact=dto.client_contact,
             client_contact_info=dto.client_contact_info,
             maintenance_personnel=dto.maintenance_personnel,
             work_content=dto.work_content,
-            photos=photos_json,
+            photos=photos_value,
             signature=dto.signature,
             status=dto.status or default_status,
             remarks=dto.remarks
@@ -161,6 +158,7 @@ class SpotWorkService:
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='spot_work',
                 work_order_id=result.id,
                 work_order_no=result.work_id,
                 operator_name=operator_name,
@@ -192,19 +190,19 @@ class SpotWorkService:
         if existing_work.work_id != dto.work_id and self.repository.exists_by_work_id(dto.work_id):
             raise DuplicateException("用工单编号已存在")
 
-        photos_json = json.dumps(dto.photos, ensure_ascii=False) if dto.photos else None
+        photos_value = dto.photos if dto.photos else None
 
         existing_work.work_id = dto.work_id
         existing_work.project_id = dto.project_id
         existing_work.project_name = dto.project_name
-        existing_work.plan_start_date = self._parse_date(dto.plan_start_date)
-        existing_work.plan_end_date = self._parse_date(dto.plan_end_date)
+        existing_work.plan_start_date = parse_datetime(dto.plan_start_date)
+        existing_work.plan_end_date = parse_datetime(dto.plan_end_date)
         existing_work.client_name = dto.client_name
         existing_work.client_contact = dto.client_contact
         existing_work.client_contact_info = dto.client_contact_info
         existing_work.maintenance_personnel = dto.maintenance_personnel
         existing_work.work_content = dto.work_content
-        existing_work.photos = photos_json
+        existing_work.photos = photos_value
         existing_work.signature = dto.signature
         existing_work.status = dto.status
         existing_work.remarks = dto.remarks
@@ -240,9 +238,9 @@ class SpotWorkService:
         if dto.project_name is not None:
             existing_work.project_name = dto.project_name
         if dto.plan_start_date is not None:
-            existing_work.plan_start_date = self._parse_date(dto.plan_start_date)
+            existing_work.plan_start_date = parse_datetime(dto.plan_start_date)
         if dto.plan_end_date is not None:
-            existing_work.plan_end_date = self._parse_date(dto.plan_end_date)
+            existing_work.plan_end_date = parse_datetime(dto.plan_end_date)
         if dto.client_name is not None:
             existing_work.client_name = dto.client_name
         if dto.client_contact is not None:
@@ -254,7 +252,7 @@ class SpotWorkService:
         if dto.work_content is not None:
             existing_work.work_content = dto.work_content
         if dto.photos is not None and len(dto.photos) > 0:
-            existing_work.photos = json.dumps(dto.photos, ensure_ascii=False)
+            existing_work.photos = dto.photos
         if dto.signature is not None:
             existing_work.signature = dto.signature
         if dto.status is not None:
@@ -286,6 +284,7 @@ class SpotWorkService:
 
         if operator_name and work.id:
             self._create_operation_log(
+                work_order_type='spot_work',
                 work_order_id=work.id,
                 work_order_no=work.work_id,
                 operator_name=operator_name,
@@ -481,6 +480,15 @@ class SpotWorkService:
             start = None
             end = None
 
+        seen_id_cards: set[str] = set()
+        for worker_data in workers_data:
+            id_card = worker_data.get('idCardNumber', '')
+            if id_card in seen_id_cards:
+                raise ValidationException(
+                    f"提交的数据中存在重复的身份证号码：{self._mask_id_card(id_card)}，同一工单中同一身份证只能上传一次"
+                )
+            seen_id_cards.add(id_card)
+
         saved_count = 0
         skipped_count = 0
         workers_to_create = []
@@ -506,9 +514,22 @@ class SpotWorkService:
                     f"施工人员'{worker_data.get('name')}'的身份证号码与性别不匹配，根据身份证应为{gender_from_id}"
                 )
 
-            reuse_check = self.repository.check_worker_can_be_reused(
-                worker_data.get('idCardNumber')
+            id_card_number = worker_data.get('idCardNumber', '')
+            masked_id_card = self._mask_id_card(id_card_number)
+
+            existing_in_work = self.repository.find_worker_in_same_work(
+                project_id=project_id,
+                id_card_number=id_card_number,
+                start_date=start,
+                end_date=end
             )
+            if existing_in_work:
+                raise ValidationException(
+                    f"施工人员'{worker_data.get('name')}'的身份证号码{masked_id_card}已在本工单中录入"
+                    f"（已录入人员：{existing_in_work.name}），同一工单中同一身份证只能上传一次"
+                )
+
+            reuse_check = self.repository.check_worker_can_be_reused(id_card_number)
             
             if reuse_check['exists'] and not reuse_check['can_reuse']:
                 worker_info = reuse_check['worker_info']
@@ -516,7 +537,7 @@ class SpotWorkService:
                 work_id = reuse_check.get('work_id', '')
                 logger.info(
                     f"身份证号码已存在且工单未完成，跳过: name={worker_data.get('name')}, "
-                    f"id_card={worker_data.get('idCardNumber')}, "
+                    f"id_card={masked_id_card}, "
                     f"existing_name={worker_info['name']}, "
                     f"existing_project={worker_info['project_name']}, "
                     f"work_id={work_id}, work_status={work_status}"
@@ -526,7 +547,7 @@ class SpotWorkService:
             elif reuse_check['exists'] and reuse_check['can_reuse']:
                 logger.info(
                     f"身份证号码已存在但工单已完成，允许复用: name={worker_data.get('name')}, "
-                    f"id_card={worker_data.get('idCardNumber')}"
+                    f"id_card={masked_id_card}"
                 )
 
             logger.info(f"准备保存施工人员: name={worker_data.get('name')}")
@@ -553,6 +574,12 @@ class SpotWorkService:
 
         logger.info(f"施工人员保存成功，新增 {saved_count} 条，跳过 {skipped_count} 条重复数据")
         return saved_count, skipped_count
+
+    @staticmethod
+    def _mask_id_card(id_card: str) -> str:
+        if not id_card or len(id_card) < 7:
+            return '***'
+        return f"{id_card[:3]}****{id_card[-4:]}"
 
     def quick_fill(
         self,
@@ -630,6 +657,7 @@ class SpotWorkService:
 
         if operator_name and work.id:
             self._create_operation_log(
+                work_order_type='spot_work',
                 work_order_id=work.id,
                 work_order_no=work.work_id,
                 operator_name=operator_name,
@@ -684,41 +712,3 @@ class SpotWorkService:
             logger.info(f"已将 {linked_count} 名工人关联到工单 {spot_work_id}")
 
         return linked_count
-
-    def _create_operation_log(
-        self,
-        work_order_id: int,
-        work_order_no: str,
-        operator_name: str,
-        operator_id: int | None,
-        operation_type: str,
-        operation_type_name: str,
-        remark: str
-    ) -> None:
-        """
-        创建操作日志
-
-        Args:
-            work_order_id: 工单ID
-            work_order_no: 工单编号
-            operator_name: 操作者名称
-            operator_id: 操作者ID
-            operation_type: 操作类型代码
-            operation_type_name: 操作类型名称
-            remark: 备注
-        """
-        from app.models.work_order_operation_log import WorkOrderOperationLog
-
-        log = WorkOrderOperationLog(
-            work_order_type='spot_work',
-            work_order_id=work_order_id,
-            work_order_no=work_order_no,
-            operator_name=operator_name,
-            operator_id=operator_id,
-            operation_type=operation_type,
-            operation_type_code=operation_type,
-            operation_type_name=operation_type_name,
-            operation_remark=remark
-        )
-        self._db.add(log)
-        self._db.commit()

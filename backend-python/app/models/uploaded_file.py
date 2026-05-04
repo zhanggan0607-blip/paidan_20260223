@@ -9,9 +9,11 @@ from sqlalchemy import BigInteger, Column, DateTime, Index, LargeBinary, String,
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class UploadedFile(Base):
+class UploadedFile(Base, SerializationMixin):
+    _exclude_from_dict = {'file_data'}
     """
     上传文件表
     支持两种存储模式：
@@ -41,25 +43,6 @@ class UploadedFile(Base):
         Index('idx_uploaded_storage_type', 'storage_type'),
         {'comment': '上传文件表'}
     )
-
-    def to_dict(self):
-        """
-        转换为字典
-        """
-        return {
-            'id': self.id,
-            'file_id': self.file_id,
-            'original_filename': self.original_filename,
-            'stored_filename': self.stored_filename,
-            'content_type': self.content_type,
-            'file_size': self.file_size,
-            'file_path': self.file_path,
-            'upload_date': self.upload_date,
-            'storage_type': self.storage_type,
-            'oss_url': self.oss_url,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }
 
     @staticmethod
     def generate_file_path(upload_date: str, filename: str) -> str:

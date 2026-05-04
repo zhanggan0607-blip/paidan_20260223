@@ -3,7 +3,7 @@ import { ref, onMounted, onActivated, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showFailToast, showImagePreview } from 'vant'
 import { maintenanceLogService } from '../services'
-import type { MaintenanceLog, OperationLog } from '../types/models'
+import type { MaintenanceLog, OperationLog } from '../types/api'
 import { formatDate, formatDateTime } from '@sstcp/shared'
 import { useNavigation } from '../composables'
 
@@ -47,7 +47,6 @@ const formatOperationTime = (dateStr: string) => {
  */
 const fetchLogDetail = async () => {
   const id = route.params.id
-  console.log('fetchLogDetail called, id:', id, 'route.params:', route.params)
   if (!id) {
     showFailToast('日志ID不存在')
     return
@@ -62,9 +61,7 @@ const fetchLogDetail = async () => {
   showLoadingToast({ message: '加载中...', forbidClick: true })
 
   try {
-    console.log('Fetching detail from:', id)
     const response = await maintenanceLogService.getById(Number(id))
-    console.log('Detail response:', response)
 
     if (response.code === 200 && response.data) {
       logDetail.value = response.data
@@ -295,7 +292,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .operation-log-section {

@@ -42,10 +42,6 @@ class SyncService:
         self.repair_repo = TemporaryRepairRepository(db)
         self.spotwork_repo = SpotWorkRepository(db)
 
-    def _parse_date(self, date_value: str | datetime | None) -> datetime | None:
-        """解析日期值"""
-        return parse_datetime(date_value)
-
     def _get_plan_id_by_type(self, order_type: str, order) -> str:
         """根据工单类型获取工单编号"""
         if order_type == PLAN_TYPE_INSPECTION:

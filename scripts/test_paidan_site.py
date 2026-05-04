@@ -1,3 +1,4 @@
+import os
 import urllib.request
 import urllib.error
 import ssl
@@ -49,8 +50,8 @@ def test(name, status_code, expected=200):
 
 print('=== Login Test ===')
 status, resp = api_post_json('/api/v1/auth/login-json', {
-    'username': '张干',
-    'password': '123456',
+    'username': os.environ.get('TEST_USERNAME', ''),
+    'password': os.environ.get('TEST_PASSWORD', ''),
     'device_type': 'pc'
 })
 test('PC Login', status)

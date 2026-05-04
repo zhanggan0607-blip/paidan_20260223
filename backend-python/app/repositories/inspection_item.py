@@ -94,7 +94,7 @@ class InspectionItemRepository:
         try:
             db_item = InspectionItem(**item_data.model_dump())
             self.db.add(db_item)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_item)
             return db_item
         except Exception as e:
@@ -112,7 +112,7 @@ class InspectionItemRepository:
             for key, value in update_data.items():
                 setattr(db_item, key, value)
 
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_item)
             return db_item
         except Exception as e:
@@ -131,7 +131,7 @@ class InspectionItemRepository:
                 self.delete(child.id)
 
             self.db.delete(db_item)
-            self.db.commit()
+            self.db.flush()
             return True
         except Exception as e:
             self.db.rollback()

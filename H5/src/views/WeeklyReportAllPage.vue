@@ -8,7 +8,7 @@ import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { weeklyReportService } from '../services'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import type { WeeklyReport } from '../types/models'
+import type { WeeklyReport } from '../types/api'
 
 const router = useRouter()
 
@@ -57,7 +57,7 @@ const fetchReportList = async () => {
     const response = await weeklyReportService.getList(params)
 
     if (response.code === 200) {
-      reportList.value = response.data?.content || []
+      reportList.value = response.data?.items || []
     }
   } catch (error) {
     console.error('Failed to fetch report list:', error)
@@ -221,7 +221,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 :deep(.van-pull-refresh) {

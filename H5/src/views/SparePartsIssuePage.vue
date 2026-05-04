@@ -9,9 +9,10 @@ import {
 } from 'vant'
 import { sparePartsService, projectInfoService } from '../services'
 import { formatDate } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
-import type { SparePartsUsage, SparePartsStock, ProjectInfo } from '../types/models'
+import type { SparePartsUsage, SparePartsStock, ProjectInfo } from '../types/api'
 
 const { goBack } = useNavigation()
 const loading = ref(false)
@@ -122,7 +123,7 @@ const handleSubmitIssue = async () => {
       brand: selectedStock.value.brand || null,
       model: selectedStock.value.model || null,
       quantity: issueForm.value.quantity,
-      user_name: userStore.getUser()?.name,
+      user_name: userStore.currentUser?.name,
       issue_time: new Date().toISOString(),
       unit: selectedStock.value.unit,
       project_id: issueForm.value.projectId || null,
@@ -377,7 +378,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .popup-content {

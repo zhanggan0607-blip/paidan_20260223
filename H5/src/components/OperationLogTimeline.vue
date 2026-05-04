@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { operationLogService } from '../services/operationLog'
-import type { OperationLog } from '../types/models'
+import type { OperationLog } from '../types/api'
+import { formatDateTime } from '@sstcp/shared'
 
 const props = defineProps<{
   workOrderType: string
@@ -11,29 +12,6 @@ const props = defineProps<{
 const logs = ref<OperationLog[]>([])
 const loading = ref(false)
 
-/**
- * 格式化日期时间为 年-月-日 时:分 格式
- * @param dateStr ISO日期字符串
- */
-const formatDateTime = (dateStr: string): string => {
-  if (!dateStr) return '-'
-  try {
-    const date = new Date(dateStr)
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
-    const hours = String(date.getHours()).padStart(2, '0')
-    const minutes = String(date.getMinutes()).padStart(2, '0')
-    return `${year}-${month}-${day} ${hours}:${minutes}`
-  } catch {
-    return dateStr
-  }
-}
-
-/**
- * 获取操作类型的颜色
- * @param log 操作日志
- */
 const getOperationTypeColor = (log: OperationLog): string => {
   return log.color_code || '#969799'
 }

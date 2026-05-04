@@ -86,7 +86,8 @@ def get_personnel_list(
     department: str | None = Query(None, description="Department (fuzzy search)"),
     current_user_role: str | None = Query(None, description="Current user role"),
     current_user_department: str | None = Query(None, description="Current user department"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     分页获取人员列表

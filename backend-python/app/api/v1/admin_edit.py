@@ -196,7 +196,7 @@ def admin_add_photo(
     
     if dto.photo_url not in photos:
         photos.append(dto.photo_url)
-        work_order.photos = json.dumps(photos, ensure_ascii=False)
+        work_order.photos = photos
         
         remark = "添加照片"
         if dto.remark:
@@ -243,7 +243,7 @@ def admin_delete_photo(
     
     if dto.photo_url in photos:
         photos.remove(dto.photo_url)
-        work_order.photos = json.dumps(photos, ensure_ascii=False) if photos else None
+        work_order.photos = photos if photos else None
         
         remark = "删除照片"
         if dto.remark:

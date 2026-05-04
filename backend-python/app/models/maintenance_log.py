@@ -1,13 +1,16 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
-from app.models.mixins import SoftDeleteMixin
+from app.models.mixins import SoftDeleteMixin, SerializationMixin
 
 
-class MaintenanceLog(Base, SoftDeleteMixin):
+class MaintenanceLog(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "maintenance_log"
+
+    _date_only_fields = {'log_date'}
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     log_id = Column(String(50), unique=True, nullable=False, comment="日志编号")
@@ -16,7 +19,7 @@ class MaintenanceLog(Base, SoftDeleteMixin):
     log_type = Column(String(20), nullable=False, default="maintenance", comment="日志类型: maintenance维修日志")
     log_date = Column(DateTime, nullable=False, comment="日志日期")
     work_content = Column(Text, comment="工作内容")
-    images = Column(Text, comment="现场照片JSON数组")
+    images = Column(JSONB, default=list, comment="现场照片JSON数组")
     remark = Column(String(500), comment="备注")
     status = Column(String(20), default="submitted", comment="状态: submitted已提交/rejected已退回")
     reject_reason = Column(String(500), comment="退回原因")
@@ -36,21 +39,3 @@ class MaintenanceLog(Base, SoftDeleteMixin):
         Index('idx_maintenance_log_status', 'status'),
         {'comment': '维保日志表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'log_id': self.log_id,
-            'project_id': self.project_id,
-            'project_name': self.project_name,
-            'log_type': self.log_type,
-            'log_date': self.log_date.strftime('%Y-%m-%d') if self.log_date else None,
-            'work_content': self.work_content,
-            'images': self.images,
-            'remark': self.remark,
-            'status': self.status,
-            'reject_reason': self.reject_reason,
-            'created_by': self.created_by,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

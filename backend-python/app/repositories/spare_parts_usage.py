@@ -53,7 +53,7 @@ class SparePartsUsageRepository:
     def create(self, usage: SparePartsUsage) -> SparePartsUsage:
         try:
             self.db.add(usage)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(usage)
             return usage
         except Exception as e:
@@ -63,7 +63,7 @@ class SparePartsUsageRepository:
 
     def update(self, usage: SparePartsUsage) -> SparePartsUsage:
         try:
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(usage)
             return usage
         except Exception as e:
@@ -74,7 +74,7 @@ class SparePartsUsageRepository:
     def delete(self, usage: SparePartsUsage) -> None:
         try:
             self.db.delete(usage)
-            self.db.commit()
+            self.db.flush()
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除备品备件领用失败: {str(e)}")

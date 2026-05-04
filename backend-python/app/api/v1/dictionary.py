@@ -51,11 +51,14 @@ def get_dictionaries_list(
         code=200,
         message="success",
         data={
+            'items': items_dict,
             'content': items_dict,
+            'total': total,
             'totalElements': total,
             'totalPages': (total + size - 1) // size,
             'size': size,
             'number': page,
+            'page': page,
             'first': page == 0,
             'last': page >= (total + size - 1) // size
         }

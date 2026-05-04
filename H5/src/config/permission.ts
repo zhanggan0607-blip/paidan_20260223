@@ -4,14 +4,13 @@
  */
 
 // 类型导出（编译时擦除，需要使用 export type）
-export type { UserRole, RoleCodeType, RoleConfig, PermissionConfig } from '@sstcp/shared'
+export type { UserRole, RoleCodeType, PermissionConfig } from '@sstcp/shared'
 
 // 值导出（运行时存在的常量和函数）
 export {
   RoleCode,
   ADMIN_ROLES,
   ALL_ROLES,
-  MANAGER_ROLES,
   PROJECT_MANAGEMENT_ROLES,
   PERSONNEL_MANAGEMENT_ROLES,
   SPARE_PARTS_MANAGEMENT_ROLES,
@@ -25,17 +24,6 @@ export {
   isAdminRole,
   isManagerRole,
   isMaterialManager,
-  canViewAllWorkOrders,
-  canManagePersonnel,
-  canManageProjects,
-  canManagePlans,
-  canApproveWorkOrders,
-  canViewStatistics,
-  canManageSpareParts,
-  canViewSpareParts,
-  canViewWorkOrder,
-  canViewSignature,
-  getRoleLevel,
 } from '@sstcp/shared'
 
 import type { PermissionConfig } from '@sstcp/shared'

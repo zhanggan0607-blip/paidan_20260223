@@ -17,18 +17,28 @@
               <div class="form-card-body">
                 <div class="form-grid two-columns">
                   <div class="form-item">
-                    <label for="reportDate" class="form-label"> <span class="required">*</span> 填报日期 </label>
-                    <input id="reportDate" name="reportDate"
+                    <label
+                      for="reportDate"
+                      class="form-label"
+                    > <span class="required">*</span> 填报日期 </label>
+                    <input
+                      id="reportDate"
                       v-model="formData.reportDate"
+                      name="reportDate"
                       type="date"
                       class="form-input"
                       @change="generateReportId"
                     >
                   </div>
                   <div class="form-item">
-                    <label for="reportId" class="form-label">周报编号</label>
-                    <input id="reportId" name="reportId"
+                    <label
+                      for="reportId"
+                      class="form-label"
+                    >周报编号</label>
+                    <input
+                      id="reportId"
                       v-model="formData.reportId"
+                      name="reportId"
                       type="text"
                       class="form-input"
                       readonly
@@ -45,9 +55,14 @@
               </div>
               <div class="form-card-body">
                 <div class="form-item full-width">
-                  <label for="workSummary" class="form-label"> <span class="required">*</span> 本周工作总结 </label>
-                  <textarea id="workSummary" name="workSummary"
+                  <label
+                    for="workSummary"
+                    class="form-label"
+                  > <span class="required">*</span> 本周工作总结 </label>
+                  <textarea
+                    id="workSummary"
                     v-model="formData.workSummary"
+                    name="workSummary"
                     class="form-textarea"
                     placeholder="请输入本周工作总结"
                     rows="4"
@@ -58,27 +73,42 @@
                   </div>
                 </div>
                 <div class="form-item full-width">
-                  <label for="nextWeekPlan" class="form-label">下周工作计划</label>
-                  <textarea id="nextWeekPlan" name="nextWeekPlan"
+                  <label
+                    for="nextWeekPlan"
+                    class="form-label"
+                  >下周工作计划</label>
+                  <textarea
+                    id="nextWeekPlan"
                     v-model="formData.nextWeekPlan"
+                    name="nextWeekPlan"
                     class="form-textarea"
                     placeholder="请输入下周工作计划"
                     rows="3"
                   />
                 </div>
                 <div class="form-item full-width">
-                  <label for="issues" class="form-label">存在问题</label>
-                  <textarea id="issues" name="issues"
+                  <label
+                    for="issues"
+                    class="form-label"
+                  >存在问题</label>
+                  <textarea
+                    id="issues"
                     v-model="formData.issues"
+                    name="issues"
                     class="form-textarea"
                     placeholder="请输入存在问题"
                     rows="3"
                   />
                 </div>
                 <div class="form-item full-width">
-                  <label for="suggestions" class="form-label">建议措施</label>
-                  <textarea id="suggestions" name="suggestions"
+                  <label
+                    for="suggestions"
+                    class="form-label"
+                  >建议措施</label>
+                  <textarea
+                    id="suggestions"
                     v-model="formData.suggestions"
+                    name="suggestions"
                     class="form-textarea"
                     placeholder="请输入建议措施"
                     rows="3"

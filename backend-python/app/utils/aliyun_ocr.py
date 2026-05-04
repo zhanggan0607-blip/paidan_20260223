@@ -105,7 +105,8 @@ class AliyunOCRService:
             if response.body and response.body.data:
                 data = response.body.data
                 parsed = self._parse_idcard_result(data, side)
-                logger.info(f"OCR识别成功: side={side}, result={parsed}")
+                masked = self._mask_sensitive_data(parsed)
+                logger.info(f"OCR识别成功: side={side}, result={masked}")
                 return {
                     'success': True,
                     'message': '识别成功',
@@ -146,8 +147,38 @@ class AliyunOCRService:
             }
 
         try:
-            from urllib.request import urlopen
-            image_data = urlopen(image_url).read()
+            from urllib.parse import urlparse
+            from app.config import get_settings
+
+            parsed = urlparse(image_url)
+            if parsed.scheme not in ('http', 'https'):
+                return {
+                    'success': False,
+                    'message': '仅支持http/https协议的图片URL'
+                }
+
+            allowed_domains = []
+            settings = get_settings()
+            if settings.aliyun_oss_endpoint:
+                allowed_domains.append(settings.aliyun_oss_endpoint)
+            if settings.aliyun_oss_cdn_domain:
+                allowed_domains.append(settings.aliyun_oss_cdn_domain)
+            if settings.server_base_url:
+                server_parsed = urlparse(settings.server_base_url)
+                if server_parsed.hostname:
+                    allowed_domains.append(server_parsed.hostname)
+
+            if allowed_domains and parsed.hostname not in allowed_domains:
+                logger.warning(f"OCR图片URL域名不在白名单中: {parsed.hostname}")
+                return {
+                    'success': False,
+                    'message': '图片URL域名不在允许列表中，请使用本系统上传的图片'
+                }
+
+            import requests
+            response = requests.get(image_url, timeout=10)
+            response.raise_for_status()
+            image_data = response.content
             image_stream = io.BytesIO(image_data)
 
             request = RecognizeIdentityCardAdvanceRequest(
@@ -161,7 +192,8 @@ class AliyunOCRService:
             if response.body and response.body.data:
                 data = response.body.data
                 parsed = self._parse_idcard_result(data, side)
-                logger.info(f"OCR识别成功: side={side}, result={parsed}")
+                masked = self._mask_sensitive_data(parsed)
+                logger.info(f"OCR识别成功: side={side}, result={masked}")
                 return {
                     'success': True,
                     'message': '识别成功',
@@ -183,6 +215,18 @@ class AliyunOCRService:
                 'success': False,
                 'message': f'识别异常: {error_msg}'
             }
+
+    @staticmethod
+    def _mask_sensitive_data(data: dict) -> dict:
+        masked = dict(data)
+        if 'idCardNumber' in masked and masked['idCardNumber']:
+            val = masked['idCardNumber']
+            if len(val) >= 7:
+                masked['idCardNumber'] = f"{val[:3]}****{val[-4:]}"
+        if 'address' in masked and masked['address'] and len(masked['address']) > 6:
+            val = masked['address']
+            masked['address'] = f"{val[:3]}***{val[-3:]}"
+        return masked
 
     def _parse_idcard_result(self, data, side: str) -> dict[str, Any]:
         """

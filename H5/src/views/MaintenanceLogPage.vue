@@ -3,9 +3,10 @@ import { ref, onMounted, onActivated, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
 import { maintenanceLogService } from '../services'
-import type { MaintenanceLog } from '../types/models'
+import type { MaintenanceLog } from '../types/api'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
 
 const router = useRouter()
@@ -16,7 +17,7 @@ const logList = ref<MaintenanceLog[]>([])
 const isInitialized = ref(false)
 
 const canViewAll = computed(() => {
-  return userStore.isAdmin() || userStore.isDepartmentManager()
+  return userStore.isAdmin || userStore.isDepartmentManager
 })
 
 /**
@@ -61,7 +62,7 @@ const fetchLogList = async () => {
 
     // 管理员和部门经理能看到所有数据，普通员工只能看到自己的数据
     if (!canViewAll.value) {
-      const user = userStore.getUser()
+      const user = userStore.currentUser
       if (user && user.name) {
         params.created_by = user.name
       }
@@ -70,7 +71,7 @@ const fetchLogList = async () => {
     const response = await maintenanceLogService.getList(params)
 
     if (response.code === 200) {
-      logList.value = response.data?.content || []
+      logList.value = response.data?.items || []
     }
   } catch (error) {
     console.error('Failed to fetch log list:', error)
@@ -246,7 +247,7 @@ onActivated(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 :deep(.van-pull-refresh) {

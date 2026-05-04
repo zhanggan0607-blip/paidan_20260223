@@ -1,13 +1,23 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
-from app.models.mixins import SoftDeleteMixin
+from app.models.mixins import SoftDeleteMixin, SerializationMixin
 
 
-class SpotWork(Base, SoftDeleteMixin):
+class SpotWork(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "spot_work"
+
+    _relation_overrides = {
+        'project_name': ('project', 'project_name'),
+        'client_name': ('project', 'client_name'),
+    }
+    _relation_extras = {
+        'address': ('project', 'address'),
+        'client_contact_position': ('project', 'client_contact_position'),
+    }
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     work_id = Column(String(50), unique=True, nullable=False, comment="用工单编号")
@@ -21,7 +31,7 @@ class SpotWork(Base, SoftDeleteMixin):
     client_contact_info = Column(String(50), comment="客户联系电话")
     maintenance_personnel = Column(String(100), comment="运维人员")
     work_content = Column(Text, comment="工作内容")
-    photos = Column(Text, comment="现场图片JSON数组")
+    photos = Column(JSONB, default=list, comment="现场图片JSON数组")
     signature = Column(Text, comment="班组签字图片")
     status = Column(String(20), nullable=False, default="执行中", comment="状态")
     remarks = Column(String(500), comment="备注")
@@ -32,6 +42,11 @@ class SpotWork(Base, SoftDeleteMixin):
 
     project = relationship("ProjectInfo", back_populates="spot_works")
     maintenance_plan = relationship("MaintenancePlan", back_populates="spot_works")
+
+    _list_exclude_fields = {'photos', 'signature', 'reject_reason'}
+
+    def to_list_dict(self) -> dict:
+        return self.to_dict(exclude=self._list_exclude_fields)
 
     __table_args__ = (
         Index('idx_spot_work_id', 'work_id'),
@@ -44,77 +59,3 @@ class SpotWork(Base, SoftDeleteMixin):
         Index('idx_spot_status_updated', 'status', 'updated_at'),
         {'comment': '零星用工单表'}
     )
-
-    def to_dict(self):
-        import json
-        project_name = self.project_name
-        client_name = self.client_name
-        address = ''
-        client_contact_position = ''
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or client_name
-            address = self.project.address or ''
-            client_contact_position = self.project.client_contact_position or ''
-
-        client_contact = self.client_contact or ''
-        client_contact_info = self.client_contact_info or ''
-        if not client_contact and self.project:
-            client_contact = self.project.client_contact or ''
-        if not client_contact_info and self.project:
-            client_contact_info = self.project.client_contact_info or ''
-
-        photos = []
-        if self.photos:
-            try:
-                photos = json.loads(self.photos)
-            except (json.JSONDecodeError, TypeError):
-                photos = []
-
-        return {
-            'id': self.id,
-            'work_id': self.work_id,
-            'plan_id': self.plan_id,
-            'project_id': self.project_id,
-            'project_name': project_name,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': client_name,
-            'client_contact': client_contact,
-            'client_contact_info': client_contact_info,
-            'address': address,
-            'client_contact_position': client_contact_position,
-            'maintenance_personnel': self.maintenance_personnel,
-            'work_content': self.work_content,
-            'photos': photos,
-            'signature': self.signature,
-            'status': self.status,
-            'remarks': self.remarks,
-            'actual_completion_date': self.actual_completion_date.isoformat() if self.actual_completion_date else None,
-            'reject_reason': self.reject_reason or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }
-
-    def to_list_dict(self):
-        project_name = self.project_name
-        client_name = self.client_name
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or client_name
-
-        return {
-            'id': self.id,
-            'work_id': self.work_id,
-            'project_id': self.project_id,
-            'project_name': project_name,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'client_name': client_name,
-            'maintenance_personnel': self.maintenance_personnel,
-            'status': self.status,
-            'remarks': self.remarks,
-            'reject_reason': self.reject_reason or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

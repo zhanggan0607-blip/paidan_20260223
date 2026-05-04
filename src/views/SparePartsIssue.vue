@@ -7,30 +7,39 @@
             <div class="search-form">
               <div class="search-row">
                 <div class="search-item">
-                  <label for="search_maintenancePersonnel" class="search-label">运维人员：</label>
+                  <label
+                    for="search_maintenancePersonnel"
+                    class="search-label"
+                  >运维人员：</label>
                   <SearchInput
-              input-id="search_maintenancePersonnel"
                     v-model="filters.user"
+                    input-id="search_maintenancePersonnel"
                     field-key="SparePartsIssue_user"
                     placeholder="请输入运维人员"
                     @input="handleSearch"
                   />
                 </div>
                 <div class="search-item">
-                  <label for="search_productName" class="search-label">产品名称：</label>
+                  <label
+                    for="search_productName"
+                    class="search-label"
+                  >产品名称：</label>
                   <SearchInput
-              input-id="search_productName"
                     v-model="filters.product"
+                    input-id="search_productName"
                     field-key="SparePartsIssue_product"
                     placeholder="请输入产品名称"
                     @input="handleSearch"
                   />
                 </div>
                 <div class="search-item">
-                  <label for="search_projectName" class="search-label">项目名称：</label>
+                  <label
+                    for="search_projectName"
+                    class="search-label"
+                  >项目名称：</label>
                   <SearchInput
-              input-id="search_projectName"
                     v-model="filters.project"
+                    input-id="search_projectName"
                     field-key="SparePartsIssue_project"
                     placeholder="请输入项目名称"
                     @input="handleSearch"
@@ -143,8 +152,8 @@
                 </button>
                 <select
                   id="pageSize"
-                  name="pageSize"
                   v-model="pageSize"
+                  name="pageSize"
                   class="page-select"
                   @change="handlePageSizeChange"
                 >
@@ -205,10 +214,15 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="productName" class="form-label">产品名称<span class="required">*</span></label>
+            <label
+              for="productName"
+              class="form-label"
+            >产品名称<span class="required">*</span></label>
             <div class="product-search-wrapper">
-              <input id="productName" name="productName"
+              <input
+                id="productName"
                 v-model="productSearchKeyword"
+                name="productName"
                 type="text"
                 class="form-input"
                 placeholder="输入关键词搜索产品..."
@@ -248,9 +262,14 @@
             </div>
           </div>
           <div class="form-item">
-            <label for="issueQuantity" class="form-label">领用数量<span class="required">*</span></label>
-            <input id="issueQuantity" name="issueQuantity"
+            <label
+              for="issueQuantity"
+              class="form-label"
+            >领用数量<span class="required">*</span></label>
+            <input
+              id="issueQuantity"
               v-model.number="formData.quantity"
+              name="issueQuantity"
               type="number"
               :min="1"
               class="form-input"
@@ -258,8 +277,13 @@
             >
           </div>
           <div class="form-item">
-            <label for="maintenancePersonnel" class="form-label">运维人员</label>
-            <input id="maintenancePersonnel" name="maintenancePersonnel"
+            <label
+              for="maintenancePersonnel"
+              class="form-label"
+            >运维人员</label>
+            <input
+              id="maintenancePersonnel"
+              name="maintenancePersonnel"
               :value="currentUser?.name || ''"
               type="text"
               class="form-input"
@@ -268,9 +292,14 @@
             >
           </div>
           <div class="form-item">
-            <label for="project" class="form-label">所属项目</label>
-            <select id="project" name="project"
+            <label
+              for="project"
+              class="form-label"
+            >所属项目</label>
+            <select
+              id="project"
               v-model="formData.project_id"
+              name="project"
               class="form-select"
               @change="handleProjectChange"
             >
@@ -287,9 +316,14 @@
             </select>
           </div>
           <div class="form-item">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remark"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入备注"
             />
@@ -319,8 +353,8 @@
 import { defineComponent, ref, onMounted, computed, onUnmounted } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import SearchInput from '@/components/SearchInput.vue'
-import { userStore } from '@/stores/userStore'
+import { SearchInput } from '@sstcp/shared'
+import { useUserStore } from '@/stores/userStore'
 import { ElMessage } from 'element-plus'
 
 /**
@@ -384,6 +418,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const loading = ref(false)
     const submitting = ref(false)
     const dataList = ref<SparePartsIssueItem[]>([])
@@ -495,8 +530,8 @@ export default defineComponent({
         })) as unknown as PaginatedResponse<SparePartsIssueItem>
 
         if (response && response.code === 200 && response.data) {
-          dataList.value = response.data.items || response.data.content || []
-          total.value = response.data.total || response.data.totalElements || 0
+          dataList.value = response.data.items || []
+          total.value = response.data.total || 0
         }
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
@@ -515,7 +550,7 @@ export default defineComponent({
           params: { page: 0, pageSize: 500 },
         })) as unknown as PaginatedResponse<SparePartsStock>
         if (response && response.code === 200 && response.data) {
-          const items = response.data.items || response.data.content || []
+          const items = response.data.items || []
           stockList.value = items.sort((a, b) => {
             if (a.quantity === 0 && b.quantity !== 0) return -1
             if (a.quantity !== 0 && b.quantity === 0) return 1
@@ -664,7 +699,7 @@ export default defineComponent({
           model: selectedProduct.value.model,
           quantity: formData.value.quantity,
           unit: selectedProduct.value.unit,
-          user_name: userStore.getUser()?.name,
+          user_name: userStore.currentUser?.name,
           project_id: formData.value.project_id || null,
           project_name: project?.project_name || null,
           remark: formData.value.remark || null,
@@ -780,7 +815,7 @@ export default defineComponent({
       selectedProduct,
       filteredStockList,
       filteredProjectList,
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       handleSearch,
       handleAdd,
       closeAddModal,

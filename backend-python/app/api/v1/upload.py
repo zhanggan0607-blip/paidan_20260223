@@ -3,11 +3,14 @@
 优先将图片等文件存储到阿里云OSS，OSS不可用时降级到数据库存储
 """
 import base64
+import os
 import uuid
 from datetime import datetime
 from uuid import uuid4
 
+import filetype
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from typing import List
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -36,6 +39,33 @@ IMAGE_TYPE_TO_MIME = {
 }
 ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
 MAX_FILE_SIZE = 10 * 1024 * 1024
+MAX_BATCH_COUNT = 9
+
+
+def _sanitize_filename(filename: str | None) -> str:
+    if not filename:
+        return "unknown"
+    safe_name = os.path.basename(filename)
+    safe_name = safe_name.replace("..", "").replace("/", "").replace("\\", "")
+    return safe_name if safe_name else "unknown"
+
+
+def _validate_image_content(content: bytes) -> str:
+    kind = filetype.guess(content)
+    if kind is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无法识别文件类型，请上传有效的图片文件"
+        )
+
+    detected_mime = kind.mime
+    if detected_mime not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="只支持上传图片文件（JPEG、PNG、GIF、WebP）"
+        )
+
+    return detected_mime
 
 
 def _determine_extension(content_type: str, filename: str | None) -> str:
@@ -102,7 +132,9 @@ async def upload_file(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="文件大小不能超过10MB"
         )
-    
+
+    _validate_image_content(content)
+
     try:
         compressed_content, compressed_content_type = compress_image(
             content,
@@ -110,13 +142,17 @@ async def upload_file(
             max_size=(1920, 1920),
             convert_to_jpeg=True
         )
-        
-        if len(compressed_content) < len(content):
+
+        original_size = len(content)
+        if len(compressed_content) < original_size:
             content = compressed_content
             file.content_type = compressed_content_type
-            logger.info(f"图片压缩成功: {len(compressed_content)} bytes (原始: {len(content)} bytes)")
+            logger.info(f"图片压缩成功: {len(compressed_content)} bytes (原始: {original_size} bytes)")
     except Exception as e:
-        logger.warning(f"图片压缩失败,使用原始图片: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="图片处理失败，请确保上传的是有效的图片文件"
+        )
 
     today = datetime.now().strftime("%Y%m%d")
     file_ext = _determine_extension(file.content_type, file.filename)
@@ -129,7 +165,7 @@ async def upload_file(
     if oss_url:
         uploaded_file = UploadedFile(
             file_id=file_id,
-            original_filename=file.filename,
+            original_filename=_sanitize_filename(file.filename),
             stored_filename=stored_filename,
             content_type=file.content_type,
             file_data=None,
@@ -142,7 +178,7 @@ async def upload_file(
     else:
         uploaded_file = UploadedFile(
             file_id=file_id,
-            original_filename=file.filename,
+            original_filename=_sanitize_filename(file.filename),
             stored_filename=stored_filename,
             content_type=file.content_type,
             file_data=content,
@@ -168,19 +204,131 @@ async def upload_file(
     )
 
 
+async def _process_single_upload(file: UploadFile, db: Session) -> dict:
+    if file.content_type not in ALLOWED_CONTENT_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"文件 {file.filename} 类型不支持，只支持JPEG、PNG、GIF、WebP格式"
+        )
+
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"文件 {file.filename} 大小不能超过10MB"
+        )
+
+    _validate_image_content(content)
+
+    try:
+        compressed_content, compressed_content_type = compress_image(
+            content,
+            quality=85,
+            max_size=(1920, 1920),
+            convert_to_jpeg=True
+        )
+        original_size = len(content)
+        if len(compressed_content) < original_size:
+            content = compressed_content
+            file.content_type = compressed_content_type
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"文件 {file.filename} 处理失败，请确保是有效的图片文件"
+        )
+
+    today = datetime.now().strftime("%Y%m%d")
+    file_ext = _determine_extension(file.content_type, file.filename)
+    file_id = str(uuid.uuid4())
+    stored_filename = f"{uuid.uuid4().hex}.{file_ext}"
+    file_path = UploadedFile.generate_file_path(today, stored_filename)
+
+    oss_url = _upload_to_oss(content, today, stored_filename, file.content_type)
+
+    if oss_url:
+        uploaded_file = UploadedFile(
+            file_id=file_id,
+            original_filename=_sanitize_filename(file.filename),
+            stored_filename=stored_filename,
+            content_type=file.content_type,
+            file_data=None,
+            file_size=len(content),
+            file_path=file_path,
+            upload_date=today,
+            storage_type="oss",
+            oss_url=oss_url,
+        )
+    else:
+        uploaded_file = UploadedFile(
+            file_id=file_id,
+            original_filename=_sanitize_filename(file.filename),
+            stored_filename=stored_filename,
+            content_type=file.content_type,
+            file_data=content,
+            file_size=len(content),
+            file_path=file_path,
+            upload_date=today,
+            storage_type="database",
+            oss_url=None,
+        )
+
+    db.add(uploaded_file)
+    db.commit()
+    db.refresh(uploaded_file)
+
+    return {
+        "url": file_path,
+        "file_id": file_id,
+        "filename": stored_filename
+    }
+
+
+@router.post("/batch", response_model=ApiResponse)
+async def upload_batch(
+    files: List[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+    current_user: UserInfo = Depends(get_current_user_required)
+):
+    if len(files) > MAX_BATCH_COUNT:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"最多同时上传{MAX_BATCH_COUNT}张图片"
+        )
+
+    if len(files) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请选择要上传的文件"
+        )
+
+    results = []
+    failed = []
+    for i, file in enumerate(files):
+        try:
+            result = await _process_single_upload(file, db)
+            results.append(result)
+        except HTTPException as e:
+            failed.append({"index": i, "filename": file.filename, "error": e.detail})
+        except Exception as e:
+            logger.error(f"批量上传第{i+1}个文件失败: {str(e)}")
+            failed.append({"index": i, "filename": file.filename, "error": str(e)})
+
+    return ApiResponse(
+        code=200,
+        message=f"成功上传{len(results)}张图片" + (f"，{len(failed)}张失败" if failed else ""),
+        data={
+            "success": results,
+            "failed": failed,
+        }
+    )
+
+
 @router.post("/base64", response_model=ApiResponse)
 async def upload_base64(
     data: dict,
     db: Session = Depends(get_db),
     current_user: UserInfo = Depends(get_current_user_required)
 ):
-    """
-    上传Base64编码的图片
-
-    优先存储到阿里云OSS，OSS不可用时降级到数据库存储
-    """
-    import imghdr
-
     base64_str = data.get("data")
     filename = data.get("filename")
 
@@ -191,7 +339,20 @@ async def upload_base64(
         )
 
     if base64_str.startswith("data:image"):
-        base64_str = base64_str.split(",")[1]
+        parts = base64_str.split(",", 1)
+        if len(parts) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="无效的data URI格式"
+            )
+        base64_str = parts[1]
+
+    max_base64_length = MAX_FILE_SIZE * 2
+    if len(base64_str) > max_base64_length:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="文件大小不能超过10MB"
+        )
 
     try:
         image_data = base64.b64decode(base64_str)
@@ -206,7 +367,9 @@ async def upload_base64(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="文件大小不能超过10MB"
         )
-    
+
+    _validate_image_content(image_data)
+
     try:
         compressed_data, compressed_content_type = compress_image(
             image_data,
@@ -214,26 +377,26 @@ async def upload_base64(
             max_size=(1920, 1920),
             convert_to_jpeg=True
         )
-        
-        if len(compressed_data) < len(image_data):
+
+        original_size = len(image_data)
+        if len(compressed_data) < original_size:
             image_data = compressed_data
             content_type = compressed_content_type
-            logger.info(f"Base64图片压缩成功: {len(compressed_data)} bytes (原始: {len(image_data)} bytes)")
+            logger.info(f"Base64图片压缩成功: {len(compressed_data)} bytes (原始: {original_size} bytes)")
+        else:
+            detected_mime = _validate_image_content(image_data)
+            content_type = detected_mime
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.warning(f"Base64图片压缩失败,使用原始图片: {str(e)}")
-
-    image_type = imghdr.what(None, h=image_data)
-    if image_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"不支持的图片类型，只支持JPEG、PNG、GIF、WebP格式，检测到: {image_type or '未知'}"
+            detail="图片处理失败，请确保上传的是有效的图片文件"
         )
-
-    file_ext = IMAGE_TYPE_TO_EXT.get(image_type, 'png')
-    content_type = IMAGE_TYPE_TO_MIME.get(image_type, 'image/png')
 
     today = datetime.now().strftime("%Y%m%d")
     file_id = str(uuid.uuid4())
+    file_ext = _determine_extension(content_type, filename)
     stored_filename = f"{uuid.uuid4().hex}.{file_ext}"
     file_path = UploadedFile.generate_file_path(today, stored_filename)
 

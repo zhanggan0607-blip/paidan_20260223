@@ -10,13 +10,14 @@ import {
   showImagePreview,
 } from 'vant'
 import { spotWorkService, uploadService, operationLogService } from '../services'
-import { formatDate, getWorkIdFontSize, processPhoto, getCurrentLocation } from '@sstcp/shared'
+import { formatDate, getWorkIdFontSize, processPhoto, getCurrentLocation, maskIdCard } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
 import { copyOrderId } from '../utils/clipboard'
 import { useNavigation } from '../composables'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
-import type { SpotWork, SpotWorkWorker } from '../types/models'
+import type { SpotWork, SpotWorkWorker } from '../types/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -68,7 +69,7 @@ const isApproveMode = computed(() => {
 })
 
 const isWorker = computed(() => {
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user || !detail.value) return false
   return detail.value.maintenance_personnel === user.name
 })
@@ -80,6 +81,21 @@ const handleBackToList = () => {
 const showWorkerDetail = (worker: SpotWorkWorker) => {
   currentWorker.value = worker
   showWorkerPopup.value = true
+}
+
+const onIdCardError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.style.display = 'none'
+  const parent = img.parentElement
+  if (parent) {
+    const noPhoto = parent.querySelector('.no-photo')
+    if (!noPhoto) {
+      const placeholder = document.createElement('div')
+      placeholder.className = 'no-photo'
+      placeholder.textContent = '图片加载失败'
+      parent.appendChild(placeholder)
+    }
+  }
 }
 
 /**
@@ -165,39 +181,83 @@ const handlePhotoCapture = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
+    input.multiple = true
     input.capture = 'environment'
 
     input.onchange = async (e: Event) => {
       const target = e.target as HTMLInputElement
-      const file = target.files?.[0]
-      if (!file) return
+      const allFiles = target.files
+      if (!allFiles || allFiles.length === 0) return
 
-      showLoadingToast({ message: '处理中...', forbidClick: true })
+      const remaining = 9 - currentPhotos.value.length
+      if (remaining <= 0) {
+        showFailToast('已达到最大上传数量')
+        return
+      }
+      const files = Array.from(allFiles).slice(0, remaining)
+
+      showLoadingToast({ message: `处理中(0/${files.length})...`, forbidClick: true })
+
+      const processedFiles: File[] = []
+      let processFailed = 0
+
+      for (let i = 0; i < files.length; i++) {
+        try {
+          showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          const processedFile = await processPhoto(files[i], {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+          processedFiles.push(processedFile)
+        } catch (error) {
+          console.error('Failed to process photo:', error)
+          processFailed++
+        }
+      }
+
+      if (processedFiles.length === 0) {
+        closeToast()
+        showFailToast('图片处理失败')
+        return
+      }
+
+      showLoadingToast({ message: `上传中(${processedFiles.length}张)...`, forbidClick: true })
 
       try {
-        const userName = userStore.getUser()?.name || '未知用户'
-        const location = await getCurrentLocation()
-        const processedFile = await processPhoto(file, {
-          userName,
-          includeLocation: true,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
-        })
-
-        const formDataObj = new FormData()
-        formDataObj.append('file', processedFile)
-
-        const response = await uploadService.uploadFile(processedFile)
+        const response = await uploadService.uploadFiles(processedFiles)
+        let uploadedCount = 0
+        let failedCount = processFailed
 
         if (response.code === 200 && response.data) {
-          currentPhotos.value.push(response.data.url)
-          showSuccessToast('上传成功')
+          const successList = response.data.success || response.data
+          if (Array.isArray(successList)) {
+            for (const item of successList) {
+              if (item.url) {
+                currentPhotos.value.push(item.url)
+                uploadedCount++
+              }
+            }
+          }
+          const failedList = response.data.failed || []
+          failedCount += failedList.length
+        } else {
+          failedCount += processedFiles.length
+        }
+
+        closeToast()
+        if (uploadedCount > 0) {
+          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+        } else {
+          showFailToast('上传失败')
         }
       } catch (error) {
-        console.error('Failed to upload photo:', error)
-        showFailToast('上传失败')
-      } finally {
+        console.error('Batch upload failed:', error)
         closeToast()
+        showFailToast('上传失败')
       }
     }
 
@@ -215,6 +275,7 @@ const tryCaptureOnIOS = () => {
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
+  input.multiple = true
   input.style.position = 'fixed'
   input.style.top = '0'
   input.style.left = '0'
@@ -225,8 +286,8 @@ const tryCaptureOnIOS = () => {
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) {
+    const allFiles = target.files
+    if (!allFiles || allFiles.length === 0) {
       isIOSUploading = false
       return
     }
@@ -235,97 +296,103 @@ const tryCaptureOnIOS = () => {
       document.body.removeChild(input)
     }
 
-    showLoadingToast({ message: '上传中...', forbidClick: true, duration: 0 })
+    const remaining = 9 - currentPhotos.value.length
+    if (remaining <= 0) {
+      isIOSUploading = false
+      showFailToast('已达到最大上传数量')
+      return
+    }
+    const files = Array.from(allFiles).slice(0, remaining)
 
-    try {
-      console.log('=== iOS零星用工拍照上传流程 ===')
-      console.log('原始文件大小:', file.size, 'bytes')
-      
-      let fileToUpload = file
-      
-      if (file.size > 500 * 1024) {
-        console.log('图片太大，开始压缩...')
-        showLoadingToast({ message: '压缩中...', forbidClick: true, duration: 0 })
-        
-        const compressedBlob = await compressImage(file, 500)
-        fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
-        console.log('压缩后文件大小:', fileToUpload.size, 'bytes')
+    showLoadingToast({ message: `上传中(0/${files.length})...`, forbidClick: true, duration: 0 })
+
+    let uploadedCount = 0
+    let failedCount = 0
+
+    for (const file of files) {
+      try {
+        let fileToUpload = file
+
+        if (file.size > 500 * 1024) {
+          showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+
+          const compressedBlob = await compressImage(file, 500)
+          fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+        }
+
+        showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+        const userName = userStore.currentUser?.name || '未知用户'
+        const location = await getCurrentLocation()
+        const watermarkedFile = await processPhoto(fileToUpload, {
+          userName,
+          includeLocation: true,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+        })
+
+        showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+
+        const reader = new FileReader()
+
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onload = (ev) => resolve(ev.target?.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(watermarkedFile)
+        })
+
+        const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
+
+        if (response.code === 200 && response.data) {
+          currentPhotos.value.push(response.data.url)
+          uploadedCount++
+        } else {
+          console.error('上传失败:', response.message)
+          failedCount++
+        }
+      } catch (uploadError: any) {
+        console.error('上传请求失败:', uploadError)
+        failedCount++
       }
+    }
 
-      console.log('开始上传（使用Base64方式）...')
-      const reader = new FileReader()
-      
-      reader.onload = async (e) => {
+    if (uploadedCount > 0) {
+      const photosToSave = [...currentPhotos.value]
+      const detailId = detail.value?.id
+      if (detailId) {
+        const saveData = {
+          work_content: formData.value.work_content,
+          photos: photosToSave,
+          signature: formData.value.signature,
+          remarks: formData.value.remarks,
+        }
+
+        closeToast()
+        showLoadingToast({ message: '正在保存...', forbidClick: true })
+
         try {
-          const base64Data = e.target?.result as string
-          console.log('Base64数据长度:', base64Data.length)
-          
-          const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
-          console.log('上传响应:', response)
-
-          if (response.code === 200 && response.data) {
-            console.log('上传成功，URL:', response.data.url)
-            currentPhotos.value.push(response.data.url)
-            console.log('currentPhotos现在有:', currentPhotos.value.length, '张')
-            
-            const photosToSave = [...currentPhotos.value]
-            
-            const detailId = detail.value?.id
-            if (detailId) {
-              console.log('=== iOS直接保存到后端 ===')
-              const saveData = {
-                work_content: formData.value.work_content,
-                photos: photosToSave,
-                signature: formData.value.signature,
-                remarks: formData.value.remarks,
-              }
-              console.log('保存数据:', JSON.stringify(saveData, null, 2))
-              
-              closeToast()
-              showLoadingToast({ message: '正在保存...', forbidClick: true })
-              
-              const saveResponse = await spotWorkService.patch(detailId, saveData)
-              console.log('iOS保存结果:', saveResponse)
-              closeToast()
-              isIOSUploading = false
-              if (saveResponse.code === 200) {
-                showSuccessToast('上传并保存成功')
-              } else {
-                showFailToast('保存失败: ' + (saveResponse.message || '未知错误'))
-              }
-            } else {
-              closeToast()
-              isIOSUploading = false
-              showSuccessToast('上传成功')
-            }
-          } else {
-            console.error('上传失败:', response.message)
-            closeToast()
-            isIOSUploading = false
-            showFailToast(response.message || '上传失败')
-          }
-        } catch (uploadError: any) {
-          console.error('上传请求失败:', uploadError)
+          const saveResponse = await spotWorkService.patch(detailId, saveData)
           closeToast()
           isIOSUploading = false
-          showFailToast('上传失败')
+          if (saveResponse.code === 200) {
+            showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+          } else {
+            showFailToast('保存失败: ' + (saveResponse.message || '未知错误'))
+          }
+        } catch (saveError: any) {
+          console.error('保存请求失败:', saveError)
+          closeToast()
+          isIOSUploading = false
+          showFailToast('保存请求失败')
         }
-      }
-      
-      reader.onerror = (error) => {
-        console.error('FileReader错误:', error)
+      } else {
         closeToast()
         isIOSUploading = false
-        showFailToast('读取文件失败')
+        showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
       }
-      
-      reader.readAsDataURL(fileToUpload)
-      
-    } catch (error: any) {
-      console.error('Failed to process photo:', error)
+    } else {
       closeToast()
       isIOSUploading = false
-      showFailToast('处理图片失败')
+      showFailToast('上传失败')
     }
   }
 
@@ -523,7 +590,7 @@ const handleRecall = async () => {
     const response = await spotWorkService.recall(detail.value?.id!)
     if (response.code === 200) {
       showSuccessToast('撤回成功')
-      await loadData()
+      await fetchDetail()
     } else {
       showFailToast(response.message || '撤回失败')
     }
@@ -586,7 +653,6 @@ const autoSaveContent = async () => {
   if (!detail.value?.id || !isEditable.value) return
 
   if (isIOSUploading) {
-    console.log('自动保存被跳过: iOS正在上传')
     return
   }
 
@@ -596,7 +662,6 @@ const autoSaveContent = async () => {
 
   autoSaveTimer = setTimeout(async () => {
     if (isIOSUploading) {
-      console.log('自动保存被跳过: iOS正在上传')
       return
     }
     try {
@@ -752,8 +817,8 @@ const confirmReject = async () => {
 onMounted(async () => {
   if (isInitialized.value) return
   
-  if (userStore.isLoggedIn()) {
-    const user = userStore.getUser()
+  if (userStore.isLoggedIn) {
+    const user = userStore.currentUser
     if (user) {
       isInitialized.value = true
       await fetchDetail()
@@ -763,7 +828,7 @@ onMounted(async () => {
 })
 
 onActivated(async () => {
-  if (!isInitialized.value && userStore.isLoggedIn()) {
+  if (!isInitialized.value && userStore.isLoggedIn) {
     isInitialized.value = true
     await fetchDetail()
     loadSignature()
@@ -788,7 +853,7 @@ watch(
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
   if (!detail.value?.id) return
 
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user) return
 
   try {
@@ -884,7 +949,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
           v-for="(worker, index) in detail.workers"
           :key="worker.id || index"
           :title="worker.name"
-          :label="worker.id_card_number"
+          :label="maskIdCard(worker.id_card_number)"
           is-link
           @click="showWorkerDetail(worker)"
         >
@@ -1011,7 +1076,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
                 <span>拍照</span>
               </div>
             </div>
-            <div v-if="isEditable" class="photo-tip">只支持拍照，最多上传9张</div>
+            <div v-if="isEditable" class="photo-tip">支持拍照或从相册选择，最多上传9张，可多选</div>
           </div>
         </div>
         <div v-if="isEditable" class="popup-footer">
@@ -1034,7 +1099,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
             <van-cell title="姓名" :value="currentWorker.name" />
             <van-cell title="性别" :value="currentWorker.gender" />
             <van-cell title="出生日期" :value="currentWorker.birth_date" />
-            <van-cell title="身份证号" :value="currentWorker.id_card_number" />
+            <van-cell title="身份证号" :value="maskIdCard(currentWorker.id_card_number)" />
             <van-cell title="住址" :value="currentWorker.address" />
             <van-cell title="签发机关" :value="currentWorker.issuing_authority" />
             <van-cell title="有效期限" :value="currentWorker.valid_period" />
@@ -1048,6 +1113,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
                   :src="currentWorker.id_card_front"
                   alt="身份证正面"
                   loading="lazy"
+                  @error="onIdCardError($event)"
                 />
                 <div v-else class="no-photo">暂无照片</div>
               </div>
@@ -1060,6 +1126,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
                   :src="currentWorker.id_card_back"
                   alt="身份证反面"
                   loading="lazy"
+                  @error="onIdCardError($event)"
                 />
                 <div v-else class="no-photo">暂无照片</div>
               </div>

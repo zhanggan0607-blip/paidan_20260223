@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="customer-management">
     <LoadingSpinner
       :visible="loading"
@@ -14,20 +14,26 @@
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label for="search_clientName" class="search-label">客户单位：</label>
+            <label
+              for="search_clientName"
+              class="search-label"
+            >客户单位：</label>
             <SearchInput
-              input-id="search_clientName"
               v-model="searchForm.name"
+              input-id="search_clientName"
               field-key="CustomerManagement_name"
               placeholder="请输入客户单位"
               @input="handleSearch"
             />
           </div>
           <div class="search-item">
-            <label for="search_clientContact" class="search-label">客户联系人：</label>
+            <label
+              for="search_clientContact"
+              class="search-label"
+            >客户联系人：</label>
             <SearchInput
-              input-id="search_clientContact"
               v-model="searchForm.contact_person"
+              input-id="search_clientContact"
               field-key="CustomerManagement_contact_person"
               placeholder="请输入客户联系人"
               @input="handleSearch"
@@ -161,8 +167,8 @@
         </button>
         <select
           id="pageSize"
-          name="pageSize"
           v-model="pageSize"
+          name="pageSize"
           class="page-select"
           @change="handlePageSizeChange"
         >
@@ -220,9 +226,14 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label for="clientName" class="form-label"> <span class="required">*</span> 客户单位 </label>
-                <input id="clientName" name="clientName"
+                <label
+                  for="clientName"
+                  class="form-label"
+                > <span class="required">*</span> 客户单位 </label>
+                <input
+                  id="clientName"
                   v-model="formData.name"
+                  name="clientName"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
@@ -232,9 +243,14 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="clientAddress" class="form-label">客户地址</label>
-                <input id="clientAddress" name="clientAddress"
+                <label
+                  for="clientAddress"
+                  class="form-label"
+                >客户地址</label>
+                <input
+                  id="clientAddress"
                   v-model="formData.address"
+                  name="clientAddress"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
@@ -271,9 +287,14 @@
               </div>
               <div class="contact-fields">
                 <div class="contact-field">
-                  <label for="contact_contactName" class="contact-label"><span class="required">*</span> 联系人姓名</label>
-                  <input id="contact_contactName" name="contact_contactName"
+                  <label
+                    for="contact_contactName"
+                    class="contact-label"
+                  ><span class="required">*</span> 联系人姓名</label>
+                  <input
+                    id="contact_contactName"
                     v-model="contact.contact_person"
+                    name="contact_contactName"
                     type="text"
                     class="form-input"
                     placeholder="请输入联系人姓名"
@@ -281,9 +302,14 @@
                   >
                 </div>
                 <div class="contact-field">
-                  <label for="contact_contactPhone" class="contact-label">联系方式</label>
-                  <input id="contact_contactPhone" name="contact_contactPhone"
+                  <label
+                    for="contact_contactPhone"
+                    class="contact-label"
+                  >联系方式</label>
+                  <input
+                    id="contact_contactPhone"
                     v-model="contact.phone"
+                    name="contact_contactPhone"
                     type="text"
                     class="form-input"
                     placeholder="请输入手机号码"
@@ -291,9 +317,14 @@
                   >
                 </div>
                 <div class="contact-field">
-                  <label for="contact_contactPosition" class="contact-label">联系人职位</label>
-                  <input id="contact_contactPosition" name="contact_contactPosition"
+                  <label
+                    for="contact_contactPosition"
+                    class="contact-label"
+                  >联系人职位</label>
+                  <input
+                    id="contact_contactPosition"
                     v-model="contact.contact_position"
+                    name="contact_contactPosition"
                     type="text"
                     class="form-input"
                     placeholder="请输入职位"
@@ -312,9 +343,14 @@
           </div>
 
           <div class="form-item-full">
-            <label for="remarks" class="form-label">备注</label>
-            <textarea id="remarks" name="remarks"
+            <label
+              for="remarks"
+              class="form-label"
+            >备注</label>
+            <textarea
+              id="remarks"
               v-model="formData.remarks"
+              name="remarks"
               class="form-textarea"
               placeholder="请输入"
               rows="3"
@@ -566,8 +602,8 @@ export default defineComponent({
         )
 
         if (response.code === 200) {
-          customerData.value = response.data.content
-          totalElements.value = response.data.totalElements
+          customerData.value = response.data.content || []
+          totalElements.value = response.data.totalElements ?? 0
           totalPages.value = response.data.totalPages
         } else {
           showToast(response.message || '加载数据失败', 'error')
@@ -749,7 +785,7 @@ export default defineComponent({
      */
     const handleView = (item: Customer) => {
       viewData.id = item.id
-      viewData.name = item.name
+      viewData.name = item.name ?? ''
       viewData.address = item.address || ''
       viewData.contacts = item.contacts || []
       viewData.remarks = item.remarks || ''
@@ -763,7 +799,7 @@ export default defineComponent({
      */
     const handleEdit = (item: Customer) => {
       editingId.value = item.id
-      formData.name = item.name
+      formData.name = item.name ?? ''
       formData.address = item.address || ''
       formData.contacts = (item.contacts || []).map((c) => ({
         contact_person: c.contact_person || '',

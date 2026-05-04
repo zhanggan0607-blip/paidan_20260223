@@ -5,8 +5,9 @@ import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'v
 import { projectInfoService, temporaryRepairService, personnelService } from '../services'
 import { formatDate } from '@sstcp/shared'
 import { useNavigation } from '../composables/useNavigation'
-import { userStore } from '../stores/userStore'
-import type { ProjectInfo } from '../types/models'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
+import type { ProjectInfo } from '../types/api'
 
 const router = useRouter()
 const { goBack } = useNavigation()
@@ -261,12 +262,12 @@ const maintenancePersonnelColumns = computed(() => {
 })
 
 onMounted(() => {
-  if (!userStore.isLoggedIn()) {
+  if (!userStore.isLoggedIn) {
     console.warn('User not logged in, redirecting to login page')
     router.push('/login')
     return
   }
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user) {
     console.warn('User data not found')
     showFailToast('用户信息不存在，请重新登录')
@@ -411,7 +412,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 :deep(.van-cell-group--inset) {

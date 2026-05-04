@@ -9,7 +9,10 @@ __pycache__
 .env.local
 .env.*.local
 .env.test
+.env.development
+.env.staging
 .env.production
+!.env.example
 *.log
 logs/
 dist/
@@ -20,6 +23,7 @@ build/
 .pytest_cache/
 .coverage
 htmlcov/
+coverage/
 .tox/
 .nox/
 .idea/
@@ -44,3 +48,10 @@ cleanup_backup/
 verify_*.py
 test_pdf_export.py
 daemon.json
+.venv/
+venv/
+env/
+*.sqlite3
+.mypy_cache/
+.ruff_cache/
+uploads/

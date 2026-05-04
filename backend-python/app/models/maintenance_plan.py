@@ -1,13 +1,25 @@
 from sqlalchemy import BigInteger, Column, DateTime, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
-from app.models.mixins import SoftDeleteMixin
+from app.models.mixins import SoftDeleteMixin, SerializationMixin
 
 
-class MaintenancePlan(Base, SoftDeleteMixin):
+class MaintenancePlan(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "maintenance_plan"
+
+    _relation_overrides = {
+        'project_name': ('project', 'project_name'),
+    }
+    _relation_extras = {
+        'client_name': ('project', 'client_name'),
+        'client_contact': ('project', 'client_contact'),
+        'client_contact_info': ('project', 'client_contact_info'),
+        'address': ('project', 'address'),
+        'client_contact_position': ('project', 'client_contact_position'),
+    }
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
     plan_id = Column(String(50), nullable=False, unique=True, comment="计划编号")
@@ -37,7 +49,7 @@ class MaintenancePlan(Base, SoftDeleteMixin):
     filled_count = Column(Integer, default=0, comment="已填写检查项数量")
     total_count = Column(Integer, default=5, comment="检查项总数量")
     remarks = Column(Text, comment="备注")
-    inspection_items = Column(Text, comment="巡查项数据(JSON格式)")
+    inspection_items = Column(JSONB, default=list, comment="巡查项数据(JSON格式)")
     created_at = Column(DateTime, server_default=func.now(), nullable=False, comment="创建时间")
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False, comment="更新时间")
 
@@ -56,57 +68,3 @@ class MaintenancePlan(Base, SoftDeleteMixin):
         Index('idx_maintenance_personnel', 'maintenance_personnel'),
         {'comment': '维保计划表'}
     )
-
-    def to_dict(self):
-        project_name = self.project_name
-        client_name = ''
-        client_contact = ''
-        client_contact_info = ''
-        address = ''
-        client_contact_position = ''
-        if self.project:
-            project_name = self.project.project_name or project_name
-            client_name = self.project.client_name or ''
-            client_contact = self.project.client_contact or ''
-            client_contact_info = self.project.client_contact_info or ''
-            address = self.project.address or ''
-            client_contact_position = self.project.client_contact_position or ''
-
-        return {
-            'id': self.id,
-            'plan_id': self.plan_id,
-            'plan_name': self.plan_name,
-            'project_id': self.project_id,
-            'project_name': project_name or '',
-            'client_name': client_name,
-            'client_contact': client_contact,
-            'client_contact_info': client_contact_info,
-            'address': address,
-            'client_contact_position': client_contact_position,
-            'plan_type': self.plan_type,
-            'equipment_id': self.equipment_id,
-            'equipment_name': self.equipment_name,
-            'equipment_model': self.equipment_model,
-            'equipment_location': self.equipment_location,
-            'plan_start_date': self.plan_start_date.isoformat() if self.plan_start_date else None,
-            'plan_end_date': self.plan_end_date.isoformat() if self.plan_end_date else None,
-            'execution_date': self.execution_date.isoformat() if self.execution_date else None,
-            'next_maintenance_date': self.next_maintenance_date.isoformat() if self.next_maintenance_date else None,
-            'maintenance_personnel': self.maintenance_personnel,
-            'responsible_person': self.responsible_person,
-            'responsible_department': self.responsible_department,
-            'contact_info': self.contact_info,
-            'maintenance_content': self.maintenance_content,
-            'maintenance_requirements': self.maintenance_requirements,
-            'maintenance_standard': self.maintenance_standard,
-            'plan_status': self.plan_status,
-            'execution_status': self.execution_status,
-            'status': self.status,
-            'completion_rate': self.completion_rate,
-            'filled_count': self.filled_count or 0,
-            'total_count': self.total_count or 5,
-            'remarks': self.remarks,
-            'inspection_items': self.inspection_items,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
-        }

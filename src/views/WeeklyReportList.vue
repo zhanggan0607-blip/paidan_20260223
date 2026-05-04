@@ -5,31 +5,40 @@
         <div class="search-form">
           <div class="search-row">
             <div class="search-item">
-              <label for="search_周报单号" class="search-label">周报单号：</label>
+              <label
+                for="search_周报单号"
+                class="search-label"
+              >周报单号：</label>
               <SearchInput
-              input-id="search_周报单号"
                 v-model="filters.reportId"
+                input-id="search_周报单号"
                 field-key="WeeklyReport_report_id"
                 placeholder="请输入周报单号"
                 @input="handleSearch"
               />
             </div>
             <div class="search-item">
-              <label for="reportDate" class="search-label">填报时间：</label>
+              <label
+                for="reportDate"
+                class="search-label"
+              >填报时间：</label>
               <input
                 id="reportDate"
-                name="reportDate"
                 v-model="filters.reportDate"
+                name="reportDate"
                 type="date"
                 class="search-input"
                 @change="handleSearch"
               >
             </div>
             <div class="search-item">
-              <label for="search_周报内容" class="search-label">周报内容：</label>
+              <label
+                for="search_周报内容"
+                class="search-label"
+              >周报内容：</label>
               <SearchInput
-              input-id="search_周报内容"
                 v-model="filters.workSummary"
+                input-id="search_周报内容"
                 field-key="WeeklyReport_work_summary"
                 placeholder="请输入周报内容"
                 @input="handleSearch"
@@ -39,10 +48,13 @@
               v-if="canViewAll"
               class="search-item"
             >
-              <label for="search_submitter" class="search-label">提交人：</label>
+              <label
+                for="search_submitter"
+                class="search-label"
+              >提交人：</label>
               <SearchInput
-              input-id="search_submitter"
                 v-model="filters.createdBy"
+                input-id="search_submitter"
                 field-key="WeeklyReport_created_by"
                 placeholder="请输入提交人"
                 @input="handleSearch"
@@ -158,8 +170,8 @@
             <span class="pagination-pages">
               <input
                 id="currentPage"
-                name="currentPage"
                 v-model.number="currentPage"
+                name="currentPage"
                 type="number"
                 :min="1"
                 :max="totalPages"
@@ -180,8 +192,8 @@
             <span>每页</span>
             <select
               id="pageSize"
-              name="pageSize"
               v-model="pageSize"
+              name="pageSize"
               class="page-size-select"
               @change="handlePageSizeChange"
             >
@@ -431,9 +443,14 @@
         </div>
         <div class="modal-body">
           <div class="form-item">
-            <label for="rejectReason" class="form-label">退回原因</label>
-            <textarea id="rejectReason" name="rejectReason"
+            <label
+              for="rejectReason"
+              class="form-label"
+            >退回原因</label>
+            <textarea
+              id="rejectReason"
               v-model="rejectReason"
+              name="rejectReason"
               class="form-textarea"
               placeholder="请输入退回原因"
               rows="3"
@@ -465,9 +482,9 @@ import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { request } from '@/api/request'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
-import { userStore } from '@/stores/userStore'
+import { useUserStore } from '@/stores/userStore'
 import { formatDate, formatDateTime } from '@/config/constants'
-import SearchInput from '@/components/SearchInput.vue'
+import { SearchInput } from '@sstcp/shared'
 import { ElMessage } from 'element-plus'
 
 interface WeeklyReportItem {
@@ -513,6 +530,7 @@ export default defineComponent({
     SearchInput,
   },
   setup() {
+    const userStore = useUserStore()
     const router = useRouter()
     const loading = ref(false)
     const submitting = ref(false)
@@ -599,7 +617,7 @@ export default defineComponent({
      * 判断是否可以编辑
      */
     const canEdit = (item: WeeklyReportItem) => {
-      const user = userStore.getUser()
+      const user = userStore.currentUser
       if (!user) return false
       const isOwner = item.created_by === user.name
       const isEditableStatus = item.status === 'draft' || item.status === 'rejected'
@@ -629,7 +647,7 @@ export default defineComponent({
         if (filters.value.workSummary) params.work_summary = filters.value.workSummary
 
         if (!canViewAll.value) {
-          const user = userStore.getUser()
+          const user = userStore.currentUser
           if (user && user.name) {
             params.created_by = user.name
           }
@@ -642,8 +660,8 @@ export default defineComponent({
         })) as unknown as PaginatedResponse<WeeklyReportItem>
 
         if (response && response.code === 200 && response.data) {
-          dataList.value = response.data.items || response.data.content || []
-          total.value = response.data.total || response.data.totalElements || 0
+          dataList.value = response.data.items || []
+          total.value = response.data.total || 0
         }
       } catch (error) {
         console.error('加载周报数据失败:', error)
@@ -813,7 +831,7 @@ export default defineComponent({
       totalPages,
       filters,
       canViewAll,
-      currentUser: userStore.readonlyCurrentUser,
+      currentUser: userStore.currentUser,
       showDetailModal,
       detailData,
       showImagePreview,

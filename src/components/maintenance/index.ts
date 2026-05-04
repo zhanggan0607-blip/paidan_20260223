@@ -1,6 +1,0 @@
-export { default as MaintenancePlanSearchForm } from './MaintenancePlanSearchForm.vue'
-export { default as MaintenancePlanTable } from './MaintenancePlanTable.vue'
-export { default as MaintenancePlanPagination } from './MaintenancePlanPagination.vue'
-export { default as MaintenancePlanModal } from './MaintenancePlanModal.vue'
-export { default as PlanItemsTable } from './PlanItemsTable.vue'
-export { default as InspectionItemsTable } from './InspectionItemsTable.vue'

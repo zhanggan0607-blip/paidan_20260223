@@ -1,20 +1,25 @@
 import paramiko
+import os
 import json
 import sys
 import urllib.request
 import urllib.error
 
-SERVER_IP = '8.153.95.31'
+SERVER_IP = os.environ.get('SERVER_IP', '')
 SERVER_PASSWORD = os.environ.get('SERVER_PASSWORD', '')
 API_BASE = f'https://{SERVER_IP}/api/v1'
 
 ssh = paramiko.SSHClient()
-ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+ssh.set_missing_host_key_policy(paramiko.RejectPolicy())
+known_hosts = os.path.expanduser('~/.ssh/known_hosts')
+if os.path.exists(known_hosts):
+    ssh.load_host_keys(known_hosts)
 ssh.connect(SERVER_IP, username='root', password=SERVER_PASSWORD, timeout=15)
 
 stdin, stdout, stderr = ssh.exec_command("""docker exec sstcp-backend python -c "
 import psycopg2
 import json
+import os
 
 conn = psycopg2.connect(os.environ.get('DATABASE_URL', ''))
 cur = conn.cursor()
@@ -95,7 +100,8 @@ for user in users:
     print(f'\n--- Testing user: {name} (ID:{user["id"]}, Role:{role}, Dept:{department}) ---')
     print(f'    Has password hash: {has_password}, Must change password: {must_change}, Phone: {phone}')
 
-    passwords_to_try = ['123456']
+    test_password = os.environ.get('TEST_PASSWORD', '')
+    passwords_to_try = [test_password] if test_password else []
     if phone and len(phone) >= 6:
         passwords_to_try.append(phone[-6:])
 

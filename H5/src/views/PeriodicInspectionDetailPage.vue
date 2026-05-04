@@ -16,9 +16,10 @@ import {
   uploadService,
   operationLogService,
 } from '../services'
-import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
+import { formatDate, processPhoto, getCurrentLocation, getWorkIdFontSize } from '@sstcp/shared'
 import { WORK_STATUS } from '../config/constants'
-import { userStore } from '../stores/userStore'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import { copyOrderId } from '../utils/clipboard'
@@ -112,7 +113,7 @@ const canApprove = computed(() => {
 })
 
 const isWorker = computed(() => {
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user || !detail.value) return false
   return detail.value.maintenance_personnel === user.name
 })
@@ -157,28 +158,6 @@ const handleBackToList = () => {
   goBack()
 }
 
-/**
- * 根据工单编号长度计算字体大小
- * @param workId 工单编号
- * @returns 字体大小(px)
- */
-const getWorkIdFontSize = (workId: string) => {
-  if (!workId) return 14
-  const len = workId.length
-  if (len <= 18) return 14
-  if (len <= 22) return 12
-  if (len <= 26) return 11
-  if (len <= 30) return 10
-  if (len <= 35) return 9
-  if (len <= 40) return 8
-  return 7
-}
-
-/**
- * 预览图片
- * @param photos 图片列表
- * @param startIndex 起始索引
- */
 const previewPhoto = (photos: string[], startIndex: number) => {
   if (!photos || photos.length === 0) return
   showImagePreview({
@@ -289,7 +268,12 @@ const fetchInspectionItems = async () => {
         const plan = response.data
         if (plan.inspection_items) {
           try {
-            const items: InspectionItemData[] = JSON.parse(plan.inspection_items)
+            let items: InspectionItemData[]
+            if (typeof plan.inspection_items === 'string') {
+              items = JSON.parse(plan.inspection_items)
+            } else {
+              items = plan.inspection_items
+            }
             items.forEach((item: InspectionItemData, idx: number) => {
               allItems.push({
                 id: plan.id * 1000 + idx,
@@ -464,48 +448,95 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
+    input.multiple = true
     input.capture = 'environment'
 
     input.onchange = async (e: Event) => {
       const target = e.target as HTMLInputElement
-      const file = target.files?.[0]
-      if (!file) return
+      const allFiles = target.files
+      if (!allFiles || allFiles.length === 0) return
 
-      showLoadingToast({ message: '处理中...', forbidClick: true })
+      const remaining = 9 - system.photos.length
+      if (remaining <= 0) {
+        showFailToast('已达到最大上传数量')
+        return
+      }
+      const files = Array.from(allFiles).slice(0, remaining)
+
+      showLoadingToast({ message: `处理中(0/${files.length})...`, forbidClick: true })
+
+      const processedFiles: File[] = []
+      let processFailed = 0
+
+      for (let i = 0; i < files.length; i++) {
+        try {
+          showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          const processedFile = await processPhoto(files[i], {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+          processedFiles.push(processedFile)
+        } catch (error) {
+          console.error('Failed to process photo:', error)
+          processFailed++
+        }
+      }
+
+      if (processedFiles.length === 0) {
+        closeToast()
+        showFailToast('图片处理失败')
+        return
+      }
+
+      showLoadingToast({ message: `上传中(${processedFiles.length}张)...`, forbidClick: true })
 
       try {
-        const userName = userStore.getUser()?.name || '未知用户'
-        const location = await getCurrentLocation()
-        const processedFile = await processPhoto(file, {
-          userName,
-          includeLocation: true,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
-        })
-
-        const formDataObj = new FormData()
-        formDataObj.append('file', processedFile)
-
-        const response = await uploadService.uploadFile(processedFile)
+        const response = await uploadService.uploadFiles(processedFiles)
+        let uploadedCount = 0
+        let failedCount = processFailed
 
         if (response.code === 200 && response.data) {
+          const successList = response.data.success || response.data
+          if (Array.isArray(successList)) {
+            for (const item of successList) {
+              if (item.url) {
+                const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
+                if (index !== -1) {
+                  const item_ref = inspectionSystems.value[index]!
+                  item_ref.photos.push(item.url)
+                  item_ref.photos_uploaded = item_ref.photos.length > 0
+                  if (markAsInspected) {
+                    item_ref.inspected = true
+                  }
+                }
+                uploadedCount++
+              }
+            }
+          }
+          const failedList = response.data.failed || []
+          failedCount += failedList.length
+        } else {
+          failedCount += processedFiles.length
+        }
+
+        closeToast()
+        if (uploadedCount > 0) {
           const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
           if (index !== -1) {
-            const item = inspectionSystems.value[index]!
-            item.photos.push(response.data.url)
-            item.photos_uploaded = item.photos.length > 0
-            if (markAsInspected) {
-              item.inspected = true
-            }
-            await saveRecordToBackend(item)
+            await saveRecordToBackend(inspectionSystems.value[index])
           }
-          showSuccessToast('上传成功')
+          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+        } else {
+          showFailToast('上传失败')
         }
       } catch (error) {
-        console.error('Failed to upload photo:', error)
-        showFailToast('上传失败')
-      } finally {
+        console.error('Batch upload failed:', error)
         closeToast()
+        showFailToast('上传失败')
       }
     }
 
@@ -522,6 +553,7 @@ const tryCaptureOnIOSForItem = (system: InspectionSystem, markAsInspected: boole
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
+  input.multiple = true
   input.style.position = 'fixed'
   input.style.top = '0'
   input.style.left = '0'
@@ -532,81 +564,88 @@ const tryCaptureOnIOSForItem = (system: InspectionSystem, markAsInspected: boole
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
-    const file = target.files?.[0]
-    if (!file) return
+    const allFiles = target.files
+    if (!allFiles || allFiles.length === 0) return
 
     if (document.body.contains(input)) {
       document.body.removeChild(input)
     }
 
-    showLoadingToast({ message: '上传中...', forbidClick: true, duration: 0 })
+    const remaining = 9 - system.photos.length
+    if (remaining <= 0) {
+      showFailToast('已达到最大上传数量')
+      return
+    }
+    const files = Array.from(allFiles).slice(0, remaining)
 
-    try {
-      console.log('=== iOS巡检拍照上传流程 ===')
-      console.log('原始文件大小:', file.size, 'bytes')
-      
-      let fileToUpload = file
-      
-      if (file.size > 500 * 1024) {
-        console.log('图片太大，开始压缩...')
-        showLoadingToast({ message: '压缩中...', forbidClick: true, duration: 0 })
-        
-        const compressedBlob = await compressImage(file, 500)
-        fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
-        console.log('压缩后文件大小:', fileToUpload.size, 'bytes')
-      }
+    showLoadingToast({ message: `上传中(0/${files.length})...`, forbidClick: true, duration: 0 })
 
-      console.log('开始上传（使用Base64方式）...')
-      const reader = new FileReader()
-      
-      reader.onload = async (e) => {
-        try {
-          const base64Data = e.target?.result as string
-          console.log('Base64数据长度:', base64Data.length)
-          
-          const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
-          console.log('上传响应:', response)
+    let uploadedCount = 0
+    let failedCount = 0
 
-          if (response.code === 200 && response.data) {
-            console.log('上传成功，URL:', response.data.url)
-            const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
-            if (index !== -1) {
-              const item = inspectionSystems.value[index]!
-              item.photos.push(response.data.url)
-              item.photos_uploaded = item.photos.length > 0
-              if (markAsInspected) {
-                item.inspected = true
-              }
-              console.log('开始保存到后端...')
-              await saveRecordToBackend(item)
-              console.log('保存完成')
-            }
-            closeToast()
-            showSuccessToast('上传成功')
-          } else {
-            console.error('上传失败:', response.message)
-            closeToast()
-            showFailToast(response.message || '上传失败')
-          }
-        } catch (uploadError: any) {
-          console.error('上传请求失败:', uploadError)
-          closeToast()
-          showFailToast('上传失败')
+    for (const file of files) {
+      try {
+        let fileToUpload = file
+
+        if (file.size > 500 * 1024) {
+          showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+
+          const compressedBlob = await compressImage(file, 500)
+          fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
         }
+
+        showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+        const userName = userStore.currentUser?.name || '未知用户'
+        const location = await getCurrentLocation()
+        const watermarkedFile = await processPhoto(fileToUpload, {
+          userName,
+          includeLocation: true,
+          latitude: location?.latitude,
+          longitude: location?.longitude,
+        })
+
+        showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+
+        const reader = new FileReader()
+
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onload = (ev) => resolve(ev.target?.result as string)
+          reader.onerror = reject
+          reader.readAsDataURL(watermarkedFile)
+        })
+
+        const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
+
+        if (response.code === 200 && response.data) {
+          const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
+          if (index !== -1) {
+            const item = inspectionSystems.value[index]!
+            item.photos.push(response.data.url)
+            item.photos_uploaded = item.photos.length > 0
+            if (markAsInspected) {
+              item.inspected = true
+            }
+          }
+          uploadedCount++
+        } else {
+          console.error('上传失败:', response.message)
+          failedCount++
+        }
+      } catch (uploadError: any) {
+        console.error('上传请求失败:', uploadError)
+        failedCount++
       }
-      
-      reader.onerror = (error) => {
-        console.error('FileReader错误:', error)
-        closeToast()
-        showFailToast('读取文件失败')
+    }
+
+    closeToast()
+    if (uploadedCount > 0) {
+      const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
+      if (index !== -1) {
+        await saveRecordToBackend(inspectionSystems.value[index])
       }
-      
-      reader.readAsDataURL(fileToUpload)
-      
-    } catch (error: any) {
-      console.error('Failed to process photo:', error)
-      closeToast()
-      showFailToast('处理图片失败')
+      showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+    } else {
+      showFailToast('上传失败')
     }
   }
 
@@ -787,7 +826,7 @@ const handleRecall = async () => {
     const response = await periodicInspectionService.recall(detail.value?.id!)
     if (response.code === 200) {
       showSuccessToast('撤回成功')
-      await loadData()
+      await fetchDetail()
     } else {
       showFailToast(response.message || '撤回失败')
     }
@@ -997,7 +1036,7 @@ const handleInspectionFieldChange = (system: InspectionSystem) => {
 const addOperationLog = async (operationTypeCode: string, operationRemark?: string) => {
   if (!detail.value?.id) return
 
-  const user = userStore.getUser()
+  const user = userStore.currentUser
   if (!user) return
 
   try {

@@ -2,9 +2,11 @@ from sqlalchemy import BigInteger, Column, DateTime, Index, String
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.mixins import SerializationMixin
 
 
-class WorkOrderOperationLog(Base):
+class WorkOrderOperationLog(Base, SerializationMixin):
+    _exclude_from_dict = {'operation_type'}
     __tablename__ = "work_order_operation_log"
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, comment="主键ID")
@@ -13,7 +15,7 @@ class WorkOrderOperationLog(Base):
     work_order_no = Column(String(50), nullable=False, comment="工单编号")
     operator_name = Column(String(100), nullable=False, comment="操作人员姓名")
     operator_id = Column(BigInteger, nullable=True, comment="操作人员ID")
-    operation_type = Column(String(50), nullable=False, default='', comment="操作类型(已废弃，请使用operation_type_code)")
+    operation_type = Column(String(50), nullable=True, default=None, comment="操作类型(已废弃，请使用operation_type_code)")
     operation_type_code = Column(String(50), nullable=True, comment="操作类型编码")
     operation_type_name = Column(String(50), nullable=True, comment="操作类型名称")
     operation_remark = Column(String(500), comment="操作备注")
@@ -25,17 +27,3 @@ class WorkOrderOperationLog(Base):
         Index('idx_operation_log_created_at', 'created_at'),
         {'comment': '工单操作日志表'}
     )
-
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'work_order_type': self.work_order_type,
-            'work_order_id': self.work_order_id,
-            'work_order_no': self.work_order_no,
-            'operator_name': self.operator_name,
-            'operator_id': self.operator_id,
-            'operation_type_code': self.operation_type_code,
-            'operation_type_name': self.operation_type_name,
-            'operation_remark': self.operation_remark,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
-        }

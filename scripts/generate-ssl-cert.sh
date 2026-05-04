@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-SERVER_IP="${1:-8.153.95.31}"
+SERVER_IP="${1:-${SERVER_IP:-}}"
 SERVER_DOMAIN="${2:-paidan.sstcp.top}"
 DEPLOY_DIR="${3:-/opt/sstcp/v2.0.0}"
 SSL_DIR="${DEPLOY_DIR}/ssl"

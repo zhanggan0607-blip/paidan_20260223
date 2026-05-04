@@ -4,8 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { showLoadingToast, closeToast, showImagePreview } from 'vant'
 import { weeklyReportService } from '../services'
 import { formatDate, formatDateTime } from '@sstcp/shared'
-import { userStore } from '../stores/userStore'
-import type { WeeklyReport, OperationLog } from '../types/models'
+import { useUserStore } from '../stores/userStore'
+const userStore = useUserStore()
+import type { WeeklyReport, OperationLog } from '../types/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -139,7 +140,7 @@ const handleBack = () => {
         return
       }
     }
-    if (userStore.isAdmin()) {
+    if (userStore.isAdmin) {
       router.push('/weekly-report-all')
     } else {
       router.push('/weekly-report-list')
@@ -326,7 +327,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-text-primary);
+  color: var(--color-nav-text);
 }
 
 .image-section {

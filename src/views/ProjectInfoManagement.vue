@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+<template>
   <div class="project-info-management">
     <LoadingSpinner
       :visible="loading"
@@ -14,20 +14,26 @@
       <div class="search-form">
         <div class="search-row">
           <div class="search-item">
-            <label for="search_projectName" class="search-label">项目名称：</label>
+            <label
+              for="search_projectName"
+              class="search-label"
+            >项目名称：</label>
             <SearchInput
-              input-id="search_projectName"
               v-model="searchForm.projectName"
+              input-id="search_projectName"
               field-key="ProjectInfoManagement_projectName"
               placeholder="请输入项目名称"
               @input="handleSearch"
             />
           </div>
           <div class="search-item">
-            <label for="search_clientName" class="search-label">客户名称：</label>
+            <label
+              for="search_clientName"
+              class="search-label"
+            >客户名称：</label>
             <SearchInput
-              input-id="search_clientName"
               v-model="searchForm.clientName"
+              input-id="search_clientName"
               field-key="ProjectInfoManagement_clientName"
               placeholder="请输入客户名称"
               @input="handleSearch"
@@ -69,8 +75,8 @@
             <td>{{ startIndex + index + 1 }}</td>
             <td>{{ item.project_id }}</td>
             <td>{{ item.project_name }}</td>
-            <td>{{ formatDate(item.completion_date) }}</td>
-            <td>{{ formatDate(item.maintenance_end_date) }}</td>
+            <td>{{ formatDate(item.completion_date ?? '') }}</td>
+            <td>{{ formatDate(item.maintenance_end_date ?? '') }}</td>
             <td>{{ item.maintenance_period }}</td>
             <td>{{ item.client_name }}</td>
             <td>{{ item.project_manager || '-' }}</td>
@@ -126,8 +132,8 @@
         </button>
         <select
           id="pageSize"
-          name="pageSize"
           v-model="pageSize"
+          name="pageSize"
           class="page-select"
           @change="handlePageSizeChange"
         >
@@ -185,9 +191,14 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label for="projectName" class="form-label"> <span class="required">*</span> 项目名称 </label>
-                <input id="projectName" name="projectName"
+                <label
+                  for="projectName"
+                  class="form-label"
+                > <span class="required">*</span> 项目名称 </label>
+                <input
+                  id="projectName"
                   v-model="formData.project_name"
+                  name="projectName"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
@@ -195,17 +206,27 @@
                 >
               </div>
               <div class="form-item">
-                <label for="projectStartDate" class="form-label"> <span class="required">*</span> 项目开始日期 </label>
-                <input id="projectStartDate" name="projectStartDate"
+                <label
+                  for="projectStartDate"
+                  class="form-label"
+                > <span class="required">*</span> 项目开始日期 </label>
+                <input
+                  id="projectStartDate"
                   v-model="formData.completion_date"
+                  name="projectStartDate"
                   type="date"
                   class="form-input"
                 >
               </div>
               <div class="form-item">
-                <label for="maintenancePeriod" class="form-label"> <span class="required">*</span> 维保频率 </label>
-                <select id="maintenancePeriod" name="maintenancePeriod"
+                <label
+                  for="maintenancePeriod"
+                  class="form-label"
+                > <span class="required">*</span> 维保频率 </label>
+                <select
+                  id="maintenancePeriod"
                   v-model="formData.maintenance_period"
+                  name="maintenancePeriod"
                   class="form-input"
                 >
                   <option value="">
@@ -229,11 +250,16 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="clientName" class="form-label"> <span class="required">*</span> 客户单位 </label>
+                <label
+                  for="clientName"
+                  class="form-label"
+                > <span class="required">*</span> 客户单位 </label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select id="clientName" name="clientName"
+                    <select
+                      id="clientName"
                       v-model="formData.client_source"
+                      name="clientName"
                       class="form-input client-select"
                       @change="handleClientSourceChange('formData')"
                     >
@@ -251,8 +277,8 @@
                     <span class="client-or">或</span>
                     <input
                       id="clientNameManual"
-                      name="clientNameManual"
                       v-model="formData.client_name_manual"
+                      name="clientNameManual"
                       type="text"
                       class="form-input client-input"
                       placeholder="手动输入客户单位"
@@ -263,11 +289,16 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="clientContact" class="form-label">客户联系人</label>
+                <label
+                  for="clientContact"
+                  class="form-label"
+                >客户联系人</label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select id="clientContact" name="clientContact"
+                    <select
+                      id="clientContact"
                       v-model="formData.client_contact_id"
+                      name="clientContact"
                       class="form-input client-select"
                       :disabled="!formData.client_source"
                       @change="handleContactChange('formData')"
@@ -287,8 +318,8 @@
                     <span class="client-or">或</span>
                     <input
                       id="clientContactManual"
-                      name="clientContactManual"
                       v-model="formData.client_contact_manual"
+                      name="clientContactManual"
                       type="text"
                       class="form-input client-input"
                       placeholder="手动输入联系人"
@@ -304,9 +335,14 @@
                 >请先选择或输入客户单位</span>
               </div>
               <div class="form-item">
-                <label for="clientAddress" class="form-label"> <span class="required">*</span> 客户地址 </label>
-                <input id="clientAddress" name="clientAddress"
+                <label
+                  for="clientAddress"
+                  class="form-label"
+                > <span class="required">*</span> 客户地址 </label>
+                <input
+                  id="clientAddress"
                   v-model="formData.address"
+                  name="clientAddress"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户地址"
@@ -316,9 +352,14 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="projectId" class="form-label"> <span class="required">*</span> 项目编号 </label>
-                <input id="projectId" name="projectId"
+                <label
+                  for="projectId"
+                  class="form-label"
+                > <span class="required">*</span> 项目编号 </label>
+                <input
+                  id="projectId"
                   v-model="formData.project_id"
+                  name="projectId"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
@@ -326,9 +367,14 @@
                 >
               </div>
               <div class="form-item">
-                <label for="projectAbbr" class="form-label">项目简称</label>
-                <input id="projectAbbr" name="projectAbbr"
+                <label
+                  for="projectAbbr"
+                  class="form-label"
+                >项目简称</label>
+                <input
+                  id="projectAbbr"
                   v-model="formData.project_abbr"
+                  name="projectAbbr"
                   type="text"
                   class="form-input"
                   placeholder="请输入项目简称"
@@ -336,18 +382,28 @@
                 >
               </div>
               <div class="form-item">
-                <label for="projectEndDate" class="form-label"> <span class="required">*</span> 项目结束日期 </label>
-                <input id="projectEndDate" name="projectEndDate"
+                <label
+                  for="projectEndDate"
+                  class="form-label"
+                > <span class="required">*</span> 项目结束日期 </label>
+                <input
+                  id="projectEndDate"
                   v-model="formData.maintenance_end_date"
+                  name="projectEndDate"
                   type="date"
                   class="form-input"
                 >
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                <label
+                  for="maintenancePersonnel"
+                  class="form-label"
+                > <span class="required">*</span> 运维人员 </label>
+                <select
+                  id="maintenancePersonnel"
                   v-model="formData.project_manager"
+                  name="maintenancePersonnel"
                   class="form-input"
                 >
                   <option value="">
@@ -363,9 +419,14 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="clientContactInfo" class="form-label">客户联系方式</label>
-                <input id="clientContactInfo" name="clientContactInfo"
+                <label
+                  for="clientContactInfo"
+                  class="form-label"
+                >客户联系方式</label>
+                <input
+                  id="clientContactInfo"
                   v-model="formData.client_contact_info"
+                  name="clientContactInfo"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系方式"
@@ -373,9 +434,14 @@
                 >
               </div>
               <div class="form-item">
-                <label for="clientContactPosition" class="form-label">客户联系人职位</label>
-                <input id="clientContactPosition" name="clientContactPosition"
+                <label
+                  for="clientContactPosition"
+                  class="form-label"
+                >客户联系人职位</label>
+                <input
+                  id="clientContactPosition"
                   v-model="formData.client_contact_position"
+                  name="clientContactPosition"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人职位"
@@ -532,9 +598,14 @@
           <div class="form-grid">
             <div class="form-column">
               <div class="form-item">
-                <label for="projectName" class="form-label"> <span class="required">*</span> 项目名称 </label>
-                <input id="projectName" name="projectName"
+                <label
+                  for="projectName"
+                  class="form-label"
+                > <span class="required">*</span> 项目名称 </label>
+                <input
+                  id="projectName"
                   v-model="editData.project_name"
+                  name="projectName"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
@@ -542,17 +613,27 @@
                 >
               </div>
               <div class="form-item">
-                <label for="projectStartDate" class="form-label"> <span class="required">*</span> 项目开始日期 </label>
-                <input id="projectStartDate" name="projectStartDate"
+                <label
+                  for="projectStartDate"
+                  class="form-label"
+                > <span class="required">*</span> 项目开始日期 </label>
+                <input
+                  id="projectStartDate"
                   v-model="editData.completion_date"
+                  name="projectStartDate"
                   type="date"
                   class="form-input"
                 >
               </div>
               <div class="form-item">
-                <label for="maintenancePeriod" class="form-label"> <span class="required">*</span> 维保频率 </label>
-                <select id="maintenancePeriod" name="maintenancePeriod"
+                <label
+                  for="maintenancePeriod"
+                  class="form-label"
+                > <span class="required">*</span> 维保频率 </label>
+                <select
+                  id="maintenancePeriod"
                   v-model="editData.maintenance_period"
+                  name="maintenancePeriod"
                   class="form-input"
                 >
                   <option value="">
@@ -576,11 +657,16 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="clientName" class="form-label"> <span class="required">*</span> 客户单位 </label>
+                <label
+                  for="clientName"
+                  class="form-label"
+                > <span class="required">*</span> 客户单位 </label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select id="clientName" name="clientName"
+                    <select
+                      id="clientName"
                       v-model="editData.client_source"
+                      name="clientName"
                       class="form-input client-select"
                       @change="handleClientSourceChange('editData')"
                     >
@@ -598,8 +684,8 @@
                     <span class="client-or">或</span>
                     <input
                       id="editClientNameManual"
-                      name="editClientNameManual"
                       v-model="editData.client_name_manual"
+                      name="editClientNameManual"
                       type="text"
                       class="form-input client-input"
                       placeholder="手动输入客户单位"
@@ -610,11 +696,16 @@
                 </div>
               </div>
               <div class="form-item">
-                <label for="clientContact" class="form-label">客户联系人</label>
+                <label
+                  for="clientContact"
+                  class="form-label"
+                >客户联系人</label>
                 <div class="client-select-wrapper">
                   <div class="client-input-row">
-                    <select id="clientContact" name="clientContact"
+                    <select
+                      id="clientContact"
                       v-model="editData.client_contact_id"
+                      name="clientContact"
                       class="form-input client-select"
                       :disabled="!editData.client_source"
                       @change="handleContactChange('editData')"
@@ -634,8 +725,8 @@
                     <span class="client-or">或</span>
                     <input
                       id="editClientContactManual"
-                      name="editClientContactManual"
                       v-model="editData.client_contact_manual"
+                      name="editClientContactManual"
                       type="text"
                       class="form-input client-input"
                       placeholder="手动输入联系人"
@@ -651,9 +742,14 @@
                 >请先选择或输入客户单位</span>
               </div>
               <div class="form-item">
-                <label for="clientAddress" class="form-label"> <span class="required">*</span> 客户地址 </label>
-                <input id="clientAddress" name="clientAddress"
+                <label
+                  for="clientAddress"
+                  class="form-label"
+                > <span class="required">*</span> 客户地址 </label>
+                <input
+                  id="clientAddress"
                   v-model="editData.address"
+                  name="clientAddress"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户地址"
@@ -663,9 +759,14 @@
             </div>
             <div class="form-column">
               <div class="form-item">
-                <label for="projectId" class="form-label"> <span class="required">*</span> 项目编号 </label>
-                <input id="projectId" name="projectId"
+                <label
+                  for="projectId"
+                  class="form-label"
+                > <span class="required">*</span> 项目编号 </label>
+                <input
+                  id="projectId"
                   v-model="editData.project_id"
+                  name="projectId"
                   type="text"
                   class="form-input"
                   placeholder="请输入"
@@ -674,9 +775,14 @@
                 >
               </div>
               <div class="form-item">
-                <label for="projectAbbr" class="form-label">项目简称</label>
-                <input id="projectAbbr" name="projectAbbr"
+                <label
+                  for="projectAbbr"
+                  class="form-label"
+                >项目简称</label>
+                <input
+                  id="projectAbbr"
                   v-model="editData.project_abbr"
+                  name="projectAbbr"
                   type="text"
                   class="form-input"
                   placeholder="请输入项目简称"
@@ -684,18 +790,28 @@
                 >
               </div>
               <div class="form-item">
-                <label for="projectEndDate" class="form-label"> <span class="required">*</span> 项目结束日期 </label>
-                <input id="projectEndDate" name="projectEndDate"
+                <label
+                  for="projectEndDate"
+                  class="form-label"
+                > <span class="required">*</span> 项目结束日期 </label>
+                <input
+                  id="projectEndDate"
                   v-model="editData.maintenance_end_date"
+                  name="projectEndDate"
                   type="date"
                   class="form-input"
                 >
                 <span class="form-hint">截止日期指的是当日 23:59:59</span>
               </div>
               <div class="form-item">
-                <label for="maintenancePersonnel" class="form-label"> <span class="required">*</span> 运维人员 </label>
-                <select id="maintenancePersonnel" name="maintenancePersonnel"
+                <label
+                  for="maintenancePersonnel"
+                  class="form-label"
+                > <span class="required">*</span> 运维人员 </label>
+                <select
+                  id="maintenancePersonnel"
                   v-model="editData.project_manager"
+                  name="maintenancePersonnel"
                   class="form-input"
                 >
                   <option value="">
@@ -711,9 +827,14 @@
                 </select>
               </div>
               <div class="form-item">
-                <label for="clientContactInfo" class="form-label">客户联系方式</label>
-                <input id="clientContactInfo" name="clientContactInfo"
+                <label
+                  for="clientContactInfo"
+                  class="form-label"
+                >客户联系方式</label>
+                <input
+                  id="clientContactInfo"
                   v-model="editData.client_contact_info"
+                  name="clientContactInfo"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系方式"
@@ -721,9 +842,14 @@
                 >
               </div>
               <div class="form-item">
-                <label for="clientContactPosition" class="form-label">客户联系人职位</label>
-                <input id="clientContactPosition" name="clientContactPosition"
+                <label
+                  for="clientContactPosition"
+                  class="form-label"
+                >客户联系人职位</label>
+                <input
+                  id="clientContactPosition"
                   v-model="editData.client_contact_position"
+                  name="clientContactPosition"
                   type="text"
                   class="form-input"
                   placeholder="请输入客户联系人职位"
@@ -974,8 +1100,8 @@ export default defineComponent({
           client_name: searchForm.clientName || undefined,
         })
         if (response.code === 200 && response.data) {
-          projectData.value = response.data.content || []
-          totalElements.value = response.data.totalElements ?? 0
+          projectData.value = response.data.items || []
+          totalElements.value = response.data.total ?? 0
           totalPages.value = response.data.totalPages ?? 0
         } else {
           showToast(response.message || '加载数据失败', 'error')
@@ -1092,7 +1218,7 @@ export default defineComponent({
           address: formData.address,
           project_abbr: formData.project_abbr || undefined,
           project_manager: formData.project_manager || undefined,
-          client_contact_id: formData.client_contact_id || null,
+          client_contact_id: formData.client_contact_id || undefined,
           client_contact: clientContact || undefined,
           client_contact_position: formData.client_contact_position || undefined,
           client_contact_info: formData.client_contact_info || undefined,
@@ -1144,11 +1270,11 @@ export default defineComponent({
       viewData.id = item.id
       viewData.project_id = item.project_id
       viewData.project_name = item.project_name
-      viewData.completion_date = item.completion_date
-      viewData.maintenance_end_date = item.maintenance_end_date
-      viewData.maintenance_period = item.maintenance_period
-      viewData.client_name = item.client_name
-      viewData.address = item.address
+      viewData.completion_date = item.completion_date ?? ''
+      viewData.maintenance_end_date = item.maintenance_end_date ?? ''
+      viewData.maintenance_period = item.maintenance_period ?? ''
+      viewData.client_name = item.client_name ?? ''
+      viewData.address = item.address ?? ''
       viewData.project_abbr = item.project_abbr || ''
       viewData.project_manager = item.project_manager || ''
       viewData.client_contact = item.client_contact || ''
@@ -1161,12 +1287,12 @@ export default defineComponent({
       editData.id = item.id
       editData.project_id = item.project_id
       editData.project_name = item.project_name
-      editData.completion_date = formatDateForInput(item.completion_date)
-      editData.maintenance_end_date = formatDateForInput(item.maintenance_end_date)
-      editData.maintenance_period = item.maintenance_period
-      editData.client_name = item.client_name
+      editData.completion_date = formatDateForInput(item.completion_date ?? '')
+      editData.maintenance_end_date = formatDateForInput(item.maintenance_end_date ?? '')
+      editData.maintenance_period = item.maintenance_period ?? ''
+      editData.client_name = item.client_name ?? ''
       editData.client_source = ''
-      editData.client_name_manual = item.client_name
+      editData.client_name_manual = item.client_name ?? ''
       editData.client_contact_id = item.client_contact_id || null
       editData.client_contact = item.client_contact || ''
       editData.client_contact_manual = item.client_contact || ''
@@ -1175,8 +1301,9 @@ export default defineComponent({
 
       let matchingCustomer = customerList.value.find((c) => c.name === item.client_name)
       if (!matchingCustomer) {
+        const clientName = item.client_name ?? ''
         matchingCustomer = customerList.value.find(
-          (c) => c.name.includes(item.client_name) || item.client_name.includes(c.name)
+          (c) => c.name.includes(clientName) || clientName.includes(c.name)
         )
       }
 
@@ -1186,7 +1313,7 @@ export default defineComponent({
         editData.client_name_manual = ''
         availableContacts.value = matchingCustomer.contacts || []
       }
-      editData.address = item.address
+      editData.address = item.address ?? ''
       editData.project_abbr = item.project_abbr || ''
       editData.project_manager = item.project_manager || ''
       isEditModalOpen.value = true
@@ -1254,7 +1381,7 @@ export default defineComponent({
           address: editData.address,
           project_abbr: editData.project_abbr || undefined,
           project_manager: editData.project_manager || undefined,
-          client_contact_id: editData.client_contact_id || null,
+          client_contact_id: editData.client_contact_id || undefined,
           client_contact: clientContact || undefined,
           client_contact_position: editData.client_contact_position || undefined,
           client_contact_info: editData.client_contact_info || undefined,
@@ -1382,9 +1509,9 @@ export default defineComponent({
       try {
         const response = await customerService.getList({ page: 0, size: 100 })
         if (response.code === 200 && response.data) {
-          customerList.value = response.data.content.map((c) => ({
+          customerList.value = (response.data.content || []).map((c: any) => ({
             id: c.id,
-            name: c.name,
+            name: c.name ?? '',
             contacts: c.contacts || [],
           }))
         }

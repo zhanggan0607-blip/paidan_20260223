@@ -9,25 +9,17 @@ export interface ApiResponse<T = unknown> {
 
 export interface PaginatedData<T> {
   items: T[]
-  total: number
-  page: number
-  pageSize: number
   content?: T[]
+  total: number
   totalElements?: number
-  totalPages?: number
-  size?: number
-  number?: number
-  first?: boolean
-  last?: boolean
+  page: number
+  size: number
+  totalPages: number
+  first: boolean
+  last: boolean
 }
 
 export interface PaginatedResponse<T = unknown> extends ApiResponse<PaginatedData<T>> {}
-
-export interface QueryParams {
-  page: number
-  size?: number
-  pageSize?: number
-}
 
 export interface ApiError {
   status: number
@@ -52,13 +44,6 @@ export interface UserInfo extends User {
   username: string
   name: string
   role: string
-}
-
-export interface TokenPayload {
-  access_token: string
-  token_type: string
-  expires_in?: number
-  refresh_token?: string
 }
 
 export interface LoginRequest {

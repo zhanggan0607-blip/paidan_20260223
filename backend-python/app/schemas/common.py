@@ -21,13 +21,13 @@ class ApiResponse(BaseModel, Generic[T]):
 
 
 class PaginatedResponse(BaseModel):
-    """分页响应格式"""
     code: int
     message: str
     data: dict
 
     @classmethod
     def success(cls, items, total, page, size, message="success"):
+        total_pages = (total + size - 1) // size if size > 0 else 0
         return cls(
             code=200,
             message=message,
@@ -36,12 +36,9 @@ class PaginatedResponse(BaseModel):
                 'total': total,
                 'page': page,
                 'size': size,
-                'content': items,
-                'totalElements': total,
-                'totalPages': (total + size - 1) // size if size > 0 else 0,
-                'number': page,
+                'totalPages': total_pages,
                 'first': page == 0,
-                'last': size > 0 and page >= (total + size - 1) // size - 1,
+                'last': size > 0 and page >= total_pages - 1,
             }
         )
 

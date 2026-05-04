@@ -15,7 +15,7 @@ import { copyOrderId } from '../utils/clipboard'
 import { useNavigation } from '../composables/useNavigation'
 import { useHeartbeatControl } from '../composables/useHeartbeatControl'
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
-import type { OverdueAlertItem } from '../types/models'
+import type { OverdueAlertItem } from '../types/api'
 
 const route = useRoute()
 const router = useRouter()

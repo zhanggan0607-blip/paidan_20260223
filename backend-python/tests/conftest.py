@@ -8,7 +8,7 @@ from typing import AsyncGenerator, Generator
 import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, Integer
+from sqlalchemy import create_engine, Integer, JSON
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -30,6 +30,9 @@ for table in Base.metadata.sorted_tables:
         if column.type.__class__.__name__ == "BigInteger" and column.autoincrement:
             column.type = Integer()
             column._is_autoincrement = True
+        col_type_name = column.type.__class__.__name__
+        if col_type_name == "JSONB":
+            column.type = JSON()
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

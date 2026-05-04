@@ -10,90 +10,22 @@ from app.exceptions import DuplicateException, NotFoundException, ValidationExce
 from app.models.work_plan import WorkPlan
 from app.repositories.work_plan import WorkPlanRepository
 from app.schemas.work_plan import WorkPlanCreate, WorkPlanUpdate
+from app.services.base import BaseService
 from app.services.sync_service import SyncService
 from app.utils.date_utils import parse_date, parse_datetime
 
 PLAN_TYPES = ['定期巡检', '临时维修', '零星用工']
 
 
-class WorkPlanService:
-    """
-    工作计划服务类
-    提供工作计划的增删改查和统计功能
-    """
+class WorkPlanService(BaseService):
 
     def __init__(self, db: Session):
-        """
-        初始化工作计划服务
-
-        Args:
-            db: 数据库会话对象
-        """
+        super().__init__(db)
         self.repository = WorkPlanRepository(db)
         self.sync_service = SyncService(db)
-        self._db = db
-
-    def _parse_date_field(self, date_value: str | datetime | None) -> datetime | None:
-        """
-        解析日期字符串为datetime对象
-
-        Args:
-            date_value: 日期值，可以是字符串或datetime对象
-
-        Returns:
-            解析后的datetime对象，解析失败返回None
-        """
-        return parse_datetime(date_value)
 
     def _get_date_value(self, date_field) -> date | None:
-        """
-        获取日期字段的date值
-
-        Args:
-            date_field: 日期字段，可以是datetime或date对象
-
-        Returns:
-            date对象
-        """
         return parse_date(date_field)
-
-    def _create_operation_log(
-        self,
-        work_order_id: int,
-        work_order_no: str,
-        operator_name: str,
-        operator_id: int | None,
-        operation_type: str,
-        operation_type_name: str,
-        remark: str
-    ) -> None:
-        """
-        创建操作日志
-
-        Args:
-            work_order_id: 工单ID
-            work_order_no: 工单编号
-            operator_name: 操作者名称
-            operator_id: 操作者ID
-            operation_type: 操作类型代码
-            operation_type_name: 操作类型名称
-            remark: 备注
-        """
-        from app.models.work_order_operation_log import WorkOrderOperationLog
-
-        log = WorkOrderOperationLog(
-            work_order_type='work_plan',
-            work_order_id=work_order_id,
-            work_order_no=work_order_no,
-            operator_name=operator_name,
-            operator_id=operator_id,
-            operation_type=operation_type,
-            operation_type_code=operation_type,
-            operation_type_name=operation_type_name,
-            operation_remark=remark
-        )
-        self._db.add(log)
-        self._db.commit()
 
     def get_all(
         self,
@@ -196,8 +128,8 @@ class WorkPlanService:
             plan_type=dto.plan_type,
             project_id=dto.project_id,
             project_name=dto.project_name,
-            plan_start_date=self._parse_date_field(dto.plan_start_date),
-            plan_end_date=self._parse_date_field(dto.plan_end_date),
+            plan_start_date=parse_datetime(dto.plan_start_date),
+            plan_end_date=parse_datetime(dto.plan_end_date),
             client_name=dto.client_name,
             maintenance_personnel=dto.maintenance_personnel,
             status=dto.status or "执行中",
@@ -212,6 +144,7 @@ class WorkPlanService:
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='work_plan',
                 work_order_id=result.id,
                 work_order_no=result.plan_id,
                 operator_name=operator_name,
@@ -261,8 +194,8 @@ class WorkPlanService:
         existing_plan.plan_type = dto.plan_type
         existing_plan.project_id = dto.project_id
         existing_plan.project_name = dto.project_name
-        existing_plan.plan_start_date = self._parse_date_field(dto.plan_start_date)
-        existing_plan.plan_end_date = self._parse_date_field(dto.plan_end_date)
+        existing_plan.plan_start_date = parse_datetime(dto.plan_start_date)
+        existing_plan.plan_end_date = parse_datetime(dto.plan_end_date)
         existing_plan.client_name = dto.client_name
         existing_plan.maintenance_personnel = dto.maintenance_personnel
         existing_plan.status = dto.status
@@ -276,6 +209,7 @@ class WorkPlanService:
 
         if operator_name and result.id:
             self._create_operation_log(
+                work_order_type='work_plan',
                 work_order_id=result.id,
                 work_order_no=result.plan_id,
                 operator_name=operator_name,
@@ -301,6 +235,7 @@ class WorkPlanService:
 
         if operator_name and work_plan.id:
             self._create_operation_log(
+                work_order_type='work_plan',
                 work_order_id=work_plan.id,
                 work_order_no=work_plan.plan_id,
                 operator_name=operator_name,

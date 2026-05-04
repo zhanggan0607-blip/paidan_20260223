@@ -5,7 +5,7 @@
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse } from '../types/api'
-import type { OperationLog } from '../types/models'
+import type { OperationLog } from '../types/api'
 
 /**
  * 操作日志查询参数

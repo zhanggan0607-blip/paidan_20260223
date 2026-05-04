@@ -90,7 +90,7 @@ class WorkPlanRepository:
     def create(self, work_plan: WorkPlan) -> WorkPlan:
         try:
             self.db.add(work_plan)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(work_plan)
             return work_plan
         except Exception as e:
@@ -100,28 +100,12 @@ class WorkPlanRepository:
 
     def update(self, work_plan: WorkPlan) -> WorkPlan:
         try:
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(work_plan)
             return work_plan
         except Exception as e:
             self.db.rollback()
             logger.error(f"更新工作计划失败: {str(e)}")
-            raise
-
-    def soft_delete(self, work_plan: WorkPlan, user_id: int = None) -> None:
-        """
-        软删除工作计划
-
-        Args:
-            work_plan: 要删除的工作计划对象
-            user_id: 执行删除的用户ID
-        """
-        try:
-            work_plan.soft_delete(user_id)
-            self.db.commit()
-        except Exception as e:
-            self.db.rollback()
-            logger.error(f"软删除工作计划失败: {str(e)}")
             raise
 
     def delete(self, work_plan: WorkPlan) -> None:
@@ -130,7 +114,7 @@ class WorkPlanRepository:
         """
         try:
             self.db.delete(work_plan)
-            self.db.commit()
+            self.db.flush()
         except Exception as e:
             self.db.rollback()
             logger.error(f"删除工作计划失败: {str(e)}")
