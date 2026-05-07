@@ -47,7 +47,9 @@ export interface CustomerListParams {
 
 export interface CustomerListResponse {
   content: Customer[]
+  items?: Customer[]
   totalElements: number
+  total?: number
   totalPages: number
   size: number
   number: number

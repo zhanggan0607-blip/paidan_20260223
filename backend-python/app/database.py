@@ -18,7 +18,15 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 _sync_db_url = settings.database_url
-_async_db_url = _sync_db_url.replace("postgresql://", "postgresql+asyncpg://", 1) if _sync_db_url else None
+if _sync_db_url:
+    if _sync_db_url.startswith("postgresql+psycopg://"):
+        _async_db_url = _sync_db_url.replace("postgresql+psycopg://", "postgresql+asyncpg://", 1)
+    elif _sync_db_url.startswith("postgresql://"):
+        _async_db_url = _sync_db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    else:
+        _async_db_url = None
+else:
+    _async_db_url = None
 
 engine = create_engine(
     _sync_db_url,

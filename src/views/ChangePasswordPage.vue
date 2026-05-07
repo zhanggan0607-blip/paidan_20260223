@@ -90,6 +90,15 @@ export default defineComponent({
     const errorMessage = ref('')
     const successMessage = ref('')
 
+    const PASSWORD_MIN_LENGTH = 6
+
+    const validatePassword = (password: string): string | null => {
+      if (password.length < PASSWORD_MIN_LENGTH) {
+        return `新密码至少需要${PASSWORD_MIN_LENGTH}位`
+      }
+      return null
+    }
+
     const handleChangePassword = async () => {
       errorMessage.value = ''
       successMessage.value = ''
@@ -99,8 +108,9 @@ export default defineComponent({
         return
       }
 
-      if (formData.value.new_password.length < 6) {
-        errorMessage.value = '新密码至少需要6位'
+      const passwordError = validatePassword(formData.value.new_password)
+      if (passwordError) {
+        errorMessage.value = passwordError
         return
       }
 
@@ -128,8 +138,18 @@ export default defineComponent({
           errorMessage.value = response.message || '修改失败，请重试'
         }
       } catch (error: unknown) {
-        const err = error as { message?: string }
-        errorMessage.value = err.message || '修改失败，请重试'
+        const err = error as { message?: string | object }
+        let msg = '修改失败，请重试'
+        if (err.message) {
+          if (typeof err.message === 'string') {
+            msg = err.message
+          } else if (Array.isArray(err.message)) {
+            msg = err.message.map((e: { msg?: string }) => e.msg || String(e)).join('; ')
+          } else {
+            msg = String(err.message)
+          }
+        }
+        errorMessage.value = msg
       } finally {
         loading.value = false
       }

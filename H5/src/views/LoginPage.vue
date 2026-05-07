@@ -134,7 +134,7 @@ const handleLogin = async () => {
       </button>
 
       <div class="login-tip">
-        <span>默认密码为手机号后6位</span>
+        <span>默认密码为 Sstcp@手机号后4位</span>
       </div>
     </form>
   </div>

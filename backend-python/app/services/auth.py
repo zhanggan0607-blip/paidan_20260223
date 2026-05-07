@@ -20,6 +20,7 @@ from app.utils.logging_config import logger
 
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 900
+LOGIN_LOCKOUT_ENABLED = False
 
 _login_failures: dict[str, list[float]] = {}
 _login_lock = threading.Lock()
@@ -41,6 +42,8 @@ def get_default_password(user: Personnel) -> str:
 
 
 def check_login_lockout(username: str) -> int | None:
+    if not LOGIN_LOCKOUT_ENABLED:
+        return None
     redis_client = _get_redis_client()
     if redis_client:
         try:
@@ -81,6 +84,8 @@ def check_login_lockout(username: str) -> int | None:
 
 
 def record_login_failure(username: str) -> None:
+    if not LOGIN_LOCKOUT_ENABLED:
+        return
     redis_client = _get_redis_client()
     if redis_client:
         try:

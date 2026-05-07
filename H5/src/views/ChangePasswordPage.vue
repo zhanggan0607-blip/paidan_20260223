@@ -15,13 +15,23 @@ const formData = ref({
 const confirmPassword = ref('')
 const loading = ref(false)
 
+const PASSWORD_MIN_LENGTH = 6
+
+const validatePassword = (password: string): string | null => {
+  if (password.length < PASSWORD_MIN_LENGTH) {
+    return `新密码至少需要${PASSWORD_MIN_LENGTH}位`
+  }
+  return null
+}
+
 const handleChangePassword = async () => {
   if (!formData.value.old_password) {
     showToast('请输入旧密码')
     return
   }
-  if (formData.value.new_password.length < 6) {
-    showToast('新密码至少需要6位')
+  const passwordError = validatePassword(formData.value.new_password)
+  if (passwordError) {
+    showToast(passwordError)
     return
   }
   if (formData.value.new_password !== confirmPassword.value) {
@@ -59,7 +69,17 @@ const handleChangePassword = async () => {
       showToast(response.message || '修改失败')
     }
   } catch (error: any) {
-    showToast(error.message || '修改失败，请重试')
+    let msg = '修改失败，请重试'
+    if (error?.message) {
+      if (typeof error.message === 'string') {
+        msg = error.message
+      } else if (Array.isArray(error.message)) {
+        msg = error.message.map((e: { msg?: string }) => e.msg || String(e)).join('; ')
+      } else {
+        msg = String(error.message)
+      }
+    }
+    showToast(msg)
   } finally {
     loading.value = false
     closeToast()

@@ -46,7 +46,7 @@ class LoginRequest(BaseModel):
 
 class ChangePasswordRequest(BaseModel):
     old_password: str = Field(..., min_length=1, description="旧密码")
-    new_password: str = Field(..., min_length=8, description="新密码（至少8位，需包含字母、数字和特殊字符）")
+    new_password: str = Field(..., min_length=6, description="新密码（至少6位）")
 
 
 class RefreshTokenRequest(BaseModel):
@@ -258,21 +258,6 @@ async def change_password(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="新密码不能与旧密码相同"
-        )
-
-    new_pwd = password_req.new_password
-    has_letter = any(c.isalpha() for c in new_pwd)
-    has_digit = any(c.isdigit() for c in new_pwd)
-    has_special = any(c in "!@#$%^&*()_+-=[]{}|;:',.<>?/`~" for c in new_pwd)
-    if not (has_letter and has_digit):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="新密码必须同时包含字母和数字"
-        )
-    if not has_special:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="新密码必须包含至少一个特殊字符（如!@#$%等）"
         )
 
     try:

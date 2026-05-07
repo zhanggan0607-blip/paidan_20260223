@@ -143,12 +143,21 @@ function createApiError(error: AxiosError | Error, status?: number): ApiError {
   if (axios.isAxiosError(error)) {
     const response = error.response
     const data = response?.data as
-      | { detail?: string; message?: string; data?: { errors?: string[] } }
+      | { detail?: string | Array<{ msg?: string; type?: string }>; message?: string; data?: { errors?: string[] } }
       | undefined
+
+    let detailMessage: string | undefined
+    if (data?.detail) {
+      if (typeof data.detail === 'string') {
+        detailMessage = data.detail
+      } else if (Array.isArray(data.detail)) {
+        detailMessage = data.detail.map((e) => e.msg || e.type || String(e)).join('; ')
+      }
+    }
 
     return {
       status: response?.status || 0,
-      message: data?.detail || data?.message || error.message,
+      message: detailMessage || data?.message || error.message,
       errors: data?.data?.errors || [],
       data: data?.data || null,
     }
