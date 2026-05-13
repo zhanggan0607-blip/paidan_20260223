@@ -36,6 +36,7 @@ const defaultSortConfig: SortConfig = {
     '/statistics',
     '/config/',
     '/upload/',
+    '/ocr/',
   ],
   customSorters: {},
 }

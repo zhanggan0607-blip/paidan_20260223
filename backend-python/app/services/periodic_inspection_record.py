@@ -142,6 +142,7 @@ class PeriodicInspectionRecordService:
         record = self.get_by_id(record_id)
         if record:
             self.repository.delete(record)
+            self._db.commit()
 
     def delete_by_inspection_id(self, inspection_id: str) -> int:
         """
@@ -153,4 +154,6 @@ class PeriodicInspectionRecordService:
         Returns:
             删除的记录数量
         """
-        return self.repository.delete_by_inspection_id(inspection_id)
+        result = self.repository.delete_by_inspection_id(inspection_id)
+        self._db.commit()
+        return result

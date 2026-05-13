@@ -1,4 +1,5 @@
-import logging
+from app.utils.logging_config import get_logger
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import or_
@@ -7,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.inspection_item import InspectionItem
 from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class InspectionItemRepository:
@@ -16,7 +17,9 @@ class InspectionItemRepository:
 
     def get_all(self) -> list[InspectionItem]:
         try:
-            return self.db.query(InspectionItem).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
+            return self.db.query(InspectionItem).filter(
+                InspectionItem.deleted_at.is_(None)
+            ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询所有巡检事项失败: {str(e)}")
             raise
@@ -38,7 +41,8 @@ class InspectionItemRepository:
     def get_children(self, parent_id: int) -> list[InspectionItem]:
         try:
             return self.db.query(InspectionItem).filter(
-                InspectionItem.parent_id == parent_id
+                InspectionItem.parent_id == parent_id,
+                InspectionItem.deleted_at.is_(None)
             ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询子节点失败 (parent_id={parent_id}): {str(e)}")
@@ -47,7 +51,8 @@ class InspectionItemRepository:
     def get_root_items(self) -> list[InspectionItem]:
         try:
             return self.db.query(InspectionItem).filter(
-                InspectionItem.parent_id.is_(None)
+                InspectionItem.parent_id.is_(None),
+                InspectionItem.deleted_at.is_(None)
             ).order_by(InspectionItem.sort_order, InspectionItem.created_at.desc()).all()
         except Exception as e:
             logger.error(f"查询根节点失败: {str(e)}")
@@ -58,25 +63,37 @@ class InspectionItemRepository:
             all_items = self.get_all()
             return self._build_tree(all_items)
         except Exception as e:
-            logger.error(f"构建树形结构失败: {str(e)}")
-            raise
+            logger.error(f"构建树形结构失败: {str(e)}", exc_info=True)
+            return []
 
     def _build_tree(self, items: list[InspectionItem], parent_id: int | None = None) -> list[dict[str, Any]]:
         tree = []
         for item in items:
             if item.parent_id == parent_id:
-                node = item.to_dict()
+                try:
+                    node = item.to_dict()
+                except Exception as e:
+                    logger.error(f"序列化巡检事项失败 (id={item.id}): {str(e)}")
+                    node = {
+                        'id': item.id,
+                        'item_code': getattr(item, 'item_code', ''),
+                        'item_name': getattr(item, 'item_name', ''),
+                        'item_type': getattr(item, 'item_type', ''),
+                        'level': getattr(item, 'level', 1),
+                        'parent_id': item.parent_id,
+                        'sort_order': getattr(item, 'sort_order', 0),
+                        'children': [],
+                    }
                 children = self._build_tree(items, item.id)
-                if children:
-                    node['children'] = children
-                else:
-                    node['children'] = []
+                node['children'] = children
                 tree.append(node)
         return tree
 
     def search(self, keyword: str | None = None) -> list[InspectionItem]:
         try:
-            query = self.db.query(InspectionItem)
+            query = self.db.query(InspectionItem).filter(
+                InspectionItem.deleted_at.is_(None)
+            )
             if keyword:
                 search_pattern = f"%{keyword}%"
                 query = query.filter(
@@ -126,11 +143,15 @@ class InspectionItemRepository:
             if not db_item:
                 return False
 
-            children = self.get_children(item_id)
-            for child in children:
-                self.delete(child.id)
+            now = datetime.now(timezone.utc)
+            db_item.deleted_at = now
 
-            self.db.delete(db_item)
+            children = self.db.query(InspectionItem).filter(
+                InspectionItem.parent_id == item_id
+            ).all()
+            for child in children:
+                self._soft_delete_cascade(child.id, now)
+
             self.db.flush()
             return True
         except Exception as e:
@@ -138,9 +159,21 @@ class InspectionItemRepository:
             logger.error(f"删除巡检事项失败: {str(e)}")
             raise
 
+    def _soft_delete_cascade(self, item_id: int, deleted_at: datetime) -> None:
+        item = self.get_by_id(item_id)
+        if item:
+            item.deleted_at = deleted_at
+            children = self.db.query(InspectionItem).filter(
+                InspectionItem.parent_id == item_id
+            ).all()
+            for child in children:
+                self._soft_delete_cascade(child.id, deleted_at)
+
     def get_paginated(self, skip: int = 0, limit: int = 10) -> tuple[list[InspectionItem], int]:
         try:
-            query = self.db.query(InspectionItem)
+            query = self.db.query(InspectionItem).filter(
+                InspectionItem.deleted_at.is_(None)
+            )
             total = query.count()
             items = query.offset(skip).limit(limit).all()
             return items, total

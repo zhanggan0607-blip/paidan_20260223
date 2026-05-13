@@ -1,4 +1,4 @@
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime, date, timedelta
 from typing import Any
 
@@ -11,7 +11,7 @@ from app.models.project_info import ProjectInfo
 from app.models.spot_work import SpotWork
 from app.models.temporary_repair import TemporaryRepair
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 WORK_ORDER_MODELS = [
     (PeriodicInspection, '定期巡检单'),
@@ -279,8 +279,9 @@ class StatisticsService:
         if not project_name:
             return []
 
-        all_projects = self._db.query(ProjectInfo).all()
-        project_dict.update((p.project_id, p.project_name) for p in all_projects)
+        project_dict.update(
+            dict(self._db.query(ProjectInfo.project_id, ProjectInfo.project_name).all())
+        )
 
         project_id = None
         for pid, pname in project_dict.items():

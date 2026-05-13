@@ -1,10 +1,10 @@
-import logging
+from app.utils.logging_config import get_logger
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.work_plan import WorkPlan
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class WorkPlanRepository:
@@ -27,7 +27,7 @@ class WorkPlanRepository:
         plan_id: str | None = None
     ) -> tuple[list[WorkPlan], int]:
         try:
-            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+            query = self.db.query(WorkPlan).options(selectinload(WorkPlan.project)).filter(
                 WorkPlan.is_deleted == False
             )
 
@@ -59,7 +59,7 @@ class WorkPlanRepository:
 
     def find_by_id(self, id: int) -> WorkPlan | None:
         try:
-            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+            return self.db.query(WorkPlan).options(selectinload(WorkPlan.project)).filter(
                 WorkPlan.id == id,
                 WorkPlan.is_deleted == False
             ).first()
@@ -69,7 +69,7 @@ class WorkPlanRepository:
 
     def find_by_plan_id(self, plan_id: str) -> WorkPlan | None:
         try:
-            return self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+            return self.db.query(WorkPlan).options(selectinload(WorkPlan.project)).filter(
                 WorkPlan.plan_id == plan_id,
                 WorkPlan.is_deleted == False
             ).first()
@@ -108,6 +108,15 @@ class WorkPlanRepository:
             logger.error(f"更新工作计划失败: {str(e)}")
             raise
 
+    def soft_delete(self, work_plan: WorkPlan, user_id: int = None) -> None:
+        try:
+            work_plan.soft_delete(user_id)
+            self.db.flush()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除工作计划失败: {str(e)}")
+            raise
+
     def delete(self, work_plan: WorkPlan) -> None:
         """
         物理删除（已弃用，请使用soft_delete）
@@ -122,12 +131,12 @@ class WorkPlanRepository:
 
     def find_all_unpaginated(self, plan_type: str | None = None) -> list[WorkPlan]:
         try:
-            query = self.db.query(WorkPlan).options(joinedload(WorkPlan.project)).filter(
+            query = self.db.query(WorkPlan).options(selectinload(WorkPlan.project)).filter(
                 WorkPlan.is_deleted == False
             )
             if plan_type:
                 query = query.filter(WorkPlan.plan_type == plan_type)
-            return query.order_by(WorkPlan.created_at.desc(), WorkPlan.id.desc()).all()
+            return list(query.order_by(WorkPlan.created_at.desc(), WorkPlan.id.desc()).yield_per(200))
         except Exception as e:
             logger.error(f"查询所有工作计划失败: {str(e)}")
             raise

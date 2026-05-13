@@ -1,11 +1,11 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.models.customer_contact import CustomerContact
 from app.schemas.customer_contact import CustomerContactCreate, CustomerContactUpdate
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CustomerContactRepository:

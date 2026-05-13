@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { User } from '@sstcp/shared'
+import { decodeJwtPayload, isTokenExpired, fetchCurrentUser } from '@sstcp/shared'
 import {
   RoleCode,
   isManagerRole,
@@ -12,53 +13,6 @@ import {
 const TOKEN_KEY = 'token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
 const USER_KEY = 'user'
-
-function decodeJwtPayload(token: string): { exp?: number; [key: string]: unknown } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const jsonStr = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    )
-    return JSON.parse(jsonStr)
-  } catch {
-    return null
-  }
-}
-
-function isTokenExpired(token: string): boolean {
-  const payload = decodeJwtPayload(token)
-  if (!payload || !payload.exp) return true
-  return Date.now() >= payload.exp * 1000
-}
-
-async function fetchCurrentUser(tokenValue: string): Promise<User | null> {
-  if (isTokenExpired(tokenValue)) return null
-  try {
-    const response = await fetch('/api/v1/auth/me', {
-      headers: { Authorization: `Bearer ${tokenValue}` },
-    })
-    if (!response.ok) return null
-    const result = await response.json()
-    if (result.code === 200 && result.data) {
-      return {
-        id: result.data.id,
-        name: result.data.name,
-        role: result.data.role,
-        department: result.data.department,
-        phone: result.data.phone,
-        must_change_password: result.data.must_change_password,
-      } as User
-    }
-    return null
-  } catch (_e) {
-    return null
-  }
-}
 
 export const useUserStore = defineStore('user', () => {
   const storedToken = localStorage.getItem(TOKEN_KEY)
@@ -153,7 +107,7 @@ export const useUserStore = defineStore('user', () => {
       clearUser()
       return false
     }
-    const user = await fetchCurrentUser(token.value)
+    const user = await fetchCurrentUser(token.value, '/api/v1')
     if (user) {
       currentUser.value = user
       return true

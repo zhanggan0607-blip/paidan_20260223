@@ -2,18 +2,18 @@
 零星用工Repository
 提供零星用工数据访问方法
 """
-import logging
+from app.utils.logging_config import get_logger
 from datetime import date
 from typing import Any
 
 from sqlalchemy import func, or_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.spot_work import SpotWork
 from app.models.spot_work_worker import SpotWorkWorker
 from app.repositories.base import BaseRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class SpotWorkRepository(BaseRepository[SpotWork]):
@@ -33,27 +33,11 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
         work_id: str | None = None,
         status: str | None = None,
         maintenance_personnel: str | None = None,
-        client_name: str | None = None
+        client_name: str | None = None,
+        statuses: list[str] | None = None
     ) -> tuple[list[SpotWork], int]:
-        """
-        分页查询零星用工列表
-
-        Args:
-            page: 页码
-            size: 每页数量
-            project_name: 项目名称（模糊查询）
-            work_id: 工单编号（模糊查询）
-            status: 状态
-            maintenance_personnel: 运维人员
-            client_name: 客户名称（模糊查询）
-
-        Returns:
-            (工单列表, 总数)
-        """
         try:
-            query = self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
-                SpotWork.is_deleted == False
-            )
+            query = self.db.query(SpotWork).filter(SpotWork.is_deleted == False)
 
             if project_name:
                 query = query.filter(SpotWork.project_name.like(f'%{self.escape_like(project_name)}%', escape='\\'))
@@ -63,6 +47,9 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
 
             if status:
                 query = query.filter(SpotWork.status == status)
+
+            if statuses:
+                query = query.filter(SpotWork.status.in_(statuses))
 
             if maintenance_personnel:
                 query = query.filter(SpotWork.maintenance_personnel == maintenance_personnel)
@@ -79,17 +66,8 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             raise
 
     def find_by_work_id(self, work_id: str) -> SpotWork | None:
-        """
-        根据工单编号查询
-
-        Args:
-            work_id: 工单编号
-
-        Returns:
-            工单对象，未找到返回None
-        """
         try:
-            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
+            return self.db.query(SpotWork).options(selectinload(SpotWork.project)).filter(
                 SpotWork.work_id == work_id,
                 SpotWork.is_deleted == False
             ).first()
@@ -136,16 +114,13 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             raise
 
     def find_all_unpaginated(self) -> list[SpotWork]:
-        """
-        查询所有零星用工（不分页）
-
-        Returns:
-            工单列表
-        """
         try:
-            return self.db.query(SpotWork).options(joinedload(SpotWork.project)).filter(
-                SpotWork.is_deleted == False
-            ).order_by(SpotWork.created_at.desc(), SpotWork.id.desc()).all()
+            return list(
+                self.db.query(SpotWork).options(selectinload(SpotWork.project)).filter(
+                    SpotWork.is_deleted == False
+                ).order_by(SpotWork.created_at.desc(), SpotWork.id.desc())
+                .yield_per(200)
+            )
         except Exception as e:
             logger.error(f"查询所有零星用工失败: {str(e)}")
             raise
@@ -154,19 +129,9 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
         self,
         project_id: str,
         start_date: str | None = None,
-        end_date: str | None = None
+        end_date: str | None = None,
+        unlinked_only: bool = False
     ) -> list[SpotWorkWorker]:
-        """
-        根据项目ID和日期范围获取工人列表
-
-        Args:
-            project_id: 项目编号
-            start_date: 开始日期
-            end_date: 结束日期
-
-        Returns:
-            工人列表
-        """
         try:
             query = self.db.query(SpotWorkWorker).filter(
                 SpotWorkWorker.project_id == project_id
@@ -176,6 +141,9 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
                 query = query.filter(func.date(SpotWorkWorker.start_date) == start_date)
             if end_date:
                 query = query.filter(func.date(SpotWorkWorker.end_date) == end_date)
+
+            if unlinked_only:
+                query = query.filter(SpotWorkWorker.spot_work_id.is_(None))
 
             return query.all()
         except Exception as e:
@@ -249,7 +217,8 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
         project_id: str,
         id_card_number: str,
         start_date: date | None = None,
-        end_date: date | None = None
+        end_date: date | None = None,
+        include_unlinked: bool = False
     ) -> SpotWorkWorker | None:
         """
         根据项目ID+日期范围+身份证号码查询工人（用于同一工单内身份证去重）
@@ -259,6 +228,7 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             id_card_number: 身份证号码
             start_date: 开始日期
             end_date: 结束日期
+            include_unlinked: 是否包含未关联工单的工人
 
         Returns:
             工人对象，未找到返回None
@@ -268,6 +238,9 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
                 SpotWorkWorker.project_id == project_id,
                 SpotWorkWorker.id_card_number == id_card_number
             )
+
+            if not include_unlinked:
+                query = query.filter(SpotWorkWorker.spot_work_id.isnot(None))
 
             if start_date:
                 query = query.filter(func.date(SpotWorkWorker.start_date) == start_date)
@@ -419,4 +392,19 @@ class SpotWorkRepository(BaseRepository[SpotWork]):
             return query.all()
         except Exception as e:
             logger.error(f"查询工单关联工人失败: {str(e)}")
+            raise
+
+    def delete_worker(self, worker_id: int) -> bool:
+        try:
+            worker = self.db.query(SpotWorkWorker).filter(
+                SpotWorkWorker.id == worker_id
+            ).first()
+            if not worker:
+                return False
+            self.db.delete(worker)
+            self.db.flush()
+            return True
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"删除工人失败: {str(e)}")
             raise

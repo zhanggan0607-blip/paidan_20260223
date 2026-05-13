@@ -102,23 +102,23 @@
                   @click.prevent="handleView(item)"
                 >查看</a>
                 <a
-                  v-if="canEditWork(item)"
+                  v-if="canEditWork(item) && item.status === WORK_STATUS.IN_PROGRESS"
                   href="#"
                   class="action-link action-edit"
                   @click.prevent="handleEdit(item)"
                 >编辑</a>
+                <a
+                  v-if="canUpdateWork(item)"
+                  href="#"
+                  class="action-link action-edit"
+                  @click.prevent="handleEdit(item)"
+                >更新</a>
                 <a
                   v-if="isAdmin && item.status === WORK_STATUS.PENDING_CONFIRM"
                   href="#"
                   class="action-link action-reject"
                   @click.prevent="handleReject(item)"
                 >退回</a>
-                <a
-                  v-if="canRecallWork(item)"
-                  href="#"
-                  class="action-link action-recall"
-                  @click.prevent="handleRecall(item)"
-                >撤回</a>
                 <a
                   v-if="item.status === WORK_STATUS.COMPLETED"
                   href="#"
@@ -496,12 +496,16 @@ export default defineComponent({
 
     const canEditWork = (item: RepairItem): boolean => {
       if (isAdmin.value) return true
-      if (item.status === WORK_STATUS.COMPLETED) return false
-      const isOwner = item.maintenance_personnel === currentUserName.value
+      if (item.status !== WORK_STATUS.IN_PROGRESS) return false
+      return item.maintenance_personnel === currentUserName.value
+    }
+
+    const canUpdateWork = (item: RepairItem): boolean => {
       const isEditableStatus = item.status === WORK_STATUS.PENDING_CONFIRM ||
-                               item.status === WORK_STATUS.IN_PROGRESS ||
                                item.status === WORK_STATUS.RETURNED
-      return isOwner && isEditableStatus
+      if (!isEditableStatus) return false
+      if (isAdmin.value) return true
+      return item.maintenance_personnel === currentUserName.value
     }
 
     const canRecallWork = (item: RepairItem): boolean => {
@@ -855,24 +859,6 @@ export default defineComponent({
       const item = currentExportItem.value
       const defaultFilename = `临时维修单_${item.repair_id}.pdf`
       
-      let fileHandle: any = null
-      
-      if ('showSaveFilePicker' in window && window.isSecureContext) {
-        try {
-          fileHandle = await (window as any).showSaveFilePicker({
-            suggestedName: defaultFilename,
-            types: [{
-              description: 'PDF文件',
-              accept: { 'application/pdf': ['.pdf'] },
-            }],
-          })
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            return
-          }
-        }
-      }
-      
       try {
         const token = localStorage.getItem('token')
         const exportUrl = `/api/v1/export/temporary-repair/${item.id}`
@@ -884,12 +870,47 @@ export default defineComponent({
         })
 
         if (!response.ok) {
-          const error = await response.json()
-          showToast(error.message || error.detail || '导出失败', 'error')
+          let errorMsg = '导出失败'
+          try {
+            const error = await response.json()
+            errorMsg = error.message || error.detail || errorMsg
+          } catch {
+            errorMsg = `导出失败 (${response.status})`
+          }
+          showToast(errorMsg, 'error')
+          return
+        }
+
+        const contentType = response.headers.get('content-type') || ''
+        if (!contentType.includes('application/pdf') && !contentType.includes('octet-stream')) {
+          showToast('服务器返回了非PDF文件', 'error')
           return
         }
 
         const blob = await response.blob()
+
+        if (blob.size === 0) {
+          showToast('导出的PDF文件为空', 'error')
+          return
+        }
+
+        let fileHandle: any = null
+
+        if ('showSaveFilePicker' in window && window.isSecureContext) {
+          try {
+            fileHandle = await (window as any).showSaveFilePicker({
+              suggestedName: defaultFilename,
+              types: [{
+                description: 'PDF文件',
+                accept: { 'application/pdf': ['.pdf'] },
+              }],
+            })
+          } catch (err: any) {
+            if (err.name === 'AbortError') {
+              return
+            }
+          }
+        }
 
         if (fileHandle) {
           const writable = await fileHandle.createWritable()
@@ -1071,6 +1092,7 @@ export default defineComponent({
       isDepartmentManager,
       currentUserName,
       canEditWork,
+      canUpdateWork,
       isPdfPreviewOpen,
       pdfPreviewData,
       pdfPreviewPhotos,

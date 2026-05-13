@@ -188,13 +188,16 @@ onMounted(() => {
     </van-nav-bar>
 
     <div class="action-bar">
-      <van-search name="filter_keyword"
+      <van-search
         v-model="filterKeyword"
+        name="filter_keyword"
         placeholder="搜索产品名称/品牌/型号"
         shape="round"
         class="search-input"
       />
-      <van-button v-if="canInbound" type="primary" size="small" @click="openInboundPopup"> 新增入库 </van-button>
+      <van-button v-if="canInbound" type="primary" size="small" @click="openInboundPopup">
+        新增入库
+      </van-button>
     </div>
 
     <van-pull-refresh v-model="loading" @refresh="fetchStockList">
@@ -234,8 +237,9 @@ onMounted(() => {
           <van-icon name="cross" @click="showInboundPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field name="product_name"
+          <van-field
             v-model="inboundForm.productName"
+            name="product_name"
             label="产品名称"
             placeholder="请输入或选择产品名称"
             required
@@ -252,19 +256,35 @@ onMounted(() => {
               </datalist>
             </template>
           </van-field>
-          <van-field name="brand" v-model="inboundForm.brand" label="品牌" placeholder="请输入品牌" />
-          <van-field name="model" v-model="inboundForm.model" label="产品型号" placeholder="请输入产品型号" />
-          <van-field name="quantity"
+          <van-field
+            v-model="inboundForm.brand"
+            name="brand"
+            label="品牌"
+            placeholder="请输入品牌"
+          />
+          <van-field
+            v-model="inboundForm.model"
+            name="model"
+            label="产品型号"
+            placeholder="请输入产品型号"
+          />
+          <van-field
             v-model="inboundForm.quantity"
+            name="quantity"
             type="number"
             label="入库数量"
             placeholder="请输入入库数量"
             required
           />
-          <van-field name="supplier" v-model="inboundForm.supplier" label="供应商" placeholder="请输入供应商" />
-          <van-field name="unit" v-model="inboundForm.unit" label="单位" placeholder="请输入单位">
+          <van-field
+            v-model="inboundForm.supplier"
+            name="supplier"
+            label="供应商"
+            placeholder="请输入供应商"
+          />
+          <van-field v-model="inboundForm.unit" name="unit" label="单位" placeholder="请输入单位">
             <template #input>
-              <select id="unit" name="unit" v-model="inboundForm.unit" class="unit-select">
+              <select id="unit" v-model="inboundForm.unit" name="unit" class="unit-select">
                 <option value="件">件</option>
                 <option value="个">个</option>
                 <option value="套">套</option>
@@ -273,8 +293,9 @@ onMounted(() => {
               </select>
             </template>
           </van-field>
-          <van-field name="remarks"
+          <van-field
             v-model="inboundForm.remarks"
+            name="remarks"
             label="备注"
             placeholder="请输入备注"
             type="textarea"

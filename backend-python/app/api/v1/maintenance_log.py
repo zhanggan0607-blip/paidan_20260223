@@ -127,22 +127,7 @@ def get_maintenance_logs(
     total = query.count()
     items = query.order_by(MaintenanceLog.created_at.desc()).offset(page * size).limit(size).all()
 
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': [item.to_dict() for item in items],
-            'content': [item.to_dict() for item in items],
-            'total': total,
-            'totalElements': total,
-            'totalPages': (total + size - 1) // size,
-            'size': size,
-            'number': page,
-            'page': page,
-            'first': page == 0,
-            'last': page >= (total + size - 1) // size
-        }
-    )
+    return PaginatedResponse.success([item.to_dict() for item in items], total, page, size)
 
 
 @router.get("/all/list", response_model=ApiResponse)
@@ -200,22 +185,7 @@ def get_my_maintenance_logs(
     total = query.count()
     items = query.order_by(MaintenanceLog.created_at.desc()).offset(page * size).limit(size).all()
 
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': [item.to_dict() for item in items],
-            'content': [item.to_dict() for item in items],
-            'total': total,
-            'totalElements': total,
-            'totalPages': (total + size - 1) // size,
-            'size': size,
-            'number': page,
-            'page': page,
-            'first': page == 0,
-            'last': page >= (total + size - 1) // size
-        }
-    )
+    return PaginatedResponse.success([item.to_dict() for item in items], total, page, size)
 
 
 @router.get("/today", response_model=ApiResponse)

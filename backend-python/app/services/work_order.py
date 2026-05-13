@@ -4,7 +4,16 @@ from datetime import datetime
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
+from app.utils.logging_config import get_logger
+
+logger = get_logger(__name__)
+
+_VALID_TABLES = {'periodic_inspection', 'temporary_repair', 'spot_work'}
+_VALID_ORDER_TYPES = {
+    'periodic_inspection': ('inspection_id', '定期巡检单', 'inspection'),
+    'temporary_repair': ('repair_id', '临时维修单', 'repair'),
+    'spot_work': ('work_id', '零星用工单', 'spotwork'),
+}
 
 
 class WorkOrderService:
@@ -48,6 +57,13 @@ class WorkOrderService:
 
     @staticmethod
     def _build_order_subquery(table: str, id_col: str, order_type: str, order_type_code: str, filter_sql: str) -> str:
+        if table not in _VALID_TABLES:
+            raise ValueError(f"Invalid table name: {table}")
+        expected = _VALID_ORDER_TYPES.get(table)
+        if expected and (id_col != expected[0] or order_type != expected[1] or order_type_code != expected[2]):
+            raise ValueError(f"Invalid order type params for table {table}")
+        has_execution_result = table == "periodic_inspection"
+        execution_result_col = "execution_result" if has_execution_result else "NULL as execution_result"
         return f"""
             SELECT 
                 id,
@@ -62,7 +78,7 @@ class WorkOrderService:
                 maintenance_personnel,
                 status,
                 remarks,
-                execution_result,
+                {execution_result_col},
                 signature,
                 created_at,
                 updated_at
@@ -72,6 +88,8 @@ class WorkOrderService:
 
     @staticmethod
     def _build_completed_subquery(table: str, id_col: str, order_type: str, order_type_code: str, plan_type: str, filter_sql: str) -> str:
+        if table not in _VALID_TABLES:
+            raise ValueError(f"Invalid table name: {table}")
         has_actual = table != "spot_work"
         actual_col = "actual_completion_date" if has_actual else "NULL as actual_completion_date"
         return f"""
@@ -256,3 +274,26 @@ class WorkOrderService:
         results = self.db.execute(data_sql, data_params).fetchall()
 
         return [self._format_row(row, include_actual=True) for row in results], total
+
+    def get_work_order_detail(self, order_id: int, order_type: str) -> dict | None:
+        table_map = {
+            'inspection': ('periodic_inspection', 'inspection_id', '定期巡检单', 'inspection'),
+            'repair': ('temporary_repair', 'repair_id', '临时维修单', 'repair'),
+            'spotwork': ('spot_work', 'work_id', '零星用工单', 'spotwork'),
+        }
+
+        info = table_map.get(order_type)
+        if not info:
+            return None
+
+        table, id_col, type_name, type_code = info
+        filter_sql = "is_deleted = false AND id = :order_id"
+        sql = text(f"""
+            SELECT * FROM (
+                {self._build_order_subquery(table, id_col, type_name, type_code, filter_sql)}
+            ) AS combined
+        """)
+        result = self.db.execute(sql, {'order_id': order_id}).fetchone()
+        if not result:
+            return None
+        return self._format_row(result)

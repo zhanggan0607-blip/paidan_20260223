@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.models.enums import VALID_WORK_ORDER_STATUSES
+
 
 class SpotWorkBase(BaseModel):
     work_id: str = Field(..., max_length=50, description="工单编号")
@@ -32,7 +34,7 @@ class SpotWorkBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
+        valid_statuses = VALID_WORK_ORDER_STATUSES
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -97,7 +99,7 @@ class SpotWorkPartialUpdate(BaseModel):
     def validate_status(cls, v):
         if v is None:
             return v
-        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
+        valid_statuses = VALID_WORK_ORDER_STATUSES
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -106,6 +108,40 @@ class SpotWorkPartialUpdate(BaseModel):
 class SpotWorkApprove(BaseModel):
     approved: bool
     reject_reason: str | None = Field(None, max_length=500, description="退回原因")
+
+
+class WorkerInfo(BaseModel):
+    name: str
+    gender: str | None = None
+    birthDate: str | None = None
+    address: str | None = None
+    idCardNumber: str
+    issuingAuthority: str | None = None
+    validPeriod: str | None = None
+    idCardFront: str
+    idCardBack: str
+
+
+class QuickFillRequest(BaseModel):
+    project_id: str
+    project_name: str
+    plan_start_date: str
+    plan_end_date: str
+    work_content: str | None = None
+    remark: str | None = None
+    client_contact: str | None = None
+    client_contact_info: str | None = None
+    photos: str | None = None
+    signature: str | None = None
+    worker_count: int | None = 0
+
+
+class WorkersRequest(BaseModel):
+    project_id: str
+    project_name: str
+    start_date: str
+    end_date: str
+    workers: list[WorkerInfo]
 
 
 class SpotWorkResponse(BaseModel):

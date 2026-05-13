@@ -73,12 +73,14 @@
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { request } from '@/api/request'
+import { useUserStore } from '@/stores/userStore'
 import type { ApiResponse } from '@sstcp/shared'
 
 export default defineComponent({
   name: 'ChangePasswordPage',
   setup() {
     const router = useRouter()
+    const userStore = useUserStore()
 
     const formData = ref({
       old_password: '',
@@ -132,7 +134,8 @@ export default defineComponent({
         if (response.code === 200) {
           successMessage.value = '密码修改成功，正在跳转...'
           setTimeout(() => {
-            router.push('/')
+            userStore.clearUser()
+            router.push('/login')
           }, 1500)
         } else {
           errorMessage.value = response.message || '修改失败，请重试'

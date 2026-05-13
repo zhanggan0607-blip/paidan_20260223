@@ -1,8 +1,6 @@
 """
 SSTCP维保系统 - FastAPI后端主入口
 """
-import os
-import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -10,7 +8,8 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.gzip import GZipMiddleware
+from starlette.middleware.gzip import GZipMiddleware as _StarletteGZipMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
 from sqlalchemy import text
@@ -26,6 +25,7 @@ from app.api.v1 import (
     export_pdf,
     files,
     inspection_item,
+    logs,
     maintenance_log,
     maintenance_plan,
     migration,
@@ -57,13 +57,69 @@ from app.exceptions import BusinessException
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.csp import CSPMiddleware
 from app.middleware.csrf import CSRFMiddleware
+from app.middleware.request_logging import RequestLoggingMiddleware
 from app.utils.logging_config import get_logger, setup_logging
 
+settings = get_settings()
 
-setup_logging(debug=get_settings().debug)
+setup_logging(
+    debug=settings.debug,
+    retention_days=settings.log_retention_days,
+    max_file_size_mb=settings.log_max_file_size_mb,
+    rotation_when=settings.log_rotation_when,
+    rotation_interval=settings.log_rotation_interval,
+)
 
 logger = get_logger(__name__)
-settings = get_settings()
+
+
+_MIGRATIONS = {
+    'inspection_item': [
+        ('level', 'INTEGER DEFAULT 1'),
+        ('check_content', 'TEXT'),
+        ('check_standard', 'TEXT'),
+    ],
+    'maintenance_plan': [
+        ('status', "VARCHAR(50) DEFAULT 'draft'"),
+    ],
+}
+
+_ALLOWED_TABLES = set(_MIGRATIONS.keys())
+_ALLOWED_COLUMNS = {
+    table: {col for col, _ in cols}
+    for table, cols in _MIGRATIONS.items()
+}
+
+
+def _ensure_columns(eng):
+    from sqlalchemy import inspect as sa_inspect
+    try:
+        insp = sa_inspect(eng)
+    except Exception as e:
+        logger.warning(f"数据库检查跳过: {e}")
+        return
+
+    for table_name, columns in _MIGRATIONS.items():
+        if table_name not in _ALLOWED_TABLES:
+            continue
+        try:
+            existing = {c['name'] for c in insp.get_columns(table_name)}
+        except Exception:
+            continue
+
+        for col_name, col_def in columns:
+            if col_name not in _ALLOWED_COLUMNS.get(table_name, set()):
+                continue
+            if col_name not in existing:
+                try:
+                    with eng.connect() as conn:
+                        conn.execute(text(
+                            f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}"
+                        ))
+                        conn.commit()
+                    logger.info(f"数据库迁移: {table_name}.{col_name} 已添加")
+                except Exception as e:
+                    logger.warning(f"数据库迁移失败 {table_name}.{col_name}: {e}")
 
 
 @asynccontextmanager
@@ -77,6 +133,8 @@ async def lifespan(app: FastAPI):
             logger.error(f"创建数据库表失败: {str(e)}", exc_info=True)
         else:
             logger.info("数据库表或索引已存在，跳过创建")
+
+    _ensure_columns(engine)
 
     logger.info("正在创建工单编号序列...")
     try:
@@ -107,6 +165,8 @@ app = FastAPI(
 
 Instrumentator().instrument(app).expose(app)
 
+app.add_middleware(RequestLoggingMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -122,6 +182,19 @@ app.add_middleware(
     expose_headers=["X-Request-ID"],
 )
 
+class GZipMiddleware(_StarletteGZipMiddleware):
+    def __init__(self, app: ASGIApp, minimum_size: int = 1000, compresslevel: int = 6):
+        super().__init__(app, minimum_size=minimum_size, compresslevel=compresslevel)
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope["type"] == "http":
+            path = scope.get("path", "")
+            if "/export/" in path:
+                await self.app(scope, receive, send)
+                return
+        await super().__call__(scope, receive, send)
+
+
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 app.add_middleware(CSPMiddleware)
@@ -132,53 +205,9 @@ app.add_middleware(
     RateLimitMiddleware,
     requests_per_minute=settings.rate_limit_per_minute,
     requests_per_hour=settings.rate_limit_per_hour,
+    get_requests_per_minute=settings.get_rate_limit_per_minute,
+    get_requests_per_hour=settings.get_rate_limit_per_hour,
 )
-
-
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    start_time = time.time()
-    request_id = str(uuid.uuid4())
-
-    request.state.request_id = request_id
-    request.state.start_time = start_time
-
-    logger.info(f"[{request_id}] {request.method} {request.url.path} - 开始")
-
-    try:
-        response = await call_next(request)
-
-        process_time = (time.time() - start_time) * 1000
-        status_code = response.status_code
-
-        if request.url.path.startswith('/uploads/') or request.url.path.startswith('/api/v1/files/'):
-            response.headers['Cache-Control'] = 'public, max-age=31536000'
-        elif request.url.path.startswith('/api/'):
-            response.headers['Cache-Control'] = 'public, max-age=60'
-
-        response.headers['X-Content-Type-Options'] = 'nosniff'
-        response.headers['X-XSS-Protection'] = '1; mode=block'
-        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        response.headers['Permissions-Policy'] = 'camera=(), microphone=(), geolocation=(), payment=()'
-        if request.url.scheme == 'https':
-            response.headers['Strict-Transport-Security'] = 'max-age=63072000; includeSubDomains'
-
-        logger.info(
-            f"[{request_id}] {request.method} {request.url.path} - "
-            f"状态码: {status_code}, "
-            f"处理时间: {process_time:.2f}ms"
-        )
-
-        return response
-    except Exception as e:
-        process_time = (time.time() - start_time) * 1000
-        logger.error(
-            f"[{request_id}] {request.method} {request.url.path} - "
-            f"异常: {str(e)}, "
-            f"处理时间: {process_time:.2f}ms"
-        )
-        raise
 
 app.include_router(auth.router, prefix=settings.api_prefix)
 app.include_router(project_info.router, prefix=settings.api_prefix)
@@ -212,6 +241,7 @@ app.include_router(online_user.router, prefix=settings.api_prefix)
 app.include_router(websocket_api.router, prefix=settings.api_prefix)
 app.include_router(export_pdf.router, prefix=settings.api_prefix)
 app.include_router(admin_edit.router, prefix=settings.api_prefix)
+app.include_router(logs.router, prefix=settings.api_prefix)
 
 
 @app.get("/")
@@ -235,7 +265,7 @@ async def health_check():
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
     except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
+        db_status = "unhealthy"
         logger.error(f"健康检查数据库连接失败: {e}")
 
     return {

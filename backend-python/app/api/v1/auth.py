@@ -6,7 +6,6 @@ import time as _time
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.auth import (
@@ -19,7 +18,9 @@ from app.auth import (
 from app.database import get_db
 from app.dependencies import UserInfo
 from app.dependencies import get_current_user_required as get_user_info
+from app.dependencies import get_manager_user
 from app.models.personnel import Personnel
+from app.schemas.auth import LoginRequest, ChangePasswordRequest, RefreshTokenRequest, ResetPasswordRequest
 from app.schemas.common import ApiResponse
 from app.services.auth import (
     check_login_lockout,
@@ -30,27 +31,13 @@ from app.services.auth import (
     record_online_status,
     set_user_offline,
     change_user_password,
+    reset_user_password,
     generate_tokens,
 )
 from app.services.personnel import PersonnelService
 from app.websocket import manager
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
-
-
-class LoginRequest(BaseModel):
-    username: str
-    password: str
-    device_type: str = "pc"
-
-
-class ChangePasswordRequest(BaseModel):
-    old_password: str = Field(..., min_length=1, description="旧密码")
-    new_password: str = Field(..., min_length=6, description="新密码（至少6位）")
-
-
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str = Field(..., description="刷新令牌")
 
 
 def get_client_ip(request: Request) -> str:
@@ -271,3 +258,34 @@ async def change_password(
     blacklist_all_user_tokens(current_user.id)
 
     return ApiResponse(code=200, message="密码修改成功，请重新登录", data=None)
+
+
+@router.post("/reset-password", response_model=ApiResponse)
+async def reset_password(
+    reset_req: ResetPasswordRequest,
+    admin_user: UserInfo = Depends(get_manager_user),
+    db: Session = Depends(get_db)
+):
+    target_user = db.query(Personnel).filter(Personnel.id == reset_req.user_id).first()
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="目标用户不存在"
+        )
+
+    try:
+        from app.services.auth import AuthService
+        AuthService.reset_user_password(db, reset_req.user_id, reset_req.new_password)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+    blacklist_all_user_tokens(reset_req.user_id)
+
+    return ApiResponse(
+        code=200,
+        message=f"已重置用户 {target_user.name} 的密码",
+        data={"user_id": reset_req.user_id, "user_name": target_user.name}
+    )

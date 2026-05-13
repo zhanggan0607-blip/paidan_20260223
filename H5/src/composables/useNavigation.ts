@@ -51,7 +51,10 @@ export const useNavigation = () => {
       if (extraQuery) {
         Object.assign(query, extraQuery)
       }
-      router.push({ name: parentRouteName, query: Object.keys(query).length > 0 ? query : undefined })
+      router.push({
+        name: parentRouteName,
+        query: Object.keys(query).length > 0 ? query : undefined,
+      })
     } else {
       router.push({ name: 'Home' })
     }

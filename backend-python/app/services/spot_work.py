@@ -3,7 +3,7 @@
 提供零星用工业务逻辑处理
 """
 import json
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 from typing import Any
 
@@ -21,7 +21,7 @@ from app.utils.date_utils import parse_datetime
 from app.utils.dictionary_helper import get_default_spot_work_status
 from app.utils.work_order_id_generator import generate_spot_work_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class SpotWorkService(BaseService):
@@ -168,6 +168,7 @@ class SpotWorkService(BaseService):
                 remark='创建零星用工工单'
             )
 
+        self._db.commit()
         return result
 
     def update(self, id: int, dto: SpotWorkUpdate) -> SpotWork:
@@ -295,6 +296,7 @@ class SpotWorkService(BaseService):
             )
 
         self.repository.soft_delete(work, user_id)
+        self._db.commit()
 
     def get_all_unpaginated(self) -> list[SpotWork]:
         """
@@ -312,24 +314,12 @@ class SpotWorkService(BaseService):
         project_name: str | None = None,
         work_id: str | None = None,
         status: str | None = None,
-        maintenance_personnel: str | None = None
+        maintenance_personnel: str | None = None,
+        statuses: list[str] | None = None
     ) -> tuple[list[dict[str, Any]], int]:
-        """
-        分页获取零星用工列表（包含工人信息）
-
-        Args:
-            page: 页码
-            size: 每页数量
-            project_name: 项目名称
-            work_id: 工单编号
-            status: 状态
-            maintenance_personnel: 运维人员
-
-        Returns:
-            (工单字典列表, 总数)
-        """
         items, total = self.repository.find_all(
-            page, size, project_name, work_id, status, maintenance_personnel
+            page, size, project_name, work_id, status, maintenance_personnel,
+            statuses=statuses
         )
 
         if not items:
@@ -431,20 +421,40 @@ class SpotWorkService(BaseService):
         self,
         project_id: str,
         start_date: str,
-        end_date: str
+        end_date: str,
+        unlinked_only: bool = False
     ) -> list[SpotWorkWorker]:
-        """
-        根据项目ID和日期范围获取工人列表
+        return self.repository.find_workers_by_project_and_date(project_id, start_date, end_date, unlinked_only=unlinked_only)
 
-        Args:
-            project_id: 项目编号
-            start_date: 开始日期
-            end_date: 结束日期
+    def get_all_workers(self) -> list[dict]:
+        subquery = self.db.query(
+            SpotWorkWorker.id_card_number,
+            func.max(SpotWorkWorker.id).label('max_id')
+        ).group_by(
+            SpotWorkWorker.id_card_number
+        ).subquery()
 
-        Returns:
-            工人列表
-        """
-        return self.repository.find_workers_by_project_and_date(project_id, start_date, end_date)
+        workers = self.db.query(SpotWorkWorker).join(
+            subquery,
+            SpotWorkWorker.id == subquery.c.max_id
+        ).all()
+
+        result = []
+        for w in workers:
+            id_card = w.id_card_number or ""
+            masked_id_card = id_card[:3] + "****" + id_card[-4:] if len(id_card) >= 7 else id_card
+            result.append({
+                "name": w.name,
+                "gender": w.gender,
+                "birthDate": w.birth_date,
+                "address": w.address,
+                "idCardNumber": masked_id_card,
+                "issuingAuthority": w.issuing_authority,
+                "validPeriod": w.valid_period,
+                "idCardFront": w.id_card_front,
+                "idCardBack": w.id_card_back
+            })
+        return result
 
     def save_workers(
         self,
@@ -524,10 +534,27 @@ class SpotWorkService(BaseService):
                 end_date=end
             )
             if existing_in_work:
-                raise ValidationException(
-                    f"施工人员'{worker_data.get('name')}'的身份证号码{masked_id_card}已在本工单中录入"
-                    f"（已录入人员：{existing_in_work.name}），同一工单中同一身份证只能上传一次"
+                logger.info(
+                    f"施工人员已存在且已关联工单，跳过: name={worker_data.get('name')}, "
+                    f"id_card={masked_id_card}, existing_name={existing_in_work.name}"
                 )
+                skipped_count += 1
+                continue
+
+            existing_unlinked = self.repository.find_worker_in_same_work(
+                project_id=project_id,
+                id_card_number=id_card_number,
+                start_date=start,
+                end_date=end,
+                include_unlinked=True
+            )
+            if existing_unlinked:
+                logger.info(
+                    f"施工人员已存在但未关联工单，跳过重复创建: name={worker_data.get('name')}, "
+                    f"id_card={masked_id_card}"
+                )
+                skipped_count += 1
+                continue
 
             reuse_check = self.repository.check_worker_can_be_reused(id_card_number)
             
@@ -571,8 +598,12 @@ class SpotWorkService(BaseService):
 
         if workers_to_create:
             self.repository.create_workers_batch(workers_to_create)
+            self._db.commit()
+            logger.info(f"施工人员已提交到数据库，新增 {saved_count} 条")
+        else:
+            logger.warning(f"没有需要新增的施工人员，全部 {skipped_count} 条为重复数据")
 
-        logger.info(f"施工人员保存成功，新增 {saved_count} 条，跳过 {skipped_count} 条重复数据")
+        logger.info(f"施工人员保存完成，新增 {saved_count} 条，跳过 {skipped_count} 条重复数据")
         return saved_count, skipped_count
 
     @staticmethod
@@ -580,6 +611,20 @@ class SpotWorkService(BaseService):
         if not id_card or len(id_card) < 7:
             return '***'
         return f"{id_card[:3]}****{id_card[-4:]}"
+
+    def delete_worker(self, worker_id: int) -> bool:
+        worker = self.repository.db.query(SpotWorkWorker).filter(SpotWorkWorker.id == worker_id).first()
+        if not worker:
+            logger.warning(f"施工人员不存在: id={worker_id}")
+            return False
+        if worker.spot_work_id is not None:
+            logger.warning(f"施工人员已关联工单，无法删除: id={worker_id}, spot_work_id={worker.spot_work_id}")
+            raise ValidationException("该施工人员已关联工单，无法删除")
+        deleted = self.repository.delete_worker(worker_id)
+        if deleted:
+            self._db.commit()
+            logger.info(f"已删除施工人员: id={worker_id}")
+        return deleted
 
     def quick_fill(
         self,
@@ -667,6 +712,9 @@ class SpotWorkService(BaseService):
                 remark='员工提交工单'
             )
 
+        self._db.commit()
+        logger.info(f"快速填报完成，工单号：{work.work_id}")
+
         return work
 
     def _link_workers_to_spot_work(
@@ -692,8 +740,10 @@ class SpotWorkService(BaseService):
             start = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else None
             end = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else None
         except Exception as e:
-            logger.error(f"日期解析错误: {e}")
+            logger.error(f"日期解析错误: start_date={start_date}, end_date={end_date}, error={e}")
             return 0
+
+        logger.info(f"关联工人查询参数: project_id={project_id}, start_date={start}, end_date={end}")
 
         workers = self.repository.find_workers_by_project_and_date(
             project_id=project_id,
@@ -701,14 +751,17 @@ class SpotWorkService(BaseService):
             end_date=str(end) if end else None
         )
 
+        logger.info(f"查询到工人总数: {len(workers)}")
+
         linked_count = 0
+        already_linked_count = 0
         for worker in workers:
             if worker.spot_work_id is None:
                 worker.spot_work_id = spot_work_id
                 linked_count += 1
+            else:
+                already_linked_count += 1
 
-        if linked_count > 0:
-            self._db.commit()
-            logger.info(f"已将 {linked_count} 名工人关联到工单 {spot_work_id}")
+        logger.info(f"工人关联结果: 新关联={linked_count}, 已关联其他工单={already_linked_count}")
 
         return linked_count

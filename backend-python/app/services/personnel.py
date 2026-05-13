@@ -1,5 +1,5 @@
 
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
@@ -14,7 +14,7 @@ from app.models.temporary_repair import TemporaryRepair
 from app.models.work_plan import WorkPlan
 from app.repositories.personnel import PersonnelRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 from app.schemas.personnel import PersonnelCreate, PersonnelUpdate
 
 
@@ -70,11 +70,10 @@ class PersonnelService:
         return personnel
 
     def create(self, dto: PersonnelCreate) -> Personnel:
-        """
-        创建新人员
-        @param dto: 人员创建数据传输对象
-        @return: 创建成功的人员对象
-        """
+        from app.auth import get_password_hash
+
+        initial_password = self._get_initial_password(dto.phone)
+
         personnel = Personnel(
             name=dto.name,
             gender=dto.gender,
@@ -83,19 +82,20 @@ class PersonnelService:
             role=dto.role,
             address=dto.address,
             remarks=dto.remarks,
+            password_hash=get_password_hash(initial_password),
             must_change_password=True
         )
 
-        return self.repository.create(personnel)
+        result = self.repository.create(personnel)
+        self.repository.db.commit()
+        return result
+
+    def _get_initial_password(self, phone: str | None) -> str:
+        if phone and len(phone) >= 6:
+            return phone[-6:]
+        return "123456"
 
     def update(self, id: int, dto: PersonnelUpdate) -> Personnel:
-        """
-        更新人员信息
-        同时同步更新在线用户表和所有关联表中的相关信息
-        @param id: 人员ID
-        @param dto: 人员更新数据传输对象
-        @return: 更新后的人员对象
-        """
         existing_personnel = self.get_by_id(id)
         old_name = existing_personnel.name
         new_name = dto.name
@@ -109,6 +109,7 @@ class PersonnelService:
         existing_personnel.remarks = dto.remarks
 
         result = self.repository.update(existing_personnel)
+        self.repository.db.commit()
 
         self._sync_online_user_info(id, dto.name, dto.department, dto.role)
 
@@ -194,16 +195,12 @@ class PersonnelService:
             self.repository.db.commit()
 
     def delete(self, id: int) -> None:
-        """
-        删除人员
-        同时将在线用户表中的该用户标记为离线
-        @param id: 人员ID
-        """
         personnel = self.get_by_id(id)
 
         self._set_online_user_offline(id)
 
         self.repository.delete(personnel)
+        self.repository.db.commit()
 
     def _set_online_user_offline(self, user_id: int) -> None:
         """

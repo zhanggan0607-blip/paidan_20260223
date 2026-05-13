@@ -2,14 +2,14 @@
 定期巡检Repository
 提供定期巡检数据访问方法
 """
-import logging
+from app.utils.logging_config import get_logger
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.periodic_inspection import PeriodicInspection
 from app.repositories.base import BaseRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
@@ -22,18 +22,9 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
         super().__init__(db, PeriodicInspection)
 
     def find_by_id(self, id: int) -> PeriodicInspection | None:
-        """
-        根据ID查询定期巡检
-
-        Args:
-            id: 巡检单ID
-
-        Returns:
-            巡检单对象，未找到返回None
-        """
         try:
             return self.db.query(PeriodicInspection).options(
-                joinedload(PeriodicInspection.project)
+                selectinload(PeriodicInspection.project)
             ).filter(
                 PeriodicInspection.id == id,
                 PeriodicInspection.is_deleted == False
@@ -88,27 +79,11 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
         client_name: str | None = None,
         inspection_id: str | None = None,
         status: str | None = None,
-        maintenance_personnel: str | None = None
+        maintenance_personnel: str | None = None,
+        statuses: list[str] | None = None
     ) -> tuple[list[PeriodicInspection], int]:
-        """
-        分页查询定期巡检列表
-
-        Args:
-            page: 页码
-            size: 每页数量
-            project_name: 项目名称（模糊查询）
-            client_name: 客户名称（模糊查询）
-            inspection_id: 巡检单编号（模糊查询）
-            status: 状态
-            maintenance_personnel: 运维人员
-
-        Returns:
-            (巡检单列表, 总数)
-        """
         try:
-            query = self.db.query(PeriodicInspection).options(
-                joinedload(PeriodicInspection.project)
-            ).filter(PeriodicInspection.is_deleted == False)
+            query = self.db.query(PeriodicInspection).filter(PeriodicInspection.is_deleted == False)
 
             if project_name:
                 query = query.filter(PeriodicInspection.project_name.like(f"%{self.escape_like(project_name)}%", escape='\\'))
@@ -122,6 +97,9 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
             if status:
                 query = query.filter(PeriodicInspection.status == status)
 
+            if statuses:
+                query = query.filter(PeriodicInspection.status.in_(statuses))
+
             if maintenance_personnel:
                 query = query.filter(PeriodicInspection.maintenance_personnel == maintenance_personnel)
 
@@ -134,18 +112,15 @@ class PeriodicInspectionRepository(BaseRepository[PeriodicInspection]):
             raise
 
     def find_all_unpaginated(self) -> list[PeriodicInspection]:
-        """
-        查询所有定期巡检（不分页）
-
-        Returns:
-            巡检单列表
-        """
         try:
-            return self.db.query(PeriodicInspection).options(
-                joinedload(PeriodicInspection.project)
-            ).filter(
-                PeriodicInspection.is_deleted == False
-            ).order_by(PeriodicInspection.created_at.desc(), PeriodicInspection.id.desc()).all()
+            return list(
+                self.db.query(PeriodicInspection).options(
+                    selectinload(PeriodicInspection.project)
+                ).filter(
+                    PeriodicInspection.is_deleted == False
+                ).order_by(PeriodicInspection.created_at.desc(), PeriodicInspection.id.desc())
+                .yield_per(200)
+            )
         except Exception as e:
             logger.error(f"查询所有定期巡检失败: {str(e)}")
             raise

@@ -1,8 +1,8 @@
+﻿"""
+缁翠繚璁″垝API
+鎻愪緵缁翠繚璁″垝鐨凥TTP鎺ュ彛
 """
-维保计划API
-提供维保计划的HTTP接口
-"""
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,7 +12,6 @@ from app.database import get_db
 from app.dependencies import (
     UserInfo,
     assert_data_owner_or_manager,
-    get_current_user_info,
     get_current_user_required,
     get_manager_user,
 )
@@ -23,19 +22,18 @@ from app.schemas.maintenance_plan import (
 )
 from app.services.maintenance_plan import MaintenancePlanService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/maintenance-plan", tags=["Maintenance Plan Management"])
 
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_maintenance_plan(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    获取所有维保计划（不分页）
-    普通用户只能看到自己的数据，管理员可以看到所有数据
-    """
+    鑾峰彇鎵€鏈夌淮淇濊鍒掞紙涓嶅垎椤碉級
+    鏅€氱敤鎴峰彧鑳界湅鍒拌嚜宸辩殑鏁版嵁锛岀鐞嗗憳鍙互鐪嬪埌鎵€鏈夋暟鎹?    """
     service = MaintenancePlanService(db)
     items = service.get_all_unpaginated()
 
@@ -49,12 +47,11 @@ def get_all_maintenance_plan(
 def get_maintenance_plan_by_project(
     project_id: str,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    根据项目ID获取维保计划
-    普通用户只能看到自己的数据，管理员可以看到所有数据
-    """
+    鏍规嵁椤圭洰ID鑾峰彇缁翠繚璁″垝
+    鏅€氱敤鎴峰彧鑳界湅鍒拌嚜宸辩殑鏁版嵁锛岀鐞嗗憳鍙互鐪嬪埌鎵€鏈夋暟鎹?    """
     service = MaintenancePlanService(db)
     items = service.get_by_project_id(project_id)
 
@@ -68,12 +65,10 @@ def get_maintenance_plan_by_project(
 def get_upcoming_maintenance(
     days: int = Query(7, ge=1, le=365, description="Query days"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    获取即将到期的维保计划
-    普通用户只能看到自己的数据，管理员可以看到所有数据
-    """
+    鑾峰彇鍗冲皢鍒版湡鐨勭淮淇濊鍒?    鏅€氱敤鎴峰彧鑳界湅鍒拌嚜宸辩殑鏁版嵁锛岀鐞嗗憳鍙互鐪嬪埌鎵€鏈夋暟鎹?    """
     service = MaintenancePlanService(db)
     items = service.get_upcoming_maintenance(days)
 
@@ -88,12 +83,11 @@ def get_maintenance_plan_by_date_range(
     start_date: str = Query(..., description="Start date (YYYY-MM-DD)"),
     end_date: str = Query(..., description="End date (YYYY-MM-DD)"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    根据日期范围获取维保计划
-    普通用户只能看到自己的数据，管理员可以看到所有数据
-    """
+    鏍规嵁鏃ユ湡鑼冨洿鑾峰彇缁翠繚璁″垝
+    鏅€氱敤鎴峰彧鑳界湅鍒拌嚜宸辩殑鏁版嵁锛岀鐞嗗憳鍙互鐪嬪埌鎵€鏈夋暟鎹?    """
     try:
         start = datetime.fromisoformat(start_date)
         end = datetime.fromisoformat(end_date)
@@ -124,14 +118,13 @@ def get_maintenance_plan_list(
     responsible_person: str | None = Query(None, description="Responsible person (fuzzy search)"),
     project_name: str | None = Query(None, description="Project name (fuzzy search)"),
     client_name: str | None = Query(None, description="Client name (fuzzy search)"),
-    plan_type: str | None = Query(None, description="Plan type (定期维保/临时维修/零星用工)"),
+    plan_type: str | None = Query(None, description="Plan type (瀹氭湡缁翠繚/涓存椂缁翠慨/闆舵槦鐢ㄥ伐)"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    分页获取维保计划列表
-    普通用户只能看到自己的数据，管理员可以看到所有数据
-    """
+    鍒嗛〉鑾峰彇缁翠繚璁″垝鍒楄〃
+    鏅€氱敤鎴峰彧鑳界湅鍒拌嚜宸辩殑鏁版嵁锛岀鐞嗗憳鍙互鐪嬪埌鎵€鏈夋暟鎹?    """
     service = MaintenancePlanService(db)
     responsible_person_filter = user_info.get_maintenance_personnel_filter()
 
@@ -151,8 +144,8 @@ def get_maintenance_plan_by_plan_id(
     user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    通过计划编号获取维保计划详情
-    管理员可查看所有，普通用户只能查看自己的数据
+    閫氳繃璁″垝缂栧彿鑾峰彇缁翠繚璁″垝璇︽儏
+    绠＄悊鍛樺彲鏌ョ湅鎵€鏈夛紝鏅€氱敤鎴峰彧鑳芥煡鐪嬭嚜宸辩殑鏁版嵁
     """
     service = MaintenancePlanService(db)
     maintenance_plan = service.get_by_plan_id(plan_id)
@@ -169,8 +162,8 @@ def get_maintenance_plan_by_id(
     user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    根据ID获取维保计划详情
-    管理员可查看所有，普通用户只能查看自己的数据
+    鏍规嵁ID鑾峰彇缁翠繚璁″垝璇︽儏
+    绠＄悊鍛樺彲鏌ョ湅鎵€鏈夛紝鏅€氱敤鎴峰彧鑳芥煡鐪嬭嚜宸辩殑鏁版嵁
     """
     service = MaintenancePlanService(db)
     maintenance_plan = service.get_by_id(id)
@@ -187,9 +180,8 @@ def create_maintenance_plan(
     user_info: UserInfo = Depends(get_manager_user)
 ):
     """
-    创建维保计划
-    需要管理员或部门经理权限
-    """
+    鍒涘缓缁翠繚璁″垝
+    闇€瑕佺鐞嗗憳鎴栭儴闂ㄧ粡鐞嗘潈闄?    """
     logger.info(f"Creating maintenance plan: plan_id={dto.plan_id}, plan_name={dto.plan_name}")
 
     service = MaintenancePlanService(db)
@@ -207,8 +199,8 @@ def update_maintenance_plan(
     user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
-    更新维保计划
-    管理员可更新所有，普通用户只能更新自己的数据
+    鏇存柊缁翠繚璁″垝
+    绠＄悊鍛樺彲鏇存柊鎵€鏈夛紝鏅€氱敤鎴峰彧鑳芥洿鏂拌嚜宸辩殑鏁版嵁
     """
     service = MaintenancePlanService(db)
 
@@ -226,12 +218,10 @@ def delete_maintenance_plan(
     user_info: UserInfo = Depends(get_manager_user)
 ):
     """
-    删除维保计划（软删除）
-    需要管理员或部门经理权限
-    """
+    鍒犻櫎缁翠繚璁″垝锛堣蒋鍒犻櫎锛?    闇€瑕佺鐞嗗憳鎴栭儴闂ㄧ粡鐞嗘潈闄?    """
     service = MaintenancePlanService(db)
     deleted_stats = service.delete(id, user_info.id, user_info.name)
-    return ApiResponse.success(deleted_stats, "删除成功")
+    return ApiResponse.success(deleted_stats, "鍒犻櫎鎴愬姛")
 
 
 @router.patch("/{id}/status", response_model=ApiResponse)
@@ -242,9 +232,7 @@ def update_execution_status(
     user_info: UserInfo = Depends(get_manager_user)
 ):
     """
-    更新执行状态
-    需要管理员或部门经理权限
-    """
+    鏇存柊鎵ц鐘舵€?    闇€瑕佺鐞嗗憳鎴栭儴闂ㄧ粡鐞嗘潈闄?    """
     service = MaintenancePlanService(db)
     maintenance_plan = service.update_execution_status(id, status, user_info.id, user_info.name)
     return ApiResponse.success(maintenance_plan.to_dict(), "Status updated successfully")
@@ -257,8 +245,7 @@ def update_completion_rate(
     db: Session = Depends(get_db)
 ):
     """
-    更新完成率
-    """
+    鏇存柊瀹屾垚鐜?    """
     service = MaintenancePlanService(db)
     maintenance_plan = service.update_completion_rate(id, rate)
     return ApiResponse.success(maintenance_plan.to_dict(), "Completion rate updated successfully")

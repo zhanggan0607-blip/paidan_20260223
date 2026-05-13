@@ -3,14 +3,14 @@
 提供Redis缓存功能，支持字典数据、项目信息等高频数据的缓存
 """
 import json
-import logging
+from app.utils.logging_config import get_logger
 from datetime import timedelta
 from functools import wraps
 from typing import Any, Callable, TypeVar
 
 from app.config import get_settings
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 T = TypeVar('T')
 
@@ -64,12 +64,19 @@ class CacheService:
     @property
     def client(self):
         if self._client is None:
-            self._client = get_redis_client()
+            try:
+                self._client = get_redis_client()
+            except Exception as e:
+                logger.warning(f"Redis客户端获取异常: {e}")
+                self._client = None
         return self._client
     
     @property
     def is_available(self) -> bool:
-        return self.client is not None
+        try:
+            return self.client is not None
+        except Exception:
+            return False
     
     def get(self, key: str) -> Any | None:
         """

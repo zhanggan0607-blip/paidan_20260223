@@ -80,11 +80,12 @@ const checkTodayLog = async () => {
       formData.value.workContent = response.data.work_content || ''
       formData.value.remark = response.data.remark || ''
       selectedProjectName.value = response.data.project_name || ''
-      
+
       if (response.data.images) {
-        const imageUrls = typeof response.data.images === 'string' 
-          ? JSON.parse(response.data.images) 
-          : response.data.images
+        const imageUrls =
+          typeof response.data.images === 'string'
+            ? JSON.parse(response.data.images)
+            : response.data.images
         images.value = imageUrls.map((url: string) => ({
           url,
           file: null,
@@ -152,23 +153,39 @@ const handleTakePhoto = async () => {
   }
 
   const ua = navigator.userAgent.toLowerCase()
-  const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isIOS =
+    /iphone|ipad|ipod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
 
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = 'image/*'
+  input.accept = isIOS ? 'image/jpeg,image/png' : 'image/*'
   input.multiple = true
-  if (!useBase64Upload) {
+
+  if (useBase64Upload) {
+    input.style.position = 'fixed'
+    input.style.top = '0'
+    input.style.left = '0'
+    input.style.width = '100%'
+    input.style.height = '100%'
+    input.style.opacity = '0'
+    input.style.zIndex = '999999'
+  } else {
     input.capture = 'environment'
   }
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
     const allFiles = target.files
-    if (!allFiles || allFiles.length === 0) return
+    if (!allFiles || allFiles.length === 0) {
+      if (document.body.contains(input)) document.body.removeChild(input)
+      return
+    }
+
+    if (document.body.contains(input)) document.body.removeChild(input)
 
     const remaining = 9 - images.value.length
     if (remaining <= 0) {
@@ -184,35 +201,38 @@ const handleTakePhoto = async () => {
 
     for (const file of files) {
       try {
-        showLoadingToast({ message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+        showLoadingToast({
+          message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`,
+          forbidClick: true,
+        })
 
-        let fileToUpload = file
-        
         if (useBase64Upload) {
-          if (file.size > 500 * 1024) {
-            showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
-            const compressedBlob = await compressImage(file, 500)
-            fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+          const userName = userStore.currentUser?.name || '未知用户'
+          let watermarkedFile: File
+          try {
+            const location = await getCurrentLocation()
+            watermarkedFile = await processPhoto(file, {
+              userName,
+              includeLocation: true,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+            })
+          } catch (watermarkError: any) {
+            console.warn('水印处理失败，使用原图上传:', watermarkError)
+            watermarkedFile = file
           }
 
-          showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
-          const userName = userStore.currentUser?.name || '未知用户'
-          const location = await getCurrentLocation()
-          const watermarkedFile = await processPhoto(fileToUpload, {
-            userName,
-            includeLocation: true,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
+          showLoadingToast({
+            message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`,
+            forbidClick: true,
           })
-
-          showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
           const reader = new FileReader()
           const base64Data = await new Promise<string>((resolve, reject) => {
             reader.onload = (ev) => resolve(ev.target?.result as string)
             reader.onerror = reject
             reader.readAsDataURL(watermarkedFile)
           })
-          
+
           const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
           if (response.code === 200 && response.data) {
             images.value.push({
@@ -226,13 +246,19 @@ const handleTakePhoto = async () => {
           }
         } else {
           const userName = userStore.currentUser?.name || '未知用户'
-          const location = await getCurrentLocation()
-          const processedFile = await processPhoto(file, {
-            userName,
-            includeLocation: true,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
-          })
+          let processedFile: File
+          try {
+            const location = await getCurrentLocation()
+            processedFile = await processPhoto(file, {
+              userName,
+              includeLocation: true,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+            })
+          } catch (watermarkError: any) {
+            console.warn('水印处理失败，使用原图:', watermarkError)
+            processedFile = file
+          }
           const url = URL.createObjectURL(processedFile)
           images.value.push({
             file: processedFile,
@@ -249,12 +275,17 @@ const handleTakePhoto = async () => {
 
     closeToast()
     if (uploadedCount > 0) {
-      showSuccessToast(`成功添加${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+      showSuccessToast(
+        `成功添加${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+      )
     } else {
       showFailToast('处理图片失败')
     }
   }
 
+  if (useBase64Upload) {
+    document.body.appendChild(input)
+  }
   input.click()
 }
 
@@ -268,18 +299,18 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const reader = new FileReader()
-    
+
     reader.onload = (e) => {
       img.src = e.target?.result as string
     }
-    
+
     img.onload = () => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')!
-      
+
       let width = img.width
       let height = img.height
-      
+
       const maxDimension = 1920
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
@@ -290,23 +321,23 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
           height = maxDimension
         }
       }
-      
+
       canvas.width = width
       canvas.height = height
       ctx.drawImage(img, 0, 0, width, height)
-      
+
       canvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('图片压缩失败'))
             return
           }
-          
+
           if (blob.size <= maxSizeKB * 1024) {
             resolve(blob)
             return
           }
-          
+
           const quality = Math.sqrt((maxSizeKB * 1024) / blob.size)
           canvas.toBlob(
             (compressedBlob) => {
@@ -324,15 +355,15 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
         0.9
       )
     }
-    
+
     img.onerror = () => {
       reject(new Error('图片加载失败'))
     }
-    
+
     reader.onerror = () => {
       reject(new Error('文件读取失败'))
     }
-    
+
     reader.readAsDataURL(file)
   })
 }
@@ -531,15 +562,12 @@ onMounted(async () => {
           />
         </div>
         <div class="form-row">
-          <van-cell
-            :title="formData.logDate"
-            label="填写日期"
-            class="form-cell"
-          />
+          <van-cell :title="formData.logDate" label="填写日期" class="form-cell" />
         </div>
       </div>
-      <van-field name="work_content"
+      <van-field
         v-model="formData.workContent"
+        name="work_content"
         label="工作内容"
         placeholder="请输入工作内容"
         type="textarea"
@@ -548,8 +576,9 @@ onMounted(async () => {
         show-word-limit
         required
       />
-      <van-field name="remark"
+      <van-field
         v-model="formData.remark"
+        name="remark"
         label="备注"
         placeholder="请输入备注"
         type="textarea"
@@ -580,7 +609,8 @@ onMounted(async () => {
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round destroy-on-close>
-      <van-picker name="选择项目"
+      <van-picker
+        name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         :loading="projectList.length === 0"

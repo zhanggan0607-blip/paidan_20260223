@@ -127,7 +127,11 @@ export const periodicInspectionService = {
   /**
    * 审批通过
    */
-  async approve(id: number, approved: boolean = true, rejectReason?: string): Promise<ApiResponse<PeriodicInspection>> {
+  async approve(
+    id: number,
+    approved: boolean = true,
+    rejectReason?: string
+  ): Promise<ApiResponse<PeriodicInspection>> {
     return request.post(API_ENDPOINTS.PERIODIC_INSPECTION.APPROVE(id), {
       approved,
       reject_reason: rejectReason,

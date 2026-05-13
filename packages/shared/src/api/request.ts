@@ -6,6 +6,7 @@ import axios, {
   type AxiosRequestConfig,
 } from 'axios'
 import type { ApiResponse, ApiError, User } from '../types/api'
+import { decodeJwtPayload as _decodeJwt, shouldRefreshToken as _shouldRefresh } from '../utils/jwt'
 
 interface AxiosRequestConfigWithMetadata extends InternalAxiosRequestConfig {
   metadata?: { startTime: number }
@@ -69,30 +70,12 @@ function onTokenRefreshed(token: string) {
   refreshSubscribers = []
 }
 
-function decodeJwtPayload(token: string): { exp?: number; [key: string]: unknown } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const jsonStr = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    )
-    return JSON.parse(jsonStr)
-  } catch {
-    return null
-  }
+function decodeJwtPayload(token: unknown): { exp?: number; [key: string]: unknown } | null {
+  return _decodeJwt(token)
 }
 
-function shouldRefreshToken(token: string, bufferMinutes: number = 5): boolean {
-  const payload = decodeJwtPayload(token)
-  if (!payload || !payload.exp) return false
-  const expiresAt = payload.exp * 1000
-  const now = Date.now()
-  const buffer = bufferMinutes * 60 * 1000
-  return now >= expiresAt - buffer
+function shouldRefreshToken(token: unknown, bufferMinutes: number = 5): boolean {
+  return _shouldRefresh(token, bufferMinutes)
 }
 
 async function refreshToken(

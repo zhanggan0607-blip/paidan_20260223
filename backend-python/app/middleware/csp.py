@@ -5,11 +5,11 @@ CSP 安全中间件
 """
 import base64
 import os
-import logging
+from app.utils.logging_config import get_logger
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _generate_nonce() -> str:
@@ -58,7 +58,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
             f"style-src 'self' 'nonce-{nonce}'",
             "img-src 'self' data: blob: https://sstcp-uploads.oss-cn-shanghai.aliyuncs.com",
             f"connect-src {connect_sources}",
-            "font-src 'self' data:",
+            "font-src 'self' data: https://at.alicdn.com",
             "object-src 'none'",
             "frame-ancestors 'self'",
             "base-uri 'self'",

@@ -8,13 +8,13 @@
 - 更新工单：管理员可更新所有工单，运维人员只能更新自己负责项目的工单
 - 删除工单：需要管理员或部门经理权限
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, check_data_access, get_current_user_info, get_current_user_required, get_manager_user
+from app.dependencies import UserInfo, check_data_access, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse
 from app.schemas.temporary_repair import (
     TemporaryRepairApprove,
@@ -25,7 +25,7 @@ from app.schemas.temporary_repair import (
 from app.services.temporary_repair import TemporaryRepairService
 from app.utils.work_order_id_generator import generate_repair_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/temporary-repair", tags=["Temporary Repair Management"])
 
 
@@ -33,7 +33,7 @@ router = APIRouter(prefix="/temporary-repair", tags=["Temporary Repair Managemen
 def generate_temporary_repair_id(
     project_id: str = Query(..., description="项目编号"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     生成临时维修单编号
@@ -50,7 +50,7 @@ def generate_temporary_repair_id(
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_temporary_repairs(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有临时维修（不分页）
@@ -76,7 +76,7 @@ def get_temporary_repairs_list(
     repair_id: str | None = Query(None, description="Repair ID (fuzzy search)"),
     status: str | None = Query(None, description="Status"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     分页获取临时维修列表
@@ -92,22 +92,7 @@ def get_temporary_repairs_list(
         status=status, maintenance_personnel=maintenance_personnel
     )
     items_dict = [item.to_list_dict() for item in items]
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': items_dict,
-            'content': items_dict,
-            'total': total,
-            'totalElements': total,
-            'totalPages': (total + size - 1) // size,
-            'size': size,
-            'number': page,
-            'page': page,
-            'first': page == 0,
-            'last': page >= (total + size - 1) // size
-        }
-    )
+    return PaginatedResponse.success(items_dict, total, page, size)
 
 
 @router.get("/{id}", response_model=ApiResponse)

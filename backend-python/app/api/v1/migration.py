@@ -3,7 +3,7 @@
 
 注意: 此API仅限开发环境使用，生产环境请使用 Alembic 进行数据库迁移
 """
-import logging
+from app.utils.logging_config import get_logger
 import os
 import uuid
 from pathlib import Path
@@ -15,7 +15,7 @@ from app.auth import get_current_admin_user
 from app.config import get_settings
 from app.database import SessionLocal
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/migration", tags=["迁移管理"])
 
 MIGRATIONS_DIR = Path(__file__).parent.parent.parent / "migrations"
@@ -25,12 +25,19 @@ def check_dev_environment():
     """
     检查是否为开发环境
     生产环境禁止通过API执行迁移操作
+    双重检查：debug模式 + 显式环境变量
     """
     settings = get_settings()
     if not settings.debug:
         raise HTTPException(
             status_code=403,
             detail="生产环境禁止通过API执行迁移操作，请使用 Alembic 命令行工具"
+        )
+    allow_migration = os.environ.get('ALLOW_MIGRATION_API', '').lower()
+    if allow_migration not in ('true', '1', 'yes'):
+        raise HTTPException(
+            status_code=403,
+            detail="迁移API需要设置环境变量 ALLOW_MIGRATION_API=true 才能使用"
         )
     return True
 

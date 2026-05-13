@@ -15,9 +15,7 @@ const goHome = () => {
       <div class="error-code">404</div>
       <div class="error-message">页面不存在</div>
       <div class="error-desc">您访问的页面可能已被移除或暂时不可用</div>
-      <van-button type="primary" @click="goHome" class="home-btn">
-        返回首页
-      </van-button>
+      <van-button type="primary" class="home-btn" @click="goHome"> 返回首页 </van-button>
     </div>
   </div>
 </template>

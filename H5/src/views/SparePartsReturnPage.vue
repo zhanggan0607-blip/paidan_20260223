@@ -205,21 +205,56 @@ onMounted(() => {
 
         <div class="popup-body">
           <van-cell-group inset>
-            <van-field name="产品名称" :model-value="selectedItem?.productName || ''" label="产品名称" readonly />
-            <van-field name="品牌" :model-value="selectedItem?.brand || '-'" label="品牌" readonly />
-            <van-field name="产品型号" :model-value="selectedItem?.model || '-'" label="产品型号" readonly />
-            <van-field name="所属项目" :model-value="selectedItem?.projectName || '-'" label="所属项目" readonly />
-            <van-field name="领用数量" :model-value="selectedItem?.quantity || 0" label="领用数量" readonly>
+            <van-field
+              name="产品名称"
+              :model-value="selectedItem?.productName || ''"
+              label="产品名称"
+              readonly
+            />
+            <van-field
+              name="品牌"
+              :model-value="selectedItem?.brand || '-'"
+              label="品牌"
+              readonly
+            />
+            <van-field
+              name="产品型号"
+              :model-value="selectedItem?.model || '-'"
+              label="产品型号"
+              readonly
+            />
+            <van-field
+              name="所属项目"
+              :model-value="selectedItem?.projectName || '-'"
+              label="所属项目"
+              readonly
+            />
+            <van-field
+              name="领用数量"
+              :model-value="selectedItem?.quantity || 0"
+              label="领用数量"
+              readonly
+            >
               <template #extra>
                 <span class="unit-text">{{ selectedItem?.unit }}</span>
               </template>
             </van-field>
-            <van-field name="已归还" :model-value="selectedItem?.return_quantity || 0" label="已归还" readonly>
+            <van-field
+              name="已归还"
+              :model-value="selectedItem?.return_quantity || 0"
+              label="已归还"
+              readonly
+            >
               <template #extra>
                 <span class="unit-text">{{ selectedItem?.unit }}</span>
               </template>
             </van-field>
-            <van-field name="待归还" :model-value="getPendingReturn(selectedItem)" label="待归还" readonly>
+            <van-field
+              name="待归还"
+              :model-value="getPendingReturn(selectedItem)"
+              label="待归还"
+              readonly
+            >
               <template #extra>
                 <span class="unit-text">{{ selectedItem?.unit }}</span>
               </template>

@@ -2,7 +2,7 @@
 维保周报API
 提供维保周报的HTTP接口
 """
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -12,7 +12,6 @@ from app.database import get_db
 from app.dependencies import (
     UserInfo,
     check_data_access,
-    get_current_user_info,
     get_current_user_required,
     get_manager_user,
 )
@@ -27,7 +26,7 @@ from app.schemas.weekly_report import (
 )
 from app.services.weekly_report import WeeklyReportService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/weekly-report", tags=["Weekly Report Management"])
 
 
@@ -82,22 +81,7 @@ def get_weekly_reports(
         page, size, report_id, report_date, work_summary, created_by
     )
 
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': [item.to_dict() for item in items],
-            'content': [item.to_dict() for item in items],
-            'total': total,
-            'totalElements': total,
-            'totalPages': (total + size - 1) // size,
-            'size': size,
-            'number': page,
-            'page': page,
-            'first': page == 0,
-            'last': page >= (total + size - 1) // size
-        }
-    )
+    return PaginatedResponse.success([item.to_dict() for item in items], total, page, size)
 
 
 @router.get("/all/list", response_model=ApiResponse)
@@ -153,7 +137,7 @@ def get_weekly_report_by_id(
 def create_weekly_report(
     dto: WeeklyReportCreate,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     创建维保周报

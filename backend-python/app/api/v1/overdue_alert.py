@@ -1,14 +1,14 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info
+from app.dependencies import UserInfo, get_current_user_required
 from app.schemas.common import ApiResponse
 from app.services.overdue_alert import OverdueAlertService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/overdue-alert", tags=["Overdue Alert"])
 
 
@@ -21,7 +21,7 @@ def get_overdue_alerts(
     page: int = Query(0, ge=0, description="页码，从0开始"),
     size: int = Query(10, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取超期工单列表
@@ -56,7 +56,7 @@ def get_overdue_alerts(
 @router.get("/count", response_model=ApiResponse)
 def get_overdue_count(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取超期工单数量

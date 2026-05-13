@@ -17,9 +17,7 @@ export const weeklyReportService = {
   /**
    * 获取周报列表
    */
-  async getList(
-    params?: WeeklyReportQueryParams
-  ): Promise<PaginatedResponse<WeeklyReport>> {
+  async getList(params?: WeeklyReportQueryParams): Promise<PaginatedResponse<WeeklyReport>> {
     return request.get(API_ENDPOINTS.WEEKLY_REPORT.LIST, { params })
   },
 

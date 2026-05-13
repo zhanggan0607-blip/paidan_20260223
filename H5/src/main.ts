@@ -8,8 +8,10 @@ const app = createApp(App)
 const pinia = createPinia()
 
 app.config.errorHandler = (err, instance, info) => {
+  const errorObj = err instanceof Error ? err : new Error(String(err))
   console.error('[Global Error Handler]', {
-    error: err,
+    error: errorObj.message,
+    stack: errorObj.stack,
     component: instance?.$options?.name || instance?.$options?.__name || 'Unknown',
     info,
   })

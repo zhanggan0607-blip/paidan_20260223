@@ -12,6 +12,7 @@ from app.utils.date_utils import parse_datetime
 class SparePartsUsageService:
     def __init__(self, db: Session):
         self.repository = SparePartsUsageRepository(db)
+        self._db = db
 
     def get_all(
         self,
@@ -45,7 +46,9 @@ class SparePartsUsageService:
             project_name=dto.project_name
         )
 
-        return self.repository.create(usage)
+        result = self.repository.create(usage)
+        self._db.commit()
+        return result
 
     def update(self, id: int, dto: SparePartsUsageUpdate) -> SparePartsUsage:
         existing_usage = self.get_by_id(id)
@@ -69,8 +72,11 @@ class SparePartsUsageService:
         if dto.project_name is not None:
             existing_usage.project_name = dto.project_name
 
-        return self.repository.update(existing_usage)
+        result = self.repository.update(existing_usage)
+        self._db.commit()
+        return result
 
     def delete(self, id: int) -> None:
         usage = self.get_by_id(id)
         self.repository.delete(usage)
+        self._db.commit()

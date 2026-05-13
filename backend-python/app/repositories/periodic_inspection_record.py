@@ -2,14 +2,14 @@
 巡检记录Repository
 提供巡检记录数据访问方法
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.models.periodic_inspection_record import PeriodicInspectionRecord
 from app.repositories.base import BaseRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord]):

@@ -43,19 +43,7 @@ def get_inspection_item_list(
         items, total = service.get_paginated_items(skip=page * size, limit=size)
         paginated_items = items
 
-    return PaginatedResponse(
-        code=200,
-        message="获取成功",
-        data={
-            "content": [item.to_dict() for item in paginated_items],
-            "totalElements": total,
-            "totalPages": (total + size - 1) // size,
-            "size": size,
-            "number": page,
-            "first": page == 0,
-            "last": (page + 1) * size >= total
-        }
-    )
+    return PaginatedResponse.success([item.to_dict() for item in paginated_items], total, page, size, "获取成功")
 
 @router.get("/{id}", response_model=ApiResponse)
 def get_inspection_item_by_id(

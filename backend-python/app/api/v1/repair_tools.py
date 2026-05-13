@@ -1,4 +1,4 @@
-import logging
+from app.utils.logging_config import get_logger
 import random
 import string
 import uuid
@@ -8,10 +8,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info, get_material_manager_user
+from app.dependencies import UserInfo, get_current_user_required, get_material_manager_user
 from app.models.personnel import Personnel
 from app.models.project_info import ProjectInfo
 from app.models.repair_tools import RepairToolsIssue, RepairToolsStock
@@ -394,7 +394,7 @@ async def get_issue_list(
     user_name: str | None = Query(None, description="运维人员"),
     status: str | None = Query(None, description="状态"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     current_user_name = user_info.name
     is_manager = user_info.is_manager
@@ -431,7 +431,7 @@ async def get_issue_list(
 async def create_issue(
     data: RepairToolsIssueCreate,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     新增工具领用
@@ -528,7 +528,7 @@ async def return_tool(
     issue_id: int,
     data: RepairToolsReturn,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     工具归还

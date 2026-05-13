@@ -8,7 +8,7 @@
 - 管理员和部门经理可以看到所有工单
 """
 import json
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -25,7 +25,7 @@ from app.utils.date_utils import parse_datetime
 from app.utils.dictionary_helper import get_default_temporary_repair_status
 from app.utils.work_order_id_generator import generate_repair_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class TemporaryRepairService(BaseService):
@@ -63,24 +63,12 @@ class TemporaryRepairService(BaseService):
         project_name: str | None = None,
         repair_id: str | None = None,
         status: str | None = None,
-        maintenance_personnel: str | None = None
+        maintenance_personnel: str | None = None,
+        statuses: list[str] | None = None
     ) -> tuple[list[TemporaryRepair], int]:
-        """
-        分页获取临时维修列表
-
-        Args:
-            page: 页码
-            size: 每页数量
-            project_name: 项目名称
-            repair_id: 维修单编号
-            status: 状态
-            maintenance_personnel: 运维人员
-
-        Returns:
-            (维修单列表, 总数)
-        """
         return self.repository.find_all(
-            page, size, project_name, repair_id, status, maintenance_personnel
+            page, size, project_name, repair_id, status, maintenance_personnel,
+            statuses=statuses
         )
 
     def get_by_id(self, id: int) -> TemporaryRepair:
@@ -189,6 +177,7 @@ class TemporaryRepairService(BaseService):
                 remark=f'创建临时维修单，分配给运维人员: {maintenance_personnel or "未指定"}'
             )
 
+        self._db.commit()
         return result
 
     def update(
@@ -256,6 +245,7 @@ class TemporaryRepairService(BaseService):
                 remark='更新临时维修单'
             )
 
+        self._db.commit()
         return result
 
     def partial_update(
@@ -359,6 +349,7 @@ class TemporaryRepairService(BaseService):
             )
 
         self.repository.soft_delete(repair, user_id)
+        self._db.commit()
 
     def get_all_unpaginated(self) -> list[TemporaryRepair]:
         """

@@ -24,20 +24,29 @@ from app.utils.image_compression import compress_image
 logger = get_logger(__name__)
 router = APIRouter(prefix="/upload", tags=["File Upload"])
 
-ALLOWED_IMAGE_TYPES = {'jpeg', 'png', 'gif', 'webp'}
+ALLOWED_IMAGE_TYPES = {'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif'}
 IMAGE_TYPE_TO_EXT = {
     'jpeg': 'jpg',
     'png': 'png',
     'gif': 'gif',
-    'webp': 'webp'
+    'webp': 'webp',
+    'heic': 'jpg',
+    'heif': 'jpg',
+    'avif': 'jpg',
 }
 IMAGE_TYPE_TO_MIME = {
     'jpeg': 'image/jpeg',
     'png': 'image/png',
     'gif': 'image/gif',
     'webp': 'image/webp',
+    'heic': 'image/heic',
+    'heif': 'image/heif',
+    'avif': 'image/avif',
 }
-ALLOWED_CONTENT_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+ALLOWED_CONTENT_TYPES = [
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "image/heic", "image/heif", "image/avif",
+]
 MAX_FILE_SIZE = 10 * 1024 * 1024
 MAX_BATCH_COUNT = 9
 
@@ -53,6 +62,8 @@ def _sanitize_filename(filename: str | None) -> str:
 def _validate_image_content(content: bytes) -> str:
     kind = filetype.guess(content)
     if kind is None:
+        if _is_heic_heif(content):
+            return 'image/heic'
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="无法识别文件类型，请上传有效的图片文件"
@@ -60,18 +71,32 @@ def _validate_image_content(content: bytes) -> str:
 
     detected_mime = kind.mime
     if detected_mime not in ALLOWED_CONTENT_TYPES:
+        if detected_mime in ('image/heic', 'image/heif', 'image/avif'):
+            return detected_mime
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只支持上传图片文件（JPEG、PNG、GIF、WebP）"
+            detail="只支持上传图片文件（JPEG、PNG、GIF、WebP、HEIC）"
         )
 
     return detected_mime
 
 
+def _is_heic_heif(content: bytes) -> bool:
+    if len(content) < 12:
+        return False
+    box_type = content[4:8]
+    if box_type == b'ftyp':
+        brand = content[8:12]
+        return brand in (b'heic', b'heix', b'hevc', b'hevx', b'heim', b'heis', b'hevm', b'hevs', b'mif1')
+    return False
+
+
 def _determine_extension(content_type: str, filename: str | None) -> str:
     if filename and "." in filename:
         ext = filename.rsplit(".", 1)[-1].lower()
-        if ext in ('jpg', 'jpeg', 'png', 'gif', 'webp'):
+        if ext in ('jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif', 'avif'):
+            if ext in ('heic', 'heif', 'avif'):
+                return 'jpg'
             return ext
 
     mime_to_ext = {
@@ -79,6 +104,9 @@ def _determine_extension(content_type: str, filename: str | None) -> str:
         "image/png": "png",
         "image/gif": "gif",
         "image/webp": "webp",
+        "image/heic": "jpg",
+        "image/heif": "jpg",
+        "image/avif": "jpg",
     }
     return mime_to_ext.get(content_type, "jpg")
 
@@ -120,11 +148,12 @@ async def upload_file(
             detail="请选择要上传的文件"
         )
 
-    if file.content_type not in ALLOWED_CONTENT_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="只支持上传图片文件（JPEG、PNG、GIF、WebP）"
-        )
+    if file.content_type and file.content_type not in ALLOWED_CONTENT_TYPES:
+        if not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="只支持上传图片文件（JPEG、PNG、GIF、WebP、HEIC）"
+            )
 
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
@@ -138,8 +167,8 @@ async def upload_file(
     try:
         compressed_content, compressed_content_type = compress_image(
             content,
-            quality=85,
-            max_size=(1920, 1920),
+            quality=75,
+            max_size=(1280, 1280),
             convert_to_jpeg=True
         )
 
@@ -148,11 +177,10 @@ async def upload_file(
             content = compressed_content
             file.content_type = compressed_content_type
             logger.info(f"图片压缩成功: {len(compressed_content)} bytes (原始: {original_size} bytes)")
+    except ValueError as e:
+        logger.warning(f"图片压缩失败，使用原始图片: {str(e)}")
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="图片处理失败，请确保上传的是有效的图片文件"
-        )
+        logger.warning(f"图片处理异常，使用原始图片: {type(e).__name__}: {str(e)}")
 
     today = datetime.now().strftime("%Y%m%d")
     file_ext = _determine_extension(file.content_type, file.filename)
@@ -161,33 +189,21 @@ async def upload_file(
     file_path = UploadedFile.generate_file_path(today, stored_filename)
 
     oss_url = _upload_to_oss(content, today, stored_filename, file.content_type)
+    storage_type = "oss" if oss_url else "database"
+    file_data = None if oss_url else content
 
-    if oss_url:
-        uploaded_file = UploadedFile(
-            file_id=file_id,
-            original_filename=_sanitize_filename(file.filename),
-            stored_filename=stored_filename,
-            content_type=file.content_type,
-            file_data=None,
-            file_size=len(content),
-            file_path=file_path,
-            upload_date=today,
-            storage_type="oss",
-            oss_url=oss_url,
-        )
-    else:
-        uploaded_file = UploadedFile(
-            file_id=file_id,
-            original_filename=_sanitize_filename(file.filename),
-            stored_filename=stored_filename,
-            content_type=file.content_type,
-            file_data=content,
-            file_size=len(content),
-            file_path=file_path,
-            upload_date=today,
-            storage_type="database",
-            oss_url=None,
-        )
+    uploaded_file = UploadedFile(
+        file_id=file_id,
+        original_filename=_sanitize_filename(file.filename),
+        stored_filename=stored_filename,
+        content_type=file.content_type,
+        file_data=file_data,
+        file_size=len(content),
+        file_path=file_path,
+        upload_date=today,
+        storage_type=storage_type,
+        oss_url=oss_url,
+    )
 
     db.add(uploaded_file)
     db.commit()
@@ -223,8 +239,8 @@ async def _process_single_upload(file: UploadFile, db: Session) -> dict:
     try:
         compressed_content, compressed_content_type = compress_image(
             content,
-            quality=85,
-            max_size=(1920, 1920),
+            quality=75,
+            max_size=(1280, 1280),
             convert_to_jpeg=True
         )
         original_size = len(content)
@@ -232,10 +248,7 @@ async def _process_single_upload(file: UploadFile, db: Session) -> dict:
             content = compressed_content
             file.content_type = compressed_content_type
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"文件 {file.filename} 处理失败，请确保是有效的图片文件"
-        )
+        logger.warning(f"文件 {file.filename} 压缩失败，使用原始图片: {str(e)}")
 
     today = datetime.now().strftime("%Y%m%d")
     file_ext = _determine_extension(file.content_type, file.filename)
@@ -244,33 +257,21 @@ async def _process_single_upload(file: UploadFile, db: Session) -> dict:
     file_path = UploadedFile.generate_file_path(today, stored_filename)
 
     oss_url = _upload_to_oss(content, today, stored_filename, file.content_type)
+    storage_type = "oss" if oss_url else "database"
+    file_data = None if oss_url else content
 
-    if oss_url:
-        uploaded_file = UploadedFile(
-            file_id=file_id,
-            original_filename=_sanitize_filename(file.filename),
-            stored_filename=stored_filename,
-            content_type=file.content_type,
-            file_data=None,
-            file_size=len(content),
-            file_path=file_path,
-            upload_date=today,
-            storage_type="oss",
-            oss_url=oss_url,
-        )
-    else:
-        uploaded_file = UploadedFile(
-            file_id=file_id,
-            original_filename=_sanitize_filename(file.filename),
-            stored_filename=stored_filename,
-            content_type=file.content_type,
-            file_data=content,
-            file_size=len(content),
-            file_path=file_path,
-            upload_date=today,
-            storage_type="database",
-            oss_url=None,
-        )
+    uploaded_file = UploadedFile(
+        file_id=file_id,
+        original_filename=_sanitize_filename(file.filename),
+        stored_filename=stored_filename,
+        content_type=file.content_type,
+        file_data=file_data,
+        file_size=len(content),
+        file_path=file_path,
+        upload_date=today,
+        storage_type=storage_type,
+        oss_url=oss_url,
+    )
 
     db.add(uploaded_file)
     db.commit()
@@ -373,8 +374,8 @@ async def upload_base64(
     try:
         compressed_data, compressed_content_type = compress_image(
             image_data,
-            quality=85,
-            max_size=(1920, 1920),
+            quality=75,
+            max_size=(1280, 1280),
             convert_to_jpeg=True
         )
 
@@ -389,10 +390,8 @@ async def upload_base64(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="图片处理失败，请确保上传的是有效的图片文件"
-        )
+        logger.warning(f"Base64图片压缩失败，使用原始图片: {str(e)}")
+        content_type = 'image/jpeg'
 
     today = datetime.now().strftime("%Y%m%d")
     file_id = str(uuid.uuid4())
@@ -401,33 +400,21 @@ async def upload_base64(
     file_path = UploadedFile.generate_file_path(today, stored_filename)
 
     oss_url = _upload_to_oss(image_data, today, stored_filename, content_type)
+    storage_type = "oss" if oss_url else "database"
+    file_data = None if oss_url else image_data
 
-    if oss_url:
-        uploaded_file = UploadedFile(
-            file_id=file_id,
-            original_filename=filename or f"image.{file_ext}",
-            stored_filename=stored_filename,
-            content_type=content_type,
-            file_data=None,
-            file_size=len(image_data),
-            file_path=file_path,
-            upload_date=today,
-            storage_type="oss",
-            oss_url=oss_url,
-        )
-    else:
-        uploaded_file = UploadedFile(
-            file_id=file_id,
-            original_filename=filename or f"image.{file_ext}",
-            stored_filename=stored_filename,
-            content_type=content_type,
-            file_data=image_data,
-            file_size=len(image_data),
-            file_path=file_path,
-            upload_date=today,
-            storage_type="database",
-            oss_url=None,
-        )
+    uploaded_file = UploadedFile(
+        file_id=file_id,
+        original_filename=filename or f"image.{file_ext}",
+        stored_filename=stored_filename,
+        content_type=content_type,
+        file_data=file_data,
+        file_size=len(image_data),
+        file_path=file_path,
+        upload_date=today,
+        storage_type=storage_type,
+        oss_url=oss_url,
+    )
 
     db.add(uploaded_file)
     db.commit()

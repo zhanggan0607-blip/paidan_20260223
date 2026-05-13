@@ -2,7 +2,7 @@
 维保计划服务
 提供维保计划业务逻辑处理
 """
-import logging
+from app.utils.logging_config import get_logger
 import json
 from datetime import datetime
 
@@ -19,7 +19,7 @@ from app.services.base import BaseService
 from app.services.sync_service import SyncService
 from app.utils.date_utils import parse_datetime
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MaintenancePlanService(BaseService):
@@ -247,6 +247,7 @@ class MaintenancePlanService(BaseService):
                     remark='创建维保计划（恢复已删除记录）'
                 )
 
+            self.commit()
             return result
 
         from app.models.project_info import ProjectInfo
@@ -307,6 +308,7 @@ class MaintenancePlanService(BaseService):
                 remark='创建维保计划'
             )
 
+        self.commit()
         return result
 
     def _create_work_order_for_plan(self, plan: MaintenancePlan) -> None:
@@ -354,7 +356,7 @@ class MaintenancePlanService(BaseService):
             )
 
             self._db.add(work_order)
-            self._db.commit()
+            self._db.flush()
 
             logger.info(f"✅ [Service] 自动创建工单成功: inspection_id={inspection_id}, plan_id={plan.plan_id}")
 
@@ -442,6 +444,7 @@ class MaintenancePlanService(BaseService):
                 remark='更新维保计划'
             )
 
+        self.commit()
         return result
 
     def delete(self, id: int, user_id: int = None, operator_name: str = None) -> dict:
@@ -519,6 +522,7 @@ class MaintenancePlanService(BaseService):
                        f"临时维修={deleted_stats['temporary_repairs']}, "
                        f"零星用工={deleted_stats['spot_works']}")
 
+            self.commit()
             return deleted_stats
 
         except Exception as e:
@@ -540,6 +544,7 @@ class MaintenancePlanService(BaseService):
         if not maintenance_plan:
             raise NotFoundException("维保计划不存在")
         self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan)
+        self.commit()
         return maintenance_plan
 
     def update_execution_status(
@@ -578,6 +583,7 @@ class MaintenancePlanService(BaseService):
                 remark=f'执行状态变更为: {status}'
             )
 
+        self.commit()
         return maintenance_plan
 
     def update_completion_rate(self, id: int, rate: int) -> MaintenancePlan:
@@ -601,6 +607,7 @@ class MaintenancePlanService(BaseService):
         if not maintenance_plan:
             raise NotFoundException("维保计划不存在")
         self.sync_service.sync_maintenance_plan_to_work_plan(maintenance_plan)
+        self.commit()
         return maintenance_plan
 
     def get_all_unpaginated(self) -> list[MaintenancePlan]:

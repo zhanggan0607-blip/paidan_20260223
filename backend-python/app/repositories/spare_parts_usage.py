@@ -1,10 +1,10 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.models.spare_parts_usage import SparePartsUsage
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class SparePartsUsageRepository:

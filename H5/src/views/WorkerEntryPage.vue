@@ -11,7 +11,13 @@ import {
 import { spotWorkService, ocrService, uploadService } from '../services'
 import { useUserStore } from '../stores/userStore'
 const userStore = useUserStore()
-import { processPhoto, getCurrentLocation, validateIdCard, maskIdCard } from '@sstcp/shared'
+import {
+  compressImage,
+  blobToFile,
+  getCurrentLocation,
+  validateIdCard,
+  maskIdCard,
+} from '@sstcp/shared'
 import { useNavigation } from '../composables'
 
 interface WorkerInfo {
@@ -112,16 +118,14 @@ const handleExistingWorkerSelect = async (worker: WorkerInfo) => {
   })
   if (checkResponse.code === 200 && checkResponse.data?.exists) {
     const existingInfo = checkResponse.data
-    
-    const alreadyInList = workerList.value.some(
-      (w) => w.idCardNumber === worker.idCardNumber
-    )
-    
+
+    const alreadyInList = workerList.value.some((w) => w.idCardNumber === worker.idCardNumber)
+
     if (alreadyInList) {
       showFailToast('该人员已在当前列表中')
       return
     }
-    
+
     if (existingInfo.duplicate_in_work) {
       showFailToast(
         `该身份证已在本工单中录入！\n姓名：${existingInfo.name}\n同一工单中同一身份证只能上传一次`
@@ -136,7 +140,7 @@ const handleExistingWorkerSelect = async (worker: WorkerInfo) => {
       return
     }
   }
-  
+
   workerList.value.push({ ...worker })
   showExistingWorkerSheet.value = false
   showSuccessToast(`已添加：${worker.name}`)
@@ -199,9 +203,21 @@ const handleDeleteWorker = async (index: number) => {
       message: '请确认是否要删除该施工人员？',
     })
 
+    const worker = workerList.value[index]
+    if (worker.id) {
+      showLoadingToast({ message: '删除中...', forbidClick: true })
+      const response = await spotWorkService.deleteWorker(worker.id)
+      if (response.code !== 200) {
+        showFailToast(response.message || '删除失败')
+        return
+      }
+    }
+
     workerList.value.splice(index, 1)
     showSuccessToast('删除成功')
-  } catch {}
+  } catch {
+    closeToast()
+  }
 }
 
 /**
@@ -240,16 +256,19 @@ const handleSelectImageSource = (useCamera: boolean) => {
  * @param useCamera - 是否使用相机拍照
  */
 const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  
   const ua = navigator.userAgent.toLowerCase()
-  const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isIOS =
+    /iphone|ipad|ipod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
-  const useNativeCapture = useCamera && !isIOS && !isDingTalk && !isMobile && navigator.maxTouchPoints <= 1
-  
+  const useNativeCapture =
+    useCamera && !isIOS && !isDingTalk && !isMobile && navigator.maxTouchPoints <= 1
+
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = isIOS ? 'image/jpeg,image/png' : 'image/*'
+
   if (useNativeCapture) {
     input.capture = 'environment'
   }
@@ -259,112 +278,137 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
     const file = target.files?.[0]
     if (!file) return
 
-    showLoadingToast({ message: '正在识别身份证...', forbidClick: true })
-
-    let shouldContinue = true
+    showLoadingToast({ message: '正在压缩图片...', forbidClick: true })
 
     try {
-      const originalBase64 = await fileToBase64(file)
-
+      let compressedFile: File | null = null
+      let compressedBase64: string
       try {
-        const ocrResponse = await ocrService.recognizeIDCard({
-          imageBase64: originalBase64,
-          side: side === 'front' ? 'face' : 'back',
-        })
+        const compressedBlob = await compressImage(file, 200)
+        compressedFile = blobToFile(compressedBlob, file.name)
+        compressedBase64 = await fileToBase64(compressedFile)
+      } catch {
+        compressedBase64 = await fileToBase64(file)
+      }
 
-        if (ocrResponse.code === 200 && ocrResponse.data) {
-          const ocrData = ocrResponse.data
+      const localPreview = `data:image/jpeg;base64,${compressedBase64}`
+      if (side === 'front') {
+        currentWorker.value.idCardFront = localPreview
+      } else {
+        currentWorker.value.idCardBack = localPreview
+      }
 
-          if (side === 'front') {
-            if (ocrData.name) currentWorker.value.name = ocrData.name
-            if (ocrData.gender) currentWorker.value.gender = ocrData.gender
-            if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
-            if (ocrData.address) currentWorker.value.address = ocrData.address
-            if (ocrData.idCardNumber) {
-              currentWorker.value.idCardNumber = ocrData.idCardNumber
-              const validation = validateIdCard(ocrData.idCardNumber)
-              if (!validation.valid) {
-                idCardError.value = validation.message
-              } else {
-                idCardError.value = ''
-                closeToast()
-                const checkResponse = await spotWorkService.checkIdCardExists(ocrData.idCardNumber, {
-                  project_id: projectId.value,
-                  start_date: workDateStart.value,
-                  end_date: workDateEnd.value,
-                })
-                if (checkResponse.code === 200 && checkResponse.data?.exists) {
-                  const existingInfo = checkResponse.data
-                  
-                  if (existingInfo.duplicate_in_work) {
-                    shouldContinue = false
-                    idCardError.value = '该身份证号码已在本工单中录入，不能重复上传'
-                    showFailToast(
-                      `该身份证已在本工单中录入！\n姓名：${existingInfo.name}\n同一工单中同一身份证只能上传一次`
-                    )
-                    return
-                  } else if (!existingInfo.can_reuse) {
-                    shouldContinue = false
-                    idCardError.value = '该身份证号码已存在，不能重复录入'
-                    showFailToast(
-                      `该身份证已录入未完成工单！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}\n工单号：${existingInfo.work_id}\n状态：${existingInfo.work_status}`
-                    )
-                    return
-                  } else {
-                    showSuccessToast(
-                      `该身份证已完成工单，可继续录入\n姓名：${existingInfo.name}\n原工单：${existingInfo.work_id}`
-                    )
-                  }
+      let ocrFailed = false
+
+      const ocrPromise = (async () => {
+        try {
+          showLoadingToast({ message: '正在识别身份证...', forbidClick: true })
+          const ocrResponse = await ocrService.recognizeIDCard({
+            imageBase64: compressedBase64,
+            side: side === 'front' ? 'face' : 'back',
+          })
+
+          if (ocrResponse.code === 200 && ocrResponse.data) {
+            const ocrData = ocrResponse.data
+
+            if (side === 'front') {
+              if (ocrData.name) currentWorker.value.name = ocrData.name
+              if (ocrData.gender) currentWorker.value.gender = ocrData.gender
+              if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
+              if (ocrData.address) currentWorker.value.address = ocrData.address
+              if (ocrData.idCardNumber) {
+                currentWorker.value.idCardNumber = ocrData.idCardNumber
+                const validation = validateIdCard(ocrData.idCardNumber)
+                if (!validation.valid) {
+                  idCardError.value = validation.message
+                } else {
+                  idCardError.value = ''
+                  spotWorkService
+                    .checkIdCardExists(ocrData.idCardNumber, {
+                      project_id: projectId.value,
+                      start_date: workDateStart.value,
+                      end_date: workDateEnd.value,
+                    })
+                    .then((checkResponse) => {
+                      if (checkResponse.code === 200 && checkResponse.data?.exists) {
+                        const existingInfo = checkResponse.data
+                        if (existingInfo.duplicate_in_work) {
+                          idCardError.value = '该身份证号码已在本工单中录入，不能重复上传'
+                          showFailToast(
+                            `该身份证已在本工单中录入！\n姓名：${existingInfo.name}\n同一工单中同一身份证只能上传一次`
+                          )
+                        } else if (!existingInfo.can_reuse) {
+                          idCardError.value = '该身份证号码已存在，不能重复录入'
+                          showFailToast(
+                            `该身份证已录入未完成工单！\n姓名：${existingInfo.name}\n项目：${existingInfo.project_name}\n工单号：${existingInfo.work_id}\n状态：${existingInfo.work_status}`
+                          )
+                        } else {
+                          showSuccessToast(
+                            `该身份证已完成工单，可继续录入\n姓名：${existingInfo.name}\n原工单：${existingInfo.work_id}`
+                          )
+                        }
+                      }
+                    })
+                    .catch((checkError: any) => {
+                      console.error('检查身份证失败:', checkError)
+                    })
                 }
               }
+            } else {
+              if (ocrData.issuingAuthority)
+                currentWorker.value.issuingAuthority = ocrData.issuingAuthority
+              if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
+            }
+
+            if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
+              showFailToast('身份证识别失败，请确保图片清晰')
+              ocrFailed = true
+            } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
+              showFailToast('身份证反面识别失败，请确保图片清晰')
+              ocrFailed = true
+            }
+          } else if (ocrResponse.code !== 200) {
+            showFailToast(ocrResponse.message || 'OCR识别失败')
+            ocrFailed = true
+          }
+        } catch (ocrError) {
+          console.error('OCR识别失败:', ocrError)
+          showFailToast('OCR识别失败，请手动填写信息')
+          ocrFailed = true
+        }
+      })()
+
+      const uploadFile = compressedFile || file
+      const uploadPromise = (async () => {
+        try {
+          const response = await uploadService.uploadFile(uploadFile)
+          if (response.code === 200 && response.data) {
+            const imageUrl = response.data.url
+            if (side === 'front') {
+              currentWorker.value.idCardFront = imageUrl
+            } else {
+              currentWorker.value.idCardBack = imageUrl
             }
           } else {
-            if (ocrData.issuingAuthority)
-              currentWorker.value.issuingAuthority = ocrData.issuingAuthority
-            if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
+            console.error('图片上传失败:', response.message)
           }
-
-          if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
-            showFailToast('身份证识别失败，请确保图片清晰')
-            shouldContinue = false
-            return
-          } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
-            showFailToast('身份证反面识别失败，请确保图片清晰')
-            shouldContinue = false
-            return
-          }
-        } else if (ocrResponse.code !== 200) {
-          showFailToast(ocrResponse.message || 'OCR识别失败')
-          shouldContinue = false
-          return
+        } catch (uploadError) {
+          console.error('图片上传失败:', uploadError)
         }
-      } catch (ocrError) {
-        console.error('OCR识别失败:', ocrError)
-        showFailToast('OCR识别失败，请手动填写信息')
-        shouldContinue = false
-        return
+      })()
+
+      await ocrPromise
+      if (!ocrFailed) {
+        closeToast()
       }
-
-      if (!shouldContinue) return
-
-      showLoadingToast({ message: '上传图片...', forbidClick: true })
-
-      const response = await uploadService.uploadFile(file)
-
-      if (response.code === 200 && response.data) {
-        const imageUrl = response.data.url
-        if (side === 'front') {
-          currentWorker.value.idCardFront = imageUrl
-        } else {
-          currentWorker.value.idCardBack = imageUrl
-        }
-
-        showSuccessToast('上传成功')
-      } else {
-        showFailToast(response.message || '上传失败')
-      }
+      uploadPromise.catch(() => {})
     } catch (error: any) {
       console.error('Failed to upload:', error)
+      if (side === 'front') {
+        currentWorker.value.idCardFront = ''
+      } else {
+        currentWorker.value.idCardBack = ''
+      }
       const errorMsg = error?.message || error?.data?.message || '上传失败，请重试'
       showFailToast(errorMsg)
     }
@@ -547,11 +591,7 @@ const handleSubmit = async () => {
       showSuccessToast(
         `提交成功，共${personCount}人，${workDays}工天（${personCount}人×${dayCount}天）`
       )
-      if (fromPath.value) {
-        router.push(fromPath.value)
-      } else {
-        goBack()
-      }
+      router.back()
     } else {
       showFailToast(response.message || '提交失败')
     }
@@ -646,9 +686,27 @@ onActivated(() => {
           </template>
           <template #value>
             <div class="worker-photos">
-              <van-icon v-if="worker.idCardFront" name="idcard" class="photo-icon done" />
+              <img
+                v-if="worker.idCardFront"
+                :src="worker.idCardFront"
+                class="photo-thumb"
+                @error="
+                  (e: Event) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }
+                "
+              />
               <van-icon v-else name="idcard" class="photo-icon pending" />
-              <van-icon v-if="worker.idCardBack" name="idcard" class="photo-icon done" />
+              <img
+                v-if="worker.idCardBack"
+                :src="worker.idCardBack"
+                class="photo-thumb"
+                @error="
+                  (e: Event) => {
+                    ;(e.target as HTMLImageElement).style.display = 'none'
+                  }
+                "
+              />
               <van-icon v-else name="idcard" class="photo-icon pending" />
             </div>
           </template>
@@ -725,14 +783,16 @@ onActivated(() => {
           </van-cell-group>
 
           <van-cell-group inset title="身份信息">
-            <van-field name="name"
+            <van-field
               v-model="currentWorker.name"
+              name="name"
               label="姓名"
               placeholder="请输入姓名"
               required
             />
-            <van-field name="id_card_number"
+            <van-field
               v-model="currentWorker.idCardNumber"
+              name="id_card_number"
               label="身份证号"
               placeholder="请输入18位身份证号码"
               required
@@ -740,22 +800,25 @@ onActivated(() => {
               :error-message="idCardError"
               @input="handleIdCardChange"
             />
-            <van-field name="gender"
+            <van-field
               v-model="currentWorker.gender"
+              name="gender"
               label="性别"
               placeholder="输入身份证后自动填充"
               readonly
               required
             />
-            <van-field name="birth_date"
+            <van-field
               v-model="currentWorker.birthDate"
+              name="birth_date"
               label="出生日期"
               placeholder="输入身份证后自动填充"
               readonly
               required
             />
-            <van-field name="address"
+            <van-field
               v-model="currentWorker.address"
+              name="address"
               label="住址"
               placeholder="请输入住址"
               type="textarea"
@@ -766,14 +829,16 @@ onActivated(() => {
           </van-cell-group>
 
           <van-cell-group inset title="证件信息">
-            <van-field name="issuing_authority"
+            <van-field
               v-model="currentWorker.issuingAuthority"
+              name="issuing_authority"
               label="签发机关"
               placeholder="请输入签发机关"
               required
             />
-            <van-field name="valid_period"
+            <van-field
               v-model="currentWorker.validPeriod"
+              name="valid_period"
               label="有效期限"
               placeholder="请输入有效期限"
               required
@@ -788,10 +853,7 @@ onActivated(() => {
 
     <van-action-sheet
       v-model:show="showImageSourceSheet"
-      :actions="[
-        { name: '拍照' },
-        { name: '从相册选择' },
-      ]"
+      :actions="[{ name: '拍照' }, { name: '从相册选择' }]"
       cancel-text="取消"
       close-on-click-action
       @select="(_action, index) => handleSelectImageSource(index === 0)"
@@ -810,10 +872,7 @@ onActivated(() => {
         </div>
         <div class="popup-body">
           <van-loading v-if="existingWorkersLoading" class="loading-center" />
-          <van-empty
-            v-else-if="existingWorkers.length === 0"
-            description="暂无已录入人员"
-          />
+          <van-empty v-else-if="existingWorkers.length === 0" description="暂无已录入人员" />
           <van-cell-group v-else inset>
             <van-cell
               v-for="(worker, index) in existingWorkers"
@@ -829,17 +888,9 @@ onActivated(() => {
               </template>
               <template #value>
                 <div class="worker-photos">
-                  <van-icon
-                    v-if="worker.idCardFront"
-                    name="idcard"
-                    class="photo-icon done"
-                  />
+                  <van-icon v-if="worker.idCardFront" name="idcard" class="photo-icon done" />
                   <van-icon v-else name="idcard" class="photo-icon pending" />
-                  <van-icon
-                    v-if="worker.idCardBack"
-                    name="idcard"
-                    class="photo-icon done"
-                  />
+                  <van-icon v-if="worker.idCardBack" name="idcard" class="photo-icon done" />
                   <van-icon v-else name="idcard" class="photo-icon pending" />
                 </div>
               </template>
@@ -902,6 +953,13 @@ onActivated(() => {
 
 .photo-icon.pending {
   color: var(--color-text-placeholder);
+}
+
+.photo-thumb {
+  width: 36px;
+  height: 24px;
+  object-fit: cover;
+  border-radius: 2px;
 }
 
 .add-btn {

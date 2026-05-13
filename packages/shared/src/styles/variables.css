@@ -1,0 +1,137 @@
+:root {
+  --color-primary: #2a7a7a;
+  --color-primary-light: #3d9e9e;
+  --color-primary-dark: #1d5c5c;
+  --color-primary-subtle: #e8f0f0;
+
+  --color-accent: #d4880f;
+  --color-accent-light: #f0a832;
+  --color-accent-dark: #b06e00;
+  --color-accent-subtle: #fef5e7;
+
+  --color-success: #3a8a5c;
+  --color-success-subtle: #e6f3ec;
+  --color-warning: #c27803;
+  --color-warning-subtle: #fef5e7;
+  --color-danger: #c0392b;
+  --color-danger-subtle: #fbe9e7;
+  --color-info: #5a7a9a;
+  --color-info-subtle: #edf2f7;
+
+  --color-text-primary: #1a1f16;
+  --color-text-regular: #3d4435;
+  --color-text-secondary: #6b7264;
+  --color-text-placeholder: #a0a598;
+
+  --color-bg-page: #f4f5f0;
+  --color-bg-card: #ffffff;
+  --color-bg-elevated: #ffffff;
+  --color-bg-overlay: rgba(20, 25, 18, 0.55);
+
+  --color-border: #d4d6cf;
+  --color-border-light: #e6e8e1;
+  --color-border-dark: #b0b3aa;
+
+  --status-overdue-bg: #fbe9e7;
+  --status-overdue-text: #a93226;
+  --status-overdue-border: #e6b0aa;
+
+  --status-warning-bg: #fef5e7;
+  --status-warning-text: #9a6503;
+  --status-warning-border: #f5d89a;
+
+  --status-success-bg: #e6f3ec;
+  --status-success-text: #2a6b42;
+  --status-success-border: #a3d9b8;
+
+  --status-pending-bg: #edf2f7;
+  --status-pending-text: #2c5f8a;
+  --status-pending-border: #9ec5e0;
+
+  --status-completed-bg: #e6f3ec;
+  --status-completed-text: #2a6b42;
+  --status-completed-border: #a3d9b8;
+
+  --status-returned-bg: #fef5e7;
+  --status-returned-text: #8a5a00;
+  --status-returned-border: #f5d89a;
+
+  --status-executing-bg: #edf2f7;
+  --status-executing-text: #2c5f8a;
+  --status-executing-border: #9ec5e0;
+
+  --status-confirmed-bg: #e6f3ec;
+  --status-confirmed-text: #2a6b42;
+  --status-confirmed-border: #a3d9b8;
+
+  --status-rejected-bg: #fbe9e7;
+  --status-rejected-text: #a93226;
+  --status-rejected-border: #e6b0aa;
+
+  --z-dropdown: 100;
+  --z-overlay: 1000;
+  --z-modal: 2000;
+  --z-sub-modal: 3000;
+  --z-loading: 9000;
+  --z-toast: 10000;
+
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  --font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --shadow-xs: 0 1px 2px rgba(20, 25, 18, 0.04);
+  --shadow-sm: 0 1px 3px rgba(20, 25, 18, 0.06), 0 1px 2px rgba(20, 25, 18, 0.04);
+  --shadow-md: 0 4px 6px rgba(20, 25, 18, 0.06), 0 2px 4px rgba(20, 25, 18, 0.04);
+  --shadow-lg: 0 10px 15px rgba(20, 25, 18, 0.08), 0 4px 6px rgba(20, 25, 18, 0.04);
+
+  --transition-fast: 0.1s ease-out;
+  --transition-normal: 0.2s ease-out;
+  --transition-slow: 0.3s ease-out;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  line-height: 20px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.status-badge--pending { background: var(--status-pending-bg); color: var(--status-pending-text); border: 1px solid var(--status-pending-border); }
+.status-badge--executing { background: var(--status-executing-bg); color: var(--status-executing-text); border: 1px solid var(--status-executing-border); }
+.status-badge--completed, .status-badge--confirmed { background: var(--status-completed-bg); color: var(--status-completed-text); border: 1px solid var(--status-completed-border); }
+.status-badge--returned { background: var(--status-returned-bg); color: var(--status-returned-text); border: 1px solid var(--status-returned-border); }
+.status-badge--rejected { background: var(--status-rejected-bg); color: var(--status-rejected-text); border: 1px solid var(--status-rejected-border); }
+.status-badge--overdue { background: var(--status-overdue-bg); color: var(--status-overdue-text); border: 1px solid var(--status-overdue-border); }
+.status-badge--warning { background: var(--status-warning-bg); color: var(--status-warning-text); border: 1px solid var(--status-warning-border); }
+.status-badge--success { background: var(--status-success-bg); color: var(--status-success-text); border: 1px solid var(--status-success-border); }

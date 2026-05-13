@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.models.enums import VALID_WORK_ORDER_STATUSES
+
 PLAN_TYPES = ['定期巡检', '临时维修', '零星用工']
 
 
@@ -30,7 +32,7 @@ class WorkPlanBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
+        valid_statuses = VALID_WORK_ORDER_STATUSES
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v

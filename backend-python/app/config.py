@@ -9,11 +9,14 @@ ENV_FILE_PATH = Path(__file__).parent.parent / ".env"
 
 class Settings(BaseSettings):
     app_name: str = "SSTCP Maintenance System"
-    app_version: str = "2.0.8"
+    app_version: str = "2.2.1"
     debug: bool = False
     secret_key: str | None = None
 
     database_url: str | None = None
+    db_pool_size: int = 2
+    db_max_overflow: int = 3
+    db_pool_recycle: int = 1800
 
     redis_url: str = "redis://localhost:6379/0"
     redis_enabled: bool = True
@@ -21,6 +24,8 @@ class Settings(BaseSettings):
 
     rate_limit_per_minute: int = 600
     rate_limit_per_hour: int = 10000
+    get_rate_limit_per_minute: int = 1200
+    get_rate_limit_per_hour: int = 30000
 
     aliyun_access_key_id: str = ""
     aliyun_access_key_secret: str = ""
@@ -43,21 +48,27 @@ class Settings(BaseSettings):
     openapi_url: str = "/api/openapi.json"
     server_base_url: str = "http://localhost:8000"
 
-    cors_origins: str = "https://www.paidan.sstcp.top,https://paidan.sstcp.top,http://localhost:5173,http://localhost:5180"
+    log_retention_days: int = 5
+    log_max_file_size_mb: int = 50
+    log_rotation_when: str = "midnight"
+    log_rotation_interval: int = 1
+    log_query_max_scan_lines: int = 50000
+
+    cors_origins: str = "https://www.paidan.sstcp.top,https://paidan.sstcp.top"
 
     @field_validator('cors_origins', mode='after')
     @classmethod
     def parse_cors_origins(cls, v):
         if v == "*":
-            import logging
-            logging.getLogger(__name__).warning("CORS_ORIGINS 设置为 '*'，允许所有来源访问，仅建议在开发环境使用！")
+            from app.utils.logging_config import get_logger
+            get_logger(__name__).warning("CORS_ORIGINS 设置为 '*'，允许所有来源访问，仅建议在开发环境使用！")
             return ["*"]
         if isinstance(v, str):
             origins = [origin.strip() for origin in v.split(',')]
             for origin in origins:
                 if origin.startswith('http://') and origin not in ('http://localhost:5173', 'http://localhost:5180', 'http://localhost:8000', 'http://localhost:3000'):
-                    import logging
-                    logging.getLogger(__name__).warning(f"CORS 包含不安全的 HTTP 源: {origin}，生产环境建议仅使用 HTTPS")
+                    from app.utils.logging_config import get_logger
+                    get_logger(__name__).warning(f"CORS 包含不安全的 HTTP 源: {origin}，生产环境建议仅使用 HTTPS")
             return origins
         return v
 
@@ -101,7 +112,7 @@ class OverdueAlertConfig:
 
 
 class PersonnelConfig:
-    VALID_ROLES: list[str] = ['管理员', '部门经理', '材料员', '运维人员']
+    VALID_ROLES: list[str] = ['管理员', '部门经理', '主管', '材料员', '运维人员']
 
     @classmethod
     def get_valid_roles(cls) -> list[str]:

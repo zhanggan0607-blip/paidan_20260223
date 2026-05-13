@@ -62,7 +62,7 @@ const fetchWorkList = async (forceRefresh = false) => {
           allItemsCache.value = cached
         }
       }
-      
+
       if (forceRefresh || allItemsCache.value.length === 0) {
         const response = await spotWorkService.getList({
           page: 0,
@@ -87,29 +87,25 @@ const fetchWorkList = async (forceRefresh = false) => {
       }
 
       workList.value = sortByTimestampDesc(filteredItems, {
-        secondarySortKey: 'id'
+        secondarySortKey: 'id',
       })
     } else {
       const tabStatuses = (currentTab.value as { statuses?: string[] })?.statuses || []
-      
+
       if (tabStatuses.length > 0) {
         const responses = await Promise.all(
-          tabStatuses.map(status =>
-            spotWorkService.getList({ page: 0, size: 100, status })
-          )
+          tabStatuses.map((status) => spotWorkService.getList({ page: 0, size: 100, status }))
         )
         let allItems = responses
-          .filter(r => r.code === 200)
-          .flatMap(r => r.data?.items || r.data?.content || [])
+          .filter((r) => r.code === 200)
+          .flatMap((r) => r.data?.items || r.data?.content || [])
 
         if (isInProgressTab && !canApprove.value) {
-          allItems = allItems.filter(
-            (item: any) => item.maintenance_personnel === currentUserName
-          )
+          allItems = allItems.filter((item: any) => item.maintenance_personnel === currentUserName)
         }
 
         workList.value = sortByTimestampDesc(allItems, {
-          secondarySortKey: 'id'
+          secondarySortKey: 'id',
         })
       } else {
         workList.value = []

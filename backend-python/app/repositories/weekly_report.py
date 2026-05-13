@@ -1,10 +1,10 @@
-import logging
+from app.utils.logging_config import get_logger
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.weekly_report import WeeklyReport
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class WeeklyReportRepository:
@@ -25,7 +25,7 @@ class WeeklyReportRepository:
         created_by: str | None = None
     ) -> tuple[list[WeeklyReport], int]:
         try:
-            query = self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(WeeklyReport.is_deleted == False)
+            query = self.db.query(WeeklyReport).options(selectinload(WeeklyReport.project)).filter(WeeklyReport.is_deleted == False)
 
             if report_id:
                 query = query.filter(WeeklyReport.report_id.ilike(f'%{report_id}%'))
@@ -49,14 +49,14 @@ class WeeklyReportRepository:
 
     def find_by_id(self, id: int) -> WeeklyReport | None:
         try:
-            return self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(WeeklyReport.id == id, WeeklyReport.is_deleted == False).first()
+            return self.db.query(WeeklyReport).options(selectinload(WeeklyReport.project)).filter(WeeklyReport.id == id, WeeklyReport.is_deleted == False).first()
         except Exception as e:
             logger.error(f"查询维保周报失败 (id={id}): {str(e)}")
             raise
 
     def find_by_report_id(self, report_id: str) -> WeeklyReport | None:
         try:
-            return self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(WeeklyReport.report_id == report_id, WeeklyReport.is_deleted == False).first()
+            return self.db.query(WeeklyReport).options(selectinload(WeeklyReport.project)).filter(WeeklyReport.report_id == report_id, WeeklyReport.is_deleted == False).first()
         except Exception as e:
             logger.error(f"查询维保周报失败 (report_id={report_id}): {str(e)}")
             raise
@@ -70,7 +70,7 @@ class WeeklyReportRepository:
 
     def find_by_project_and_week(self, project_id: str, week_start_date, week_end_date) -> WeeklyReport | None:
         try:
-            return self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(
+            return self.db.query(WeeklyReport).options(selectinload(WeeklyReport.project)).filter(
                 WeeklyReport.project_id == project_id,
                 WeeklyReport.week_start_date == week_start_date,
                 WeeklyReport.week_end_date == week_end_date,
@@ -112,7 +112,12 @@ class WeeklyReportRepository:
 
     def find_all_unpaginated(self) -> list[WeeklyReport]:
         try:
-            return self.db.query(WeeklyReport).options(joinedload(WeeklyReport.project)).filter(WeeklyReport.is_deleted == False).order_by(WeeklyReport.created_at.desc(), WeeklyReport.id.desc()).all()
+            return list(
+                self.db.query(WeeklyReport).options(selectinload(WeeklyReport.project))
+                .filter(WeeklyReport.is_deleted == False)
+                .order_by(WeeklyReport.created_at.desc(), WeeklyReport.id.desc())
+                .yield_per(200)
+            )
         except Exception as e:
             logger.error(f"查询所有维保周报失败: {str(e)}")
             raise

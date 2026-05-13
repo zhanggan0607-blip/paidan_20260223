@@ -1904,7 +1904,7 @@ export default defineComponent({
       if (formData.planList.length > 0) {
         const lastPlan = formData.planList[formData.planList.length - 1]
         if (lastPlan && lastPlan.plan_id) {
-          const parts = lastPlan.plan_id.split('-')
+          const parts = String(lastPlan.plan_id).split('-')
           const lastNum = parseInt(parts[parts.length - 1])
           if (!isNaN(lastNum)) {
             newNum = lastNum + 1
@@ -2287,9 +2287,9 @@ export default defineComponent({
           console.error('解析巡检事项失败:', e)
         }
       } else if (firstPlan.maintenance_content) {
-        const contents = firstPlan.maintenance_content.split('; ')
+        const contents = String(firstPlan.maintenance_content).split('; ')
         const requirements = firstPlan.maintenance_requirements
-          ? firstPlan.maintenance_requirements.split('; ')
+          ? String(firstPlan.maintenance_requirements).split('; ')
           : []
         contents.forEach((content: string, index: number) => {
           editData.itemList.push({

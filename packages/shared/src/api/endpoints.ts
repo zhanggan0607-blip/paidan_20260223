@@ -11,6 +11,8 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
     ME: '/auth/me',
+    CHANGE_PASSWORD: '/auth/change-password',
+    RESET_PASSWORD: '/auth/reset-password',
   },
 
   DINGTALK: {
@@ -43,8 +45,8 @@ export const API_ENDPOINTS = {
     DETAIL: (id: number) => `/periodic-inspection/${id}`,
     ALL: '/periodic-inspection/all/list',
     RECORDS: (id: number) => `/periodic-inspection/${id}/records`,
-    RECORD_DETAIL: (inspectionId: number, recordId: number) =>
-      `/periodic-inspection/${inspectionId}/records/${recordId}`,
+    RECORD_DETAIL: (recordId: number) =>
+      `/periodic-inspection-record/${recordId}`,
     RECORD_BY_INSPECTION: (inspectionId: string) =>
       `/periodic-inspection-record/inspection/${inspectionId}`,
     CREATE_RECORD: '/periodic-inspection-record',
@@ -70,13 +72,13 @@ export const API_ENDPOINTS = {
     GENERATE_ID: '/spot-work/generate-id',
     QUICK_FILL: '/spot-work/quick-fill',
     WORKERS: '/spot-work/workers',
-    WORKER_DETAIL: (id: number) => `/spot-work/workers/${id}`,
     WORKERS_BY_PROJECT: '/spot-work/workers',
     CHECK_ID_CARD: '/spot-work/workers/check-id-card',
     SUBMIT: (id: number) => `/spot-work/${id}/submit`,
     RECALL: (id: number) => `/spot-work/${id}/recall`,
     APPROVE: (id: number) => `/spot-work/${id}/approve`,
     ALL_WORKERS: '/spot-work/workers/all',
+    WORKER_DETAIL: (id: number) => `/spot-work/workers/${id}`,
   },
 
   WORK_ORDER: {
@@ -90,6 +92,9 @@ export const API_ENDPOINTS = {
     DETAIL: (id: number) => `/maintenance-plan/${id}`,
     ALL: '/maintenance-plan/all/list',
     BY_PLAN_ID: (planId: string) => `/maintenance-plan/plan-id/${planId}`,
+    BY_PROJECT: (projectId: string) => `/maintenance-plan/project/${projectId}`,
+    UPCOMING: '/maintenance-plan/upcoming/list',
+    UPDATE_STATUS: (id: number) => `/maintenance-plan/${id}/status`,
     GENERATE_WORK_ORDERS: (id: number) => `/maintenance-plan/${id}/generate-work-orders`,
   },
 
@@ -168,6 +173,10 @@ export const API_ENDPOINTS = {
     TOP_PROJECTS: '/statistics/top-projects',
     COMPLETION_RATE: '/statistics/completion-rate',
     DETAIL: '/statistics/detail',
+    REPAIR_STATS: '/statistics/repair-stats',
+    SPOT_WORK_STATS: '/statistics/spot-work-stats',
+    INSPECTION_STATS: '/statistics/inspection-stats',
+    MONTHLY_TREND: '/statistics/monthly-trend',
   },
 
   OVERDUE_ALERT: {
@@ -203,15 +212,24 @@ export const API_ENDPOINTS = {
     IDCARD: '/ocr/idcard',
   },
 
-  USER_DASHBOARD_CONFIG: {
-    GET: '/user-dashboard-config',
-    UPDATE: '/user-dashboard-config',
+  EXPORT: {
+    PERIODIC_INSPECTION: (id: number) => `/export/periodic-inspection/${id}`,
+    TEMPORARY_REPAIR: (id: number) => `/export/temporary-repair/${id}`,
+    SPOT_WORK: (id: number) => `/export/spot-work/${id}`,
+    PERIODIC_MAINTENANCE: (id: number) => `/export/periodic-maintenance/${id}`,
+  },
+
+  ADMIN_EDIT: {
+    PERIODIC_INSPECTION: (id: number) => `/admin-edit/periodic-inspection/${id}`,
+    TEMPORARY_REPAIR: (id: number) => `/admin-edit/temporary-repair/${id}`,
+    SPOT_WORK: (id: number) => `/admin-edit/spot-work/${id}`,
+    MAINTENANCE_PLAN: (id: number) => `/admin-edit/maintenance-plan/${id}`,
   },
 
   OPERATION_TYPE: {
     LIST: '/operation-type',
-    DETAIL: (id: number) => `/operation-type/${id}`,
-    BY_CODE: (code: string) => `/operation-type/code/${code}`,
+    DETAIL: (type_code: string) => `/operation-type/${type_code}`,
+    BY_CODE: (type_code: string) => `/operation-type/${type_code}`,
   },
 } as const
 

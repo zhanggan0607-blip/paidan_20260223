@@ -3,7 +3,7 @@
 提供维保周报业务逻辑处理
 """
 import json
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -14,7 +14,7 @@ from app.repositories.weekly_report import WeeklyReportRepository
 from app.schemas.weekly_report import WeeklyReportCreate, WeeklyReportUpdate
 from app.utils.date_utils import parse_datetime
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class WeeklyReportService:
@@ -133,7 +133,9 @@ class WeeklyReportService:
             created_by=created_by
         )
 
-        return self.repository.create(report)
+        result = self.repository.create(report)
+        self._db.commit()
+        return result
 
     def update(
         self,
@@ -184,7 +186,9 @@ class WeeklyReportService:
         if dto.status is not None:
             existing_report.status = dto.status
 
-        return self.repository.update(existing_report)
+        result = self.repository.update(existing_report)
+        self._db.commit()
+        return result
 
     def submit(self, id: int, operator_id: int | None = None, operator_name: str | None = None) -> WeeklyReport:
         """
@@ -205,7 +209,9 @@ class WeeklyReportService:
         if report.status != "draft":
             raise ValidationException("只有草稿状态的周报才能提交")
         report.status = "submitted"
-        return self.repository.update(report)
+        result = self.repository.update(report)
+        self._db.commit()
+        return result
 
     def approve(
         self,
@@ -235,7 +241,9 @@ class WeeklyReportService:
         report.status = "approved"
         report.approved_by = approved_by
         report.approved_at = datetime.now()
-        return self.repository.update(report)
+        result = self.repository.update(report)
+        self._db.commit()
+        return result
 
     def reject(
         self,
@@ -264,7 +272,9 @@ class WeeklyReportService:
             raise ValidationException("只有已提交状态的周报才能退回")
         report.status = "rejected"
         report.reject_reason = reject_reason
-        return self.repository.update(report)
+        result = self.repository.update(report)
+        self._db.commit()
+        return result
 
     def sign(
         self,
@@ -288,7 +298,9 @@ class WeeklyReportService:
         report = self.get_by_id(id)
         report.manager_signature = signature
         report.manager_sign_time = datetime.now()
-        return self.repository.update(report)
+        result = self.repository.update(report)
+        self._db.commit()
+        return result
 
     def delete(self, id: int, operator_id: int | None = None, operator_name: str | None = None) -> None:
         """
@@ -301,6 +313,7 @@ class WeeklyReportService:
         """
         report = self.get_by_id(id)
         self.repository.soft_delete(report, operator_id)
+        self._db.commit()
 
     def get_all_unpaginated(self) -> list[WeeklyReport]:
         """

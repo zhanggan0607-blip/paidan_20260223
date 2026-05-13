@@ -16,22 +16,24 @@ import uuid
 
 os.environ.setdefault("DATABASE_URL", "")
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import text
 from sqlalchemy.orm import sessionmaker
 
-from app.config import get_settings
 from app.models.uploaded_file import UploadedFile
 from app.utils.oss_service import get_oss_service, OSSService
 from app.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
 
+_session_local = None
+
 
 def get_db_session():
-    settings = get_settings()
-    engine = create_engine(settings.database_url)
-    Session = sessionmaker(bind=engine)
-    return Session()
+    global _session_local
+    if _session_local is None:
+        from app.database import engine
+        _session_local = sessionmaker(bind=engine)
+    return _session_local()
 
 
 def extract_upload_paths(value) -> list[str]:

@@ -17,6 +17,7 @@ oss2==2.19.1
 prometheus-fastapi-instrumentator==7.0.0
 reportlab==4.0.8
 Pillow>=10.0.0
+pillow-heif>=0.14.0
 filetype>=1.2.0
 requests>=2.31.0
 redis>=5.0.0

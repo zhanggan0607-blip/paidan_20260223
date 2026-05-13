@@ -122,9 +122,11 @@ const isEditable = computed(() => {
   if (!isWorker.value) return false
   const status = detail.value?.status
   if (status === WORK_STATUS.COMPLETED) return false
-  return status === WORK_STATUS.IN_PROGRESS || 
-         status === WORK_STATUS.PENDING_CONFIRM || 
-         status === WORK_STATUS.RETURNED
+  return (
+    status === WORK_STATUS.IN_PROGRESS ||
+    status === WORK_STATUS.PENDING_CONFIRM ||
+    status === WORK_STATUS.RETURNED
+  )
 })
 
 const allInspected = computed(() => {
@@ -142,8 +144,13 @@ const canSign = computed(() => {
 const canSubmit = computed(() => {
   if (!canSign.value || !formData.value.signature) return false
   if (!isWorker.value) return false
+  return detail.value?.status === WORK_STATUS.IN_PROGRESS
+})
+
+const canUpdate = computed(() => {
+  if (!isWorker.value) return false
   const status = detail.value?.status
-  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+  return status === WORK_STATUS.PENDING_CONFIRM || status === WORK_STATUS.RETURNED
 })
 
 const totalCount = computed(() => {
@@ -437,7 +444,9 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
   if (!isEditable.value) return
 
   const ua = navigator.userAgent.toLowerCase()
-  const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isIOS =
+    /iphone|ipad|ipod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
@@ -447,7 +456,7 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
   } else {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'image/*'
+    input.accept = 'image/jpeg,image/png'
     input.multiple = true
     input.capture = 'environment'
 
@@ -473,13 +482,18 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
           showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
           const userName = userStore.currentUser?.name || '未知用户'
           const location = await getCurrentLocation()
-          const processedFile = await processPhoto(files[i], {
-            userName,
-            includeLocation: true,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
-          })
-          processedFiles.push(processedFile)
+          try {
+            const processedFile = await processPhoto(files[i], {
+              userName,
+              includeLocation: true,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+            })
+            processedFiles.push(processedFile)
+          } catch (watermarkError) {
+            console.warn('水印处理失败，使用原图:', watermarkError)
+            processedFiles.push(files[i])
+          }
         } catch (error) {
           console.error('Failed to process photo:', error)
           processFailed++
@@ -529,7 +543,9 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
           if (index !== -1) {
             await saveRecordToBackend(inspectionSystems.value[index])
           }
-          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+          showSuccessToast(
+            `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+          )
         } else {
           showFailToast('上传失败')
         }
@@ -552,7 +568,7 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
 const tryCaptureOnIOSForItem = (system: InspectionSystem, markAsInspected: boolean = false) => {
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = 'image/*'
+  input.accept = 'image/jpeg,image/png'
   input.multiple = true
   input.style.position = 'fixed'
   input.style.top = '0'
@@ -585,26 +601,31 @@ const tryCaptureOnIOSForItem = (system: InspectionSystem, markAsInspected: boole
 
     for (const file of files) {
       try {
-        let fileToUpload = file
-
-        if (file.size > 500 * 1024) {
-          showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
-
-          const compressedBlob = await compressImage(file, 500)
-          fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
+        showLoadingToast({
+          message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`,
+          forbidClick: true,
+          duration: 0,
+        })
+        const userName = userStore.currentUser?.name || '未知用户'
+        let watermarkedFile: File
+        try {
+          const location = await getCurrentLocation()
+          watermarkedFile = await processPhoto(file, {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+        } catch (watermarkError: any) {
+          console.warn('水印处理失败，使用原图上传:', watermarkError)
+          watermarkedFile = file
         }
 
-        showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
-        const userName = userStore.currentUser?.name || '未知用户'
-        const location = await getCurrentLocation()
-        const watermarkedFile = await processPhoto(fileToUpload, {
-          userName,
-          includeLocation: true,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
+        showLoadingToast({
+          message: `上传中(${uploadedCount + failedCount + 1}/${files.length}) 0%...`,
+          forbidClick: true,
+          duration: 0,
         })
-
-        showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
 
         const reader = new FileReader()
 
@@ -614,7 +635,17 @@ const tryCaptureOnIOSForItem = (system: InspectionSystem, markAsInspected: boole
           reader.readAsDataURL(watermarkedFile)
         })
 
-        const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
+        const response = await uploadService.uploadImageBase64(
+          base64Data,
+          watermarkedFile.name,
+          (progress) => {
+            showLoadingToast({
+              message: `上传中(${uploadedCount + failedCount + 1}/${files.length}) ${progress.percent}%...`,
+              forbidClick: true,
+              duration: 0,
+            })
+          }
+        )
 
         if (response.code === 200 && response.data) {
           const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
@@ -643,7 +674,9 @@ const tryCaptureOnIOSForItem = (system: InspectionSystem, markAsInspected: boole
       if (index !== -1) {
         await saveRecordToBackend(inspectionSystems.value[index])
       }
-      showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+      showSuccessToast(
+        `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+      )
     } else {
       showFailToast('上传失败')
     }
@@ -663,18 +696,18 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const reader = new FileReader()
-    
+
     reader.onload = (e) => {
       img.src = e.target?.result as string
     }
-    
+
     img.onload = () => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')!
-      
+
       let width = img.width
       let height = img.height
-      
+
       const maxDimension = 1920
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
@@ -685,23 +718,23 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
           height = maxDimension
         }
       }
-      
+
       canvas.width = width
       canvas.height = height
       ctx.drawImage(img, 0, 0, width, height)
-      
+
       canvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('图片压缩失败'))
             return
           }
-          
+
           if (blob.size <= maxSizeKB * 1024) {
             resolve(blob)
             return
           }
-          
+
           const quality = Math.sqrt((maxSizeKB * 1024) / blob.size)
           canvas.toBlob(
             (compressedBlob) => {
@@ -719,15 +752,15 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
         0.9
       )
     }
-    
+
     img.onerror = () => {
       reject(new Error('图片加载失败'))
     }
-    
+
     reader.onerror = () => {
       reject(new Error('文件读取失败'))
     }
-    
+
     reader.readAsDataURL(file)
   })
 }
@@ -773,6 +806,8 @@ const handleSubmit = async () => {
     const status = detail.value?.status
     if (status === WORK_STATUS.PENDING_CONFIRM) {
       showFailToast('工单已提交，等待审批中')
+    } else if (status === WORK_STATUS.RETURNED) {
+      showFailToast('工单已退回，请使用更新按钮重新提交')
     } else if (status === WORK_STATUS.COMPLETED) {
       showFailToast('工单已完成')
     } else {
@@ -839,6 +874,56 @@ const handleRecall = async () => {
         showFailToast('撤回失败')
       }
     }
+  }
+}
+
+const handleUpdate = async () => {
+  if (!canUpdate.value) {
+    showFailToast('当前状态不允许更新')
+    return
+  }
+
+  try {
+    await showConfirmDialog({
+      title: '提示',
+      message: '确认更新工单内容吗？',
+    })
+
+    showLoadingToast({ message: '更新中...', forbidClick: true })
+
+    const currentStatus = detail.value?.status
+    const updateData: Record<string, any> = {
+      execution_result: formData.value.execution_result,
+      remarks: formData.value.remarks,
+      signature: formData.value.signature,
+      total_count: totalCount.value,
+      filled_count: filledCount.value,
+    }
+
+    if (currentStatus === WORK_STATUS.RETURNED) {
+      updateData.status = WORK_STATUS.PENDING_CONFIRM
+    }
+
+    const response = await periodicInspectionService.patch(detail.value?.id!, updateData)
+
+    if (response.code === 200) {
+      if (currentStatus === WORK_STATUS.RETURNED) {
+        await addOperationLog('update', '员工更新工单并重新提交审核')
+        showSuccessToast('更新成功，已重新提交审核')
+      } else {
+        await addOperationLog('update', '员工更新工单内容')
+        showSuccessToast('更新成功')
+      }
+
+      await fetchDetail()
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('Failed to update:', error)
+      showFailToast('更新失败')
+    }
+  } finally {
+    closeToast()
   }
 }
 
@@ -1157,10 +1242,7 @@ watch(
                 <van-icon name="arrow" />
               </div>
             </div>
-            <div
-              v-if="system.check_content || system.brief_description"
-              class="inspection-detail"
-            >
+            <div v-if="system.check_content || system.brief_description" class="inspection-detail">
               <div v-if="system.check_content" class="detail-row">
                 <span class="detail-label">检查要求:</span>
                 <span class="detail-value">{{ system.check_content }}</span>
@@ -1232,8 +1314,9 @@ watch(
       </van-cell-group>
 
       <van-cell-group inset title="现场处理">
-        <van-field name="execution_result"
+        <van-field
           v-model="formData.execution_result"
+          name="execution_result"
           rows="3"
           autosize
           label="发现问题"
@@ -1243,8 +1326,9 @@ watch(
           maxlength="500"
         />
 
-        <van-field name="remarks"
+        <van-field
           v-model="formData.remarks"
+          name="remarks"
           rows="2"
           autosize
           label="处理结果"
@@ -1279,10 +1363,14 @@ watch(
         :work-order-id="detail.id"
       />
 
-      <div v-if="isEditable" class="action-buttons">
-        <van-button v-if="detail?.status === WORK_STATUS.PENDING_CONFIRM && isWorker" type="warning" size="large" @click="handleRecall"
-          >撤回</van-button
-        >
+      <div v-if="canUpdate" class="action-buttons">
+        <van-button type="primary" size="large" @click="handleUpdate">更新</van-button>
+      </div>
+
+      <div
+        v-else-if="isWorker && detail?.status === WORK_STATUS.IN_PROGRESS"
+        class="action-buttons"
+      >
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
           >提交</van-button
         >
@@ -1326,8 +1414,9 @@ watch(
               <div class="check-value">{{ currentInspectionSystem.check_standard }}</div>
             </div>
           </div>
-          <van-field name="inspection_content"
+          <van-field
             v-model="currentInspectionSystem.inspection_content"
+            name="inspection_content"
             rows="3"
             autosize
             label="巡检内容"
@@ -1335,8 +1424,9 @@ watch(
             placeholder="请输入巡检内容"
             :readonly="!isEditable"
           />
-          <van-field name="inspection_result"
+          <van-field
             v-model="currentInspectionSystem.inspection_result"
+            name="inspection_result"
             rows="3"
             autosize
             label="巡检结果"
@@ -1361,8 +1451,9 @@ watch(
           <van-icon name="cross" @click="showRejectDialog = false" />
         </div>
         <div class="popup-body">
-          <van-field name="reject_reason"
+          <van-field
             v-model="rejectReason"
+            name="reject_reason"
             rows="4"
             autosize
             type="textarea"

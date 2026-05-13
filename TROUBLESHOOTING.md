@@ -21,8 +21,247 @@
 12. [2026-05-03 inspection_items JSON.parse重复解析错误修复](#2026-05-03-inspection_items-jsonparse重复解析错误修复)
 13. [2026-05-03 PC端临时抢修详情页日期格式和PUT/PATCH错误修复](#2026-05-03-pc端临时抢修详情页日期格式和putpatch错误修复)
 14. [2026-05-04 H5端定期巡检/临时维修/零星用工页面分页数据读取字段不一致修复](#2026-05-04-h5端定期巡检临时维修零星用工页面分页数据读取字段不一致修复)
+15. [2026-05-07 测试服务器用户密码哈希不一致导致登录失败修复](#2026-05-07-测试服务器用户密码哈希不一致导致登录失败修复)
+16. [2026-05-09 身份证OCR识别速度慢优化](#2026-05-09-身份证ocr识别速度慢优化)
 
 ---
+
+## 2026-05-13 修复：技术债务一次性修复
+
+### 类型
+修复 / 废弃删除 / 重复合并 / 共用提级
+
+### 概要
+一次性修复剩余技术债务：拆分超限文件、修复TypeScript类型错误、修复后端bug、补充测试覆盖
+
+### 核心根因
+1. export_pdf.py 1292行严重超限，需按职责拆分
+2. CrudService使用AxiosInstance类型过于严格，与RequestInstance不兼容
+3. shared包未导出apiCache模块
+4. CSS @import使用别名路径在构建时解析失败
+5. OnlineUser模型字段名is_online与实际is_active不一致
+6. ApiResponse.data为unknown类型，前端需类型断言
+
+### 明细
+- **文件**:
+  - `backend-python/app/api/v1/export_pdf.py` → 91行（原1292行）
+  - `backend-python/app/services/export_pdf_base.py` - 新建
+  - `backend-python/app/services/export_pdf_inspection.py` - 新建
+  - `backend-python/app/services/export_pdf_repair.py` - 新建
+  - `backend-python/app/services/export_pdf_spotwork.py` - 新建
+  - `backend-python/app/services/online_user.py` - is_online→is_active
+  - `backend-python/tests/test_export_pdf.py` - 导入路径更新
+  - `backend-python/tests/test_pagination.py` - 新建
+  - `backend-python/tests/test_spot_work.py` - 新建
+  - `backend-python/tests/test_online_user.py` - 新建
+  - `backend-python/tests/test_spare_parts_stock.py` - 新建
+  - `packages/shared/src/services/crudService.ts` - HttpMethods类型重构
+  - `packages/shared/src/index.ts` - 添加apiCache导出
+  - `src/views/SpotWorkManagement.vue` - 类型断言修复
+  - `src/views/SpotWorkDetail.vue` - 类型断言修复
+  - `src/views/OverdueAlert.vue` - 类型断言修复
+  - `src/styles/variables.css` - CSS导入路径修复
+  - `H5/src/styles/variables.css` - CSS导入路径修复
+  - `H5/vite.config.ts` - 添加watermark别名
+- **改动**: 详见FIX-RECORD.md第四轮修复记录
+
+---
+
+## 2026-05-13 修复：项目列表 /api/v1/project-info/all/list 返回 500 错误
+
+### 类型
+修复
+
+### 概要
+生产环境 project-info/all/list 接口 500，根因为阿里云 RDS 连接数耗尽（remaining connection slots are reserved for SUPERUSER）
+
+### 核心根因
+1. 连接池配置过大（pool_size=3 + max_overflow=5 = 最多8个同步连接 + 2个异步连接 + 启动测试1个 = 11个），加上其他应用连接导致 RDS max_connections 耗尽
+2. 启动时数据库测试连接未显式 commit，可能占用连接
+3. 未设置 SQL 语句超时，长事务可能长时间占用连接
+
+### 明细
+- **文件**: `backend-python/app/config.py`, `backend-python/app/database.py`
+- **改动**:
+  - `config.py`: 连接池从 pool_size=3/max_overflow=5 减小为 pool_size=2/max_overflow=3
+  - `database.py`: 启动测试连接添加 commit()；connect_args 添加 statement_timeout=30000 防止长事务
+
+---
+
+## 2026-05-13 修复：巡检事项树接口 /api/v1/inspection-item/tree 返回 500 错误
+
+### 类型
+修复
+
+### 概要
+生产环境 inspection-item/tree 接口 500，根因为数据库表缺少新增列（level/check_content/check_standard），SQLAlchemy 查询不存在的列导致 PostgreSQL 报错
+
+### 核心根因
+1. `Base.metadata.create_all(checkfirst=True)` 只创建不存在的表，不会为已存在的表添加缺失列
+2. 生产数据库的 inspection_item 表可能是旧版本创建的，缺少 level、check_content、check_standard 列
+3. `InspectionItemRepository.get_tree()` 中 `to_dict()` 失败后直接 raise，没有降级处理
+
+### 明细
+- **文件**: `backend-python/app/main.py`, `backend-python/app/repositories/inspection_item.py`
+- **改动**:
+  - `main.py`: 新增 `_ensure_columns()` 函数，启动时自动检查并添加缺失列（inspection_item.level/check_content/check_standard, maintenance_plan.status）
+  - `inspection_item.py`: `get_tree()` 失败时返回空列表而非 raise；`_build_tree()` 中 `to_dict()` 失败时用 getattr 降级构建节点
+
+---
+
+## 2026-05-13 修复：字典接口 /api/v1/dictionary/type/{type} 返回 500 错误
+
+### 类型
+修复
+
+### 概要
+生产环境 Redis 不可用时，CacheService.is_available 属性抛出未捕获异常，导致字典接口 500
+
+### 核心根因
+1. `CacheService.client` 属性调用 `get_redis_client()` 时，如果 Redis 连接异常（而非返回 None），异常未被捕获，向上冒泡到 API 层
+2. `CacheService.is_available` 调用 `self.client` 同样未做异常保护
+3. `DictionaryService.get_by_type` 从缓存反序列化时用 `Dictionary(**item)` 重建 SQLAlchemy 对象，但缓存数据缺少 `created_at`/`updated_at` 字段，且非 session 托管对象调用 `to_dict()` 时 mapper 遍历可能出错
+
+### 明细
+- **文件**: `backend-python/app/services/cache.py`, `backend-python/app/services/dictionary.py`, `backend-python/app/api/v1/dictionary.py`
+- **改动**:
+  - `cache.py`: `client` 属性增加 try-except 保护，`is_available` 属性增加 try-except 返回 False
+  - `dictionary.py`: `get_by_type` 返回类型改为 `list[dict]`，缓存数据直接使用 `item.to_dict()` 序列化，缓存命中时直接返回字典列表而非重建 SQLAlchemy 对象
+  - `dictionary.py` API 层: 不再对返回值调用 `to_dict()`，直接使用
+
+---
+
+## 2026-05-09 身份证OCR识别速度慢优化（第二轮深度优化）
+
+### PERF-002: 第一轮优化后OCR识别仍需6-8秒（严重）
+- **问题**: 第一轮优化（前端压缩500KB、并行化、后端压缩、SDK超时）后，测试服务器OCR识别仍需6-8秒
+- **根因分析**: 深入分析全链路后发现以下关键瓶颈：
+  1. **后端重复Base64编解码+图片压缩**（浪费~0.5-1s）：前端已压缩→后端又base64解码→压缩→再base64编码→SDK又解码，三次编解码完全冗余
+  2. **前端等待上传完成后才显示OCR结果**（浪费~1-3s）：`Promise.all([ocrPromise, uploadPromise])`导致用户必须等上传也完成才能看到OCR结果，而上传3-5MB原始文件很慢
+  3. **上传原始大文件**（浪费~1-2s）：上传接口发送的是原始3-5MB文件，而非已压缩的200KB文件
+  4. **前端压缩目标过大**：500KB目标对于OCR识别仍然偏大，OCR只需200KB即可准确识别
+  5. **OCR请求经过限流中间件**：每次OCR请求都检查Redis限流，增加1-5ms延迟
+  6. **OCR响应经过排序拦截器**：OCR返回的是对象而非数组，排序拦截器无意义地遍历对象属性
+- **受影响文件**:
+  - `backend-python/app/api/v1/ocr.py` - OCR接口跳过前端已压缩图片的后端压缩
+  - `H5/src/views/WorkerEntryPage.vue` - H5端OCR结果立即显示+上传压缩文件
+  - `src/components/WorkerEntryModal.vue` - PC端OCR结果立即显示+上传压缩文件
+  - `backend-python/app/middleware/rate_limit.py` - OCR路径加入限流排除
+  - `packages/shared/src/utils/sortInterceptor.ts` - OCR路径加入排序跳过
+- **深度优化方案**:
+  1. **后端跳过已压缩图片的重复处理**：图片<512KB时直接传base64给SDK，跳过解码→压缩→编码循环，节省~0.5-1s
+  2. **OCR结果立即回显，上传后台进行**：只`await ocrPromise`，上传Promise改为fire-and-forget，OCR完成即关闭loading显示结果，节省~1-3s
+  3. **上传压缩后的文件**：`compressedFile || file`替代原始file，上传数据量从3-5MB降至~200KB，节省~1-2s
+  4. **更激进的前端压缩**：目标从500KB降至200KB，OCR识别准确率不受影响
+  5. **身份证检查改为非阻塞**：`checkIdCardExists`改为`.then()/.catch()`而非`await`，不阻塞OCR结果显示
+  6. **OCR路径跳过限流和排序拦截器**：减少不必要的中间件处理
+- **优化前流程**:
+  ```
+  用户选图 → compressImage(500KB) → 发送OCR请求
+    → 后端: base64解码 → 压缩 → base64编码 → SDK解码 → 阿里云API
+    → 同时: 上传原始3-5MB文件
+    → await Promise.all([OCR, 上传]) → await checkIdCard → 显示结果
+  用户感知耗时 = max(OCR+后端处理, 上传原始文件) + checkIdCard ≈ 6-8s
+  ```
+- **优化后流程**:
+  ```
+  用户选图 → compressImage(200KB) → 发送OCR请求
+    → 后端: 图片<512KB直接传SDK(跳过压缩) → SDK解码 → 阿里云API
+    → 同时(后台): 上传压缩后~200KB文件
+    → await ocrPromise → 立即显示结果 → closeToast()
+    → checkIdCard/checkUpload 后台进行不阻塞
+  用户感知耗时 = OCR网络传输 + 阿里云API ≈ 2-4s
+  ```
+- **预期效果**:
+  - 用户感知OCR反馈时间从6-8s降至2-4s（减少50-70%）
+  - 后端处理时间减少~0.5-1s（跳过重复编解码）
+  - 上传不再阻塞OCR结果显示
+  - 上传数据量减少~95%（3-5MB → ~200KB）
+
+## 2026-05-09 身份证OCR识别速度慢优化
+
+### PERF-001: 测试服务器身份证上传后OCR识别反馈数据很慢（严重）
+- **问题**: 测试服务器上，身份证上传后OCR识别反馈数据显示很慢，用户体验差
+- **根因**: 多个性能瓶颈叠加导致整体响应慢：
+  1. **前端未压缩图片就发送OCR请求**（最大瓶颈）：H5端`processPhoto`已导入但未使用，手机拍照图片3-10MB直接转base64发送，5MB图片产生约6.7MB base64字符串，在移动网络下传输极慢
+  2. **身份证重复检查串行执行**：OCR返回后，`checkIdCardExists`在OCR Promise内部串行调用，增加了整体等待时间
+  3. **后端OCR API无图片预处理**：`/ocr/idcard`接口直接将原始图片发送给阿里云，没有像上传接口那样先压缩图片
+  4. **阿里云OCR SDK无超时配置**：`RuntimeOptions`使用默认配置，无连接超时、读取超时、自动重试设置
+  5. **无耗时日志**：无法定位具体哪个环节慢
+- **受影响文件**:
+  - `H5/src/views/WorkerEntryPage.vue` - H5端OCR交互页面
+  - `src/components/WorkerEntryModal.vue` - PC端OCR交互组件
+  - `backend-python/app/api/v1/ocr.py` - OCR识别HTTP接口
+  - `backend-python/app/utils/aliyun_ocr.py` - 阿里云OCR SDK封装
+- **优化方案**:
+  1. **前端图片压缩**：使用`compressImage`（来自`@sstcp/shared`）在上传前压缩图片至500KB以内，OCR识别不需要高分辨率，1280px宽已足够
+  2. **身份证重复检查并行化**：将`checkIdCardExists`从OCR Promise内部提取为独立Promise，与上传Promise并行执行
+  3. **后端图片压缩预处理**：在OCR API中添加`_compress_ocr_image`函数，对Base64图片先压缩再发送给阿里云
+  4. **阿里云SDK超时配置**：设置`connect_timeout=5s`、`read_timeout=10s`、`autoretry=True`、`max_attempts=2`
+  5. **全链路耗时日志**：前端显示"正在压缩图片..."→"正在识别身份证..."，后端记录Base64解码、图片压缩、阿里云API调用各环节耗时
+- **优化前流程**:
+  ```
+  用户选图 → fileToBase64(原始3-10MB) → 发送6.7MB+ base64到OCR API
+    → 后端直接发送到阿里云 → OCR返回 → 串行checkIdCardExists → 显示结果
+  总耗时 = max(OCR传输+OCR处理+checkIdCard, 上传)
+  ```
+- **优化后流程**:
+  ```
+  用户选图 → compressImage(压缩至500KB内) → 发送~670KB base64到OCR API
+    → 后端再次压缩(1280px, quality=80) → 发送到阿里云 → OCR返回
+    → checkIdCardExists与上传并行执行 → 显示结果
+  总耗时 = max(OCR传输+OCR处理, 上传) + checkIdCard（并行）
+  ```
+- **预期效果**:
+  - OCR请求数据量减少约90%（6.7MB → ~670KB）
+  - 网络传输时间大幅缩短
+  - 阿里云OCR处理更快（图片更小）
+  - 身份证重复检查不再阻塞OCR结果显示
+  - 后端日志可精确定位慢环节
+
+## 2026-05-07 测试服务器用户密码哈希不一致导致登录失败修复
+
+### AUTH-001: 测试服务器用户郑强密码123456无法登录（严重）
+- **问题**: 测试服务器上用户"郑强"使用密码"123456"无法登录，返回"用户名或密码错误"
+- **根因**: 测试服务器数据库中郑强的`password_hash`与本地数据库不一致。本地数据库的哈希能正确验证"123456"，但测试服务器的哈希无法验证"123456"或默认密码"Sstcp@5516"，说明测试服务器上的密码曾被修改为其他值或数据同步时哈希损坏
+- **详细分析**:
+  1. 本地数据库哈希: `$2b$12$qwPjHGr91RwpX75vfddvRuB2OnUJ26cjYqAst8TKwsHPTHHI.rbXy` → verify("123456") = True
+  2. 测试服务器哈希: `$2b$12$8MicVStUKmWtlDw8JmCgcOHhZDcaoVtce4N/1.3UbvuU2el8Ytlxm` → verify("123456") = False, verify("Sstcp@5516") = False
+  3. 两个哈希完全不同，说明测试服务器上的密码被设置成了未知值
+- **受影响文件**:
+  - `backend-python/app/auth.py` - `verify_password`函数增加异常处理
+  - `backend-python/app/services/auth.py` - 新增`reset_user_password`函数
+  - `backend-python/app/api/v1/auth.py` - 新增`/auth/reset-password`管理员重置密码API
+- **修复**:
+  1. 直接在测试服务器数据库中重置郑强的密码哈希为"123456"的bcrypt哈希
+  2. `verify_password`函数增加try-except，防止无效哈希导致500错误（原代码在哈希损坏时会抛出ValueError: Invalid salt）
+  3. 新增管理员重置密码API `POST /api/v1/auth/reset-password`，管理员可直接重置用户密码
+- **修复前（verify_password）**:
+  ```python
+  def verify_password(plain_password: str, hashed_password: str) -> bool:
+      truncated_password = plain_password[:72].encode('utf-8')
+      return bcrypt.checkpw(truncated_password, hashed_password.encode('utf-8'))
+  ```
+- **修复后（verify_password）**:
+  ```python
+  def verify_password(plain_password: str, hashed_password: str) -> bool:
+      try:
+          truncated_password = plain_password[:72].encode('utf-8')
+          return bcrypt.checkpw(truncated_password, hashed_password.encode('utf-8'))
+      except (ValueError, TypeError) as e:
+          logger.warning(f"密码验证异常，哈希可能已损坏: {e}")
+          return False
+  ```
+- **新增API**:
+  - `POST /api/v1/auth/reset-password` - 管理员重置用户密码
+  - 请求体: `{"user_id": 43, "new_password": "123456"}`
+  - 权限: 需要管理员/部门经理/主管角色
+  - 重置后自动将用户所有Token加入黑名单，强制重新登录
+  - 重置后标记`must_change_password=True`，提示用户修改密码
+- **教训**:
+  1. 测试服务器和本地数据库的密码哈希可能不一致，需要定期同步或提供密码重置功能
+  2. `verify_password`必须处理无效哈希的异常情况，避免导致500错误
+  3. 系统必须提供管理员重置密码的API，否则密码问题只能通过直接操作数据库解决
 
 ## 2026-05-04 H5端定期巡检/临时维修/零星用工页面分页数据读取字段不一致修复
 

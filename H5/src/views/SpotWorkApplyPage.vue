@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'SpotWorkApplyPage' })
 import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
@@ -9,7 +10,15 @@ import {
   showConfirmDialog,
 } from 'vant'
 import { spotWorkService, projectInfoService, uploadService } from '../services'
-import { formatDate, formatDateTime, processPhoto, getCurrentLocation, getStatusType, getDisplayStatus, getWorkIdFontSize } from '@sstcp/shared'
+import {
+  formatDate,
+  formatDateTime,
+  processPhoto,
+  getCurrentLocation,
+  getStatusType,
+  getDisplayStatus,
+  getWorkIdFontSize,
+} from '@sstcp/shared'
 import { useUserStore } from '../stores/userStore'
 const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
@@ -82,7 +91,12 @@ const baseTabs = [
   { key: '已完成', title: '已完成', statuses: ['已确认', '已完成'], color: 'var(--color-primary)' },
 ]
 
-const approvalTab = { key: '审批', title: '审批', statuses: ['待确认'], color: 'var(--color-primary)' }
+const approvalTab = {
+  key: '审批',
+  title: '审批',
+  statuses: ['待确认'],
+  color: 'var(--color-primary)',
+}
 
 const tabs = computed(() => {
   if (canApprove.value) {
@@ -93,8 +107,6 @@ const tabs = computed(() => {
 
 const currentTab = computed(() => tabs.value[activeTab.value])
 const currentTabColor = computed(() => tabs.value[activeTab.value]?.color || '#1989fa')
-
-
 
 /**
  * 获取项目列表
@@ -209,6 +221,53 @@ const handleEndDateConfirm = ({ selectedValues }: { selectedValues: string[] }) 
 /**
  * 跳转到施工人员录入页面
  */
+const FORM_STORAGE_KEY = 'spot_work_apply_form'
+
+const saveFormToStorage = () => {
+  const data = {
+    applyFormData: applyFormData.value,
+    selectedProjectName: selectedProjectName.value,
+    currentPhotos: currentPhotos.value,
+    workerCount: workerCount.value,
+    startDatePickerValue: startDatePickerValue.value,
+    endDatePickerValue: endDatePickerValue.value,
+  }
+  sessionStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(data))
+}
+
+const restoreFormFromStorage = () => {
+  const saved = sessionStorage.getItem(FORM_STORAGE_KEY)
+  if (saved) {
+    try {
+      const data = JSON.parse(saved)
+      if (data.applyFormData) {
+        applyFormData.value = { ...applyFormData.value, ...data.applyFormData }
+      }
+      if (data.selectedProjectName) {
+        selectedProjectName.value = data.selectedProjectName
+      }
+      if (data.currentPhotos && data.currentPhotos.length > 0) {
+        currentPhotos.value = data.currentPhotos
+      }
+      if (data.workerCount !== undefined) {
+        workerCount.value = data.workerCount
+      }
+      if (data.startDatePickerValue) {
+        startDatePickerValue.value = data.startDatePickerValue
+      }
+      if (data.endDatePickerValue) {
+        endDatePickerValue.value = data.endDatePickerValue
+      }
+    } catch (e) {
+      console.error('Failed to restore form data:', e)
+    }
+  }
+}
+
+const clearFormStorage = () => {
+  sessionStorage.removeItem(FORM_STORAGE_KEY)
+}
+
 const handleWorkerEntry = () => {
   if (!applyFormData.value.projectId) {
     showFailToast('请先选择项目')
@@ -218,6 +277,7 @@ const handleWorkerEntry = () => {
     showFailToast('请先选择项目')
     return
   }
+  saveFormToStorage()
   router.push({
     path: '/spot-work/worker-entry',
     query: {
@@ -294,6 +354,7 @@ const handleSubmit = async () => {
       currentPhotos.value = []
       signature.value = ''
       localStorage.removeItem('spot_work_apply_signature')
+      clearFormStorage()
 
       goBack()
     } else {
@@ -340,15 +401,22 @@ const projectColumns = computed(() => {
 const fetchWorkerCount = async () => {
   if (!applyFormData.value.projectId) {
     workerCount.value = 0
+    console.log('[fetchWorkerCount] projectId为空，workerCount设为0')
     return
   }
 
   try {
+    console.log('[fetchWorkerCount] 请求参数:', {
+      projectId: applyFormData.value.projectId,
+      workDateStart: applyFormData.value.workDateStart,
+      workDateEnd: applyFormData.value.workDateEnd,
+    })
     const response = await spotWorkService.getWorkersByProject(
       applyFormData.value.projectId,
       applyFormData.value.workDateStart,
       applyFormData.value.workDateEnd
     )
+    console.log('[fetchWorkerCount] 响应:', response.code, '数据量:', response.data?.length)
     if (response.code === 200) {
       workerCount.value = response.data?.length || 0
     }
@@ -368,25 +436,40 @@ const handlePhotoUpload = () => {
  * 拍照上传
  */
 const handlePhotoCapture = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = 'image/*'
-  input.multiple = true
-  
   const ua = navigator.userAgent.toLowerCase()
-  const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isIOS =
+    /iphone|ipad|ipod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
-  
-  if (!useBase64Upload) {
+
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = isIOS ? 'image/jpeg,image/png' : 'image/*'
+  input.multiple = true
+
+  if (useBase64Upload) {
+    input.style.position = 'fixed'
+    input.style.top = '0'
+    input.style.left = '0'
+    input.style.width = '100%'
+    input.style.height = '100%'
+    input.style.opacity = '0'
+    input.style.zIndex = '999999'
+  } else {
     input.capture = 'environment'
   }
 
   input.onchange = async (e: Event) => {
     const target = e.target as HTMLInputElement
     const allFiles = target.files
-    if (!allFiles || allFiles.length === 0) return
+    if (!allFiles || allFiles.length === 0) {
+      if (document.body.contains(input)) document.body.removeChild(input)
+      return
+    }
+
+    if (document.body.contains(input)) document.body.removeChild(input)
 
     const remaining = 9 - currentPhotos.value.length
     if (remaining <= 0) {
@@ -403,35 +486,39 @@ const handlePhotoCapture = () => {
 
       for (const file of files) {
         try {
-          showLoadingToast({ message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
-
-          let fileToUpload = file
-          if (file.size > 500 * 1024) {
-            showLoadingToast({ message: `压缩中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
-            const compressedBlob = await compressImage(file, 500)
-            fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
-          }
-
-          showLoadingToast({ message: `添加水印(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
-          const userName = userStore.currentUser?.name || '未知用户'
-          const location = await getCurrentLocation()
-          const watermarkedFile = await processPhoto(fileToUpload, {
-            userName,
-            includeLocation: true,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
+          showLoadingToast({
+            message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`,
+            forbidClick: true,
           })
 
-          showLoadingToast({ message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`, forbidClick: true })
+          const userName = userStore.currentUser?.name || '未知用户'
+          let watermarkedFile: File
+          try {
+            const location = await getCurrentLocation()
+            watermarkedFile = await processPhoto(file, {
+              userName,
+              includeLocation: true,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+            })
+          } catch (watermarkError: any) {
+            console.warn('水印处理失败，使用原图上传:', watermarkError)
+            watermarkedFile = file
+          }
+
+          showLoadingToast({
+            message: `上传中(${uploadedCount + failedCount + 1}/${files.length})...`,
+            forbidClick: true,
+          })
           const reader = new FileReader()
           const base64Data = await new Promise<string>((resolve, reject) => {
             reader.onload = (ev) => resolve(ev.target?.result as string)
             reader.onerror = reject
             reader.readAsDataURL(watermarkedFile)
           })
-          
+
           const response = await uploadService.uploadImageBase64(base64Data, watermarkedFile.name)
-          
+
           if (response.code === 200 && response.data) {
             currentPhotos.value.push(response.data.url)
             uploadedCount++
@@ -446,7 +533,9 @@ const handlePhotoCapture = () => {
 
       closeToast()
       if (uploadedCount > 0) {
-        showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+        showSuccessToast(
+          `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+        )
       } else {
         showFailToast('上传失败')
       }
@@ -459,13 +548,18 @@ const handlePhotoCapture = () => {
           showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
           const userName = userStore.currentUser?.name || '未知用户'
           const location = await getCurrentLocation()
-          const processedFile = await processPhoto(files[i], {
-            userName,
-            includeLocation: true,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
-          })
-          processedFiles.push(processedFile)
+          try {
+            const processedFile = await processPhoto(files[i], {
+              userName,
+              includeLocation: true,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+            })
+            processedFiles.push(processedFile)
+          } catch (watermarkError) {
+            console.warn('水印处理失败，使用原图:', watermarkError)
+            processedFiles.push(files[i])
+          }
         } catch (error) {
           console.error('Failed to process photo:', error)
           processFailed++
@@ -503,7 +597,9 @@ const handlePhotoCapture = () => {
 
         closeToast()
         if (uploadedCount > 0) {
-          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+          showSuccessToast(
+            `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+          )
         } else {
           showFailToast('上传失败')
         }
@@ -515,6 +611,9 @@ const handlePhotoCapture = () => {
     }
   }
 
+  if (useBase64Upload) {
+    document.body.appendChild(input)
+  }
   input.click()
 }
 
@@ -528,18 +627,18 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const reader = new FileReader()
-    
+
     reader.onload = (e) => {
       img.src = e.target?.result as string
     }
-    
+
     img.onload = () => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')!
-      
+
       let width = img.width
       let height = img.height
-      
+
       const maxDimension = 1920
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
@@ -550,23 +649,23 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
           height = maxDimension
         }
       }
-      
+
       canvas.width = width
       canvas.height = height
       ctx.drawImage(img, 0, 0, width, height)
-      
+
       canvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('图片压缩失败'))
             return
           }
-          
+
           if (blob.size <= maxSizeKB * 1024) {
             resolve(blob)
             return
           }
-          
+
           const quality = Math.sqrt((maxSizeKB * 1024) / blob.size)
           canvas.toBlob(
             (compressedBlob) => {
@@ -584,15 +683,15 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
         0.9
       )
     }
-    
+
     img.onerror = () => {
       reject(new Error('图片加载失败'))
     }
-    
+
     reader.onerror = () => {
       reject(new Error('文件读取失败'))
     }
-    
+
     reader.readAsDataURL(file)
   })
 }
@@ -622,6 +721,7 @@ const handlePhotoSave = () => {
  * 跳转签字页面
  */
 const handleSignature = () => {
+  saveFormToStorage()
   router.push({
     path: '/signature',
     query: {
@@ -646,6 +746,7 @@ onMounted(() => {
   fetchProjectList()
   fetchWorkList()
   loadSignature()
+  restoreFormFromStorage()
   const tabParam = route.query.tab
   if (tabParam !== undefined && tabParam !== null) {
     const tabIndex = parseInt(tabParam as string, 10)
@@ -656,6 +757,7 @@ onMounted(() => {
 })
 
 onActivated(() => {
+  restoreFormFromStorage()
   fetchWorkerCount()
   loadSignature()
 })
@@ -703,19 +805,22 @@ onActivated(() => {
               @click="showEndDatePicker = true"
             />
             <van-cell v-if="workDays > 0" title="用工天数" :value="workDays + ' 工天'" />
-            <van-field name="client_contact"
+            <van-field
               v-model="applyFormData.clientContact"
+              name="client_contact"
               label="客户联系人"
               placeholder="请输入客户联系人"
             />
-            <van-field name="client_contact_info"
+            <van-field
               v-model="applyFormData.clientContactInfo"
+              name="client_contact_info"
               label="客户联系电话"
               placeholder="请输入客户联系电话"
               type="tel"
             />
-            <van-field name="work_content"
+            <van-field
               v-model="applyFormData.workContent"
+              name="work_content"
               label="工作内容"
               placeholder="请输入工作内容"
               type="textarea"
@@ -749,8 +854,9 @@ onActivated(() => {
                 <span v-else class="status-pending">待签字</span>
               </template>
             </van-cell>
-            <van-field name="remark"
+            <van-field
               v-model="applyFormData.remark"
+              name="remark"
               label="备注"
               placeholder="请输入备注"
               type="textarea"
@@ -861,7 +967,8 @@ onActivated(() => {
     </van-tabs>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
-      <van-picker name="选择项目"
+      <van-picker
+        name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         @confirm="handleProjectConfirm"

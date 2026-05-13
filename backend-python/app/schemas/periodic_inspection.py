@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.models.enums import VALID_WORK_ORDER_STATUSES
+
 
 class PeriodicInspectionBase(BaseModel):
     inspection_id: str = Field(..., max_length=50, description="工单编号")
@@ -31,7 +33,7 @@ class PeriodicInspectionBase(BaseModel):
     @field_validator('status')
     @classmethod
     def validate_status(cls, v):
-        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
+        valid_statuses = VALID_WORK_ORDER_STATUSES
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v
@@ -86,7 +88,7 @@ class PeriodicInspectionPartialUpdate(BaseModel):
     def validate_status(cls, v):
         if v is None:
             return v
-        valid_statuses = ['执行中', '待确认', '已完成', '已退回']
+        valid_statuses = VALID_WORK_ORDER_STATUSES
         if v not in valid_statuses:
             raise ValueError(f'状态必须是以下之一: {", ".join(valid_statuses)}')
         return v

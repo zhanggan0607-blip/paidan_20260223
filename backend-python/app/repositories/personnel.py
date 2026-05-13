@@ -1,10 +1,10 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.models.personnel import Personnel
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PersonnelRepository:
@@ -59,7 +59,11 @@ class PersonnelRepository:
 
     def find_all_unpaginated(self) -> list[Personnel]:
         try:
-            return self.db.query(Personnel).order_by(Personnel.created_at.desc(), Personnel.id.desc()).all()
+            return list(
+                self.db.query(Personnel)
+                .order_by(Personnel.created_at.desc(), Personnel.id.desc())
+                .yield_per(200)
+            )
         except Exception as e:
             logger.error(f"查询所有人员信息失败: {str(e)}")
             raise

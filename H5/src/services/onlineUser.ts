@@ -4,7 +4,11 @@
  */
 import request from '../api/request'
 import { API_ENDPOINTS } from '../api/endpoints'
-import type { ApiResponse, OnlineUser as OnlineUserType, OnlineStatistics as OnlineStatisticsType } from '../types'
+import type {
+  ApiResponse,
+  OnlineUser as OnlineUserType,
+  OnlineStatistics as OnlineStatisticsType,
+} from '../types'
 
 interface OnlineLoginRequest {
   device_type: string

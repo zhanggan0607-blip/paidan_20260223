@@ -17,7 +17,7 @@ from app.models.uploaded_file import UploadedFile
 from app.utils.logging_config import get_logger
 from app.utils import get_inline_content_disposition
 from app.utils.oss_service import get_oss_service, OSSService
-from app.dependencies import get_current_user_info, UserInfo
+from app.dependencies import get_current_user_required, UserInfo
 
 logger = get_logger(__name__)
 
@@ -147,12 +147,11 @@ async def get_file(
     filename: str,
     request: Request,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     file_path = f"/uploads/{upload_date}/{filename}"
 
-    user_name = user_info.name if user_info.is_authenticated else 'anonymous'
-    logger.info(f"文件访问: {file_path}, user={user_name}, ip={request.client.host if request.client else 'unknown'}")
+    logger.info(f"文件访问: {file_path}, user={user_info.name}, ip={request.client.host if request.client else 'unknown'}")
 
     uploaded_file = db.query(UploadedFile).filter(
         UploadedFile.file_path == file_path
@@ -212,7 +211,8 @@ async def get_file(
 @router.get("/by-id/{file_id}")
 async def get_file_by_id(
     file_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     uploaded_file = db.query(UploadedFile).filter(
         UploadedFile.file_id == file_id
@@ -282,7 +282,8 @@ async def get_thumbnail(
     upload_date: str,
     filename: str,
     size: int = Query(200, ge=50, le=500, description="缩略图尺寸"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     file_path = f"/uploads/{upload_date}/{filename}"
 
@@ -368,10 +369,8 @@ async def get_thumbnail(
 async def check_file_status(
     file_path: str = Query(..., description="文件路径，如 /uploads/20260327/xxx.jpg"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
-    if not user_info.is_authenticated:
-        raise HTTPException(status_code=401, detail="需要登录才能使用诊断功能")
 
     result = {
         "file_path": file_path,
@@ -425,7 +424,7 @@ async def check_file_status(
 @router.get("/diagnose/orphaned-references")
 async def find_orphaned_references(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     if not user_info.is_admin:
         raise HTTPException(status_code=403, detail="需要管理员权限")

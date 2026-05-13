@@ -2,14 +2,14 @@
 工单操作日志Repository
 提供工单操作日志数据访问方法
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.repositories.base import BaseRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class WorkOrderOperationLogRepository(BaseRepository[WorkOrderOperationLog]):

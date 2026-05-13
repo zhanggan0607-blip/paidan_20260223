@@ -454,7 +454,7 @@ export default defineComponent({
           currentWorkOrderType.value = '零星用工'
           const response = await spotWorkService.getById(itemId)
           if (response.code === 200 && response.data) {
-            updateViewDataFromSpotWork(response.data)
+            updateViewDataFromSpotWork(response.data as SpotWork)
             isViewModalOpen.value = true
           }
         }

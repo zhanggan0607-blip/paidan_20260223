@@ -4,7 +4,7 @@
 每次改动都会记录到操作日志
 """
 import json
-import logging
+from app.utils.logging_config import get_logger
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,7 +20,7 @@ from app.models.periodic_inspection import PeriodicInspection
 from app.models.work_order_operation_log import WorkOrderOperationLog
 from app.schemas.common import ApiResponse
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/admin-edit", tags=["Admin Edit Work Order"])
 
 

@@ -2,7 +2,7 @@
 钉钉认证API接口
 提供钉钉免登认证功能
 """
-import logging
+from app.utils.logging_config import get_logger
 import uuid
 from datetime import datetime
 
@@ -19,7 +19,7 @@ from app.schemas.common import ApiResponse
 from app.services.dingtalk_service import DingTalkService, get_dingtalk_service
 from app.websocket import manager
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/dingtalk", tags=["DingTalk Authentication"])
 
 
@@ -298,7 +298,9 @@ def sync_dingtalk_users(
 
 
 @router.get("/check-config", response_model=ApiResponse)
-def check_dingtalk_config():
+def check_dingtalk_config(
+    user_info: UserInfo = Depends(get_manager_user)
+):
     """
     检查钉钉配置是否正确
 

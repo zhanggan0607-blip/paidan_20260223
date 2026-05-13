@@ -1,6 +1,6 @@
 services:
   backend:
-    image: sstcp-backend:v2.0.9
+    image: sstcp-backend:v2.2.1
     container_name: sstcp-backend
     restart: unless-stopped
     ports:
@@ -9,9 +9,13 @@ services:
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY is required}
       - DATABASE_URL=${DATABASE_URL:?DATABASE_URL is required}
       - DEBUG=False
+      - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
+      - PAGE_SIZE=20
+      - MAX_PAGE_SIZE=100
       - REDIS_URL=${REDIS_URL:-redis://localhost:6379/0}
       - REDIS_ENABLED=${REDIS_ENABLED:-true}
-      - REDIS_CACHE_TTL=${REDIS_CACHE_TTL:-300}
+      - REDIS_CACHE_TTL=${REDIS_CACHE_TTL:-3600}
       - ALIYUN_ACCESS_KEY_ID=${ALIYUN_ACCESS_KEY_ID}
       - ALIYUN_ACCESS_KEY_SECRET=${ALIYUN_ACCESS_KEY_SECRET}
       - ALIYUN_OCR_REGION_ID=cn-shanghai
@@ -24,6 +28,7 @@ services:
       - DINGTALK_AGENT_ID=${DINGTALK_AGENT_ID}
       - DINGTALK_APP_KEY=${DINGTALK_APP_KEY}
       - DINGTALK_APP_SECRET=${DINGTALK_APP_SECRET}
+      - APP_VERSION=${APP_VERSION:-2.2.1}
       - CORS_ORIGINS=${CORS_ORIGINS:-https://paidan.sstcp.top,https://www.paidan.sstcp.top}
       - SERVER_BASE_URL=${SERVER_BASE_URL:-https://www.paidan.sstcp.top}
       - DOCS_URL=
@@ -47,7 +52,7 @@ services:
       retries: 3
 
   frontend-pc:
-    image: sstcp-frontend-pc:v2.0.9
+    image: sstcp-frontend-pc:v2.2.1
     container_name: sstcp-frontend-pc
     restart: unless-stopped
     ports:
@@ -56,9 +61,14 @@ services:
       - backend
     networks:
       - sstcp-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend-h5:
-    image: sstcp-frontend-h5:v2.0.9
+    image: sstcp-frontend-h5:v2.2.1
     container_name: sstcp-frontend-h5
     restart: unless-stopped
     ports:
@@ -67,6 +77,11 @@ services:
       - backend
     networks:
       - sstcp-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   nginx:
     image: nginx:1.25-alpine3.18

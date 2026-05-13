@@ -2,14 +2,14 @@
 临时维修Repository
 提供临时维修数据访问方法
 """
-import logging
+from app.utils.logging_config import get_logger
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.temporary_repair import TemporaryRepair
 from app.repositories.base import BaseRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
@@ -29,27 +29,11 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
         repair_id: str | None = None,
         status: str | None = None,
         maintenance_personnel: str | None = None,
-        client_name: str | None = None
+        client_name: str | None = None,
+        statuses: list[str] | None = None
     ) -> tuple[list[TemporaryRepair], int]:
-        """
-        分页查询临时维修列表
-
-        Args:
-            page: 页码
-            size: 每页数量
-            project_name: 项目名称（模糊查询）
-            repair_id: 维修单编号（模糊查询）
-            status: 状态
-            maintenance_personnel: 运维人员
-            client_name: 客户名称（模糊查询）
-
-        Returns:
-            (维修单列表, 总数)
-        """
         try:
-            query = self.db.query(TemporaryRepair).options(
-                joinedload(TemporaryRepair.project)
-            ).filter(TemporaryRepair.is_deleted == False)
+            query = self.db.query(TemporaryRepair).filter(TemporaryRepair.is_deleted == False)
 
             if project_name:
                 query = query.filter(TemporaryRepair.project_name.like(f'%{self.escape_like(project_name)}%', escape='\\'))
@@ -59,6 +43,9 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
 
             if status:
                 query = query.filter(TemporaryRepair.status == status)
+
+            if statuses:
+                query = query.filter(TemporaryRepair.status.in_(statuses))
 
             if maintenance_personnel:
                 query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
@@ -75,18 +62,9 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             raise
 
     def find_by_id(self, id: int) -> TemporaryRepair | None:
-        """
-        根据ID查询临时维修
-
-        Args:
-            id: 维修单ID
-
-        Returns:
-            维修单对象，未找到返回None
-        """
         try:
             return self.db.query(TemporaryRepair).options(
-                joinedload(TemporaryRepair.project)
+                selectinload(TemporaryRepair.project)
             ).filter(
                 TemporaryRepair.id == id,
                 TemporaryRepair.is_deleted == False
@@ -96,18 +74,9 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             raise
 
     def find_by_repair_id(self, repair_id: str) -> TemporaryRepair | None:
-        """
-        根据维修单编号查询
-
-        Args:
-            repair_id: 维修单编号
-
-        Returns:
-            维修单对象，未找到返回None
-        """
         try:
             return self.db.query(TemporaryRepair).options(
-                joinedload(TemporaryRepair.project)
+                selectinload(TemporaryRepair.project)
             ).filter(
                 TemporaryRepair.repair_id == repair_id,
                 TemporaryRepair.is_deleted == False
@@ -139,18 +108,15 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             raise
 
     def find_all_unpaginated(self) -> list[TemporaryRepair]:
-        """
-        查询所有临时维修（不分页）
-
-        Returns:
-            维修单列表
-        """
         try:
-            return self.db.query(TemporaryRepair).options(
-                joinedload(TemporaryRepair.project)
-            ).filter(
-                TemporaryRepair.is_deleted == False
-            ).order_by(TemporaryRepair.created_at.desc(), TemporaryRepair.id.desc()).all()
+            return list(
+                self.db.query(TemporaryRepair).options(
+                    selectinload(TemporaryRepair.project)
+                ).filter(
+                    TemporaryRepair.is_deleted == False
+                ).order_by(TemporaryRepair.created_at.desc(), TemporaryRepair.id.desc())
+                .yield_per(200)
+            )
         except Exception as e:
             logger.error(f"查询所有临时维修失败: {str(e)}")
             raise

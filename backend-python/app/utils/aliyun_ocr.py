@@ -6,7 +6,8 @@
 
 import base64
 import io
-import logging
+from app.utils.logging_config import get_logger
+import time
 from typing import Any, Optional
 
 from alibabacloud_ocr20191230.client import Client
@@ -16,7 +17,14 @@ from alibabacloud_tea_util.models import RuntimeOptions
 
 from app.config import get_settings
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+_runtime_options = RuntimeOptions(
+    connect_timeout=5,
+    read_timeout=10,
+    autoretry=True,
+    max_attempts=2,
+)
 
 
 class AliyunOCRService:
@@ -74,16 +82,6 @@ class AliyunOCRService:
         return self._client is not None
 
     def recognize_idcard_base64(self, image_base64: str, side: str = 'face') -> dict[str, Any]:
-        """
-        通过Base64编码识别身份证信息
-
-        Args:
-            image_base64: 图片Base64编码（不含data:image前缀）
-            side: 身份证面，'face'为正面，'back'为反面
-
-        Returns:
-            Dict[str, Any]: 识别结果
-        """
         if not self._client:
             return {
                 'success': False,
@@ -91,7 +89,11 @@ class AliyunOCRService:
             }
 
         try:
+            start_time = time.time()
             image_bytes = base64.b64decode(image_base64)
+            decode_time = time.time() - start_time
+            logger.info(f"Base64解码耗时: {decode_time:.2f}s, 图片大小={len(image_bytes)} bytes")
+
             image_stream = io.BytesIO(image_bytes)
 
             request = RecognizeIdentityCardAdvanceRequest(
@@ -99,14 +101,17 @@ class AliyunOCRService:
                 side=side
             )
 
-            runtime = RuntimeOptions()
-            response = self._client.recognize_identity_card_advance(request, runtime)
+            ocr_start = time.time()
+            response = self._client.recognize_identity_card_advance(request, _runtime_options)
+            ocr_time = time.time() - ocr_start
+            logger.info(f"阿里云OCR API耗时: {ocr_time:.2f}s")
 
             if response.body and response.body.data:
                 data = response.body.data
                 parsed = self._parse_idcard_result(data, side)
                 masked = self._mask_sensitive_data(parsed)
-                logger.info(f"OCR识别成功: side={side}, result={masked}")
+                total_time = time.time() - start_time
+                logger.info(f"OCR识别成功: side={side}, 总耗时={total_time:.2f}s, result={masked}")
                 return {
                     'success': True,
                     'message': '识别成功',
@@ -130,16 +135,6 @@ class AliyunOCRService:
             }
 
     def recognize_idcard(self, image_url: str, side: str = 'face') -> dict[str, Any]:
-        """
-        通过URL识别身份证信息
-
-        Args:
-            image_url: 图片URL地址
-            side: 身份证面，'face'为正面，'back'为反面
-
-        Returns:
-            Dict[str, Any]: 识别结果
-        """
         if not self._client:
             return {
                 'success': False,
@@ -147,6 +142,7 @@ class AliyunOCRService:
             }
 
         try:
+            start_time = time.time()
             from urllib.parse import urlparse
             from app.config import get_settings
 
@@ -176,9 +172,13 @@ class AliyunOCRService:
                 }
 
             import requests
+            download_start = time.time()
             response = requests.get(image_url, timeout=10)
             response.raise_for_status()
             image_data = response.content
+            download_time = time.time() - download_start
+            logger.info(f"图片下载耗时: {download_time:.2f}s, 大小={len(image_data)} bytes")
+
             image_stream = io.BytesIO(image_data)
 
             request = RecognizeIdentityCardAdvanceRequest(
@@ -186,18 +186,21 @@ class AliyunOCRService:
                 side=side
             )
 
-            runtime = RuntimeOptions()
-            response = self._client.recognize_identity_card_advance(request, runtime)
+            ocr_start = time.time()
+            response = self._client.recognize_identity_card_advance(request, _runtime_options)
+            ocr_time = time.time() - ocr_start
+            logger.info(f"阿里云OCR API耗时: {ocr_time:.2f}s")
 
             if response.body and response.body.data:
                 data = response.body.data
-                parsed = self._parse_idcard_result(data, side)
-                masked = self._mask_sensitive_data(parsed)
-                logger.info(f"OCR识别成功: side={side}, result={masked}")
+                parsed_result = self._parse_idcard_result(data, side)
+                masked = self._mask_sensitive_data(parsed_result)
+                total_time = time.time() - start_time
+                logger.info(f"OCR识别成功: side={side}, 总耗时={total_time:.2f}s, result={masked}")
                 return {
                     'success': True,
                     'message': '识别成功',
-                    'data': parsed
+                    'data': parsed_result
                 }
             else:
                 logger.error("OCR识别失败: 无返回数据")

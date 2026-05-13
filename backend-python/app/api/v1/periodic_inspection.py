@@ -2,13 +2,13 @@
 定期巡检API
 提供定期巡检工单的HTTP接口
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, check_data_access, get_current_user_info, get_current_user_required, get_manager_user
+from app.dependencies import UserInfo, check_data_access, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.periodic_inspection import (
     PeriodicInspectionApprove,
@@ -18,14 +18,14 @@ from app.schemas.periodic_inspection import (
 )
 from app.services.periodic_inspection import PeriodicInspectionService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/periodic-inspection", tags=["Periodic Inspection Management"])
 
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_periodic_inspection(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有定期巡检（不分页）
@@ -62,7 +62,7 @@ def get_periodic_inspection_list(
     inspection_id: str | None = Query(None, description="Inspection ID (fuzzy search)"),
     status: str | None = Query(None, description="Status"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     分页获取定期巡检列表

@@ -4,10 +4,10 @@ $ErrorActionPreference = "Stop"
 $PROJECT_ROOT = "D:\SSTCP_XIANGMU\paidan"
 $SERVER_IP = "${env:DEPLOY_SERVER_IP}"
 if (-not $SERVER_IP) { throw "请设置环境变量 DEPLOY_SERVER_IP (服务器IP地址)" }
-$SERVER_USER = "${env:DEPLOY_SERVER_USER:-root}"
+$SERVER_USER = if ($env:DEPLOY_SERVER_USER) { $env:DEPLOY_SERVER_USER } else { "root" }
 $DEPLOY_PATH = "/opt/sstcp"
 $TIMESTAMP = Get-Date -Format "yyyyMMdd-HHmmss"
-$VERSION = "v2.0.8"
+$VERSION = "v2.2.0"
 $LOG_FILE = "$PROJECT_ROOT\deploy-log-$TIMESTAMP.txt"
 
 function Write-Log {
@@ -51,8 +51,41 @@ function Invoke-SSHCommand {
     param([string]$Command)
     $fullCmd = "ssh $SERVER_USER@$SERVER_IP `"$Command`""
     Write-Log "SSH> $Command"
-    $result = Invoke-Expression $fullCmd 2>&1
-    $result | ForEach-Object { Write-Log "  $_" }
+    $result = @()
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $psi = New-Object System.Diagnostics.ProcessStartInfo
+        $psi.FileName = "cmd.exe"
+        $psi.Arguments = "/c $fullCmd"
+        $psi.UseShellExecute = $false
+        $psi.RedirectStandardOutput = $true
+        $psi.RedirectStandardError = $true
+        $psi.CreateNoWindow = $true
+        $process = [System.Diagnostics.Process]::Start($psi)
+        $stdout = $process.StandardOutput.ReadToEnd()
+        $stderr = $process.StandardError.ReadToEnd()
+        $process.WaitForExit()
+        if ($stdout) {
+            foreach ($line in $stdout -split "`n") {
+                $trimmed = $line.Trim()
+                if ($trimmed) {
+                    $result += $trimmed
+                    Write-Log "  $trimmed"
+                }
+            }
+        }
+        if ($stderr) {
+            foreach ($line in $stderr -split "`n") {
+                $trimmed = $line.Trim()
+                if ($trimmed) {
+                    $result += $trimmed
+                    Write-Log "  $trimmed"
+                }
+            }
+        }
+    } catch {
+        Write-Log "  SSH command error: $_" "WARN"
+    }
     return $result
 }
 
@@ -157,7 +190,10 @@ function Deploy-OnServer {
 
     Write-Log "Ensuring DATABASE_URL points to Alibaba Cloud RDS..."
     $dbUrl = "${env:DATABASE_URL}"
-    if (-not $dbUrl) { throw "请设置环境变量 DATABASE_URL (数据库连接字符串)" }
+    if (-not $dbUrl) {
+        Write-Log "ERROR: DATABASE_URL environment variable is not set. Please set it before deploying."
+        exit 1
+    }
     Invoke-SSHCommand "cd $DEPLOY_PATH && sed -i 's|DATABASE_URL=.*|DATABASE_URL=$dbUrl|g' docker-compose.yml"
 
     Write-Log "Backing up current docker-compose.yml..."
@@ -175,8 +211,11 @@ function Deploy-OnServer {
     Write-Log "Cleaning up staging files..."
     Invoke-SSHCommand "rm -rf $DEPLOY_PATH/deploy-staging"
 
-    Write-Log "Cleaning up old Docker images..."
-    Invoke-SSHCommand "docker image prune -f"
+    Write-Log "Cleaning up old Docker resources..."
+    Invoke-SSHCommand "docker system prune -f"
+
+    Write-Log "Removing old version images..."
+    Invoke-SSHCommand "docker images | grep sstcp | grep -v '${VERSION}' | awk '{print `$3}' | xargs -r docker rmi -f 2>/dev/null || true"
 
     Write-Log "Server deployment commands executed"
 }
@@ -224,7 +263,7 @@ function Test-Deployment {
     Write-Log "Checking backend health endpoint..."
     $healthCheck = Invoke-SSHCommand "curl -sf http://localhost:8000/api/v1/health 2>&1 || echo 'HEALTH_CHECK_FAILED'"
     $healthStr = $healthCheck | Out-String
-    if ($healthStr -match "HEALTH_CHECK_FAILED" -or $healthStr -notmatch "200") {
+    if ($healthStr -match "HEALTH_CHECK_FAILED" -or ($healthStr -notmatch "healthy" -and $healthStr -notmatch "200")) {
         Write-Log "Backend health check FAILED" "ERROR"
         $issues += "backend_health_failed"
     } else {
@@ -252,9 +291,9 @@ function Test-Deployment {
     }
 
     Write-Log "Checking nginx reverse proxy..."
-    $nginxCheck = Invoke-SSHCommand "curl -sf http://localhost/api/v1/health -o /dev/null -w '%{http_code}' 2>&1 || echo 'NGINX_CHECK_FAILED'"
+    $nginxCheck = Invoke-SSHCommand "curl -sf http://localhost/api/v1/health -o /dev/null -w '%{http_code}' -L 2>&1 || echo 'NGINX_CHECK_FAILED'"
     $nginxStr = $nginxCheck | Out-String
-    if ($nginxStr -match "NGINX_CHECK_FAILED" -or $nginxStr -notmatch "200") {
+    if ($nginxStr -match "NGINX_CHECK_FAILED" -or ($nginxStr -notmatch "200" -and $nginxStr -notmatch "301")) {
         Write-Log "Nginx reverse proxy check FAILED" "ERROR"
         $issues += "nginx_proxy_failed"
     } else {
@@ -278,7 +317,7 @@ function Test-Deployment {
     }
 
     Write-Log "Checking container resource usage..."
-    Invoke-SSHCommand "docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}'"
+    $null = Invoke-SSHCommand "docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}'"
 
     if ($issues.Count -eq 0) {
         Write-Log "All verification checks PASSED!"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+defineOptions({ name: 'TemporaryRepairPage' })
 import { ref, onMounted, computed, onActivated, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast } from 'vant'
@@ -27,7 +28,6 @@ const activeTab = ref(0)
 const loading = ref(false)
 const workList = ref<any[]>([])
 const userReady = ref(false)
-const isInitialized = ref(false)
 
 const canApprove = computed(() => userStore.canApproveTemporaryRepair())
 
@@ -66,7 +66,7 @@ const fetchWorkList = async (forceRefresh = false) => {
           allItemsCache.value = cached
         }
       }
-      
+
       if (forceRefresh || allItemsCache.value.length === 0) {
         const response = await temporaryRepairService.getList({
           page: 0,
@@ -91,23 +91,21 @@ const fetchWorkList = async (forceRefresh = false) => {
       }
 
       workList.value = sortByTimestampDesc(filteredItems, {
-        secondarySortKey: 'id'
+        secondarySortKey: 'id',
       })
     } else {
       const tabStatuses = (currentTab.value as { statuses?: string[] })?.statuses || []
-      
+
       if (tabStatuses.length > 0) {
-        const responses = await Promise.all(
-          tabStatuses.map(status =>
-            temporaryRepairService.getList({ page: 0, size: 100, status })
-          )
-        )
-        const allItems = responses
-          .filter(r => r.code === 200)
-          .flatMap(r => r.data?.items || [])
+        const response = await temporaryRepairService.getList({
+          page: 0,
+          size: 100,
+          statuses: tabStatuses.join(','),
+        })
+        const allItems = response.code === 200 ? response.data?.items || [] : []
 
         workList.value = sortByTimestampDesc(allItems, {
-          secondarySortKey: 'id'
+          secondarySortKey: 'id',
         })
       } else {
         workList.value = []
@@ -129,16 +127,10 @@ const handleBack = () => {
   goBack()
 }
 
-/**
- * 处理新增操作
- */
 const handleCreate = () => {
   router.push('/temporary-repair/create')
 }
 
-/**
- * 处理标签页切换
- */
 const handleTabChange = () => {
   const tab = currentTab.value as {
     key: string
@@ -151,12 +143,10 @@ const handleTabChange = () => {
     handleCreate()
     return
   }
-  fetchWorkList()
+  fetchWorkList(true)
 }
 
 onMounted(() => {
-  if (isInitialized.value) return
-  isInitialized.value = true
   userReady.value = true
   fetchWorkList()
   const tabParam = route.query.tab
@@ -169,11 +159,7 @@ onMounted(() => {
 })
 
 onActivated(() => {
-  if (!isInitialized.value) {
-    isInitialized.value = true
-    userReady.value = true
-    fetchWorkList()
-  }
+  fetchWorkList(true)
 })
 </script>
 

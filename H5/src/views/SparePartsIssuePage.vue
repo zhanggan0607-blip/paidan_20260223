@@ -243,16 +243,32 @@ onMounted(() => {
                 </select>
               </template>
             </van-field>
-            <van-field name="产品名称"
+            <van-field
+              name="产品名称"
               :model-value="selectedStock?.productName || ''"
               label="产品名称"
               placeholder="请选择产品"
               readonly
             />
-            <van-field name="品牌" :model-value="selectedStock?.brand || ''" label="品牌" readonly />
-            <van-field name="产品型号" :model-value="selectedStock?.model || ''" label="产品型号" readonly />
+            <van-field
+              name="品牌"
+              :model-value="selectedStock?.brand || ''"
+              label="品牌"
+              readonly
+            />
+            <van-field
+              name="产品型号"
+              :model-value="selectedStock?.model || ''"
+              label="产品型号"
+              readonly
+            />
             <van-field name="单位" :model-value="selectedStock?.unit || ''" label="单位" readonly />
-            <van-field name="库存数量" :model-value="selectedStock?.stock || 0" label="库存数量" readonly />
+            <van-field
+              name="库存数量"
+              :model-value="selectedStock?.stock || 0"
+              label="库存数量"
+              readonly
+            />
             <van-field name="领用数量" label="领用数量" required>
               <template #input>
                 <van-stepper
@@ -264,8 +280,9 @@ onMounted(() => {
                 />
               </template>
             </van-field>
-            <van-field name="project_name"
+            <van-field
               v-model="issueForm.projectName"
+              name="project_name"
               label="所属项目"
               placeholder="请选择项目"
               required

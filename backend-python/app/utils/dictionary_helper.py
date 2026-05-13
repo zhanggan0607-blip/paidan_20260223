@@ -1,10 +1,10 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.repositories.dictionary import DictionaryRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class DictionaryHelper:
@@ -37,18 +37,24 @@ class DictionaryHelper:
 
 
 def get_default_temporary_repair_status(db: Session) -> str:
-    """获取临时维修单默认状态"""
-    value = DictionaryHelper.get_default_value(db, 'temporary_repair_status', 'not_started')
-    return value if value else '执行中'
+    """获取临时维修单默认状态，字典不存在时返回'执行中'"""
+    value = DictionaryHelper.get_default_value(db, 'temporary_repair_status', 'in_progress')
+    if value and value in ['执行中', '待确认', '已完成', '已退回']:
+        return value
+    return '执行中'
 
 
 def get_default_spot_work_status(db: Session) -> str:
-    """获取零星用工单默认状态"""
-    value = DictionaryHelper.get_default_value(db, 'spot_work_status', 'not_started')
-    return value if value else '执行中'
+    """获取零星用工单默认状态，字典不存在时返回'执行中'"""
+    value = DictionaryHelper.get_default_value(db, 'spot_work_status', 'in_progress')
+    if value and value in ['执行中', '待确认', '已完成', '已退回']:
+        return value
+    return '执行中'
 
 
 def get_default_periodic_inspection_status(db: Session) -> str:
-    """获取定期巡检单默认状态"""
-    value = DictionaryHelper.get_default_value(db, 'periodic_inspection_status', 'not_started')
-    return value if value else '执行中'
+    """获取定期巡检单默认状态，字典不存在时返回'执行中'"""
+    value = DictionaryHelper.get_default_value(db, 'periodic_inspection_status', 'in_progress')
+    if value and value in ['执行中', '待确认', '已完成', '已退回']:
+        return value
+    return '执行中'

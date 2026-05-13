@@ -22,8 +22,7 @@ const sendHeartbeat = async () => {
 
   try {
     await onlineUserService.heartbeat('h5', user.id, user.name)
-  } catch {
-  }
+  } catch {}
 }
 
 const startHeartbeat = () => {
@@ -98,7 +97,16 @@ onUnmounted(() => {
 
 <template>
   <router-view v-if="isInitialized" v-slot="{ Component }">
-    <keep-alive :include="['WorkListPage', 'MaintenanceLogPage', 'WeeklyReportListPage']">
+    <keep-alive
+      :include="[
+        'WorkListPage',
+        'MaintenanceLogPage',
+        'WeeklyReportListPage',
+        'SpotWorkApplyPage',
+        'SpotWorkQuickFillPage',
+        'TemporaryRepairPage',
+      ]"
+    >
       <component :is="Component" />
     </keep-alive>
   </router-view>

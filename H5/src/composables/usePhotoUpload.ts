@@ -26,10 +26,13 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
   async function compressImage(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image()
-      const url = URL.createObjectURL(file)
+      const reader = new FileReader()
+
+      reader.onload = (e) => {
+        img.src = e.target?.result as string
+      }
 
       img.onload = () => {
-        URL.revokeObjectURL(url)
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
         if (!ctx) {
@@ -75,19 +78,31 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
       }
 
       img.onerror = () => {
-        URL.revokeObjectURL(url)
         reject(new Error('图片加载失败'))
       }
-      img.src = url
+
+      reader.onerror = () => {
+        reject(new Error('文件读取失败'))
+      }
+
+      reader.readAsDataURL(file)
     })
   }
 
   async function handlePhotoCapture(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement
-    if (!input.files || input.files.length === 0) return
+    if (!input.files || input.files.length === 0) {
+      if (document.body.contains(input)) {
+        document.body.removeChild(input)
+      }
+      return
+    }
 
     if (photos.value.length >= MAX_PHOTOS) {
       showToast(`最多上传${MAX_PHOTOS}张照片`)
+      if (document.body.contains(input)) {
+        document.body.removeChild(input)
+      }
       return
     }
 
@@ -105,7 +120,7 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
           includeLocation: !!location,
           latitude: location?.latitude,
           longitude: location?.longitude,
-          maxSizeKB: COMPRESS_THRESHOLD_KB
+          maxSizeKB: COMPRESS_THRESHOLD_KB,
         })
       } catch {
         const compressedBlob = await compressImage(file)
@@ -115,7 +130,7 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
       const url = URL.createObjectURL(processedFile)
       photos.value.push({
         url,
-        name: processedFile.name
+        name: processedFile.name,
       })
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : '图片处理失败'
@@ -124,15 +139,25 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
     } finally {
       uploading.value = false
       input.value = ''
+      if (document.body.contains(input)) {
+        document.body.removeChild(input)
+      }
     }
   }
 
   async function tryCaptureOnIOS(): Promise<void> {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'image/*'
-    input.capture = 'environment'
+    input.accept = 'image/jpeg,image/png'
+    input.style.position = 'fixed'
+    input.style.top = '0'
+    input.style.left = '0'
+    input.style.width = '100%'
+    input.style.height = '100%'
+    input.style.opacity = '0'
+    input.style.zIndex = '999999'
     input.onchange = (e: Event) => handlePhotoCapture(e)
+    document.body.appendChild(input)
     input.click()
   }
 
@@ -156,7 +181,7 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
     const urls = photos.value.map((p) => getFullImageUrl(p.url))
     showImagePreview({
       images: urls,
-      startPosition: index
+      startPosition: index,
     })
   }
 
@@ -195,6 +220,6 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
     isIOS,
     isDingTalk,
     isMobile,
-    useBase64Upload
+    useBase64Upload,
   }
 }

@@ -4,6 +4,7 @@
 """
 from datetime import date, datetime, timedelta
 
+from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
 from app.exceptions import DuplicateException, NotFoundException, ValidationException
@@ -154,6 +155,7 @@ class WorkPlanService(BaseService):
                 remark='创建工作计划'
             )
 
+        self.commit()
         return result
 
     def update(
@@ -219,6 +221,7 @@ class WorkPlanService(BaseService):
                 remark='更新工作计划'
             )
 
+        self.commit()
         return result
 
     def delete(self, id: int, user_id: int = None, operator_name: str = None) -> None:
@@ -248,6 +251,7 @@ class WorkPlanService(BaseService):
         self.sync_service.sync_work_plan_to_order(work_plan, is_delete=True, user_id=user_id)
         self.sync_service.sync_work_plan_to_maintenance_plan(work_plan, is_delete=True, user_id=user_id)
         self.repository.soft_delete(work_plan, user_id)
+        self.commit()
 
     def get_all_unpaginated(self, plan_type: str | None = None) -> list[WorkPlan]:
         """
@@ -262,91 +266,62 @@ class WorkPlanService(BaseService):
         return self.repository.find_all_unpaginated(plan_type)
 
     def get_statistics(self, user_name: str | None = None, is_manager: bool = False) -> dict:
-        """
-        获取统计数据
-
-        临期工单：计划开始日期在未来7天内且未完成
-        超期工单：计划结束日期已过且未完成
-
-        Args:
-            user_name: 用户名（用于权限过滤）
-            is_manager: 是否为管理员
-
-        Returns:
-            统计数据字典
-        """
         from app.config import OverdueAlertConfig
-        from app.repositories.periodic_inspection import PeriodicInspectionRepository
-        from app.repositories.spot_work import SpotWorkRepository
-        from app.repositories.temporary_repair import TemporaryRepairRepository
+        from app.models.periodic_inspection import PeriodicInspection
+        from app.models.temporary_repair import TemporaryRepair
+        from app.models.spot_work import SpotWork
 
         today = datetime.now().date()
-        year_start = datetime(today.year, 1, 1).date()
-        year_end = datetime(today.year, 12, 31).date()
+        today_start = datetime.combine(today, datetime.min.time())
+        week_end = datetime.combine(today + timedelta(days=7), datetime.max.time())
+        year_start = datetime(today.year, 1, 1)
+        year_end = datetime(today.year, 12, 31, 23, 59, 59)
 
         valid_statuses = OverdueAlertConfig.VALID_STATUSES
+        completed_statuses = OverdueAlertConfig.COMPLETED_STATUSES
 
-        inspection_repo = PeriodicInspectionRepository(self.repository.db)
-        repair_repo = TemporaryRepairRepository(self.repository.db)
-        spotwork_repo = SpotWorkRepository(self.repository.db)
+        def _count_by_model(model):
+            query = self._db.query(
+                func.sum(case(
+                    (and_(
+                        model.plan_start_date.between(today_start, week_end),
+                        model.status.in_(valid_statuses)
+                    ), 1), else_=0
+                )).label('expiring_soon'),
+                func.sum(case(
+                    (and_(
+                        model.plan_end_date < today_start,
+                        model.status.in_(valid_statuses)
+                    ), 1), else_=0
+                )).label('overdue'),
+                func.sum(case(
+                    (and_(
+                        model.status.in_(completed_statuses),
+                        model.actual_completion_date.between(year_start, year_end)
+                    ), 1), else_=0
+                )).label('yearly_completed'),
+                func.sum(case(
+                    (and_(
+                        model.plan_start_date.between(year_start, year_end),
+                        model.status.in_(valid_statuses)
+                    ), 1), else_=0
+                )).label('active_count'),
+            ).filter(model.is_deleted == False)
 
-        all_inspections = inspection_repo.find_all_unpaginated()
-        all_repairs = repair_repo.find_all_unpaginated()
-        all_spotworks = spotwork_repo.find_all_unpaginated()
+            if not is_manager and user_name:
+                query = query.filter(model.maintenance_personnel == user_name)
 
-        if not is_manager and user_name:
-            all_inspections = [p for p in all_inspections if p.maintenance_personnel == user_name]
-            all_repairs = [p for p in all_repairs if p.maintenance_personnel == user_name]
-            all_spotworks = [p for p in all_spotworks if p.maintenance_personnel == user_name]
+            return query.one()
 
-        expiring_soon = 0
-        overdue = 0
-        yearly_completed = 0
-        periodic_inspection_count = 0
-        temporary_repair_count = 0
-        spot_work_count = 0
-
-        all_orders = []
-        for item in all_inspections:
-            all_orders.append(('定期巡检', item))
-            plan_start = self._get_date_value(item.plan_start_date)
-            if plan_start and year_start <= plan_start <= year_end:
-                if item.status in valid_statuses:
-                    periodic_inspection_count += 1
-        for item in all_repairs:
-            all_orders.append(('临时维修', item))
-            plan_start = self._get_date_value(item.plan_start_date)
-            if plan_start and year_start <= plan_start <= year_end:
-                if item.status in valid_statuses:
-                    temporary_repair_count += 1
-        for item in all_spotworks:
-            all_orders.append(('零星用工', item))
-            plan_start = self._get_date_value(item.plan_start_date)
-            if plan_start and year_start <= plan_start <= year_end:
-                if item.status in valid_statuses:
-                    spot_work_count += 1
-
-        for _plan_type, order in all_orders:
-            plan_start = self._get_date_value(order.plan_start_date)
-            plan_end = self._get_date_value(order.plan_end_date)
-            actual_completion = self._get_date_value(order.actual_completion_date)
-
-            if order.status in valid_statuses:
-                if plan_start and today <= plan_start <= today + timedelta(days=7):
-                    expiring_soon += 1
-
-                if plan_end and plan_end < today:
-                    overdue += 1
-
-            if order.status in OverdueAlertConfig.COMPLETED_STATUSES and actual_completion:
-                if year_start <= actual_completion <= year_end:
-                    yearly_completed += 1
+        insp = _count_by_model(PeriodicInspection)
+        repair = _count_by_model(TemporaryRepair)
+        spot = _count_by_model(SpotWork)
 
         return {
-            'expiringSoon': expiring_soon,
-            'overdue': overdue,
-            'yearlyCompleted': yearly_completed,
-            'periodicInspection': periodic_inspection_count,
-            'temporaryRepair': temporary_repair_count,
-            'spotWork': spot_work_count
+            'expiringSoon': int((insp.expiring_soon or 0) + (repair.expiring_soon or 0) + (spot.expiring_soon or 0)),
+            'overdue': int((insp.overdue or 0) + (repair.overdue or 0) + (spot.overdue or 0)),
+            'yearlyCompleted': int((insp.yearly_completed or 0) + (repair.yearly_completed or 0) + (spot.yearly_completed or 0)),
+            'periodicInspection': int(insp.active_count or 0),
+            'temporaryRepair': int(repair.active_count or 0),
+            'spotWork': int(spot.active_count or 0),
         }

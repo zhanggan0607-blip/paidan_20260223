@@ -3,14 +3,14 @@ CSRF 防护中间件
 为基于 Bearer Token 认证的 API 提供深度防御
 检查 Origin/Referer 头，阻止跨站请求伪造
 """
-import logging
+from app.utils.logging_config import get_logger
 from fastapi import FastAPI, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from app.config import get_settings
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):

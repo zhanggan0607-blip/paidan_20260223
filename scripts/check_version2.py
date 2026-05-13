@@ -19,7 +19,7 @@ def run_cmd(cmd):
 print('=== PC端: 搜索Layout组件定义 ===')
 pc_js = run_cmd('docker exec sstcp-frontend-pc sh -c "cat /usr/share/nginx/html/assets/js/index-CCPmbE8q.js"')
 
-search_terms = ['name:"Layout"', '2.0.7', '2.0.3', '__APP_VERSION__']
+search_terms = ['name:"Layout"', '2.2.0', '__APP_VERSION__']
 for term in search_terms:
     idx = pc_js.find(term)
     if idx >= 0:

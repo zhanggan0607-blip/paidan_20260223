@@ -285,7 +285,7 @@
               </div>
             </div>
             <div
-              v-if="detailData.images && detailData.images.length > 0"
+              v-if="parseImages(detailData.images).length > 0"
               class="detail-row full-width"
             >
               <div class="detail-item">
@@ -435,7 +435,7 @@ interface MaintenanceLogItem {
   log_type: string
   log_date: string
   work_content: string
-  images: string
+  images: string[] | string | null
   remark: string
   status: string
   reject_reason: string
@@ -545,11 +545,16 @@ export default defineComponent({
     /**
      * 解析图片URL列表
      */
-    const parseImages = (images: string): string[] => {
+    const parseImages = (images: unknown): string[] => {
       if (!images) return []
+      if (Array.isArray(images)) return images.filter((url): url is string => typeof url === 'string' && !!url.trim())
+      if (typeof images !== 'string') return []
       try {
         const parsed = JSON.parse(images)
-        return Array.isArray(parsed) ? parsed : []
+        if (Array.isArray(parsed)) {
+          return parsed.filter((url): url is string => typeof url === 'string' && !!url.trim())
+        }
+        return []
       } catch {
         return images.split(',').filter((url: string) => url.trim())
       }

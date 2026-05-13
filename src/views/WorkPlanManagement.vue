@@ -1113,24 +1113,6 @@ export default defineComponent({
           return
       }
 
-      let fileHandle: any = null
-
-      if ('showSaveFilePicker' in window && window.isSecureContext) {
-        try {
-          fileHandle = await (window as any).showSaveFilePicker({
-            suggestedName: defaultFilename,
-            types: [{
-              description: 'PDF文件',
-              accept: { 'application/pdf': ['.pdf'] },
-            }],
-          })
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            return
-          }
-        }
-      }
-
       try {
         const token = localStorage.getItem('token')
 
@@ -1141,12 +1123,47 @@ export default defineComponent({
         })
 
         if (!response.ok) {
-          const error = await response.json()
-          showToast(error.detail || error.message || '导出失败', 'error')
+          let errorMsg = '导出失败'
+          try {
+            const error = await response.json()
+            errorMsg = error.detail || error.message || errorMsg
+          } catch {
+            errorMsg = `导出失败 (${response.status})`
+          }
+          showToast(errorMsg, 'error')
+          return
+        }
+
+        const contentType = response.headers.get('content-type') || ''
+        if (!contentType.includes('application/pdf') && !contentType.includes('octet-stream')) {
+          showToast('服务器返回了非PDF文件', 'error')
           return
         }
 
         const blob = await response.blob()
+
+        if (blob.size === 0) {
+          showToast('导出的PDF文件为空', 'error')
+          return
+        }
+
+        let fileHandle: any = null
+
+        if ('showSaveFilePicker' in window && window.isSecureContext) {
+          try {
+            fileHandle = await (window as any).showSaveFilePicker({
+              suggestedName: defaultFilename,
+              types: [{
+                description: 'PDF文件',
+                accept: { 'application/pdf': ['.pdf'] },
+              }],
+            })
+          } catch (err: any) {
+            if (err.name === 'AbortError') {
+              return
+            }
+          }
+        }
 
         if (fileHandle) {
           const writable = await fileHandle.createWritable()

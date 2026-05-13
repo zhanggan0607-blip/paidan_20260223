@@ -2,12 +2,12 @@
 Repository 基类
 提供通用的 CRUD 操作方法，减少代码重复
 """
-import logging
+from app.utils.logging_config import get_logger
 from typing import Any, Generic, TypeVar
 
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 T = TypeVar('T')
 
@@ -71,21 +71,12 @@ class BaseRepository(Generic[T]):
             raise
 
     def find_all_unpaginated(self, options: list | None = None) -> list[T]:
-        """
-        查询所有实体（不分页）
-
-        Args:
-            options: SQLAlchemy 查询选项
-
-        Returns:
-            实体列表
-        """
         try:
             query = self.db.query(self.model_class)
             if options:
                 for option in options:
                     query = query.options(option)
-            return query.all()
+            return list(query.yield_per(200))
         except Exception as e:
             logger.error(f"查询所有{self.model_class.__name__}失败: {str(e)}")
             raise

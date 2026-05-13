@@ -1,13 +1,13 @@
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime, timedelta
 
 from sqlalchemy import and_
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.maintenance_plan import MaintenancePlan
 from app.models.project_info import ProjectInfo
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class MaintenancePlanRepository:
@@ -122,11 +122,14 @@ class MaintenancePlanRepository:
 
     def find_all_unpaginated(self) -> list[MaintenancePlan]:
         try:
-            return self.db.query(MaintenancePlan).options(
-                joinedload(MaintenancePlan.project)
-            ).filter(
-                MaintenancePlan.is_deleted == False
-            ).order_by(MaintenancePlan.created_at.desc(), MaintenancePlan.id.desc()).all()
+            return list(
+                self.db.query(MaintenancePlan).options(
+                    selectinload(MaintenancePlan.project)
+                ).filter(
+                    MaintenancePlan.is_deleted == False
+                ).order_by(MaintenancePlan.created_at.desc(), MaintenancePlan.id.desc())
+                .yield_per(200)
+            )
         except Exception as e:
             logger.error(f"查询所有维保计划失败: {str(e)}")
             raise
@@ -197,6 +200,15 @@ class MaintenancePlanRepository:
         except Exception as e:
             self.db.rollback()
             logger.error(f"更新维保计划失败: {str(e)}")
+            raise
+
+    def soft_delete(self, maintenance_plan: MaintenancePlan, user_id: int = None) -> None:
+        try:
+            maintenance_plan.soft_delete(user_id)
+            self.db.flush()
+        except Exception as e:
+            self.db.rollback()
+            logger.error(f"软删除维保计划失败: {str(e)}")
             raise
 
     def delete(self, maintenance_plan: MaintenancePlan) -> None:

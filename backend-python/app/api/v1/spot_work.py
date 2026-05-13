@@ -8,63 +8,28 @@
 - 更新工单：管理员可更新所有工单，运维人员只能更新自己的工单
 - 删除工单：需要管理员或部门经理权限
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, check_data_access, get_current_user_info, get_current_user_required, get_manager_user
-from app.schemas.common import ApiResponse
-from app.schemas.spot_work import SpotWorkApprove, SpotWorkCreate, SpotWorkPartialUpdate, SpotWorkUpdate
+from app.dependencies import UserInfo, check_data_access, get_current_user_required, get_manager_user
+from app.schemas.common import ApiResponse, PaginatedResponse
+from app.schemas.spot_work import SpotWorkApprove, SpotWorkCreate, SpotWorkPartialUpdate, SpotWorkUpdate, WorkerInfo, QuickFillRequest, WorkersRequest
 from app.services.personnel import PersonnelService
 from app.services.spot_work import SpotWorkService
 from app.utils.work_order_id_generator import generate_spot_work_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/spot-work", tags=["Spot Work Management"])
-
-
-class WorkerInfo(BaseModel):
-    name: str
-    gender: str | None = None
-    birthDate: str | None = None
-    address: str | None = None
-    idCardNumber: str
-    issuingAuthority: str | None = None
-    validPeriod: str | None = None
-    idCardFront: str
-    idCardBack: str
-
-
-class QuickFillRequest(BaseModel):
-    project_id: str
-    project_name: str
-    plan_start_date: str
-    plan_end_date: str
-    work_content: str | None = None
-    remark: str | None = None
-    client_contact: str | None = None
-    client_contact_info: str | None = None
-    photos: str | None = None
-    signature: str | None = None
-    worker_count: int | None = 0
-
-
-class WorkersRequest(BaseModel):
-    project_id: str
-    project_name: str
-    start_date: str
-    end_date: str
-    workers: list[WorkerInfo]
 
 
 @router.get("/generate-id", response_model=ApiResponse)
 def generate_spot_work_id_endpoint(
     project_id: str = Query(..., description="项目编号"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     生成零星用工单编号
@@ -81,7 +46,7 @@ def generate_spot_work_id_endpoint(
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_spot_works(
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取所有零星用工（不分页）
@@ -108,7 +73,7 @@ def get_spot_works_list(
     work_id: str | None = Query(None, description="Work ID (fuzzy search)"),
     status: str | None = Query(None, description="Status"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     分页获取零星用工列表
@@ -124,29 +89,14 @@ def get_spot_works_list(
         status=status, maintenance_personnel=maintenance_personnel
     )
 
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': items_dict,
-            'content': items_dict,
-            'total': total,
-            'totalElements': total,
-            'totalPages': (total + size - 1) // size if size > 0 else 0,
-            'size': size,
-            'number': page,
-            'page': page,
-            'first': page == 0,
-            'last': page >= (total + size - 1) // size if size > 0 else True
-        }
-    )
+    return PaginatedResponse.success(items_dict, total, page, size)
 
 
 @router.post("/quick-fill", response_model=ApiResponse, status_code=status.HTTP_201_CREATED)
 def quick_fill_spot_work(
     dto: QuickFillRequest,
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     快速填报零星用工
@@ -289,32 +239,8 @@ def get_all_workers(
     from app.models.spot_work_worker import SpotWorkWorker
 
     try:
-        subquery = db.query(
-            SpotWorkWorker.id_card_number,
-            func.max(SpotWorkWorker.id).label('max_id')
-        ).group_by(
-            SpotWorkWorker.id_card_number
-        ).subquery()
-
-        workers = db.query(SpotWorkWorker).join(
-            subquery,
-            SpotWorkWorker.id == subquery.c.max_id
-        ).all()
-
-        result = []
-        for w in workers:
-            result.append({
-                "name": w.name,
-                "gender": w.gender,
-                "birthDate": w.birth_date,
-                "address": w.address,
-                "idCardNumber": w.id_card_number,
-                "issuingAuthority": w.issuing_authority,
-                "validPeriod": w.valid_period,
-                "idCardFront": w.id_card_front,
-                "idCardBack": w.id_card_back
-            })
-
+        service = SpotWorkService(db)
+        result = service.get_all_workers()
         return ApiResponse(
             code=200,
             message="success",

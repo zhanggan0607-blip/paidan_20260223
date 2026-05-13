@@ -3,7 +3,7 @@
 实现三种工单表(PeriodicInspection, TemporaryRepair, SpotWork)与WorkPlan表之间的双向同步
 同时实现MaintenancePlan与WorkPlan之间的双向同步
 """
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ from app.repositories.temporary_repair import TemporaryRepairRepository
 from app.repositories.work_plan import WorkPlanRepository
 from app.utils.date_utils import parse_datetime
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 PLAN_TYPE_INSPECTION = '定期巡检'
 PLAN_TYPE_REPAIR = '临时维修'

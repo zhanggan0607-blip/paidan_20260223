@@ -1,5 +1,5 @@
 from datetime import datetime, date, timedelta
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, and_, or_, case
@@ -7,14 +7,14 @@ from sqlalchemy.orm import Session
 
 from app.config import OverdueAlertConfig
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info
+from app.dependencies import UserInfo, get_current_user_required
 from app.models.periodic_inspection import PeriodicInspection
 from app.models.project_info import ProjectInfo
 from app.models.spot_work import SpotWork
 from app.models.temporary_repair import TemporaryRepair
 from app.schemas.common import ApiResponse
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/statistics", tags=["Statistics"])
 
 
@@ -117,7 +117,7 @@ def _get_model_stats_with_sql(
 async def get_statistics_overview(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取统计数据概览 - 从三种工单表获取数据
@@ -199,7 +199,7 @@ def _get_completion_stats_with_sql(
 async def get_completion_rate(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取准时完成率 - 从三种工单表获取数据
@@ -281,7 +281,7 @@ async def get_top_projects(
     year: int = Query(..., description="年度"),
     limit: int = Query(5, ge=1, le=10, description="返回数量"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取年度前五项目（工单数量）- 从三种工单表获取数据
@@ -336,7 +336,7 @@ async def get_top_repairs(
     year: int = Query(..., description="年度"),
     limit: int = Query(5, ge=1, le=10, description="返回数量"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取临时维修单年度前五 - 按项目统计临时维修单数量
@@ -410,7 +410,7 @@ def _get_employee_stats_with_sql(
 async def get_employee_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取运维人员工单数量统计 - 按运维人员分组统计
@@ -461,7 +461,7 @@ async def get_employee_stats(
 async def get_repair_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取临时维修单完成数量统计 - 按运维人员分组统计已完成的临时维修单
@@ -498,7 +498,7 @@ async def get_repair_stats(
 async def get_spotwork_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取零星用工单完成数量统计 - 按运维人员分组统计已完成的零星用工单
@@ -535,7 +535,7 @@ async def get_spotwork_stats(
 async def get_inspection_stats(
     year: int = Query(..., description="年度"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取定期巡检单完成数量统计 - 按运维人员分组统计已完成的定期巡检单
@@ -578,7 +578,7 @@ async def get_statistics_detail(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(20, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     from app.services.statistics_service import StatisticsService
     user_name, is_manager = _get_user_info(user_info)

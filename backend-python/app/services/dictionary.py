@@ -2,7 +2,7 @@
 字典服务
 提供字典数据的业务逻辑处理，支持Redis缓存
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,7 @@ from app.repositories.dictionary import DictionaryRepository
 from app.services.base import BaseService
 from app.services.cache import CacheService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 CACHE_KEY_PREFIX = "dict"
 CACHE_TTL = 3600
@@ -45,39 +45,19 @@ class DictionaryService(BaseService):
     ) -> tuple[list[Dictionary], int]:
         return self.repository.find_all(page, size, dict_type)
 
-    def get_by_type(self, dict_type: str) -> list[Dictionary]:
-        """
-        根据字典类型获取字典列表（带缓存）
-        
-        Args:
-            dict_type: 字典类型
-            
-        Returns:
-            字典列表
-        """
+    def get_by_type(self, dict_type: str) -> list[dict]:
         cache_key = f"{CACHE_KEY_PREFIX}:type:{dict_type}"
-        
+
         cached = self.cache.get(cache_key)
         if cached is not None:
-            return [Dictionary(**item) for item in cached]
-        
+            return cached
+
         items = self.repository.find_by_type(dict_type)
-        
-        cache_data = [
-            {
-                'id': item.id,
-                'dict_type': item.dict_type,
-                'dict_key': item.dict_key,
-                'dict_value': item.dict_value,
-                'dict_label': item.dict_label,
-                'sort_order': item.sort_order,
-                'is_active': item.is_active,
-            }
-            for item in items
-        ]
+
+        cache_data = [item.to_dict() for item in items]
         self.cache.set(cache_key, cache_data, CACHE_TTL)
-        
-        return items
+
+        return cache_data
 
     def get_by_type_and_key(self, dict_type: str, dict_key: str) -> Dictionary:
         dictionary = self.repository.find_by_type_and_key(dict_type, dict_key)

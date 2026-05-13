@@ -57,21 +57,23 @@ const isWorker = computed(() => {
 const isEditable = computed(() => {
   const status = detail.value?.status
   if (status === WORK_STATUS.COMPLETED) return false
-  return status === WORK_STATUS.IN_PROGRESS || 
-         status === WORK_STATUS.PENDING_CONFIRM || 
-         status === WORK_STATUS.RETURNED
+  return (
+    status === WORK_STATUS.IN_PROGRESS ||
+    status === WORK_STATUS.PENDING_CONFIRM ||
+    status === WORK_STATUS.RETURNED
+  )
 })
 
 const canSubmit = computed(() => {
   if (currentPhotos.value.length === 0 || !formData.value.signature) return false
   if (!isWorker.value) return false
-  const status = detail.value?.status
-  return status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+  return detail.value?.status === WORK_STATUS.IN_PROGRESS
 })
 
 const canUpdate = computed(() => {
+  if (!isWorker.value) return false
   const status = detail.value?.status
-  return status === WORK_STATUS.PENDING_CONFIRM || status === WORK_STATUS.IN_PROGRESS || status === WORK_STATUS.RETURNED
+  return status === WORK_STATUS.PENDING_CONFIRM || status === WORK_STATUS.RETURNED
 })
 
 const handleBackToList = () => {
@@ -88,18 +90,18 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const reader = new FileReader()
-    
+
     reader.onload = (e) => {
       img.src = e.target?.result as string
     }
-    
+
     img.onload = () => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d')!
-      
+
       let width = img.width
       let height = img.height
-      
+
       const maxDimension = 1920
       if (width > maxDimension || height > maxDimension) {
         if (width > height) {
@@ -110,23 +112,23 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
           height = maxDimension
         }
       }
-      
+
       canvas.width = width
       canvas.height = height
       ctx.drawImage(img, 0, 0, width, height)
-      
+
       canvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('图片压缩失败'))
             return
           }
-          
+
           if (blob.size <= maxSizeKB * 1024) {
             resolve(blob)
             return
           }
-          
+
           const quality = Math.sqrt((maxSizeKB * 1024) / blob.size)
           canvas.toBlob(
             (compressedBlob) => {
@@ -144,15 +146,15 @@ const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
         0.9
       )
     }
-    
+
     img.onerror = () => {
       reject(new Error('图片加载失败'))
     }
-    
+
     reader.onerror = () => {
       reject(new Error('文件读取失败'))
     }
-    
+
     reader.readAsDataURL(file)
   })
 }
@@ -199,7 +201,7 @@ const loadSignature = async () => {
   const signatureData = localStorage.getItem('temporary_repair_signature')
   if (signatureData) {
     formData.value.signature = signatureData
-    
+
     if (detail.value?.id && isEditable.value) {
       try {
         const saveData = {
@@ -224,7 +226,9 @@ const handlePhotoUpload = () => {
 
 const handlePhotoCapture = () => {
   const ua = navigator.userAgent.toLowerCase()
-  const isIOS = /iphone|ipad|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isIOS =
+    /iphone|ipad|ipod/.test(ua) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
@@ -234,7 +238,7 @@ const handlePhotoCapture = () => {
   } else {
     const input = document.createElement('input')
     input.type = 'file'
-    input.accept = 'image/*'
+    input.accept = 'image/jpeg,image/png'
     input.multiple = true
     input.capture = 'environment'
 
@@ -260,13 +264,18 @@ const handlePhotoCapture = () => {
           showLoadingToast({ message: `处理中(${i + 1}/${files.length})...`, forbidClick: true })
           const userName = userStore.currentUser?.name || '未知用户'
           const location = await getCurrentLocation()
-          const processedFile = await processPhoto(files[i], {
-            userName,
-            includeLocation: true,
-            latitude: location?.latitude,
-            longitude: location?.longitude,
-          })
-          processedFiles.push(processedFile)
+          try {
+            const processedFile = await processPhoto(files[i], {
+              userName,
+              includeLocation: true,
+              latitude: location?.latitude,
+              longitude: location?.longitude,
+            })
+            processedFiles.push(processedFile)
+          } catch (watermarkError) {
+            console.warn('水印处理失败，使用原图:', watermarkError)
+            processedFiles.push(files[i])
+          }
         } catch (error) {
           console.error('Failed to process photo:', error)
           processFailed++
@@ -322,7 +331,9 @@ const handlePhotoCapture = () => {
             }
           }
           closeToast()
-          showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+          showSuccessToast(
+            `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+          )
         } else {
           showFailToast('上传失败')
         }
@@ -341,7 +352,7 @@ const tryCaptureOnIOS = () => {
   isIOSUploading = true
   const input = document.createElement('input')
   input.type = 'file'
-  input.accept = 'image/*'
+  input.accept = 'image/jpeg,image/png,image/heic,image/heif'
   input.multiple = true
   input.style.position = 'fixed'
   input.style.top = '0'
@@ -378,30 +389,35 @@ const tryCaptureOnIOS = () => {
 
     for (const file of files) {
       try {
-        let fileToUpload = file
-
-        if (file.size > 500 * 1024) {
-          showLoadingToast({ message: `压缩中(${uploadedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
-
-          const compressedBlob = await compressImage(file, 500)
-          fileToUpload = new File([compressedBlob], file.name, { type: 'image/jpeg' })
-        }
-
-        showLoadingToast({ message: `添加水印(${uploadedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
-        const userName = userStore.currentUser?.name || '未知用户'
-        const location = await getCurrentLocation()
-        const watermarkedFile = await processPhoto(fileToUpload, {
-          userName,
-          includeLocation: true,
-          latitude: location?.latitude,
-          longitude: location?.longitude,
+        showLoadingToast({
+          message: `处理中(${uploadedCount + failedCount + 1}/${files.length})...`,
+          forbidClick: true,
+          duration: 0,
         })
 
-        showLoadingToast({ message: `上传中(${uploadedCount + 1}/${files.length})...`, forbidClick: true, duration: 0 })
+        let watermarkedFile: File
+        try {
+          const userName = userStore.currentUser?.name || '未知用户'
+          const location = await getCurrentLocation()
+          watermarkedFile = await processPhoto(file, {
+            userName,
+            includeLocation: true,
+            latitude: location?.latitude,
+            longitude: location?.longitude,
+          })
+        } catch (watermarkError: any) {
+          console.warn('水印处理失败，使用原图上传:', watermarkError)
+          watermarkedFile = file
+        }
 
-        const reader = new FileReader()
+        showLoadingToast({
+          message: `上传中(${uploadedCount + failedCount + 1}/${files.length}) 0%...`,
+          forbidClick: true,
+          duration: 0,
+        })
 
         const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
           reader.onload = (ev) => resolve(ev.target?.result as string)
           reader.onerror = reject
           reader.readAsDataURL(watermarkedFile)
@@ -412,7 +428,17 @@ const tryCaptureOnIOS = () => {
           continue
         }
 
-        const response = await uploadService.uploadImageBase64(base64Data, fileToUpload.name)
+        const response = await uploadService.uploadImageBase64(
+          base64Data,
+          file.name,
+          (progress) => {
+            showLoadingToast({
+              message: `上传中(${uploadedCount + failedCount + 1}/${files.length}) ${progress.percent}%...`,
+              forbidClick: true,
+              duration: 0,
+            })
+          }
+        )
 
         if (response.code === 200 && response.data) {
           currentPhotos.value.push(response.data.url)
@@ -447,7 +473,9 @@ const tryCaptureOnIOS = () => {
           closeToast()
           isIOSUploading = false
           if (saveResponse.code === 200) {
-            showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+            showSuccessToast(
+              `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+            )
           } else {
             showFailToast('保存失败: ' + (saveResponse.message || '未知错误'))
           }
@@ -460,7 +488,9 @@ const tryCaptureOnIOS = () => {
       } else {
         closeToast()
         isIOSUploading = false
-        showSuccessToast(`成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`)
+        showSuccessToast(
+          `成功上传${uploadedCount}张图片${failedCount > 0 ? `，${failedCount}张失败` : ''}`
+        )
       }
     } else {
       closeToast()
@@ -549,6 +579,9 @@ const handleSubmit = async () => {
 
   if (status === WORK_STATUS.PENDING_CONFIRM) {
     showFailToast('工单已提交，等待审批中')
+    return
+  } else if (status === WORK_STATUS.RETURNED) {
+    showFailToast('工单已退回，请使用更新按钮重新提交')
     return
   } else if (status === WORK_STATUS.COMPLETED) {
     showFailToast('工单已完成')
@@ -647,7 +680,8 @@ const handleUpdate = async () => {
 
     showLoadingToast({ message: '更新中...', forbidClick: true })
 
-    const updateData = {
+    const currentStatus = detail.value?.status
+    const updateData: Record<string, any> = {
       photos: currentPhotos.value,
       signature: formData.value.signature,
       remarks: formData.value.remarks,
@@ -655,25 +689,18 @@ const handleUpdate = async () => {
       solution: formData.value.solution,
     }
 
+    if (currentStatus === WORK_STATUS.RETURNED) {
+      updateData.status = WORK_STATUS.PENDING_CONFIRM
+    }
+
     const response = await temporaryRepairService.patch(detail.value?.id!, updateData)
 
     if (response.code === 200) {
-      await addOperationLog('update', '员工更新工单内容')
-
-      const currentStatus = detail.value?.status
-      if (currentStatus === WORK_STATUS.IN_PROGRESS || currentStatus === WORK_STATUS.RETURNED) {
-        try {
-          const submitResponse = await temporaryRepairService.submit(detail.value?.id!)
-          if (submitResponse.code === 200) {
-            showSuccessToast('更新成功，已自动提交审核')
-          } else {
-            showSuccessToast('更新成功，但提交审核失败')
-          }
-        } catch (submitError) {
-          console.error('提交审核失败:', submitError)
-          showSuccessToast('更新成功，但提交审核失败')
-        }
+      if (currentStatus === WORK_STATUS.RETURNED) {
+        await addOperationLog('update', '员工更新工单并重新提交审核')
+        showSuccessToast('更新成功，已重新提交审核')
       } else {
+        await addOperationLog('update', '员工更新工单内容')
         showSuccessToast('更新成功')
       }
 
@@ -909,7 +936,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
 
 onMounted(async () => {
   if (isInitialized.value) return
-  
+
   if (!userStore.isLoggedIn) {
     console.warn('User not logged in, redirecting to login page')
     router.push('/login')
@@ -993,8 +1020,9 @@ watch(
       </van-cell-group>
 
       <van-cell-group inset title="报修内容">
-        <van-field name="remarks"
+        <van-field
           v-model="formData.remarks"
+          name="remarks"
           rows="3"
           autosize
           label="报修内容"
@@ -1007,8 +1035,9 @@ watch(
       </van-cell-group>
 
       <van-cell-group inset title="维修详情">
-        <van-field name="fault_description"
+        <van-field
           v-model="formData.fault_description"
+          name="fault_description"
           rows="2"
           autosize
           label="故障描述"
@@ -1018,8 +1047,9 @@ watch(
           maxlength="500"
           :readonly="!isEditable"
         />
-        <van-field name="solution"
+        <van-field
           v-model="formData.solution"
+          name="solution"
           rows="2"
           autosize
           label="解决方案"
@@ -1093,15 +1123,13 @@ watch(
       />
 
       <div v-if="canUpdate" class="action-buttons">
-        <van-button type="primary" size="large" @click="handleUpdate"
-          >更新</van-button
-        >
+        <van-button type="primary" size="large" @click="handleUpdate">更新</van-button>
       </div>
 
-      <div v-else-if="isEditable" class="action-buttons">
-        <van-button v-if="detail?.status === WORK_STATUS.PENDING_CONFIRM && isWorker" type="warning" size="large" @click="handleRecall"
-          >撤回</van-button
-        >
+      <div
+        v-else-if="isWorker && detail?.status === WORK_STATUS.IN_PROGRESS"
+        class="action-buttons"
+      >
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"
           >提交</van-button
         >
@@ -1132,7 +1160,12 @@ watch(
               <span>暂无现场图片</span>
             </div>
             <div v-else class="photo-grid">
-              <div v-for="(photo, index) in currentPhotos" :key="index" class="photo-item" @click="handlePreviewPhoto(index)">
+              <div
+                v-for="(photo, index) in currentPhotos"
+                :key="index"
+                class="photo-item"
+                @click="handlePreviewPhoto(index)"
+              >
                 <img :src="photo" alt="现场照片" loading="lazy" />
                 <van-icon
                   v-if="isEditable"
@@ -1167,8 +1200,9 @@ watch(
           <van-icon name="cross" @click="showRejectDialog = false" />
         </div>
         <div class="popup-body">
-          <van-field name="reject_reason"
+          <van-field
             v-model="rejectReason"
+            name="reject_reason"
             rows="4"
             autosize
             type="textarea"

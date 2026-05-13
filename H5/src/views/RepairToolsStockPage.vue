@@ -186,21 +186,35 @@ onMounted(() => {
     </van-nav-bar>
 
     <div class="action-bar">
-      <van-search name="filter_keyword"
+      <van-search
         v-model="filterKeyword"
+        name="filter_keyword"
         placeholder="搜索工具名称/编号/规格"
         shape="round"
         class="search-input"
       />
-      <van-field name="filter_category" v-model="filterCategory" label="" placeholder="分类筛选" class="category-filter">
+      <van-field
+        v-model="filterCategory"
+        name="filter_category"
+        label=""
+        placeholder="分类筛选"
+        class="category-filter"
+      >
         <template #input>
-          <select id="filter_category" name="filter_category" v-model="filterCategory" class="category-select-filter">
+          <select
+            id="filter_category"
+            v-model="filterCategory"
+            name="filter_category"
+            class="category-select-filter"
+          >
             <option value="">全部分类</option>
             <option v-for="cat in categoryList" :key="cat" :value="cat">{{ cat }}</option>
           </select>
         </template>
       </van-field>
-      <van-button v-if="canInbound" type="primary" size="small" @click="handleAdd"> 新增入库 </van-button>
+      <van-button v-if="canInbound" type="primary" size="small" @click="handleAdd">
+        新增入库
+      </van-button>
     </div>
 
     <van-pull-refresh v-model="loading" @refresh="fetchStockList">
@@ -254,8 +268,9 @@ onMounted(() => {
           <van-icon name="cross" @click="showAddPopup = false" />
         </div>
         <van-cell-group inset>
-          <van-field name="tool_name"
+          <van-field
             v-model="addForm.tool_name"
+            name="tool_name"
             label="工具名称"
             placeholder="请输入或选择工具名称"
             required
@@ -272,36 +287,62 @@ onMounted(() => {
               </datalist>
             </template>
           </van-field>
-          <van-field name="category" v-model="addForm.category" label="工具分类" placeholder="请选择分类" required>
+          <van-field
+            v-model="addForm.category"
+            name="category"
+            label="工具分类"
+            placeholder="请选择分类"
+            required
+          >
             <template #input>
-              <select id="category" name="category" v-model="addForm.category" class="category-select">
+              <select
+                id="category"
+                v-model="addForm.category"
+                name="category"
+                class="category-select"
+              >
                 <option value="">请选择分类</option>
                 <option v-for="cat in categoryList" :key="cat" :value="cat">{{ cat }}</option>
               </select>
             </template>
           </van-field>
-          <van-field name="specification"
+          <van-field
             v-model="addForm.specification"
+            name="specification"
             label="规格型号"
             placeholder="请输入规格型号"
           />
-          <van-field name="unit" v-model="addForm.unit" label="单位" placeholder="如：个、把、台" required />
-          <van-field name="stock"
+          <van-field
+            v-model="addForm.unit"
+            name="unit"
+            label="单位"
+            placeholder="如：个、把、台"
+            required
+          />
+          <van-field
             v-model="addForm.stock"
+            name="stock"
             type="number"
             label="库存数量"
             placeholder="请输入数量"
             required
           />
-          <van-field name="min_stock"
+          <van-field
             v-model="addForm.min_stock"
+            name="min_stock"
             type="number"
             label="最低库存"
             placeholder="预警阈值"
           />
-          <van-field name="location" v-model="addForm.location" label="存放位置" placeholder="如：A区1号柜" />
-          <van-field name="remark"
+          <van-field
+            v-model="addForm.location"
+            name="location"
+            label="存放位置"
+            placeholder="如：A区1号柜"
+          />
+          <van-field
             v-model="addForm.remark"
+            name="remark"
             label="备注"
             placeholder="请输入备注"
             type="textarea"

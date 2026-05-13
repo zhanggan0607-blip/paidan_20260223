@@ -1,8 +1,10 @@
 """
 限流中间件
 支持 Redis 共享存储和内存降级，适用于多实例部署
+对GET请求使用更宽松的限流策略
+对敏感接口（登录、OCR）使用更严格的限流策略
 """
-import logging
+from app.utils.logging_config import get_logger
 import threading
 import time
 from collections import defaultdict
@@ -11,7 +13,7 @@ from fastapi import Request, status
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -20,10 +22,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         app,
         requests_per_minute: int = 60,
         requests_per_hour: int = 1000,
+        get_requests_per_minute: int = 200,
+        get_requests_per_hour: int = 20000,
     ):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.requests_per_hour = requests_per_hour
+        self.get_requests_per_minute = get_requests_per_minute
+        self.get_requests_per_hour = get_requests_per_hour
         self.request_counts: dict[str, dict[str, list[float]]] = defaultdict(
             lambda: {"minute": [], "hour": []}
         )
@@ -39,10 +45,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             logger.debug(f"Redis客户端获取失败: {e}")
             return None
 
-    def _check_rate_limit_redis(self, client_id: str) -> tuple[bool, bool]:
+    def _check_rate_limit_redis(self, client_id: str, is_get: bool = False,
+                                 per_minute: int | None = None,
+                                 per_hour: int | None = None) -> tuple[bool, bool]:
         redis_client = self._get_redis_client()
         if not redis_client:
-            return self._check_rate_limit_memory(client_id)
+            return self._check_rate_limit_memory(client_id, is_get, per_minute, per_hour)
 
         try:
             current_time = int(time.time())
@@ -59,15 +67,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             minute_count = results[0]
             hour_count = results[1]
 
-            minute_exceeded = minute_count > self.requests_per_minute
-            hour_exceeded = hour_count > self.requests_per_hour
+            effective_per_minute = per_minute or (self.get_requests_per_minute if is_get else self.requests_per_minute)
+            effective_per_hour = per_hour or (self.get_requests_per_hour if is_get else self.requests_per_hour)
+
+            minute_exceeded = minute_count > effective_per_minute
+            hour_exceeded = hour_count > effective_per_hour
 
             return minute_exceeded, hour_exceeded
         except Exception as e:
             logger.warning(f"Redis限流检查失败，降级到内存: {e}")
-            return self._check_rate_limit_memory(client_id)
+            return self._check_rate_limit_memory(client_id, is_get, per_minute, per_hour)
 
-    def _check_rate_limit_memory(self, client_id: str) -> tuple[bool, bool]:
+    def _check_rate_limit_memory(self, client_id: str, is_get: bool = False,
+                                  per_minute: int | None = None,
+                                  per_hour: int | None = None) -> tuple[bool, bool]:
         current_time = time.time()
 
         with self._lock:
@@ -77,8 +90,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             minute_count = len(self.request_counts[client_id]["minute"])
             hour_count = len(self.request_counts[client_id]["hour"])
 
-            minute_exceeded = minute_count >= self.requests_per_minute
-            hour_exceeded = hour_count >= self.requests_per_hour
+            effective_per_minute = per_minute or (self.get_requests_per_minute if is_get else self.requests_per_minute)
+            effective_per_hour = per_hour or (self.get_requests_per_hour if is_get else self.requests_per_hour)
+
+            minute_exceeded = minute_count >= effective_per_minute
+            hour_exceeded = hour_count >= effective_per_hour
 
             if not minute_exceeded and not hour_exceeded:
                 self.request_counts[client_id]["minute"].append(current_time)
@@ -128,9 +144,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/health",
         "/",
         "/api/v1/health",
-        "/api/v1/auth/login",
-        "/api/v1/auth/login-json",
-        "/api/v1/auth/me",
         "/api/v1/online/heartbeat",
         "/docs",
         "/redoc",
@@ -141,6 +154,12 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         "/metrics",
     }
 
+    STRICT_RATE_LIMIT_PATHS = {
+        "/api/v1/auth/login": (5, 20),
+        "/api/v1/auth/login-json": (5, 20),
+        "/api/v1/ocr/idcard": (3, 30),
+    }
+
     async def dispatch(self, request: Request, call_next):
         if request.url.path in self.EXCLUDED_PATHS:
             return await call_next(request)
@@ -149,8 +168,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         client_id = self._get_client_id(request)
+        is_get = request.method == "GET"
 
-        minute_exceeded, hour_exceeded = self._check_rate_limit_redis(client_id)
+        strict_limits = self.STRICT_RATE_LIMIT_PATHS.get(request.url.path)
+        if strict_limits:
+            per_minute, per_hour = strict_limits
+            minute_exceeded, hour_exceeded = self._check_rate_limit_redis(
+                client_id, is_get, per_minute=per_minute, per_hour=per_hour
+            )
+        else:
+            minute_exceeded, hour_exceeded = self._check_rate_limit_redis(client_id, is_get)
 
         if minute_exceeded:
             logger.warning(f"Rate limit exceeded for {client_id}: requests/minute")

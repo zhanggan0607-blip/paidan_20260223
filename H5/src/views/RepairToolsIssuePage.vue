@@ -254,15 +254,31 @@ onMounted(() => {
                 </select>
               </template>
             </van-field>
-            <van-field name="工具名称"
+            <van-field
+              name="工具名称"
               :model-value="selectedTool?.tool_name || ''"
               label="工具名称"
               placeholder="请选择工具"
               readonly
             />
-            <van-field name="工具编号" :model-value="selectedTool?.tool_id || ''" label="工具编号" readonly />
-            <van-field name="规格型号" :model-value="selectedTool?.specification || ''" label="规格型号" readonly />
-            <van-field name="库存数量" :model-value="selectedTool?.stock || 0" label="库存数量" readonly />
+            <van-field
+              name="工具编号"
+              :model-value="selectedTool?.tool_id || ''"
+              label="工具编号"
+              readonly
+            />
+            <van-field
+              name="规格型号"
+              :model-value="selectedTool?.specification || ''"
+              label="规格型号"
+              readonly
+            />
+            <van-field
+              name="库存数量"
+              :model-value="selectedTool?.stock || 0"
+              label="库存数量"
+              readonly
+            />
             <van-field name="领用数量" label="领用数量" required>
               <template #input>
                 <van-stepper
@@ -274,8 +290,9 @@ onMounted(() => {
                 />
               </template>
             </van-field>
-            <van-field name="project_name"
+            <van-field
               v-model="issueForm.projectName"
+              name="project_name"
               label="所属项目"
               placeholder="请选择项目"
               required
@@ -302,8 +319,9 @@ onMounted(() => {
                 </select>
               </template>
             </van-field>
-            <van-field name="remark"
+            <van-field
               v-model="issueForm.remark"
+              name="remark"
               label="备注"
               placeholder="请输入备注"
               type="textarea"

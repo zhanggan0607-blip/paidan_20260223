@@ -3,7 +3,7 @@
 提供定期巡检业务逻辑处理
 """
 import json
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -25,7 +25,7 @@ from app.utils.date_utils import parse_datetime
 from app.utils.dictionary_helper import get_default_periodic_inspection_status
 from app.utils.work_order_id_generator import generate_inspection_id
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class PeriodicInspectionService(BaseService):
@@ -63,25 +63,12 @@ class PeriodicInspectionService(BaseService):
         client_name: str | None = None,
         inspection_id: str | None = None,
         status: str | None = None,
-        maintenance_personnel: str | None = None
+        maintenance_personnel: str | None = None,
+        statuses: list[str] | None = None
     ) -> tuple[list[PeriodicInspection], int]:
-        """
-        分页获取定期巡检列表
-
-        Args:
-            page: 页码
-            size: 每页数量
-            project_name: 项目名称
-            client_name: 客户名称
-            inspection_id: 巡检单编号
-            status: 状态
-            maintenance_personnel: 运维人员
-
-        Returns:
-            (巡检单列表, 总数)
-        """
         return self.repository.find_all(
-            page, size, project_name, client_name, inspection_id, status, maintenance_personnel
+            page, size, project_name, client_name, inspection_id, status, maintenance_personnel,
+            statuses=statuses
         )
 
     def get_by_id(self, id: int) -> PeriodicInspection:

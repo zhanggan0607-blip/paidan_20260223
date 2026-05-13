@@ -21,43 +21,9 @@ ONLINE_TIMEOUT_MINUTES = 5
 
 
 def _get_online_status_map(db: Session, user_ids: list[int]) -> dict:
-    """
-    获取用户在线状态映射
-    @param db: 数据库会话
-    @param user_ids: 用户ID列表
-    @return: {user_id: {"is_online": bool, "device_type": str}} 映射
-    
-    超时机制：如果用户 last_activity 超过 ONLINE_TIMEOUT_MINUTES 分钟没有更新，
-    则认为用户已离线，自动更新 is_active 为 False
-    """
-    timeout_threshold = datetime.utcnow() - timedelta(minutes=ONLINE_TIMEOUT_MINUTES)
-    
-    online_users = db.query(OnlineUser).filter(
-        and_(
-            OnlineUser.user_id.in_(user_ids),
-            OnlineUser.is_active == True
-        )
-    ).all()
-    
-    result = {}
-    for ou in online_users:
-        if ou.last_activity and ou.last_activity < timeout_threshold:
-            ou.is_active = False
-            continue
-        
-        if ou.user_id not in result:
-            result[ou.user_id] = {
-                "is_online": True,
-                "device_type": ou.device_type
-            }
-        else:
-            if ou.device_type == "pc":
-                result[ou.user_id]["device_type"] = "pc"
-    
-    if online_users:
-        db.commit()
-    
-    return result
+    from app.services.online_user import OnlineUserService
+    service = OnlineUserService(db)
+    return service.get_online_status_map(user_ids)
 
 
 @router.get("/all/list", response_model=ApiResponse)

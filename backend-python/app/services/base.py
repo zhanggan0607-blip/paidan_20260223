@@ -2,12 +2,12 @@
 Service基类
 提供统一的事务管理和通用方法
 """
-import logging
+from app.utils.logging_config import get_logger
 from typing import TypeVar
 
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 T = TypeVar('T')
 

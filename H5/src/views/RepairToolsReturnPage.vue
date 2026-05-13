@@ -197,15 +197,36 @@ onMounted(() => {
 
         <div class="popup-body">
           <van-cell-group inset>
-            <van-field name="工具名称" :model-value="selectedItem?.tool_name || ''" label="工具名称" readonly />
-            <van-field name="规格型号"
+            <van-field
+              name="工具名称"
+              :model-value="selectedItem?.tool_name || ''"
+              label="工具名称"
+              readonly
+            />
+            <van-field
+              name="规格型号"
               :model-value="selectedItem?.specification || '-'"
               label="规格型号"
               readonly
             />
-            <van-field name="领用数量" :model-value="selectedItem?.quantity || 0" label="领用数量" readonly />
-            <van-field name="已归还" :model-value="selectedItem?.return_quantity || 0" label="已归还" readonly />
-            <van-field name="待归还" :model-value="getPendingReturn(selectedItem)" label="待归还" readonly />
+            <van-field
+              name="领用数量"
+              :model-value="selectedItem?.quantity || 0"
+              label="领用数量"
+              readonly
+            />
+            <van-field
+              name="已归还"
+              :model-value="selectedItem?.return_quantity || 0"
+              label="已归还"
+              readonly
+            />
+            <van-field
+              name="待归还"
+              :model-value="getPendingReturn(selectedItem)"
+              label="待归还"
+              readonly
+            />
             <van-field name="归还数量" label="归还数量" required>
               <template #input>
                 <van-stepper

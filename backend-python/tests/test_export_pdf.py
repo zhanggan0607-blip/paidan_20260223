@@ -3,7 +3,7 @@ PDF导出模块测试
 测试PDF生成核心逻辑、字体处理、XML转义
 """
 import pytest
-from app.api.v1.export_pdf import (
+from app.services.export_pdf_base import (
     _escape_xml,
     _make_cell_paragraph,
     get_chinese_font_name,

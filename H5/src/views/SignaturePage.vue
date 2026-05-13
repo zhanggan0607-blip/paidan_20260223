@@ -24,7 +24,10 @@ const signatureData = ref('')
 const isIOS = ref(false)
 
 const isIPhone = () => {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
 }
 
 const handleOrientationChange = () => {
@@ -70,8 +73,8 @@ const getCoordinates = (e: TouchEvent | MouseEvent) => {
     const touch = (e as TouchEvent).touches[0] ?? (e as TouchEvent).changedTouches[0]
     if (!touch) return { x: 0, y: 0 }
     return {
-      x: (touch.clientX - rect.left),
-      y: (touch.clientY - rect.top),
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
     }
   } else {
     return {
@@ -208,9 +211,12 @@ const isCanvasEmpty = () => {
 onMounted(() => {
   isIOS.value = isIPhone()
   handleOrientationChange()
-  setTimeout(() => {
-    initCanvas()
-  }, isIOS.value ? 500 : 300)
+  setTimeout(
+    () => {
+      initCanvas()
+    },
+    isIOS.value ? 500 : 300
+  )
   window.addEventListener('resize', initCanvas)
   window.addEventListener('orientationchange', handleOrientationChange)
 })

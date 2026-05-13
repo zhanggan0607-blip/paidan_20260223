@@ -232,7 +232,7 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { spotWorkService } from '@/services/spotWork'
+import { spotWorkService, type SpotWork } from '@/services/spotWork'
 import type { SpotWorkWorker } from '@/types/api'
 import request from '@/api/request'
 import type { ApiResponse } from '@/types/api'
@@ -379,7 +379,7 @@ export default defineComponent({
         try {
           const response = await spotWorkService.getById(parseInt(id))
           if (response.code === 200) {
-            const item = response.data
+            const item = response.data as SpotWork
             workData.value = {
               id: item.id,
               work_id: item.work_id,

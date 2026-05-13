@@ -18,6 +18,7 @@ import bcrypt
 import uuid
 
 from app.config import get_settings
+from app.models.enums import ADMIN_ROLES
 from app.utils.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -121,8 +122,12 @@ def _register_user_token(user_id: int, jti: str, exp_seconds: int) -> None:
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    truncated_password = plain_password[:72].encode('utf-8')
-    return bcrypt.checkpw(truncated_password, hashed_password.encode('utf-8'))
+    try:
+        truncated_password = plain_password[:72].encode('utf-8')
+        return bcrypt.checkpw(truncated_password, hashed_password.encode('utf-8'))
+    except (ValueError, TypeError) as e:
+        logger.warning(f"密码验证异常，哈希可能已损坏: {e}")
+        return False
 
 
 def get_password_hash(password: str) -> str:
@@ -210,7 +215,7 @@ async def get_current_admin_user(
         )
 
     role = current_user.get('role', '')
-    if role not in ['管理员', '部门经理', '主管']:
+    if role not in [r.value for r in ADMIN_ROLES]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="权限不足，需要管理员权限"

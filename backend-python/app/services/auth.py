@@ -1,3 +1,5 @@
+import secrets
+import string
 import threading
 import time
 from datetime import datetime
@@ -20,7 +22,7 @@ from app.utils.logging_config import logger
 
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_LOCKOUT_SECONDS = 900
-LOGIN_LOCKOUT_ENABLED = False
+LOGIN_LOCKOUT_ENABLED = True
 
 _login_failures: dict[str, list[float]] = {}
 _login_lock = threading.Lock()
@@ -36,9 +38,8 @@ def _get_redis_client():
 
 
 def get_default_password(user: Personnel) -> str:
-    if user.phone and len(user.phone) >= 4:
-        return f"Sstcp@{user.phone[-4:]}"
-    return "Sstcp@12345"
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(8))
 
 
 def check_login_lockout(username: str) -> int | None:
@@ -222,6 +223,18 @@ def change_user_password(db: Session, user_id: int, old_password: str, new_passw
 
     user.password_hash = get_password_hash(new_password)
     user.must_change_password = False
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def reset_user_password(db: Session, user_id: int, new_password: str) -> Personnel:
+    user = db.query(Personnel).filter(Personnel.id == user_id).first()
+    if not user:
+        raise ValueError("用户不存在")
+
+    user.password_hash = get_password_hash(new_password)
+    user.must_change_password = True
     db.commit()
     db.refresh(user)
     return user

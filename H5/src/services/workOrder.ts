@@ -7,7 +7,9 @@ import { API_ENDPOINTS } from '../api/endpoints'
 import type { ApiResponse, PaginatedData, WorkOrderItem, WorkOrderQueryParams } from '../types/api'
 
 export const workOrderService = {
-  async getCompletedThisYear(params?: WorkOrderQueryParams): Promise<ApiResponse<PaginatedData<WorkOrderItem>>> {
+  async getCompletedThisYear(
+    params?: WorkOrderQueryParams
+  ): Promise<ApiResponse<PaginatedData<WorkOrderItem>>> {
     const queryParams = {
       page: 0,
       size: 20,

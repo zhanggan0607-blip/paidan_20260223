@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+defineOptions({ name: 'SpotWorkQuickFillPage' })
+import { ref, onMounted, computed, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { spotWorkService, projectInfoService } from '../services'
@@ -85,7 +86,39 @@ const handleDateRangeConfirm = (values: Date[]) => {
   showDateRangePicker.value = false
 }
 
+const QUICK_FILL_STORAGE_KEY = 'spot_work_quick_fill_form'
+
+const saveFormToStorage = () => {
+  const data = {
+    formData: formData.value,
+    selectedProjectName: selectedProjectName.value,
+  }
+  sessionStorage.setItem(QUICK_FILL_STORAGE_KEY, JSON.stringify(data))
+}
+
+const restoreFormFromStorage = () => {
+  const saved = sessionStorage.getItem(QUICK_FILL_STORAGE_KEY)
+  if (saved) {
+    try {
+      const data = JSON.parse(saved)
+      if (data.formData) {
+        formData.value = { ...formData.value, ...data.formData }
+      }
+      if (data.selectedProjectName) {
+        selectedProjectName.value = data.selectedProjectName
+      }
+    } catch (e) {
+      console.error('Failed to restore form data:', e)
+    }
+  }
+}
+
+const clearFormStorage = () => {
+  sessionStorage.removeItem(QUICK_FILL_STORAGE_KEY)
+}
+
 const handleWorkerEntry = () => {
+  saveFormToStorage()
   router.push({
     path: '/spot-work/worker-entry',
     query: {
@@ -122,6 +155,7 @@ const handleSubmit = async () => {
     } as any)
     if (response.code === 200) {
       showSuccessToast('提交成功')
+      clearFormStorage()
       goBack()
     } else {
       showFailToast(response.message || '提交失败')
@@ -150,6 +184,11 @@ const projectColumns = computed(() => {
 
 onMounted(() => {
   fetchProjectList()
+  restoreFormFromStorage()
+})
+
+onActivated(() => {
+  restoreFormFromStorage()
 })
 </script>
 
@@ -179,8 +218,9 @@ onMounted(() => {
         required
         @click="showDateRangePicker = true"
       />
-      <van-field name="work_content"
+      <van-field
         v-model="formData.workContent"
+        name="work_content"
         label="工作内容"
         placeholder="请输入工作内容"
         type="textarea"
@@ -194,8 +234,9 @@ onMounted(() => {
           <van-button type="primary" size="small">施工人员录入</van-button>
         </template>
       </van-cell>
-      <van-field name="remark"
+      <van-field
         v-model="formData.remark"
+        name="remark"
         label="备注"
         placeholder="请输入备注"
         type="textarea"
@@ -208,7 +249,8 @@ onMounted(() => {
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
-      <van-picker name="选择项目"
+      <van-picker
+        name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         @confirm="handleProjectConfirm"

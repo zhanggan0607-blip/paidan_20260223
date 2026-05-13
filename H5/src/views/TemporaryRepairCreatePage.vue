@@ -68,7 +68,7 @@ const fetchMaintenancePersonnelList = async () => {
   try {
     const response = await personnelService.getAll()
     if (response.code === 200) {
-      maintenancePersonnelList.value = (response.data || [])
+      maintenancePersonnelList.value = response.data || []
     }
   } catch (error) {
     console.error('Failed to fetch maintenance personnel list:', error)
@@ -150,7 +150,9 @@ const handleMaintenancePersonnelConfirm = ({
   } else if (selectedOptions && selectedOptions.length > 0) {
     const selected = selectedOptions[0]
     if (selected) {
-      const personnel = maintenancePersonnelList.value.find((p) => p.id.toString() === selected.value)
+      const personnel = maintenancePersonnelList.value.find(
+        (p) => p.id.toString() === selected.value
+      )
       if (personnel) {
         formData.value.maintenancePersonnel = personnel.name
         selectedMaintenancePersonnelName.value = personnel.name
@@ -202,6 +204,7 @@ const handleSubmit = async () => {
       client_contact_info: formData.value.clientContactInfo,
       remarks: formData.value.remarks,
       maintenance_personnel: formData.value.maintenancePersonnel,
+      status: '执行中',
     } as any)
 
     if (response.code === 200) {
@@ -319,19 +322,22 @@ onMounted(() => {
         @click="showDateRangePicker = true"
       />
       <van-cell v-if="formData.clientName" title="客户单位" :value="formData.clientName" />
-      <van-field name="client_contact"
+      <van-field
         v-model="formData.clientContact"
+        name="client_contact"
         label="客户联系人"
         placeholder="请输入客户联系人"
       />
-      <van-field name="client_contact_info"
+      <van-field
         v-model="formData.clientContactInfo"
+        name="client_contact_info"
         label="客户联系电话"
         placeholder="请输入客户联系电话"
         type="tel"
       />
-      <van-field name="remarks"
+      <van-field
         v-model="formData.remarks"
+        name="remarks"
         label="报修内容"
         placeholder="请输入报修内容"
         type="textarea"
@@ -358,7 +364,8 @@ onMounted(() => {
     </div>
 
     <van-popup v-model:show="showProjectPicker" position="bottom" round>
-      <van-picker name="选择项目"
+      <van-picker
+        name="选择项目"
         title="选择项目"
         :columns="projectColumns"
         @confirm="handleProjectConfirm"
@@ -367,7 +374,8 @@ onMounted(() => {
     </van-popup>
 
     <van-popup v-model:show="showMaintenancePersonnelPicker" position="bottom" round>
-      <van-picker name="选择运维人员"
+      <van-picker
+        name="选择运维人员"
         title="选择运维人员"
         :columns="maintenancePersonnelColumns"
         @confirm="handleMaintenancePersonnelConfirm"

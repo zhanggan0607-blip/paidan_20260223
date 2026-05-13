@@ -1,17 +1,18 @@
 """
 工单管理API - 合并定期巡检、临时维修、零星用工三种工单数据
 """
-import logging
+import uuid
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import UserInfo, get_current_user_required
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.services.work_order import WorkOrderService
+from app.utils.logging_config import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/work-order", tags=["Work Order Management"])
 
 
@@ -41,6 +42,20 @@ def get_work_order_list(
         size=size,
     )
     return PaginatedResponse.success(all_orders, total, page, size)
+
+
+@router.get("/{order_id}", response_model=ApiResponse)
+def get_work_order_detail(
+    order_id: int,
+    type: str = Query(..., description="工单类型: inspection/repair/spotwork"),
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required),
+):
+    service = WorkOrderService(db)
+    detail = service.get_work_order_detail(order_id, type)
+    if not detail:
+        raise HTTPException(status_code=404, detail="工单不存在")
+    return ApiResponse.success(detail)
 
 
 @router.get("/all/list", response_model=ApiResponse)

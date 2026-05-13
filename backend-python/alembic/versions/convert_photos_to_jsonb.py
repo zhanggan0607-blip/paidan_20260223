@@ -10,12 +10,24 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 
 revision = 'photos_jsonb'
-down_revision = None
+down_revision = '001_initial_sync'
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
+    op.execute("""
+        DO $$
+        DECLARE
+            r RECORD;
+        BEGIN
+            FOR r IN SELECT tablename FROM pg_tables WHERE tableowner != current_user AND schemaname = 'public'
+            LOOP
+                EXECUTE format('ALTER TABLE %I OWNER TO %s', r.tablename, current_user);
+            END LOOP;
+        END $$;
+    """)
+
     op.execute("""
         ALTER TABLE spot_work
         ALTER COLUMN photos TYPE JSONB

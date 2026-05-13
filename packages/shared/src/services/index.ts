@@ -1,1 +1,1 @@
-export {}
+export { CrudService } from './crudService'

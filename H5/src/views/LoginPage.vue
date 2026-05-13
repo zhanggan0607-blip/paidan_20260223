@@ -91,8 +91,21 @@ const handleLogin = async () => {
       <div class="header-content">
         <div class="brand-icon">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <rect x="2" y="2" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2" />
-            <path d="M10 18h16M18 10v16M12 12l12 12M24 12L12 24" stroke="currentColor" stroke-width="1.5" opacity="0.4" />
+            <rect
+              x="2"
+              y="2"
+              width="32"
+              height="32"
+              rx="6"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M10 18h16M18 10v16M12 12l12 12M24 12L12 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.4"
+            />
             <circle cx="18" cy="18" r="4" stroke="currentColor" stroke-width="2" />
           </svg>
         </div>
@@ -109,8 +122,10 @@ const handleLogin = async () => {
         <div class="field-group">
           <label for="username" class="field-label">用户名</label>
           <input
+            id="username"
             v-model="username"
-            type="text" id="username" name="username"
+            type="text"
+            name="username"
             class="field-input"
             placeholder="请输入用户名"
             autocomplete="username"
@@ -119,8 +134,10 @@ const handleLogin = async () => {
         <div class="field-group">
           <label for="password" class="field-label">密码</label>
           <input
+            id="password"
             v-model="password"
-            type="password" id="password" name="password"
+            type="password"
+            name="password"
             class="field-input"
             placeholder="请输入密码"
             autocomplete="current-password"
@@ -252,7 +269,9 @@ const handleLogin = async () => {
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .field-input::placeholder {
@@ -275,7 +294,9 @@ const handleLogin = async () => {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
   letter-spacing: 0.1em;
 }
 

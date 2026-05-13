@@ -99,10 +99,10 @@ const fetchProjectInfo = async (id: number) => {
     const response = await projectInfoService.getById(id)
     if (response.code === 200 && response.data) {
       const completionDate = response.data.completion_date
-        ? (response.data.completion_date.split('T')[0] ?? '')
+        ? (String(response.data.completion_date).split('T')[0] ?? '')
         : ''
       const maintenanceEndDate = response.data.maintenance_end_date
-        ? (response.data.maintenance_end_date.split('T')[0] ?? '')
+        ? (String(response.data.maintenance_end_date).split('T')[0] ?? '')
         : ''
       formData.value = {
         ...response.data,
@@ -386,26 +386,34 @@ onUnmounted(() => {
 
     <div class="form-container">
       <van-cell-group inset>
-        <van-field name="project_id"
+        <van-field
           v-model="formData.project_id"
+          name="project_id"
           label="项目编号"
           placeholder="请输入项目编号"
           required
           :rules="[{ required: true, message: '请输入项目编号' }]"
         />
 
-        <van-field name="project_name"
+        <van-field
           v-model="formData.project_name"
+          name="project_name"
           label="项目名称"
           placeholder="请输入项目名称"
           required
           :rules="[{ required: true, message: '请输入项目名称' }]"
         />
 
-        <van-field name="project_abbr" v-model="formData.project_abbr" label="项目简称" placeholder="请输入项目简称" />
+        <van-field
+          v-model="formData.project_abbr"
+          name="project_abbr"
+          label="项目简称"
+          placeholder="请输入项目简称"
+        />
 
-        <van-field name="completion_date"
+        <van-field
           v-model="formData.completion_date"
+          name="completion_date"
           is-link
           readonly
           label="开始日期"
@@ -414,8 +422,9 @@ onUnmounted(() => {
           @click="showStartDatePicker = true"
         />
 
-        <van-field name="maintenance_end_date"
+        <van-field
           v-model="formData.maintenance_end_date"
+          name="maintenance_end_date"
           is-link
           readonly
           label="结束日期"
@@ -424,8 +433,9 @@ onUnmounted(() => {
           @click="showEndDatePicker = true"
         />
 
-        <van-field name="maintenance_period"
+        <van-field
           v-model="formData.maintenance_period"
+          name="maintenance_period"
           is-link
           readonly
           label="维保频率"
@@ -434,8 +444,9 @@ onUnmounted(() => {
           @click="showPeriodPicker = true"
         />
 
-        <van-field name="client_name"
+        <van-field
           v-model="formData.client_name"
+          name="client_name"
           is-link
           readonly
           label="客户单位"
@@ -444,21 +455,24 @@ onUnmounted(() => {
           @click="showClientPicker = true"
         />
 
-        <van-field name="address"
+        <van-field
           v-model="formData.address"
+          name="address"
           label="客户地址"
           placeholder="请输入客户地址"
           required
         />
 
-        <van-field name="project_manager"
+        <van-field
           v-model="formData.project_manager"
+          name="project_manager"
           label="运维人员"
           placeholder="请输入运维人员"
         />
 
-        <van-field name="client_contact"
+        <van-field
           v-model="formData.client_contact"
+          name="client_contact"
           is-link
           readonly
           label="客户联系人"
@@ -466,14 +480,16 @@ onUnmounted(() => {
           @click="openContactPicker"
         />
 
-        <van-field name="client_contact_position"
+        <van-field
           v-model="formData.client_contact_position"
+          name="client_contact_position"
           label="联系人职位"
           placeholder="请输入联系人职位"
         />
 
-        <van-field name="client_contact_info"
+        <van-field
           v-model="formData.client_contact_info"
+          name="client_contact_info"
           label="联系方式"
           placeholder="请输入联系方式"
         />
@@ -525,18 +541,21 @@ onUnmounted(() => {
         </div>
 
         <div class="custom-input-section">
-          <van-field name="custom_contact_name"
+          <van-field
             v-model="customContactName"
+            name="custom_contact_name"
             placeholder="手动输入联系人姓名"
             class="custom-input-field"
           />
-          <van-field name="custom_contact_phone"
+          <van-field
             v-model="customContactPhone"
+            name="custom_contact_phone"
             placeholder="联系方式"
             class="custom-input-field"
           />
-          <van-field name="custom_contact_position"
+          <van-field
             v-model="customContactPosition"
+            name="custom_contact_position"
             placeholder="职位"
             class="custom-input-field"
           />
@@ -578,7 +597,8 @@ onUnmounted(() => {
     </van-popup>
 
     <van-popup v-model:show="showPeriodPicker" position="bottom" round>
-      <van-picker name="picker"
+      <van-picker
+        name="picker"
         :columns="periodOptions"
         @confirm="onPeriodConfirm"
         @cancel="showPeriodPicker = false"

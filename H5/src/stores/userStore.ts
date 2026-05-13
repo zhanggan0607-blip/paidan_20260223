@@ -1,179 +1,99 @@
-/**
- * H5端用户状态管理 - Pinia Store
- * 使用标准的Pinia Store模式，支持DevTools调试和持久化
- *
- * 状态存储：localStorage (token/refresh_token/user)
- * 登录判断：isLoggedIn = !!token && !!currentUser
- */
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { User } from '@sstcp/shared'
-import {
-  RoleCode,
-  hasPermission,
-  isManagerRole,
-  isAdminRole,
-  isMaterialManager,
-} from '../config/permission'
+import { decodeJwtPayload, isTokenExpired, fetchCurrentUser, refreshAccessToken } from '@sstcp/shared'
+import { COMMON_PERMISSION_CONFIGS, hasPermission as sharedHasPermission } from '@sstcp/shared'
 
-const USER_STORAGE_KEY = 'user'
-const TOKEN_STORAGE_KEY = 'token'
-const REFRESH_TOKEN_STORAGE_KEY = 'refresh_token'
-
-function loadUserFromStorage(): User | null {
-  const userStr = localStorage.getItem(USER_STORAGE_KEY)
-  if (userStr) {
-    try {
-      return JSON.parse(userStr)
-    } catch {
-      return null
-    }
-  }
-  return null
-}
-
-function decodeJwtPayload(token: string): { exp?: number; [key: string]: unknown } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
-    const jsonStr = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    )
-    return JSON.parse(jsonStr)
-  } catch {
-    return null
-  }
-}
-
-function isTokenExpired(token: string): boolean {
-  const payload = decodeJwtPayload(token)
-  if (!payload || !payload.exp) return true
-  return Date.now() >= payload.exp * 1000
-}
-
-async function refreshAccessToken(refreshTokenValue: string): Promise<{ accessToken: string; refreshToken: string } | null> {
-  try {
-    const basePath = import.meta.env.PROD ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1')
-    const response = await fetch(`${basePath}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh_token: refreshTokenValue }),
-    })
-    if (!response.ok) return null
-    const result = await response.json()
-    if (result.code === 200 && result.data?.access_token) {
-      return {
-        accessToken: result.data.access_token,
-        refreshToken: result.data.refresh_token || refreshTokenValue,
-      }
-    }
-    return null
-  } catch {
-    return null
-  }
-}
-
-async function fetchCurrentUser(tokenValue: string): Promise<User | null> {
-  if (isTokenExpired(tokenValue)) return null
-  try {
-    const basePath = import.meta.env.PROD ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1')
-    const response = await fetch(`${basePath}/auth/me`, {
-      headers: { Authorization: `Bearer ${tokenValue}` },
-    })
-    if (!response.ok) return null
-    const result = await response.json()
-    if (result.code === 200 && result.data) {
-      return {
-        id: result.data.id,
-        name: result.data.name,
-        role: result.data.role,
-        department: result.data.department,
-        phone: result.data.phone,
-        must_change_password: result.data.must_change_password,
-      } as User
-    }
-    return null
-  } catch {
-    return null
-  }
-}
+const TOKEN_KEY = 'h5_token'
+const REFRESH_TOKEN_KEY = 'h5_refresh_token'
+const USER_KEY = 'h5_user'
 
 export const useUserStore = defineStore('user', () => {
-  const currentUser = ref<User | null>(loadUserFromStorage())
-  const token = ref<string | null>(localStorage.getItem(TOKEN_STORAGE_KEY))
-  const refreshToken = ref<string | null>(localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY))
+  const storedToken = localStorage.getItem(TOKEN_KEY)
+  const storedUser = localStorage.getItem(USER_KEY)
+  const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
 
-  watch(
-    currentUser,
-    (newUser) => {
-      if (newUser) {
-        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser))
-      } else {
-        localStorage.removeItem(USER_STORAGE_KEY)
-      }
-    },
-    { deep: true }
-  )
+  const currentUser = ref<User | null>(storedUser ? (() => {
+    try { return JSON.parse(storedUser) } catch (_e) { return null }
+  })() : null)
+  const token = ref<string | null>(storedToken)
+  const refreshToken = ref<string | null>(storedRefreshToken)
+
+  watch(currentUser, (newUser) => {
+    if (newUser) {
+      localStorage.setItem(USER_KEY, JSON.stringify(newUser))
+    } else {
+      localStorage.removeItem(USER_KEY)
+    }
+    window.dispatchEvent(new CustomEvent('user-changed', { detail: newUser }))
+  }, { deep: true, flush: 'sync' })
 
   watch(token, (newToken) => {
     if (newToken) {
-      localStorage.setItem(TOKEN_STORAGE_KEY, newToken)
+      localStorage.setItem(TOKEN_KEY, newToken)
     } else {
-      localStorage.removeItem(TOKEN_STORAGE_KEY)
+      localStorage.removeItem(TOKEN_KEY)
     }
-  })
+  }, { flush: 'sync' })
 
   watch(refreshToken, (newRefreshToken) => {
     if (newRefreshToken) {
-      localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, newRefreshToken)
+      localStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken)
     } else {
-      localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY)
+      localStorage.removeItem(REFRESH_TOKEN_KEY)
+    }
+  }, { flush: 'sync' })
+
+  window.addEventListener('storage', (e: StorageEvent) => {
+    if (e.key === TOKEN_KEY) {
+      token.value = e.newValue
+    }
+    if (e.key === USER_KEY) {
+      if (e.newValue) {
+        try {
+          currentUser.value = JSON.parse(e.newValue)
+        } catch (_e) {
+          currentUser.value = null
+        }
+      } else {
+        currentUser.value = null
+      }
+    }
+    if (e.key === REFRESH_TOKEN_KEY) {
+      refreshToken.value = e.newValue
     }
   })
 
-  if (typeof window !== 'undefined') {
-    window.addEventListener('storage', (e: StorageEvent) => {
-      if (e.key === TOKEN_STORAGE_KEY) {
-        token.value = e.newValue
-      }
-      if (e.key === REFRESH_TOKEN_STORAGE_KEY) {
-        refreshToken.value = e.newValue
-      }
-      if (e.key === USER_STORAGE_KEY) {
-        if (e.newValue) {
-          try {
-            currentUser.value = JSON.parse(e.newValue)
-          } catch {
-            currentUser.value = null
-          }
-        } else {
-          currentUser.value = null
-        }
-      }
-    })
-  }
-
   const isLoggedIn = computed(() => !!token.value && !!currentUser.value)
-  const isAdmin = computed(() => isAdminRole(currentUser.value?.role))
-  const isDepartmentManager = computed(() => currentUser.value?.role === RoleCode.DEPARTMENT_MANAGER)
-  const isMaterialManagerRole = computed(() => isMaterialManager(currentUser.value?.role))
-  const isEmployee = computed(() => currentUser.value?.role === RoleCode.EMPLOYEE)
-  const isManager = computed(() => isManagerRole(currentUser.value?.role))
 
-  function setUser(user: User): void {
-    currentUser.value = user
-    window.dispatchEvent(new CustomEvent('user-changed', { detail: user }))
+  function getUser(): User | null {
+    return currentUser.value
   }
 
-  function clearUser(): void {
+  function getToken(): string | null {
+    return token.value
+  }
+
+  function getRefreshTokenValue(): string | null {
+    return refreshToken.value
+  }
+
+  function setUser(user: User) {
+    currentUser.value = user
+  }
+
+  function setToken(newToken: string) {
+    token.value = newToken
+  }
+
+  function setRefreshToken(newRefreshToken: string) {
+    refreshToken.value = newRefreshToken
+  }
+
+  function clearUser() {
     currentUser.value = null
     token.value = null
     refreshToken.value = null
-    window.dispatchEvent(new CustomEvent('user-changed', { detail: null }))
   }
 
   async function validateToken(): Promise<boolean> {
@@ -181,164 +101,124 @@ export const useUserStore = defineStore('user', () => {
       clearUser()
       return false
     }
-
-    let user = await fetchCurrentUser(token.value)
+    const basePath = import.meta.env.VITE_API_BASE_PATH || '/api/v1'
+    const user = await fetchCurrentUser(token.value, basePath)
     if (user) {
       currentUser.value = user
       return true
     }
-
-    if (refreshToken.value) {
-      const tokens = await refreshAccessToken(refreshToken.value)
-      if (tokens) {
-        token.value = tokens.accessToken
-        refreshToken.value = tokens.refreshToken
-        user = await fetchCurrentUser(tokens.accessToken)
-        if (user) {
-          currentUser.value = user
-          return true
-        }
-      }
-    }
-
     clearUser()
     return false
   }
 
-  function setToken(newToken: string): void {
-    token.value = newToken
+  async function refreshAccessTokenAction(): Promise<boolean> {
+    if (!refreshToken.value) return false
+    const basePath = import.meta.env.VITE_API_BASE_PATH || '/api/v1'
+    const result = await refreshAccessToken(refreshToken.value, basePath)
+    if (result) {
+      token.value = result.accessToken
+      refreshToken.value = result.refreshToken
+      return true
+    }
+    clearUser()
+    return false
   }
 
-  function setRefreshToken(newRefreshToken: string): void {
-    refreshToken.value = newRefreshToken
+  function isAdmin(): boolean {
+    return currentUser.value?.role === '管理员'
   }
 
-  function canViewAllWorkOrders(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_all_work_orders')
+  function isManager(): boolean {
+    const role = currentUser.value?.role
+    return role === '管理员' || role === '部门经理' || role === '主管'
   }
 
-  function canViewPersonnel(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_personnel')
+  function isDepartmentManager(): boolean {
+    return currentUser.value?.role === '部门经理'
+  }
+
+  function isSupervisor(): boolean {
+    return currentUser.value?.role === '主管'
+  }
+
+  function isWorker(): boolean {
+    return currentUser.value?.role === '维保人员'
+  }
+
+  function isMaterialManager(): boolean {
+    return currentUser.value?.role === '材料员'
   }
 
   function canViewStatistics(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_statistics')
+    return sharedHasPermission('view_statistics', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function canViewProjectManagement(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_project_management')
+  function canViewPersonnel(): boolean {
+    return sharedHasPermission('view_personnel', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+  }
+
+  function canViewSpareParts(): boolean {
+    return sharedHasPermission('view_spare_parts_stock', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+  }
+
+  function canViewRepairTools(): boolean {
+    return sharedHasPermission('view_repair_tools_stock', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   function canViewWorkOrder(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
-  }
-
-  function canViewSparePartsInventory(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_inventory')
-  }
-
-  function canViewSparePartsStock(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_stock')
-  }
-
-  function canViewSparePartsIssue(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_spare_parts_issue')
-  }
-
-  function canViewRepairToolsStock(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_stock')
-  }
-
-  function canViewRepairToolsInbound(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_inbound')
-  }
-
-  function canViewRepairToolsIssue(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_repair_tools_issue')
-  }
-
-  function canViewAlerts(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_alerts')
-  }
-
-  function canViewSystemManagement(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_system_management')
-  }
-
-  function canViewPeriodicInspection(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+    return sharedHasPermission('view_work_order', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   function canApprovePeriodicInspection(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_periodic_inspection')
+    return sharedHasPermission('approve_periodic_inspection', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   function canApproveTemporaryRepair(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_temporary_repair')
+    return sharedHasPermission('approve_temporary_repair', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   function canApproveSpotWork(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_spot_work')
-  }
-
-  function canViewTemporaryRepair(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
-  }
-
-  function canViewSpotWork(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
-  }
-
-  function canApplySpotWork(): boolean {
-    return hasPermission(currentUser.value?.role, 'apply_spot_work')
-  }
-
-  function canViewProjectInfo(): boolean {
-    return true
-  }
-
-  function canQuickFillSpotWork(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
-  }
-
-  function canViewMaintenanceLog(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_maintenance_log')
-  }
-
-  function canViewMaintenanceLogDetail(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_maintenance_log_detail')
+    return sharedHasPermission('approve_spot_work', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   function canFillMaintenanceLog(): boolean {
-    return hasPermission(currentUser.value?.role, 'fill_maintenance_log')
+    return sharedHasPermission('fill_maintenance_log', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+  }
+
+  function canViewMaintenanceLog(): boolean {
+    return sharedHasPermission('view_maintenance_log', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   function canViewAllMaintenanceLog(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_all_maintenance_log')
+    return sharedHasPermission('view_all_maintenance_log', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function canViewDepartmentWeeklyReport(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_department_weekly_report')
+  function canFillWeeklyReport(): boolean {
+    return sharedHasPermission('fill_weekly_report', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function canViewAllWeeklyReport(): boolean {
-    return hasPermission(currentUser.value?.role, 'view_all_weekly_report')
+  function canViewWeeklyReport(): boolean {
+    return sharedHasPermission('view_weekly_report', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function canApproveWeeklyReport(): boolean {
-    return hasPermission(currentUser.value?.role, 'approve_weekly_report')
+  function canViewAlerts(): boolean {
+    return sharedHasPermission('view_alerts', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function canViewWorkList(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+  function canViewSystemManagement(): boolean {
+    return sharedHasPermission('view_system_management', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function canViewSignature(): boolean {
-    return !isMaterialManager(currentUser.value?.role)
+  function canDeletePersonnel(): boolean {
+    return sharedHasPermission('delete_personnel', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
-  function checkPermission(permissionId: string): boolean {
-    return hasPermission(currentUser.value?.role, permissionId)
+  function canEditPersonnelRole(): boolean {
+    return sharedHasPermission('edit_personnel_role', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+  }
+
+  function canViewProjectManagement(): boolean {
+    return sharedHasPermission('view_project_management', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
   }
 
   return {
@@ -346,47 +226,38 @@ export const useUserStore = defineStore('user', () => {
     token,
     refreshToken,
     isLoggedIn,
-    isAdmin,
-    isDepartmentManager,
-    isMaterialManagerRole,
-    isEmployee,
-    isManager,
+    getUser,
+    getToken,
+    getRefreshTokenValue,
     setUser,
-    clearUser,
-    validateToken,
     setToken,
     setRefreshToken,
-    canViewAllWorkOrders,
-    canViewPersonnel,
+    clearUser,
+    validateToken,
+    refreshAccessToken: refreshAccessTokenAction,
+    isAdmin,
+    isManager,
+    isDepartmentManager,
+    isSupervisor,
+    isWorker,
+    isMaterialManager,
     canViewStatistics,
-    canViewProjectManagement,
+    canViewPersonnel,
+    canViewSpareParts,
+    canViewRepairTools,
     canViewWorkOrder,
-    canViewSparePartsInventory,
-    canViewSparePartsStock,
-    canViewSparePartsIssue,
-    canViewRepairToolsStock,
-    canViewRepairToolsInbound,
-    canViewRepairToolsIssue,
-    canViewAlerts,
-    canViewSystemManagement,
-    canViewPeriodicInspection,
     canApprovePeriodicInspection,
     canApproveTemporaryRepair,
     canApproveSpotWork,
-    canViewTemporaryRepair,
-    canViewSpotWork,
-    canApplySpotWork,
-    canViewProjectInfo,
-    canQuickFillSpotWork,
-    canViewMaintenanceLog,
-    canViewMaintenanceLogDetail,
     canFillMaintenanceLog,
+    canViewMaintenanceLog,
     canViewAllMaintenanceLog,
-    canViewDepartmentWeeklyReport,
-    canViewAllWeeklyReport,
-    canApproveWeeklyReport,
-    canViewWorkList,
-    canViewSignature,
-    checkPermission,
+    canFillWeeklyReport,
+    canViewWeeklyReport,
+    canViewAlerts,
+    canViewSystemManagement,
+    canDeletePersonnel,
+    canEditPersonnelRole,
+    canViewProjectManagement,
   }
 })

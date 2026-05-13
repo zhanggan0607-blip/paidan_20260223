@@ -40,7 +40,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@sstcp/shared': resolve(__dirname, '../packages/shared/src/index.ts'),
+      '@sstcp/shared/utils/watermark': resolve(__dirname, '../packages/shared/src/utils/watermark.ts'),
       '@sstcp/shared/utils/status': resolve(__dirname, '../packages/shared/src/utils/status.ts'),
       '@sstcp/shared/utils/format': resolve(__dirname, '../packages/shared/src/utils/format.ts'),
       '@sstcp/shared/api/endpoints': resolve(__dirname, '../packages/shared/src/api/endpoints.ts'),
@@ -49,6 +49,7 @@ export default defineConfig({
         __dirname,
         '../packages/shared/src/types/permission.ts'
       ),
+      '@sstcp/shared': resolve(__dirname, '../packages/shared/src/index.ts'),
     },
     dedupe: ['vue', 'axios'],
   },

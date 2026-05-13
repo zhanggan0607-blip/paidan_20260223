@@ -92,6 +92,7 @@ export {
   RoleCode,
   ADMIN_ROLES,
   ALL_ROLES,
+  MANAGER_ROLES,
   PROJECT_MANAGEMENT_ROLES,
   PERSONNEL_MANAGEMENT_ROLES,
   SPARE_PARTS_MANAGEMENT_ROLES,
@@ -102,8 +103,10 @@ export {
   MAINTENANCE_LOG_VIEW_ROLES,
   WEEKLY_REPORT_FILL_ROLES,
   WEEKLY_REPORT_VIEW_ROLES,
+  COMMON_PERMISSION_CONFIGS,
   isAdminRole,
   isManagerRole,
   isMaterialManager,
-  canDeleteWorkOrder
+  canDeleteWorkOrder,
+  hasPermission
 } from './permission'

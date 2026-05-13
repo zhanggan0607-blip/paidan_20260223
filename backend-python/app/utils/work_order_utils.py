@@ -1,11 +1,11 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import HTTPException, status
 
 from app.dependencies import UserInfo, check_data_access, get_current_user_required, get_manager_user
 from app.models.enums import WorkOrderStatus
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def validate_reject_reason(reason: str | None) -> str:

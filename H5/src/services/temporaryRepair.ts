@@ -72,7 +72,11 @@ export const temporaryRepairService = {
   /**
    * 审批通过
    */
-  async approve(id: number, approved: boolean = true, rejectReason?: string): Promise<ApiResponse<TemporaryRepair>> {
+  async approve(
+    id: number,
+    approved: boolean = true,
+    rejectReason?: string
+  ): Promise<ApiResponse<TemporaryRepair>> {
     return request.post(API_ENDPOINTS.TEMPORARY_REPAIR.APPROVE(id), {
       approved,
       reject_reason: rejectReason,

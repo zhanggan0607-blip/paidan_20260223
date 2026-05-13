@@ -8,6 +8,14 @@ class WorkOrderStatus(str, Enum):
     REJECTED = '已退回'
 
 
+class MaintenancePlanStatus(str, Enum):
+    NOT_STARTED = '未开始'
+    IN_PROGRESS = '执行中'
+    PENDING_CONFIRM = '待确认'
+    COMPLETED = '已完成'
+    REJECTED = '已退回'
+
+
 class UserRole(str, Enum):
     ADMIN = '管理员'
     DEPARTMENT_MANAGER = '部门经理'
@@ -17,4 +25,7 @@ class UserRole(str, Enum):
 
 
 ADMIN_ROLES = [UserRole.ADMIN, UserRole.DEPARTMENT_MANAGER, UserRole.SUPERVISOR]
-MANAGER_ROLES = [UserRole.ADMIN, UserRole.DEPARTMENT_MANAGER]
+MANAGER_ROLES = [UserRole.ADMIN, UserRole.DEPARTMENT_MANAGER, UserRole.SUPERVISOR]
+
+VALID_WORK_ORDER_STATUSES = [s.value for s in WorkOrderStatus]
+VALID_MAINTENANCE_PLAN_STATUSES = [s.value for s in MaintenancePlanStatus]

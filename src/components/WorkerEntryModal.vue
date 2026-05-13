@@ -1,4 +1,8 @@
 <template>
+  <div
+    class="worker-entry-overlay"
+    @click.self="$emit('close')"
+  >
   <div class="worker-entry-modal">
     <div class="modal-header">
       <h3 class="modal-title">
@@ -385,6 +389,7 @@
       </div>
     </div>
   </div>
+  </div>
 </template>
 
 <script lang="ts">
@@ -392,7 +397,7 @@ import { defineComponent, ref, watch } from 'vue'
 import { request } from '@/api/request'
 import type { ApiResponse } from '@/types/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { maskIdCard } from '@sstcp/shared'
+import { maskIdCard, compressImage, blobToFile } from '@sstcp/shared'
 
 interface WorkerInfo {
   id?: number
@@ -507,104 +512,137 @@ export default defineComponent({
       ocrLoadingSide.value = side
 
       try {
-        const originalBase64 = await fileToBase64(file)
-
+        let compressedFile: File | null = null
+        let compressedBase64: string
         try {
-          const ocrResponse = (await request.post('/ocr/idcard', {
-            imageBase64: originalBase64,
-            side: side === 'front' ? 'face' : 'back',
-          })) as unknown as ApiResponse<{
-            name?: string
-            gender?: string
-            birthDate?: string
-            address?: string
-            idCardNumber?: string
-            issuingAuthority?: string
-            validPeriod?: string
-          }>
+          const compressedBlob = await compressImage(file, 200)
+          compressedFile = blobToFile(compressedBlob, file.name)
+          compressedBase64 = await fileToBase64(compressedFile)
+        } catch {
+          compressedBase64 = await fileToBase64(file)
+        }
 
-          if (ocrResponse.code === 200 && ocrResponse.data) {
-            const ocrData = ocrResponse.data
+        const localPreview = `data:image/jpeg;base64,${compressedBase64}`
+        if (side === 'front') {
+          currentWorker.value.idCardFront = localPreview
+        } else {
+          currentWorker.value.idCardBack = localPreview
+        }
 
-            if (side === 'front') {
-              if (ocrData.name) currentWorker.value.name = ocrData.name
-              if (ocrData.gender) currentWorker.value.gender = ocrData.gender
-              if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
-              if (ocrData.address) currentWorker.value.address = ocrData.address
-              if (ocrData.idCardNumber) {
-                currentWorker.value.idCardNumber = ocrData.idCardNumber
-                handleIdCardChange()
-                
-                try {
-                  const checkResponse = (await request.get(
-                    `/spot-work/workers/check-id-card?id_card_number=${ocrData.idCardNumber}&project_id=${props.projectId}&start_date=${props.workDateStart}&end_date=${props.workDateEnd}`
-                  )) as unknown as ApiResponse<{
-                    exists: boolean
-                    can_reuse: boolean
-                    duplicate_in_work?: boolean
-                    name?: string
-                    project_name?: string
-                    work_status?: string
-                    work_id?: string
-                  }>
+        const ocrPromise = (async () => {
+          try {
+            const ocrResponse = (await request.post('/ocr/idcard', {
+              imageBase64: compressedBase64,
+              side: side === 'front' ? 'face' : 'back',
+            })) as unknown as ApiResponse<{
+              name?: string
+              gender?: string
+              birthDate?: string
+              address?: string
+              idCardNumber?: string
+              issuingAuthority?: string
+              validPeriod?: string
+            }>
+
+            if (ocrResponse.code === 200 && ocrResponse.data) {
+              const ocrData = ocrResponse.data
+
+              if (side === 'front') {
+                if (ocrData.name) currentWorker.value.name = ocrData.name
+                if (ocrData.gender) currentWorker.value.gender = ocrData.gender
+                if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
+                if (ocrData.address) currentWorker.value.address = ocrData.address
+                if (ocrData.idCardNumber) {
+                  currentWorker.value.idCardNumber = ocrData.idCardNumber
+                  handleIdCardChange()
                   
-                  if (checkResponse.code === 200 && checkResponse.data?.exists) {
-                    const existingInfo = checkResponse.data
-                    if (existingInfo.duplicate_in_work) {
-                      idCardError.value = '该身份证号码已在本工单中录入，不能重复上传'
-                      ElMessage.warning(
-                        `该身份证已在本工单中录入！姓名：${existingInfo.name}，同一工单中同一身份证只能上传一次`
-                      )
-                    } else if (!existingInfo.can_reuse) {
-                      idCardError.value = '该身份证号码已存在，不能重复录入'
-                      ElMessage.warning(
-                        `该身份证已录入未完成工单！姓名：${existingInfo.name}，项目：${existingInfo.project_name}，工单号：${existingInfo.work_id}，状态：${existingInfo.work_status}`
-                      )
-                    } else {
-                      ElMessage.info(
-                        `该身份证已完成工单，可继续录入。姓名：${existingInfo.name}，原工单：${existingInfo.work_id}`
-                      )
+                  request.get(
+                    `/spot-work/workers/check-id-card?id_card_number=${ocrData.idCardNumber}&project_id=${props.projectId}&start_date=${props.workDateStart}&end_date=${props.workDateEnd}`
+                  ).then((checkResponse) => {
+                    const resp = checkResponse as unknown as ApiResponse<{
+                      exists: boolean
+                      can_reuse: boolean
+                      duplicate_in_work?: boolean
+                      name?: string
+                      project_name?: string
+                      work_status?: string
+                      work_id?: string
+                    }>
+                    if (resp.code === 200 && resp.data?.exists) {
+                      const existingInfo = resp.data
+                      if (existingInfo.duplicate_in_work) {
+                        idCardError.value = '该身份证号码已在本工单中录入，不能重复上传'
+                        ElMessage.warning(
+                          `该身份证已在本工单中录入！姓名：${existingInfo.name}，同一工单中同一身份证只能上传一次`
+                        )
+                      } else if (!existingInfo.can_reuse) {
+                        idCardError.value = '该身份证号码已存在，不能重复录入'
+                        ElMessage.warning(
+                          `该身份证已录入未完成工单！姓名：${existingInfo.name}，项目：${existingInfo.project_name}，工单号：${existingInfo.work_id}，状态：${existingInfo.work_status}`
+                        )
+                      } else {
+                        ElMessage.info(
+                          `该身份证已完成工单，可继续录入。姓名：${existingInfo.name}，原工单：${existingInfo.work_id}`
+                        )
+                      }
                     }
-                  }
-                } catch (checkError) {
-                  console.error('检查身份证失败:', checkError)
+                  }).catch((checkError) => {
+                    console.error('检查身份证失败:', checkError)
+                  })
                 }
+              } else {
+                if (ocrData.issuingAuthority)
+                  currentWorker.value.issuingAuthority = ocrData.issuingAuthority
+                if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
+              }
+
+              if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
+                ElMessage.warning('身份证识别失败，请确保图片清晰')
+              } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
+                ElMessage.warning('身份证反面识别失败，请确保图片清晰')
+              }
+            } else if (ocrResponse.code !== 200) {
+              ElMessage.error(ocrResponse.message || 'OCR识别失败')
+            }
+          } catch (ocrError) {
+            console.error('OCR识别失败:', ocrError)
+            ElMessage.warning('OCR识别失败，请手动填写信息')
+          }
+        })()
+
+        const uploadFile = compressedFile || file
+        const uploadPromise = (async () => {
+          try {
+            const formData = new FormData()
+            formData.append('file', uploadFile)
+
+            const response = (await request.post('/upload', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            })) as unknown as ApiResponse<{ url: string }>
+
+            if (response.code === 200 && response.data) {
+              if (side === 'front') {
+                currentWorker.value.idCardFront = response.data.url
+              } else {
+                currentWorker.value.idCardBack = response.data.url
               }
             } else {
-              if (ocrData.issuingAuthority)
-                currentWorker.value.issuingAuthority = ocrData.issuingAuthority
-              if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
+              console.error('图片上传失败:', response.message)
             }
-
-            if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
-              ElMessage.warning('身份证识别失败，请确保图片清晰')
-            } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
-              ElMessage.warning('身份证反面识别失败，请确保图片清晰')
-            }
-          } else if (ocrResponse.code !== 200) {
-            ElMessage.error(ocrResponse.message || 'OCR识别失败')
+          } catch (uploadError) {
+            console.error('图片上传失败:', uploadError)
           }
-        } catch (ocrError) {
-          console.error('OCR识别失败:', ocrError)
-          ElMessage.warning('OCR识别失败，请手动填写信息')
-        }
+        })()
 
-        const formData = new FormData()
-        formData.append('file', file)
-
-        const response = (await request.post('/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        })) as unknown as ApiResponse<{ url: string }>
-
-        if (response.code === 200 && response.data) {
-          if (side === 'front') {
-            currentWorker.value.idCardFront = response.data.url
-          } else {
-            currentWorker.value.idCardBack = response.data.url
-          }
-        }
+        await ocrPromise
+        uploadPromise.catch(() => {})
       } catch (error) {
         console.error('上传失败:', error)
+        if (side === 'front') {
+          currentWorker.value.idCardFront = ''
+        } else {
+          currentWorker.value.idCardBack = ''
+        }
         ElMessage.error('上传失败，请重试')
       } finally {
         ocrLoading.value = false
@@ -641,10 +679,24 @@ export default defineComponent({
       showAddWorkerForm.value = true
     }
 
-    const deleteWorker = (index: number) => {
-      if (confirm('请确认是否要删除该施工人员？')) {
-        workers.value.splice(index, 1)
+    const deleteWorker = async (index: number) => {
+      if (!confirm('请确认是否要删除该施工人员？')) return
+      const worker = workers.value[index]
+      if (worker.id) {
+        try {
+          const response = (await request.delete(
+            `/spot-work/workers/${worker.id}`
+          )) as unknown as ApiResponse<null>
+          if (response.code !== 200) {
+            ElMessage.error(response.message || '删除失败')
+            return
+          }
+        } catch (error) {
+          ElMessage.error('删除失败，请重试')
+          return
+        }
       }
+      workers.value.splice(index, 1)
     }
 
     const closeWorkerForm = () => {
@@ -750,6 +802,19 @@ export default defineComponent({
 </script>
 
 <style scoped>
+.worker-entry-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
 .worker-entry-modal {
   background: var(--color-bg-card);
   border-radius: 8px;

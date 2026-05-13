@@ -1,11 +1,11 @@
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.orm import Session
 
 from app.models.project_info import ProjectInfo
 from app.repositories.base import BaseRepository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ProjectInfoRepository(BaseRepository[ProjectInfo]):
@@ -68,7 +68,7 @@ class ProjectInfoRepository(BaseRepository[ProjectInfo]):
             query = self.db.query(ProjectInfo)
             if project_ids:
                 query = query.filter(ProjectInfo.project_id.in_(project_ids))
-            return query.order_by(ProjectInfo.created_at.desc(), ProjectInfo.id.desc()).all()
+            return list(query.order_by(ProjectInfo.created_at.desc(), ProjectInfo.id.desc()).yield_per(200))
         except Exception as e:
             logger.error(f"查询所有项目信息失败: {str(e)}")
             raise

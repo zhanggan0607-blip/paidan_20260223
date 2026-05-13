@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { request } from '../api/request'
 import { useUserStore } from '../stores/userStore'
+import { useHeartbeatControl } from '../composables/useHeartbeatControl'
 
 const userStore = useUserStore()
 const router = useRouter()
@@ -51,22 +52,19 @@ const handleChangePassword = async () => {
   })
 
   try {
-    const response = await request.post('/auth/change-password', formData.value) as any
+    const response = (await request.post('/auth/change-password', formData.value)) as any
 
-    if (response.code === 200) {
-      const user = userStore.currentUser
-      if (user) {
-        userStore.setUser({
-          ...user,
-          must_change_password: false,
-        } as any)
-      }
-      showToast({ type: 'success', message: '密码修改成功' })
+    if (response?.code === 200) {
+      useHeartbeatControl().pause()
+      closeToast()
+      showToast({ type: 'success', message: response?.message || '密码修改成功，请重新登录' })
       setTimeout(() => {
-        router.replace('/')
-      }, 1000)
+        userStore.clearUser()
+        router.replace('/login')
+      }, 1500)
     } else {
-      showToast(response.message || '修改失败')
+      closeToast()
+      showToast(response?.message || '修改失败')
     }
   } catch (error: any) {
     let msg = '修改失败，请重试'
@@ -79,10 +77,10 @@ const handleChangePassword = async () => {
         msg = String(error.message)
       }
     }
+    closeToast()
     showToast(msg)
   } finally {
     loading.value = false
-    closeToast()
   }
 }
 </script>
@@ -94,8 +92,21 @@ const handleChangePassword = async () => {
       <div class="header-content">
         <div class="brand-icon">
           <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <rect x="2" y="2" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2" />
-            <path d="M10 18h16M18 10v16M12 12l12 12M24 12L12 24" stroke="currentColor" stroke-width="1.5" opacity="0.4" />
+            <rect
+              x="2"
+              y="2"
+              width="32"
+              height="32"
+              rx="6"
+              stroke="currentColor"
+              stroke-width="2"
+            />
+            <path
+              d="M10 18h16M18 10v16M12 12l12 12M24 12L12 24"
+              stroke="currentColor"
+              stroke-width="1.5"
+              opacity="0.4"
+            />
             <circle cx="18" cy="18" r="4" stroke="currentColor" stroke-width="2" />
           </svg>
         </div>
@@ -111,8 +122,10 @@ const handleChangePassword = async () => {
         <div class="field-group">
           <label for="oldPassword" class="field-label">旧密码</label>
           <input
+            id="oldPassword"
             v-model="formData.old_password"
-            type="password" id="oldPassword" name="oldPassword"
+            type="password"
+            name="oldPassword"
             class="field-input"
             placeholder="请输入旧密码"
             autocomplete="current-password"
@@ -121,8 +134,10 @@ const handleChangePassword = async () => {
         <div class="field-group">
           <label for="newPassword" class="field-label">新密码</label>
           <input
+            id="newPassword"
             v-model="formData.new_password"
-            type="password" id="newPassword" name="newPassword"
+            type="password"
+            name="newPassword"
             class="field-input"
             placeholder="请输入新密码（至少6位）"
             autocomplete="new-password"
@@ -131,8 +146,10 @@ const handleChangePassword = async () => {
         <div class="field-group">
           <label for="confirmPassword" class="field-label">确认新密码</label>
           <input
+            id="confirmPassword"
             v-model="confirmPassword"
-            type="password" id="confirmPassword" name="confirmPassword"
+            type="password"
+            name="confirmPassword"
             class="field-input"
             placeholder="请再次输入新密码"
             autocomplete="new-password"
@@ -248,7 +265,9 @@ const handleChangePassword = async () => {
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
 
 .field-input::placeholder {
@@ -271,7 +290,9 @@ const handleChangePassword = async () => {
   border: none;
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: background var(--transition-fast), transform var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    transform var(--transition-fast);
   letter-spacing: 0.1em;
 }
 

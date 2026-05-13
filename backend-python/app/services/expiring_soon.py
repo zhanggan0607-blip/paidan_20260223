@@ -1,7 +1,7 @@
-import logging
+from app.utils.logging_config import get_logger
 from datetime import date, datetime, timedelta
 
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, text
 from sqlalchemy.orm import Session
 
 from app.config import OverdueAlertConfig
@@ -9,15 +9,10 @@ from app.models.periodic_inspection import PeriodicInspection
 from app.models.spot_work import SpotWork
 from app.models.temporary_repair import TemporaryRepair
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ExpiringSoonService:
-    """
-    临期工单提醒服务
-    查询所有计划开始日期在未来7天内且状态不是"已完成"的工单
-    使用SQL优化查询性能
-    """
 
     def __init__(self, db: Session):
         self.db = db
@@ -31,318 +26,100 @@ class ExpiringSoonService:
         size: int = 10,
         maintenance_personnel: str | None = None
     ) -> tuple[list[dict], int]:
-        """
-        获取临期工单列表
-
-        Args:
-            project_name: 项目名称筛选
-            client_name: 客户名称筛选
-            work_order_type: 工单类型筛选
-            page: 页码
-            size: 每页数量
-            maintenance_personnel: 运维人员筛选
-
-        Returns:
-            tuple: (临期工单列表, 总数)
-        """
         today = date.today()
-        expiring_items = []
-
+        today_start = datetime.combine(today, datetime.min.time())
+        week_end = datetime.combine(today + timedelta(days=7), datetime.max.time())
         valid_statuses = OverdueAlertConfig.VALID_STATUSES
-        end_date = today + timedelta(days=7)
+        status_list = "','".join(valid_statuses)
 
+        base_conditions = [
+            "is_deleted = false",
+            "plan_start_date >= :today_start",
+            "plan_start_date <= :week_end",
+            f"status IN ('{status_list}')"
+        ]
+        params: dict = {'today_start': today_start, 'week_end': week_end}
+
+        if project_name:
+            base_conditions.append("project_name ILIKE :project_name")
+            params['project_name'] = f'%{project_name}%'
+        if client_name:
+            base_conditions.append("client_name ILIKE :client_name")
+            params['client_name'] = f'%{client_name}%'
+        if maintenance_personnel:
+            base_conditions.append("maintenance_personnel = :maintenance_personnel")
+            params['maintenance_personnel'] = maintenance_personnel
+
+        filter_sql = " AND ".join(base_conditions)
+
+        subqueries = []
         if work_order_type is None or work_order_type == '定期巡检':
-            items = self._get_expiring_periodic_inspections(
-                today=today,
-                end_date=end_date,
-                valid_statuses=valid_statuses,
-                project_name=project_name,
-                client_name=client_name,
-                maintenance_personnel=maintenance_personnel
-            )
-            expiring_items.extend(items)
-
+            subqueries.append(f"""
+                SELECT id, inspection_id AS order_no, project_id, project_name, client_name,
+                       '定期巡检' AS work_order_type, plan_start_date, plan_end_date, status,
+                       maintenance_personnel,
+                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining
+                FROM periodic_inspection WHERE {filter_sql}
+            """)
         if work_order_type is None or work_order_type == '临时维修':
-            items = self._get_expiring_temporary_repairs(
-                today=today,
-                end_date=end_date,
-                valid_statuses=valid_statuses,
-                project_name=project_name,
-                client_name=client_name,
-                maintenance_personnel=maintenance_personnel
-            )
-            expiring_items.extend(items)
-
+            subqueries.append(f"""
+                SELECT id, repair_id AS order_no, project_id, project_name, client_name,
+                       '临时维修' AS work_order_type, plan_start_date, plan_end_date, status,
+                       maintenance_personnel,
+                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining
+                FROM temporary_repair WHERE {filter_sql}
+            """)
         if work_order_type is None or work_order_type == '零星用工':
-            items = self._get_expiring_spot_works(
-                today=today,
-                end_date=end_date,
-                valid_statuses=valid_statuses,
-                project_name=project_name,
-                client_name=client_name,
-                maintenance_personnel=maintenance_personnel
-            )
-            expiring_items.extend(items)
+            subqueries.append(f"""
+                SELECT id, work_id AS order_no, project_id, project_name, client_name,
+                       '零星用工' AS work_order_type, plan_start_date, plan_end_date, status,
+                       maintenance_personnel,
+                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining
+                FROM spot_work WHERE {filter_sql}
+            """)
 
-        expiring_items.sort(key=lambda x: x['daysRemaining'])
+        if not subqueries:
+            return [], 0
 
-        total = len(expiring_items)
-        start = page * size
-        end = start + size
-        paginated_items = expiring_items[start:end]
+        union_sql = " UNION ALL ".join(subqueries)
 
-        return paginated_items, total
+        count_sql = text(f"SELECT COUNT(*) FROM ({union_sql}) AS combined")
+        total = self.db.execute(count_sql, params).scalar() or 0
 
-    def _get_plan_date(self, record, field: str = 'plan_start_date') -> date:
-        """
-        获取计划日期，统一转换为date类型
-        """
-        date_value = getattr(record, field, None)
-        if date_value is None:
-            return None
-        if isinstance(date_value, datetime):
-            return date_value.date()
-        return date_value
+        offset = page * size
+        data_sql = text(f"""
+            SELECT * FROM ({union_sql}) AS combined
+            ORDER BY days_remaining ASC
+            LIMIT :limit OFFSET :offset
+        """)
+        data_params = {**params, 'limit': size, 'offset': offset}
+        rows = self.db.execute(data_sql, data_params).fetchall()
 
-    def _get_expiring_periodic_inspections(
-        self,
-        today: date,
-        end_date: date,
-        valid_statuses: list[str],
-        project_name: str | None = None,
-        client_name: str | None = None,
-        maintenance_personnel: str | None = None
-    ) -> list[dict]:
-        """
-        获取临期的定期巡检工单（基于计划开始日期）
-        使用SQL优化，只查询需要的字段
-        """
-        try:
-            today_datetime = datetime.combine(today, datetime.min.time())
-            end_datetime = datetime.combine(end_date, datetime.max.time())
+        items = []
+        for row in rows:
+            plan_start = row.plan_start_date
+            if plan_start and isinstance(plan_start, datetime):
+                plan_start = plan_start.date()
+            plan_end = row.plan_end_date
+            if plan_end and isinstance(plan_end, datetime):
+                plan_end = plan_end.date()
+            items.append({
+                'id': str(row.id),
+                'workOrderNo': row.order_no,
+                'project_id': row.project_id,
+                'projectName': row.project_name,
+                'customerName': row.client_name,
+                'workOrderType': row.work_order_type,
+                'planStartDate': plan_start.isoformat() if plan_start else None,
+                'planEndDate': plan_end.isoformat() if plan_end else None,
+                'workOrderStatus': row.status,
+                'daysRemaining': int(row.days_remaining) if row.days_remaining else 0,
+                'executor': row.maintenance_personnel
+            })
 
-            query = self.db.query(
-                PeriodicInspection.id,
-                PeriodicInspection.inspection_id,
-                PeriodicInspection.project_id,
-                PeriodicInspection.project_name,
-                PeriodicInspection.client_name,
-                PeriodicInspection.plan_start_date,
-                PeriodicInspection.plan_end_date,
-                PeriodicInspection.status,
-                PeriodicInspection.maintenance_personnel
-            ).filter(
-                and_(
-                    PeriodicInspection.plan_start_date >= today_datetime,
-                    PeriodicInspection.plan_start_date <= end_datetime,
-                    PeriodicInspection.status.in_(valid_statuses)
-                )
-            )
-
-            if project_name:
-                query = query.filter(PeriodicInspection.project_name.like(f"%{project_name}%"))
-
-            if client_name:
-                query = query.filter(PeriodicInspection.client_name.like(f"%{client_name}%"))
-
-            if maintenance_personnel:
-                query = query.filter(PeriodicInspection.maintenance_personnel == maintenance_personnel)
-
-            inspections = query.all()
-
-            items = []
-            for inspection in inspections:
-                plan_start = inspection.plan_start_date
-                if plan_start is None:
-                    continue
-                if isinstance(plan_start, datetime):
-                    plan_start = plan_start.date()
-                days_remaining = (plan_start - today).days
-                plan_end = inspection.plan_end_date
-                if isinstance(plan_end, datetime):
-                    plan_end = plan_end.date()
-                items.append({
-                    'id': str(inspection.id),
-                    'workOrderNo': inspection.inspection_id,
-                    'project_id': inspection.project_id,
-                    'projectName': inspection.project_name,
-                    'customerName': inspection.client_name,
-                    'workOrderType': '定期巡检',
-                    'planStartDate': plan_start.isoformat() if plan_start else None,
-                    'planEndDate': plan_end.isoformat() if plan_end else None,
-                    'workOrderStatus': inspection.status,
-                    'daysRemaining': days_remaining,
-                    'executor': inspection.maintenance_personnel
-                })
-
-            return items
-        except Exception as e:
-            logger.error(f"查询临期定期巡检失败: {str(e)}")
-            return []
-
-    def _get_expiring_temporary_repairs(
-        self,
-        today: date,
-        end_date: date,
-        valid_statuses: list[str],
-        project_name: str | None = None,
-        client_name: str | None = None,
-        maintenance_personnel: str | None = None
-    ) -> list[dict]:
-        """
-        获取临期的临时维修工单（基于计划开始日期）
-        使用SQL优化，只查询需要的字段
-        """
-        try:
-            today_datetime = datetime.combine(today, datetime.min.time())
-            end_datetime = datetime.combine(end_date, datetime.max.time())
-
-            query = self.db.query(
-                TemporaryRepair.id,
-                TemporaryRepair.repair_id,
-                TemporaryRepair.project_id,
-                TemporaryRepair.project_name,
-                TemporaryRepair.client_name,
-                TemporaryRepair.plan_start_date,
-                TemporaryRepair.plan_end_date,
-                TemporaryRepair.status,
-                TemporaryRepair.maintenance_personnel
-            ).filter(
-                and_(
-                    TemporaryRepair.plan_start_date >= today_datetime,
-                    TemporaryRepair.plan_start_date <= end_datetime,
-                    TemporaryRepair.status.in_(valid_statuses)
-                )
-            )
-
-            if project_name:
-                query = query.filter(TemporaryRepair.project_name.like(f"%{project_name}%"))
-
-            if client_name:
-                query = query.filter(TemporaryRepair.client_name.like(f"%{client_name}%"))
-
-            if maintenance_personnel:
-                query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
-
-            repairs = query.all()
-
-            items = []
-            for repair in repairs:
-                plan_start = repair.plan_start_date
-                if plan_start is None:
-                    continue
-                if isinstance(plan_start, datetime):
-                    plan_start = plan_start.date()
-                days_remaining = (plan_start - today).days
-                plan_end = repair.plan_end_date
-                if isinstance(plan_end, datetime):
-                    plan_end = plan_end.date()
-                items.append({
-                    'id': str(repair.id),
-                    'workOrderNo': repair.repair_id,
-                    'project_id': repair.project_id,
-                    'projectName': repair.project_name,
-                    'customerName': repair.client_name,
-                    'workOrderType': '临时维修',
-                    'planStartDate': plan_start.isoformat() if plan_start else None,
-                    'planEndDate': plan_end.isoformat() if plan_end else None,
-                    'workOrderStatus': repair.status,
-                    'daysRemaining': days_remaining,
-                    'executor': repair.maintenance_personnel
-                })
-
-            return items
-        except Exception as e:
-            logger.error(f"查询临期临时维修失败: {str(e)}")
-            return []
-
-    def _get_expiring_spot_works(
-        self,
-        today: date,
-        end_date: date,
-        valid_statuses: list[str],
-        project_name: str | None = None,
-        client_name: str | None = None,
-        maintenance_personnel: str | None = None
-    ) -> list[dict]:
-        """
-        获取临期的零星用工工单（基于计划开始日期）
-        使用SQL优化，只查询需要的字段
-        """
-        try:
-            today_datetime = datetime.combine(today, datetime.min.time())
-            end_datetime = datetime.combine(end_date, datetime.max.time())
-
-            query = self.db.query(
-                SpotWork.id,
-                SpotWork.work_id,
-                SpotWork.project_id,
-                SpotWork.project_name,
-                SpotWork.client_name,
-                SpotWork.plan_start_date,
-                SpotWork.plan_end_date,
-                SpotWork.status,
-                SpotWork.maintenance_personnel
-            ).filter(
-                and_(
-                    SpotWork.plan_start_date >= today_datetime,
-                    SpotWork.plan_start_date <= end_datetime,
-                    SpotWork.status.in_(valid_statuses)
-                )
-            )
-
-            if project_name:
-                query = query.filter(SpotWork.project_name.like(f"%{project_name}%"))
-
-            if client_name:
-                query = query.filter(SpotWork.client_name.like(f"%{client_name}%"))
-
-            if maintenance_personnel:
-                query = query.filter(SpotWork.maintenance_personnel == maintenance_personnel)
-
-            works = query.all()
-
-            items = []
-            for work in works:
-                plan_start = work.plan_start_date
-                if plan_start is None:
-                    continue
-                if isinstance(plan_start, datetime):
-                    plan_start = plan_start.date()
-                days_remaining = (plan_start - today).days
-                plan_end = work.plan_end_date
-                if isinstance(plan_end, datetime):
-                    plan_end = plan_end.date()
-                items.append({
-                    'id': str(work.id),
-                    'workOrderNo': work.work_id,
-                    'project_id': work.project_id,
-                    'projectName': work.project_name,
-                    'customerName': work.client_name,
-                    'workOrderType': '零星用工',
-                    'planStartDate': plan_start.isoformat() if plan_start else None,
-                    'planEndDate': plan_end.isoformat() if plan_end else None,
-                    'workOrderStatus': work.status,
-                    'daysRemaining': days_remaining,
-                    'executor': work.maintenance_personnel
-                })
-
-            return items
-        except Exception as e:
-            logger.error(f"查询临期零星用工失败: {str(e)}")
-            return []
+        return items, total
 
     def get_expiring_count(self, maintenance_personnel: str | None = None) -> int:
-        """
-        获取临期工单数量
-        使用SQL COUNT优化性能
-
-        Args:
-            maintenance_personnel: 运维人员筛选
-
-        Returns:
-            int: 临期工单数量
-        """
         today = date.today()
         end_date = today + timedelta(days=7)
         today_datetime = datetime.combine(today, datetime.min.time())

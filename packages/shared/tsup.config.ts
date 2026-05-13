@@ -19,7 +19,6 @@ export default defineConfig({
     'api/endpoints': 'src/api/endpoints.ts',
     'api/request': 'src/api/request.ts',
     'config/constants': 'src/config/constants.ts',
-    'components/index': 'src/components/index.ts',
     'services/index': 'src/services/index.ts',
   },
   format: ['esm', 'cjs'],

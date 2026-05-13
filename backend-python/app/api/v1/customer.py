@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info, get_current_user_required
+from app.dependencies import UserInfo, get_current_user_required
 from app.exceptions import NotFoundException
 from app.schemas.common import ApiResponse
 from app.schemas.customer import (
@@ -23,20 +23,16 @@ def get_customers(
     name: str | None = Query(None, description="客户名称"),
     contact_person: str | None = Query(None, description="联系人"),
     db: Session = Depends(get_db),
-    user_info: UserInfo | None = Depends(get_current_user_info)
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     service = CustomerService(db)
 
-    user_name = None
-    is_manager = False
+    user_name = user_info.name
+    is_manager = user_info.is_manager
     client_names = None
 
-    if user_info:
-        user_name = user_info.name
-        is_manager = user_info.is_manager
-
-        if not is_manager and user_name:
-            client_names = service.get_user_client_names(user_name)
+    if not is_manager and user_name:
+        client_names = service.get_user_client_names(user_name)
 
     result = service.get_list(page=page, size=size, name=name, contact_person=contact_person, client_names=client_names)
     return ApiResponse(code=200, message="success", data=result)

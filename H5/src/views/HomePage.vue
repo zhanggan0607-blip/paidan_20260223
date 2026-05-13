@@ -39,7 +39,7 @@ const fetchStatistics = async (forceRefresh = false) => {
   loading.value = true
   try {
     const cacheKey = CACHE_KEYS.STATISTICS
-    
+
     if (!forceRefresh) {
       const cached = apiCache.get<Statistics>(cacheKey)
       if (cached) {
@@ -48,7 +48,7 @@ const fetchStatistics = async (forceRefresh = false) => {
         return
       }
     }
-    
+
     const response = await workPlanService.getStatistics()
     if (response.code === 200) {
       statistics.value = response.data
@@ -297,7 +297,6 @@ const handleRefresh = () => {
             v-for="card in statCards"
             :key="card.key"
             class="stat-card"
-            :class="{ 'stat-card--active': card.value > 0 }"
             @click="handleCardClick(card)"
           >
             <div class="stat-value" :style="{ color: card.color }">
@@ -396,18 +395,17 @@ const handleRefresh = () => {
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
   margin-bottom: var(--space-6);
+  contain: layout;
 }
 
 .stat-card {
   background: var(--color-bg-card);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
-  box-shadow: var(--shadow-xs);
-  transition: box-shadow var(--transition-normal), transform var(--transition-fast);
-}
-
-.stat-card--active {
   box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast);
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform;
 }
 
 .stat-card:active {
@@ -418,9 +416,11 @@ const handleRefresh = () => {
   font-family: var(--font-mono);
   font-size: var(--text-3xl);
   font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
   line-height: 1;
   margin-bottom: var(--space-2);
   position: relative;
+  min-width: 2ch;
 }
 
 .stat-label {
@@ -441,6 +441,7 @@ const handleRefresh = () => {
   position: absolute;
   top: -2px;
   right: -6px;
+  transform: translateZ(0);
 }
 
 .actions-grid {

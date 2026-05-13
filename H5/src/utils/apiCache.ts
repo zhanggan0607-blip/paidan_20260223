@@ -1,54 +1,16 @@
-interface CacheItem<T> {
-  data: T
-  timestamp: number
-  ttl: number
-}
+export {
+  ApiCache,
+  getCache,
+  withCache,
+  createCacheKey,
+  clearApiCache,
+  invalidateCache,
+  deduplicateRequest,
+  clearPendingRequests,
+  DEFAULT_CACHE_OPTIONS,
+} from '@sstcp/shared'
 
-class ApiCache {
-  private cache = new Map<string, CacheItem<any>>()
-  
-  get<T>(key: string): T | null {
-    const item = this.cache.get(key)
-    if (!item) return null
-    
-    if (Date.now() - item.timestamp > item.ttl) {
-      this.cache.delete(key)
-      return null
-    }
-    
-    return item.data as T
-  }
-  
-  set<T>(key: string, data: T, ttl: number = 60000): void {
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now(),
-      ttl,
-    })
-  }
-  
-  delete(key: string): boolean {
-    return this.cache.delete(key)
-  }
-  
-  clear(): void {
-    this.cache.clear()
-  }
-  
-  has(key: string): boolean {
-    const item = this.cache.get(key)
-    if (!item) return false
-    
-    if (Date.now() - item.timestamp > item.ttl) {
-      this.cache.delete(key)
-      return false
-    }
-    
-    return true
-  }
-}
-
-export const apiCache = new ApiCache()
+export const apiCache = getCache()
 
 export const CACHE_KEYS = {
   WORK_ORDER_COMPLETED: 'work_order_completed',

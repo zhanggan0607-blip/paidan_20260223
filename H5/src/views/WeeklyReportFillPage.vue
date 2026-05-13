@@ -118,8 +118,9 @@ onMounted(() => {
     </van-nav-bar>
 
     <van-cell-group inset title="基本信息">
-      <van-field name="report_date"
+      <van-field
         v-model="formData.reportDate"
+        name="report_date"
         label="填报日期"
         placeholder="选择填报日期"
         is-link
@@ -127,8 +128,9 @@ onMounted(() => {
         readonly
         @click="showReportDatePicker = true"
       />
-      <van-field name="report_id"
+      <van-field
         v-model="formData.reportId"
+        name="report_id"
         label="周报编号"
         placeholder="自动生成"
         readonly
@@ -137,8 +139,9 @@ onMounted(() => {
     </van-cell-group>
 
     <van-cell-group inset title="工作内容">
-      <van-field name="work_summary"
+      <van-field
         v-model="formData.workSummary"
+        name="work_summary"
         label="本周工作总结"
         placeholder="请输入本周工作总结"
         type="textarea"
@@ -147,8 +150,9 @@ onMounted(() => {
         show-word-limit
         required
       />
-      <van-field name="next_week_plan"
+      <van-field
         v-model="formData.nextWeekPlan"
+        name="next_week_plan"
         label="下周工作计划"
         placeholder="请输入下周工作计划"
         type="textarea"
@@ -156,8 +160,9 @@ onMounted(() => {
         maxlength="1000"
         show-word-limit
       />
-      <van-field name="issues"
+      <van-field
         v-model="formData.issues"
+        name="issues"
         label="存在问题"
         placeholder="请输入存在问题"
         type="textarea"
@@ -165,8 +170,9 @@ onMounted(() => {
         maxlength="500"
         show-word-limit
       />
-      <van-field name="suggestions"
+      <van-field
         v-model="formData.suggestions"
+        name="suggestions"
         label="建议措施"
         placeholder="请输入建议措施"
         type="textarea"

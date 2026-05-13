@@ -2,13 +2,13 @@
 项目信息API
 提供项目信息的HTTP接口
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info, get_current_user_required, get_manager_user
+from app.dependencies import UserInfo, get_current_user_required, get_manager_user
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.project_info import (
     ProjectInfoCreate,
@@ -16,7 +16,7 @@ from app.schemas.project_info import (
 )
 from app.services.project_info import ProjectInfoService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/project-info", tags=["项目信息管理"])
 

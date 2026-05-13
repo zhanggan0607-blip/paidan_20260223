@@ -2,53 +2,27 @@
 备品备件管理API接口
 包含备品备件领用、归还等功能
 """
-import logging
+from app.utils.logging_config import get_logger
 import uuid
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_current_user_info, get_material_manager_user
+from app.dependencies import UserInfo, get_current_user_required, get_material_manager_user
 from app.models.project_info import ProjectInfo
 from app.models.spare_parts_stock import SparePartsStock
 from app.models.spare_parts_usage import SparePartsUsage
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, PaginatedResponse
+from app.schemas.spare_parts import SparePartsUsageCreate
+from app.schemas.spare_parts_stock import SparePartsReturn, SparePartsStockCreate
 from app.services.spare_parts_usage import SparePartsUsageService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 router = APIRouter(prefix="/spare-parts", tags=["Spare Parts Management"])
-
-
-class SparePartsUsageCreate(BaseModel):
-    product_name: str = Field(..., min_length=1, max_length=200, description="产品名称")
-    brand: str | None = Field(None, max_length=100, description="品牌")
-    model: str | None = Field(None, max_length=100, description="产品型号")
-    quantity: int = Field(..., gt=0, description="领用数量")
-    user_name: str = Field(..., min_length=1, max_length=100, description="运维人员")
-    issue_time: str | datetime = Field(..., description="领用时间")
-    unit: str = Field("件", max_length=20, description="单位")
-    project_id: str | None = Field(None, max_length=50, description="项目编号")
-    project_name: str | None = Field(None, max_length=200, description="项目名称")
-    remark: str | None = Field(None, max_length=500, description="备注")
-
-
-class SparePartsReturn(BaseModel):
-    return_quantity: int = Field(..., gt=0, description="归还数量")
-    remark: str | None = Field(None, max_length=500, description="备注")
-
-
-class SparePartsStockCreate(BaseModel):
-    product_name: str = Field(..., min_length=1, max_length=200, description="产品名称")
-    brand: str | None = Field(None, max_length=100, description="品牌")
-    model: str | None = Field(None, max_length=100, description="产品型号")
-    quantity: int = Field(..., ge=0, description="库存数量")
-    unit: str = Field("件", max_length=20, description="单位")
-    remark: str | None = Field(None, max_length=500, description="备注")
 
 
 def _parse_issue_time(issue_time: str | datetime) -> datetime:
@@ -78,7 +52,7 @@ def create_spare_parts_usage(
     request: Request,
     data: SparePartsUsageCreate,
     db: Session = Depends(get_db),
-    current_user: UserInfo = Depends(get_current_user_info)
+    current_user: UserInfo = Depends(get_current_user_required)
 ):
     """
     创建备品备件领用记录
@@ -260,7 +234,7 @@ def get_spare_parts_usage(
     page: int = Query(0, ge=0, description="页码，从0开始"),
     pageSize: int = Query(10, ge=1, le=1000, description="每页数量"),
     db: Session = Depends(get_db),
-    current_user: UserInfo = Depends(get_current_user_info)
+    current_user: UserInfo = Depends(get_current_user_required)
 ):
     """
     查询备品备件领用记录
@@ -313,21 +287,14 @@ def get_spare_parts_usage(
 
     logger.info(f"查询成功: 返回{len(result_items)}条记录，总计{total}条")
 
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': result_items,
-            'total': total
-        }
-    )
+    return PaginatedResponse.success(result_items, total, page, pageSize)
 
 
 @router.get("/usage/{usage_id}", response_model=ApiResponse)
 def get_spare_parts_usage_detail(
     usage_id: int,
     db: Session = Depends(get_db),
-    current_user: UserInfo = Depends(get_current_user_info)
+    current_user: UserInfo = Depends(get_current_user_required)
 ):
     """
     获取领用记录详情
@@ -358,7 +325,7 @@ def return_spare_parts(
     usage_id: int,
     data: SparePartsReturn,
     db: Session = Depends(get_db),
-    current_user: UserInfo = Depends(get_current_user_info)
+    current_user: UserInfo = Depends(get_current_user_required)
 ):
     """
     备品备件归还

@@ -1,13 +1,13 @@
 """
 工单编号生成工具 - 使用数据库序列保证唯一性
 """
-import logging
+from app.utils.logging_config import get_logger
 from datetime import datetime
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def generate_work_order_id(db: Session, prefix: str, project_id: str) -> str:

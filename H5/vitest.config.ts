@@ -24,7 +24,10 @@ export default defineConfig({
       '@sstcp/shared/utils/format': resolve(__dirname, '../packages/shared/src/utils/format.ts'),
       '@sstcp/shared/api/endpoints': resolve(__dirname, '../packages/shared/src/api/endpoints.ts'),
       '@sstcp/shared/types/api': resolve(__dirname, '../packages/shared/src/types/api.ts'),
-      '@sstcp/shared/types/permission': resolve(__dirname, '../packages/shared/src/types/permission.ts'),
+      '@sstcp/shared/types/permission': resolve(
+        __dirname,
+        '../packages/shared/src/types/permission.ts'
+      ),
     },
   },
   test: {
@@ -35,13 +38,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'dist/',
-        '**/*.d.ts',
-        '**/*.config.*',
-        '**/types/**',
-      ],
+      exclude: ['node_modules/', 'dist/', '**/*.d.ts', '**/*.config.*', '**/types/**'],
     },
   },
 })

@@ -129,23 +129,23 @@
                   @click.prevent="handleView(item)"
                 >查看</a>
                 <a
-                  v-if="canEditWork(item)"
+                  v-if="canEditWork(item) && item.status === WORK_STATUS.IN_PROGRESS"
                   href="#"
                   class="action-link action-edit"
                   @click.prevent="handleEdit(item)"
                 >编辑</a>
+                <a
+                  v-if="canUpdateWork(item)"
+                  href="#"
+                  class="action-link action-edit"
+                  @click.prevent="handleEdit(item)"
+                >更新</a>
                 <a
                   v-if="isAdmin && item.status === WORK_STATUS.PENDING_CONFIRM"
                   href="#"
                   class="action-link action-reject"
                   @click.prevent="handleReject(item)"
                 >退回</a>
-                <a
-                  v-if="canRecallWork(item)"
-                  href="#"
-                  class="action-link action-recall"
-                  @click.prevent="handleRecall(item)"
-                >撤回</a>
                 <a
                   v-if="item.status === WORK_STATUS.COMPLETED"
                   href="#"
@@ -817,12 +817,16 @@ export default defineComponent({
 
     const canEditWork = (item: WorkItem): boolean => {
       if (isAdmin.value) return true
-      if (item.status === WORK_STATUS.COMPLETED) return false
-      const isOwner = item.maintenance_personnel === currentUserName.value
+      if (item.status !== WORK_STATUS.IN_PROGRESS) return false
+      return item.maintenance_personnel === currentUserName.value
+    }
+
+    const canUpdateWork = (item: WorkItem): boolean => {
       const isEditableStatus = item.status === WORK_STATUS.PENDING_CONFIRM ||
-                               item.status === WORK_STATUS.IN_PROGRESS ||
                                item.status === WORK_STATUS.RETURNED
-      return isOwner && isEditableStatus
+      if (!isEditableStatus) return false
+      if (isAdmin.value) return true
+      return item.maintenance_personnel === currentUserName.value
     }
 
     const canRecallWork = (item: WorkItem): boolean => {
@@ -926,7 +930,8 @@ export default defineComponent({
         })
 
         if (response.code === 200 && response.data) {
-          workData.value = (response.data.items || []).map((item: SpotWork) => ({
+          const pageData = response.data as { items?: SpotWork[]; total?: number; totalPages?: number }
+          workData.value = (pageData.items || []).map((item: SpotWork) => ({
             id: item.id,
             work_id: item.work_id,
             project_id: item.project_id,
@@ -944,8 +949,8 @@ export default defineComponent({
             photos: Array.isArray(item.photos) ? item.photos : (typeof item.photos === 'string' ? JSON.parse(item.photos) : []),
             signature: item.signature || '',
           }))
-          totalElements.value = response.data.total || 0
-          totalPages.value = response.data.totalPages || 1
+          totalElements.value = pageData.total || 0
+          totalPages.value = pageData.totalPages || 1
         }
       } catch (error: any) {
         console.error('加载数据失败:', error)
@@ -1176,14 +1181,14 @@ export default defineComponent({
       try {
         const response = await spotWorkService.getById(item.id)
         if (response.code === 200) {
-          const data = response.data
+          const data = response.data as SpotWork
           editFormData.value = {
             id: data.id,
             work_id: data.work_id,
             project_id: data.project_id,
             project_name: data.project_name,
-            plan_start_date: data.plan_start_date ? data.plan_start_date.split('T')[0] : '',
-            plan_end_date: data.plan_end_date ? data.plan_end_date.split('T')[0] : '',
+            plan_start_date: data.plan_start_date ? String(data.plan_start_date).split('T')[0] : '',
+            plan_end_date: data.plan_end_date ? String(data.plan_end_date).split('T')[0] : '',
             client_contact: data.client_contact || '',
             client_contact_info: data.client_contact_info || '',
             maintenance_personnel: data.maintenance_personnel || '',
@@ -1253,24 +1258,6 @@ export default defineComponent({
     const handleExport = async (item: WorkItem) => {
       const filename = `零星用工单_${item.work_id}.pdf`
       
-      let fileHandle: any = null
-      
-      if ('showSaveFilePicker' in window && window.isSecureContext) {
-        try {
-          fileHandle = await (window as any).showSaveFilePicker({
-            suggestedName: filename,
-            types: [{
-              description: 'PDF文件',
-              accept: { 'application/pdf': ['.pdf'] }
-            }]
-          })
-        } catch (err: any) {
-          if (err.name === 'AbortError') {
-            return
-          }
-        }
-      }
-      
       try {
         const token = localStorage.getItem('token')
         const response = await fetch(`/api/v1/export/spot-work/${item.id}`, {
@@ -1280,12 +1267,47 @@ export default defineComponent({
         })
 
         if (!response.ok) {
-          const error = await response.json()
-          showToast(error.message || '导出失败', 'error')
+          let errorMsg = '导出失败'
+          try {
+            const error = await response.json()
+            errorMsg = error.message || errorMsg
+          } catch {
+            errorMsg = `导出失败 (${response.status})`
+          }
+          showToast(errorMsg, 'error')
+          return
+        }
+
+        const contentType = response.headers.get('content-type') || ''
+        if (!contentType.includes('application/pdf') && !contentType.includes('octet-stream')) {
+          showToast('服务器返回了非PDF文件', 'error')
           return
         }
 
         const blob = await response.blob()
+
+        if (blob.size === 0) {
+          showToast('导出的PDF文件为空', 'error')
+          return
+        }
+
+        let fileHandle: any = null
+
+        if ('showSaveFilePicker' in window && window.isSecureContext) {
+          try {
+            fileHandle = await (window as any).showSaveFilePicker({
+              suggestedName: filename,
+              types: [{
+                description: 'PDF文件',
+                accept: { 'application/pdf': ['.pdf'] }
+              }]
+            })
+          } catch (err: any) {
+            if (err.name === 'AbortError') {
+              return
+            }
+          }
+        }
 
         if (fileHandle) {
           const writable = await fileHandle.createWritable()
@@ -1473,6 +1495,7 @@ export default defineComponent({
       handleReject,
       handleRecall,
       canEditWork,
+      canUpdateWork,
       canRecallWork,
       closeRejectModal,
       confirmReject,

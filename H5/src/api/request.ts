@@ -12,7 +12,10 @@ function getBaseURL(): string {
 const LOGIN_PATH = '/login'
 
 function isLoginPage(): boolean {
-  return router.currentRoute.value.path === LOGIN_PATH || router.currentRoute.value.path === LOGIN_PATH + '/'
+  return (
+    router.currentRoute.value.path === LOGIN_PATH ||
+    router.currentRoute.value.path === LOGIN_PATH + '/'
+  )
 }
 
 const requestInstance: RequestInstance = createRequest({

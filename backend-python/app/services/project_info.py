@@ -2,7 +2,7 @@
 项目信息服务
 提供项目信息业务逻辑处理
 """
-import logging
+from app.utils.logging_config import get_logger
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -13,7 +13,7 @@ from app.models.project_info import ProjectInfo
 from app.repositories.project_info import ProjectInfoRepository
 from app.schemas.project_info import ProjectInfoCreate, ProjectInfoUpdate
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class ProjectInfoService(BaseService):

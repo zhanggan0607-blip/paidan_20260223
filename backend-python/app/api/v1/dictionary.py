@@ -15,11 +15,11 @@ def get_dictionary_by_type(
     db: Session = Depends(get_db)
 ):
     service = DictionaryService(db)
-    items = service.get_by_type(dict_type)
+    data = service.get_by_type(dict_type)
     return ApiResponse(
         code=200,
         message="success",
-        data=[item.to_dict() for item in items]
+        data=data
     )
 
 
@@ -47,22 +47,7 @@ def get_dictionaries_list(
     service = DictionaryService(db)
     items, total = service.get_all(page=page, size=size, dict_type=dict_type)
     items_dict = [item.to_dict() for item in items]
-    return ApiResponse(
-        code=200,
-        message="success",
-        data={
-            'items': items_dict,
-            'content': items_dict,
-            'total': total,
-            'totalElements': total,
-            'totalPages': (total + size - 1) // size,
-            'size': size,
-            'number': page,
-            'page': page,
-            'first': page == 0,
-            'last': page >= (total + size - 1) // size
-        }
-    )
+    return PaginatedResponse.success(items_dict, total, page, size)
 
 
 @router.get("/{id}", response_model=ApiResponse)
