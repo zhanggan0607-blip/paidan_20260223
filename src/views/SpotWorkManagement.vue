@@ -887,11 +887,15 @@ export default defineComponent({
       project_name: '',
       plan_start_date: '',
       plan_end_date: '',
+      client_name: '',
       client_contact: '',
       client_contact_info: '',
       maintenance_personnel: '',
       status: '',
       remarks: '',
+      work_content: '',
+      photos: [] as string[],
+      signature: '',
     })
 
     const workDays = computed(() => {
@@ -1127,7 +1131,7 @@ export default defineComponent({
           status: '待确认',
           work_content: formData.value.work_content,
           remarks: formData.value.remarks || '',
-          photos: JSON.stringify(formData.value.photos),
+          photos: formData.value.photos,
           signature: formData.value.signature,
         })
 
@@ -1189,11 +1193,15 @@ export default defineComponent({
             project_name: data.project_name,
             plan_start_date: data.plan_start_date ? String(data.plan_start_date).split('T')[0] : '',
             plan_end_date: data.plan_end_date ? String(data.plan_end_date).split('T')[0] : '',
+            client_name: data.client_name || '',
             client_contact: data.client_contact || '',
             client_contact_info: data.client_contact_info || '',
             maintenance_personnel: data.maintenance_personnel || '',
             status: data.status || '执行中',
             remarks: data.remarks || '',
+            work_content: data.work_content || '',
+            photos: Array.isArray(data.photos) ? data.photos : (typeof data.photos === 'string' ? (() => { try { return JSON.parse(data.photos) } catch { return [] } })() : []),
+            signature: data.signature || '',
           }
           editingId.value = data.id
           isEditModalOpen.value = true
@@ -1226,17 +1234,15 @@ export default defineComponent({
       saving.value = true
 
       try {
-        const response = await spotWorkService.update(editFormData.value.id, {
-          work_id: editFormData.value.work_id,
-          project_id: editFormData.value.project_id,
+        const response = await spotWorkService.patch(editFormData.value.id, {
           project_name: editFormData.value.project_name,
           plan_start_date: editFormData.value.plan_start_date,
           plan_end_date: editFormData.value.plan_end_date,
-          client_name: '',
+          client_name: editFormData.value.client_name,
           client_contact: editFormData.value.client_contact,
           client_contact_info: editFormData.value.client_contact_info,
           maintenance_personnel: editFormData.value.maintenance_personnel,
-          status: editFormData.value.status,
+          work_content: editFormData.value.work_content,
           remarks: editFormData.value.remarks || '',
         })
 

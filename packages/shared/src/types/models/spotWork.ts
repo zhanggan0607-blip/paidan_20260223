@@ -126,7 +126,7 @@ export interface QuickFillRequest {
   work_content?: string
   client_contact?: string
   client_contact_info?: string
-  photos?: string
+  photos?: string[]
   signature?: string
   worker_count?: number
   remark?: string

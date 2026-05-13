@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { showImagePreview, showToast } from 'vant'
 import { processPhoto, getCurrentLocation } from '@sstcp/shared/utils/watermark'
+import { getUploadUrl } from '../utils/uploadUrl'
 
 const MAX_PHOTOS = 9
 const COMPRESS_THRESHOLD_KB = 500
@@ -171,10 +172,13 @@ export function usePhotoUpload(photos: Ref<PhotoItem[]>, userName: string) {
 
   function getFullImageUrl(url: string): string {
     if (!url) return ''
-    if (url.startsWith('blob:') || url.startsWith('data:') || url.startsWith('http')) {
+    if (url.startsWith('blob:') || url.startsWith('data:')) {
       return url
     }
-    return `${window.location.origin}/api/v1${url.startsWith('/') ? '' : '/'}${url}`
+    if (url.startsWith('http')) {
+      return url
+    }
+    return getUploadUrl(url)
   }
 
   function handlePreviewPhoto(index: number): void {

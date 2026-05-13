@@ -9,12 +9,9 @@ import {
   showConfirmDialog,
 } from 'vant'
 import { spotWorkService, ocrService, uploadService } from '../services'
-import { useUserStore } from '../stores/userStore'
-const userStore = useUserStore()
 import {
   compressImage,
   blobToFile,
-  getCurrentLocation,
   validateIdCard,
   maskIdCard,
 } from '@sstcp/shared'
@@ -80,13 +77,13 @@ const fetchExistingWorkers = async () => {
       existingWorkers.value = response.data.map((w: any) => ({
         name: w.name,
         gender: w.gender,
-        birthDate: w.birthDate,
+        birthDate: w.birth_date,
         address: w.address,
-        idCardNumber: w.idCardNumber,
-        issuingAuthority: w.issuingAuthority,
-        validPeriod: w.validPeriod,
-        idCardFront: w.idCardFront,
-        idCardBack: w.idCardBack,
+        idCardNumber: w.id_card_number,
+        issuingAuthority: w.issuing_authority,
+        validPeriod: w.valid_period,
+        idCardFront: w.id_card_front,
+        idCardBack: w.id_card_back,
       }))
     }
   } catch (error) {
@@ -229,7 +226,7 @@ const handleUploadIdCard = (side: 'front' | 'back') => {
   showImageSourceSheet.value = true
 }
 
-const onIdCardImageError = (event: Event, field: 'idCardFront' | 'idCardBack') => {
+const onIdCardImageError = (event: Event, _field: 'idCardFront' | 'idCardBack') => {
   const img = event.target as HTMLImageElement
   img.style.display = 'none'
   const parent = img.parentElement
@@ -259,7 +256,7 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
   const ua = navigator.userAgent.toLowerCase()
   const isIOS =
     /iphone|ipad|ipod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useNativeCapture =
@@ -300,24 +297,51 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
 
       let ocrFailed = false
 
-      const ocrPromise = (async () => {
-        try {
-          showLoadingToast({ message: '正在识别身份证...', forbidClick: true })
-          const ocrResponse = await ocrService.recognizeIDCard({
-            imageBase64: compressedBase64,
-            side: side === 'front' ? 'face' : 'back',
-          })
+      const uploadFile = compressedFile || file
+      let uploadedImageUrl = ''
 
-          if (ocrResponse.code === 200 && ocrResponse.data) {
-            const ocrData = ocrResponse.data
+      try {
+        showLoadingToast({ message: '正在上传图片...', forbidClick: true })
+        const uploadResponse = await uploadService.uploadFile(uploadFile)
+        if (uploadResponse.code === 200 && uploadResponse.data) {
+          uploadedImageUrl = uploadResponse.data.url
+          if (side === 'front') {
+            currentWorker.value.idCardFront = uploadedImageUrl
+          } else {
+            currentWorker.value.idCardBack = uploadedImageUrl
+          }
+        } else {
+          console.error('图片上传失败:', uploadResponse.message)
+          showFailToast('图片上传失败，请重试')
+          return
+        }
+      } catch (uploadError) {
+        console.error('图片上传失败:', uploadError)
+        showFailToast('图片上传失败，请重试')
+        return
+      }
 
-            if (side === 'front') {
-              if (ocrData.name) currentWorker.value.name = ocrData.name
-              if (ocrData.gender) currentWorker.value.gender = ocrData.gender
-              if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
-              if (ocrData.address) currentWorker.value.address = ocrData.address
-              if (ocrData.idCardNumber) {
-                currentWorker.value.idCardNumber = ocrData.idCardNumber
+      try {
+        showLoadingToast({ message: '正在识别身份证...', forbidClick: true })
+        const ocrResponse = await ocrService.recognizeIDCard({
+          imageBase64: compressedBase64,
+          side: side === 'front' ? 'face' : 'back',
+        })
+
+        if (ocrResponse.code === 200 && ocrResponse.data) {
+          const ocrData = ocrResponse.data
+
+          if (side === 'front') {
+            if (ocrData.name) currentWorker.value.name = ocrData.name
+            if (ocrData.gender) currentWorker.value.gender = ocrData.gender
+            if (ocrData.birthDate) currentWorker.value.birthDate = ocrData.birthDate
+            if (ocrData.address) currentWorker.value.address = ocrData.address
+            if (ocrData.idCardNumber) {
+              currentWorker.value.idCardNumber = ocrData.idCardNumber
+              if (ocrData.validationWarning) {
+                idCardError.value = ocrData.validationWarning
+                showFailToast(`身份证识别有误：${ocrData.validationWarning}，请核实后手动修改`)
+              } else {
                 const validation = validateIdCard(ocrData.idCardNumber)
                 if (!validation.valid) {
                   idCardError.value = validation.message
@@ -354,54 +378,47 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
                     })
                 }
               }
-            } else {
-              if (ocrData.issuingAuthority)
-                currentWorker.value.issuingAuthority = ocrData.issuingAuthority
-              if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
-            }
-
-            if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
-              showFailToast('身份证识别失败，请确保图片清晰')
-              ocrFailed = true
-            } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
-              showFailToast('身份证反面识别失败，请确保图片清晰')
-              ocrFailed = true
-            }
-          } else if (ocrResponse.code !== 200) {
-            showFailToast(ocrResponse.message || 'OCR识别失败')
-            ocrFailed = true
-          }
-        } catch (ocrError) {
-          console.error('OCR识别失败:', ocrError)
-          showFailToast('OCR识别失败，请手动填写信息')
-          ocrFailed = true
-        }
-      })()
-
-      const uploadFile = compressedFile || file
-      const uploadPromise = (async () => {
-        try {
-          const response = await uploadService.uploadFile(uploadFile)
-          if (response.code === 200 && response.data) {
-            const imageUrl = response.data.url
-            if (side === 'front') {
-              currentWorker.value.idCardFront = imageUrl
-            } else {
-              currentWorker.value.idCardBack = imageUrl
             }
           } else {
-            console.error('图片上传失败:', response.message)
+            if (ocrData.issuingAuthority)
+              currentWorker.value.issuingAuthority = ocrData.issuingAuthority
+            if (ocrData.validPeriod) currentWorker.value.validPeriod = ocrData.validPeriod
           }
-        } catch (uploadError) {
-          console.error('图片上传失败:', uploadError)
-        }
-      })()
 
-      await ocrPromise
+          if (side === 'front' && !ocrData.name && !ocrData.idCardNumber) {
+            showFailToast('身份证识别失败，请确保图片清晰')
+            ocrFailed = true
+          } else if (side === 'back' && !ocrData.issuingAuthority && !ocrData.validPeriod) {
+            showFailToast('身份证反面识别失败，请确保图片清晰')
+            ocrFailed = true
+          }
+        } else if (ocrResponse.code !== 200) {
+          if (ocrResponse.code === 503) {
+            showFailToast('OCR服务暂未配置，请手动填写信息')
+          } else {
+            showFailToast(ocrResponse.message || 'OCR识别失败')
+          }
+          ocrFailed = true
+        }
+      } catch (ocrError: any) {
+        console.error('OCR识别失败:', ocrError)
+        const errorStatus = ocrError?.status
+        const errorMessage = ocrError?.message
+        if (errorStatus === 503) {
+          showFailToast('OCR服务暂未配置，请手动填写信息')
+        } else if (errorStatus === 422) {
+          showFailToast('身份证图片格式不正确，请重新拍照')
+        } else if (errorMessage) {
+          showFailToast(`OCR识别失败：${errorMessage}，请手动填写`)
+        } else {
+          showFailToast('OCR识别失败，请手动填写信息')
+        }
+        ocrFailed = true
+      }
+
       if (!ocrFailed) {
         closeToast()
       }
-      uploadPromise.catch(() => {})
     } catch (error: any) {
       console.error('Failed to upload:', error)
       if (side === 'front') {
@@ -490,22 +507,48 @@ const handleSaveWorker = () => {
     return
   }
 
-  if (idCardValidation.birthDate && currentWorker.value.birthDate !== idCardValidation.birthDate) {
-    showFailToast(`身份证号码与出生日期不匹配，根据身份证应为${idCardValidation.birthDate}`)
+  const normalizeDate = (dateStr: string | undefined): string => {
+    if (!dateStr) return ''
+    const cleaned = dateStr.replace(/[年月日\s]/g, '').replace(/\//g, '-')
+    if (/^\d{8}$/.test(cleaned)) {
+      return `${cleaned.substring(0, 4)}-${cleaned.substring(4, 6)}-${cleaned.substring(6, 8)}`
+    }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+      return cleaned
+    }
+    return dateStr
+  }
+
+  const normalizedBirthDate = normalizeDate(currentWorker.value.birthDate)
+  const validatedBirthDate = idCardValidation.birthDate || ''
+
+  if (validatedBirthDate && normalizedBirthDate !== validatedBirthDate) {
+    showFailToast(`身份证号码与出生日期不匹配，根据身份证应为${validatedBirthDate}`)
     return
   }
 
-  if (idCardValidation.gender && currentWorker.value.gender !== idCardValidation.gender) {
-    showFailToast(`身份证号码与性别不匹配，根据身份证应为${idCardValidation.gender}`)
+  const normalizeGender = (gender: string | undefined): string => {
+    if (!gender) return ''
+    const g = gender.trim()
+    if (g === '男' || g === 'M' || g === '1') return '男'
+    if (g === '女' || g === 'F' || g === '0' || g === '2') return '女'
+    return g
+  }
+
+  const normalizedGender = normalizeGender(currentWorker.value.gender)
+  const validatedGender = normalizeGender(idCardValidation.gender)
+
+  if (validatedGender && normalizedGender !== validatedGender) {
+    showFailToast(`身份证号码与性别不匹配，根据身份证应为${validatedGender}`)
     return
   }
 
   if (!currentWorker.value.issuingAuthority) {
-    showFailToast('请输入签发机关')
+    showFailToast('请上传身份证反面以自动识别签发机关，或手动输入签发机关')
     return
   }
   if (!currentWorker.value.validPeriod) {
-    showFailToast('请输入有效期限')
+    showFailToast('请上传身份证反面以自动识别有效期限，或手动输入有效期限')
     return
   }
   if (!currentWorker.value.idCardFront) {

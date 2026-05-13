@@ -14,11 +14,13 @@ import { copyOrderId } from '../utils/clipboard'
 import { useNavigation } from '../composables/useNavigation'
 import { useHeartbeatControl } from '../composables/useHeartbeatControl'
 import { apiCache, CACHE_KEYS, CACHE_TTL } from '../utils/apiCache'
+import { showToast } from 'vant'
 import type { OverdueAlertItem } from '../types/api'
 
 const route = useRoute()
 const router = useRouter()
 const { goBack } = useNavigation()
+const { pause: pauseHeartbeat, resume: resumeHeartbeat } = useHeartbeatControl()
 
 const loading = ref(false)
 const workList = ref<any[]>([])
@@ -31,7 +33,7 @@ const hasMore = ref(true)
 const total = ref(0)
 
 let fetchTimer: ReturnType<typeof setTimeout> | null = null
-let isFetching = false
+const fetchingTab = ref<string | null>(null)
 
 const type = computed(() => (route.query.type as string) || 'expiring')
 
@@ -106,8 +108,8 @@ const displayList = computed(() => {
 })
 
 const fetchOverdueList = async (useCache = true) => {
-  if (isFetching) return
-  isFetching = true
+  if (fetchingTab.value === 'overdue') return
+  fetchingTab.value = 'overdue'
   loading.value = true
   try {
     const cacheKey = CACHE_KEYS.OVERDUE_ALERT
@@ -115,7 +117,6 @@ const fetchOverdueList = async (useCache = true) => {
       const cached = apiCache.get<OverdueAlertItem[]>(cacheKey)
       if (cached) {
         overdueList.value = cached
-        loading.value = false
         return
       }
     }
@@ -132,23 +133,23 @@ const fetchOverdueList = async (useCache = true) => {
         const retryResponse = await overdueAlertService.getList()
         if (retryResponse.code === 200) {
           overdueList.value = retryResponse.data?.items || []
-          apiCache.set(cacheKey, overdueList.value, CACHE_TTL.MEDIUM)
+          apiCache.set(CACHE_KEYS.OVERDUE_ALERT, overdueList.value, CACHE_TTL.MEDIUM)
         }
       } catch (retryError) {
-        console.error('Retry failed for overdue list:', retryError)
+        showToast('获取超期工单失败，请稍后重试')
       }
     } else {
-      console.error('Failed to fetch overdue list:', error)
+      showToast('获取超期工单失败')
     }
   } finally {
     loading.value = false
-    isFetching = false
+    fetchingTab.value = null
   }
 }
 
 const fetchExpiringList = async (useCache = true) => {
-  if (isFetching) return
-  isFetching = true
+  if (fetchingTab.value === 'expiring') return
+  fetchingTab.value = 'expiring'
   loading.value = true
   try {
     const cacheKey = CACHE_KEYS.EXPIRING_SOON
@@ -156,7 +157,6 @@ const fetchExpiringList = async (useCache = true) => {
       const cached = apiCache.get<OverdueAlertItem[]>(cacheKey)
       if (cached) {
         expiringList.value = cached
-        loading.value = false
         return
       }
     }
@@ -173,17 +173,17 @@ const fetchExpiringList = async (useCache = true) => {
         const retryResponse = await expiringSoonService.getList()
         if (retryResponse.code === 200) {
           expiringList.value = retryResponse.data?.items || []
-          apiCache.set(cacheKey, expiringList.value, CACHE_TTL.MEDIUM)
+          apiCache.set(CACHE_KEYS.EXPIRING_SOON, expiringList.value, CACHE_TTL.MEDIUM)
         }
       } catch (retryError) {
-        console.error('Retry failed for expiring list:', retryError)
+        showToast('获取临期工单失败，请稍后重试')
       }
     } else {
-      console.error('Failed to fetch expiring list:', error)
+      showToast('获取临期工单失败')
     }
   } finally {
     loading.value = false
-    isFetching = false
+    fetchingTab.value = null
   }
 }
 
@@ -200,8 +200,8 @@ const fetchWorkList = async (isLoadMore = false) => {
     return
   }
 
-  if (isFetching) return
-  isFetching = true
+  if (fetchingTab.value === tabKey) return
+  fetchingTab.value = tabKey ?? null
 
   if (!isLoadMore) {
     currentPage.value = 0
@@ -265,6 +265,8 @@ const fetchWorkList = async (isLoadMore = false) => {
             planType: '定期巡检',
             orderTypeCode: 'inspection',
           }))
+        } else {
+          showToast('获取定期巡检列表失败')
         }
         totalCount = items.length
         break
@@ -283,6 +285,8 @@ const fetchWorkList = async (isLoadMore = false) => {
             planType: '临时维修',
             orderTypeCode: 'repair',
           }))
+        } else {
+          showToast('获取临时维修列表失败')
         }
         totalCount = items.length
         break
@@ -301,6 +305,8 @@ const fetchWorkList = async (isLoadMore = false) => {
             planType: '零星用工',
             orderTypeCode: 'spotwork',
           }))
+        } else {
+          showToast('获取零星用工列表失败')
         }
         totalCount = items.length
         break
@@ -342,16 +348,20 @@ const fetchWorkList = async (isLoadMore = false) => {
       workList.value = mappedItems
       hasMore.value = false
     }
-  } catch (error) {
-    console.error('Failed to fetch work list:', error)
+  } catch (error: any) {
+    if (error?.status === 429) {
+      showToast('请求过于频繁，请稍后重试')
+    } else {
+      showToast('获取工单列表失败')
+    }
   } finally {
     loading.value = false
-    isFetching = false
+    fetchingTab.value = null
   }
 }
 
 const onLoadMore = () => {
-  if (loading.value || !hasMore.value || isFetching) return
+  if (loading.value || !hasMore.value || fetchingTab.value) return
   const tabKey = currentTab.value?.key
   if (tabKey === 'expiring' || tabKey === 'overdue') return
   currentPage.value++
@@ -411,12 +421,12 @@ const handleBack = () => {
 }
 
 onMounted(() => {
-  useHeartbeatControl.pause()
+  pauseHeartbeat()
   fetchWorkList()
 })
 
 onUnmounted(() => {
-  useHeartbeatControl.resume()
+  resumeHeartbeat()
   if (fetchTimer) {
     clearTimeout(fetchTimer)
     fetchTimer = null

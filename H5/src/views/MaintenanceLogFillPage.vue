@@ -14,6 +14,7 @@ import { formatDate, processPhoto, getCurrentLocation } from '@sstcp/shared'
 import { useUserStore } from '../stores/userStore'
 const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
+import { getUploadUrl } from '../utils/uploadUrl'
 
 interface LogImage {
   id?: number
@@ -155,7 +156,7 @@ const handleTakePhoto = async () => {
   const ua = navigator.userAgent.toLowerCase()
   const isIOS =
     /iphone|ipad|ipod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
@@ -590,7 +591,7 @@ onMounted(async () => {
       <div class="image-section">
         <div class="image-list">
           <div v-for="(image, index) in images" :key="index" class="image-item">
-            <img :src="image.url" alt="现场照片" loading="lazy" />
+            <img :src="getUploadUrl(image.url)" alt="现场照片" loading="lazy" />
             <van-icon name="delete" class="delete-icon" @click="handleDeleteImage(index)" />
           </div>
           <div v-if="images.length < 9" class="image-add" @click="handleTakePhoto">

@@ -55,8 +55,9 @@ export const getDisplayStatus = (status: string): string => {
 }
 
 export const BASE_WORK_TABS = [
-  { key: STATUS_IN_PROGRESS, title: STATUS_IN_PROGRESS, statuses: [STATUS_IN_PROGRESS, STATUS_REJECTED], color: '#00bcd4' },
-  { key: STATUS_PENDING_CONFIRM, title: STATUS_PENDING_CONFIRM, statuses: [STATUS_PENDING_CONFIRM], color: '#ff976a' },
+  { key: STATUS_IN_PROGRESS, title: STATUS_IN_PROGRESS, statuses: [STATUS_IN_PROGRESS], color: '#00bcd4' },
+  { key: STATUS_REJECTED, title: STATUS_REJECTED, statuses: [STATUS_REJECTED], color: '#ff976a' },
+  { key: STATUS_PENDING_CONFIRM, title: STATUS_PENDING_CONFIRM, statuses: [STATUS_PENDING_CONFIRM], color: '#e6a700' },
   { key: STATUS_COMPLETED, title: STATUS_COMPLETED, statuses: [STATUS_COMPLETED], color: '#07c160' }
 ]
 

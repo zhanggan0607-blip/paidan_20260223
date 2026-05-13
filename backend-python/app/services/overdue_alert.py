@@ -50,22 +50,25 @@ class OverdueAlertService:
         if work_order_type is None or work_order_type == '定期巡检':
             subqueries.append(f"""
                 SELECT id, inspection_id AS order_no, project_id, project_name, client_name,
-                       '定期巡检' AS work_order_type, plan_end_date, status, maintenance_personnel,
-                       (CURRENT_DATE - CAST(plan_end_date AS date)) AS overdue_days
+                       '定期巡检' AS work_order_type, plan_start_date, plan_end_date, status, maintenance_personnel,
+                       (CURRENT_DATE - CAST(plan_end_date AS date)) AS overdue_days,
+                       created_at
                 FROM periodic_inspection WHERE {filter_sql}
             """)
         if work_order_type is None or work_order_type == '临时维修':
             subqueries.append(f"""
                 SELECT id, repair_id AS order_no, project_id, project_name, client_name,
-                       '临时维修' AS work_order_type, plan_end_date, status, maintenance_personnel,
-                       (CURRENT_DATE - CAST(plan_end_date AS date)) AS overdue_days
+                       '临时维修' AS work_order_type, plan_start_date, plan_end_date, status, maintenance_personnel,
+                       (CURRENT_DATE - CAST(plan_end_date AS date)) AS overdue_days,
+                       created_at
                 FROM temporary_repair WHERE {filter_sql}
             """)
         if work_order_type is None or work_order_type == '零星用工':
             subqueries.append(f"""
                 SELECT id, work_id AS order_no, project_id, project_name, client_name,
-                       '零星用工' AS work_order_type, plan_end_date, status, maintenance_personnel,
-                       (CURRENT_DATE - CAST(plan_end_date AS date)) AS overdue_days
+                       '零星用工' AS work_order_type, plan_start_date, plan_end_date, status, maintenance_personnel,
+                       (CURRENT_DATE - CAST(plan_end_date AS date)) AS overdue_days,
+                       created_at
                 FROM spot_work WHERE {filter_sql}
             """)
 
@@ -88,9 +91,15 @@ class OverdueAlertService:
 
         items = []
         for row in rows:
+            plan_start = row.plan_start_date
+            if plan_start and isinstance(plan_start, datetime):
+                plan_start = plan_start.date()
             plan_end = row.plan_end_date
             if plan_end and isinstance(plan_end, datetime):
                 plan_end = plan_end.date()
+            created_at = row.created_at
+            if created_at and isinstance(created_at, datetime):
+                created_at = created_at.isoformat()
             items.append({
                 'id': str(row.id),
                 'workOrderNo': row.order_no,
@@ -98,10 +107,12 @@ class OverdueAlertService:
                 'projectName': row.project_name,
                 'customerName': row.client_name,
                 'workOrderType': row.work_order_type,
+                'planStartDate': plan_start.isoformat() if plan_start else None,
                 'planEndDate': plan_end.isoformat() if plan_end else None,
                 'workOrderStatus': row.status,
                 'overdueDays': int(row.overdue_days) if row.overdue_days else 0,
-                'executor': row.maintenance_personnel
+                'executor': row.maintenance_personnel,
+                'created_at': created_at
             })
 
         return items, total

@@ -578,13 +578,19 @@ const handleDialogConfirm = async () => {
     return
   }
 
+  const resolvedItemType = dialogForm.item_type?.trim() || dialogForm.parentNode?.item_type?.trim() || dialogForm.currentNode?.item_type?.trim() || ''
+  if (!resolvedItemType) {
+    ElMessage.warning('请输入事项分类')
+    return
+  }
+
   dialogLoading.value = true
   try {
     if (dialogForm.type === 'add' && dialogForm.parentNode) {
       const newItem = {
-        item_code: `ITEM-${Date.now()}`,
+        item_code: `ITEM-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         item_name: dialogForm.item_name.trim(),
-        item_type: (dialogForm.item_type || dialogForm.parentNode.item_type) ?? '',
+        item_type: resolvedItemType,
         level: dialogForm.parentNode.level + 1,
         parent_id: dialogForm.parentNode.id,
       }
@@ -592,9 +598,9 @@ const handleDialogConfirm = async () => {
       ElMessage.success('新增成功')
     } else if (dialogForm.type === 'addSibling' && dialogForm.currentNode) {
       const newItem = {
-        item_code: `ITEM-${Date.now()}`,
+        item_code: `ITEM-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         item_name: dialogForm.item_name.trim(),
-        item_type: (dialogForm.item_type || dialogForm.currentNode.item_type) ?? '',
+        item_type: resolvedItemType,
         level: dialogForm.currentNode.level,
         parent_id: dialogForm.currentNode.parent_id || null,
       }
@@ -603,7 +609,7 @@ const handleDialogConfirm = async () => {
     } else if (dialogForm.type === 'edit' && dialogForm.currentNode) {
       await inspectionItemService.update(dialogForm.currentNode.id, {
         item_name: dialogForm.item_name.trim(),
-        item_type: dialogForm.item_type,
+        item_type: dialogForm.item_type?.trim() || undefined,
       })
       ElMessage.success('编辑成功')
     }

@@ -30,7 +30,8 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
         status: str | None = None,
         maintenance_personnel: str | None = None,
         client_name: str | None = None,
-        statuses: list[str] | None = None
+        statuses: list[str] | None = None,
+        created_by: str | None = None
     ) -> tuple[list[TemporaryRepair], int]:
         try:
             query = self.db.query(TemporaryRepair).filter(TemporaryRepair.is_deleted == False)
@@ -47,7 +48,15 @@ class TemporaryRepairRepository(BaseRepository[TemporaryRepair]):
             if statuses:
                 query = query.filter(TemporaryRepair.status.in_(statuses))
 
-            if maintenance_personnel:
+            if maintenance_personnel and created_by:
+                from sqlalchemy import or_
+                query = query.filter(
+                    or_(
+                        TemporaryRepair.maintenance_personnel == maintenance_personnel,
+                        TemporaryRepair.created_by == created_by
+                    )
+                )
+            elif maintenance_personnel:
                 query = query.filter(TemporaryRepair.maintenance_personnel == maintenance_personnel)
 
             if client_name:

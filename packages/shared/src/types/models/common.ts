@@ -135,7 +135,7 @@ export interface OverdueAlertItem {
   planStartDate?: string
   planEndDate: string
   workOrderStatus: string
-  overdueDays: number
+  overdueDays?: number
   daysRemaining?: number
   executor: string
   created_at?: string
@@ -222,4 +222,5 @@ export interface IDCardOCRResult {
   idCardNumber: string
   issuingAuthority?: string
   validPeriod?: string
+  validationWarning?: string
 }

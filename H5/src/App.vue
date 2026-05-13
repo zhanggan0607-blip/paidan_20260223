@@ -14,8 +14,10 @@ const isInitialized = ref(false)
 let heartbeatTimer: number | null = null
 const HEARTBEAT_INTERVAL = 2 * 60 * 1000
 
+const heartbeatControl = useHeartbeatControl()
+
 const sendHeartbeat = async () => {
-  if (useHeartbeatControl.isPaused()) return
+  if (heartbeatControl.getIsPaused()) return
 
   const user = userStore.currentUser
   if (!user || !userStore.isLoggedIn) return
@@ -29,7 +31,7 @@ const startHeartbeat = () => {
   stopHeartbeat()
   sendHeartbeat()
   heartbeatTimer = window.setInterval(() => {
-    if (!useHeartbeatControl.isPaused()) {
+    if (!heartbeatControl.getIsPaused()) {
       sendHeartbeat()
     }
   }, HEARTBEAT_INTERVAL)

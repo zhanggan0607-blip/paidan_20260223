@@ -5,6 +5,75 @@
 
 ---
 
+## 2026-05-13 修复：H5端apiCache模块getCache未定义运行时错误
+
+### 类型
+修复
+
+### 概要
+H5端 `apiCache-CqrTFayH.js` chunk中 `getCache` 未定义，导致页面白屏
+
+### 核心根因
+1. Vite/Rollup的tree-shaking将 `import { getCache } from '@sstcp/shared'` 优化为副作用导入 `import"./index-xxx.js"`，移除了命名导入
+2. 但chunk中仍保留了 `getCache()` 调用，导致运行时 `ReferenceError: getCache is not defined`
+3. H5端 `H5/src/utils/apiCache.ts` 在模块顶层调用 `getCache()` 生成 `apiCache` 实例，加剧了此问题
+
+### 明细
+- **文件**:
+  - `H5/src/utils/apiCache.ts` - 将apiCache实现内联，不再从 `@sstcp/shared` 导入
+  - `src/composables/useApiCache.ts` - 将apiCache实现内联，不再从 `@sstcp/shared` 导入
+  - `packages/shared/tsup.config.ts` - 添加apiCache/idCardValidator/jwt入口
+  - `packages/shared/package.json` - 添加apiCache/jwt/idCardValidator/components导出路径
+- **改动**: apiCache实现从 `@sstcp/shared` 依赖改为各端自包含，避免Vite tree-shaking bug
+
+### 教训
+Vite构建时，从大型共享包re-export的函数可能被tree-shaking错误优化掉。对于关键运行时依赖，应直接内联实现或使用独立的子模块路径导入。
+
+---
+
+## 2026-05-13 部署：v1.0.0 生产服务器Docker部署
+
+### 类型
+部署
+
+### 概要
+将系统Docker部署到生产服务器8.153.93.123，版本v1.0.0，数据库使用阿里云RDS
+
+### 核心根因
+1. 首次部署到8.153.93.123生产服务器
+2. 阿里云RDS数据库：pgm-uf6cml154nbjz51y.pg.rds.aliyuncs.com，数据库tq
+
+### 遇到的问题及解决
+1. **前端容器nginx权限问题**：Dockerfile中`USER appuser`导致nginx无法创建`/var/cache/nginx/client_temp`目录。修复：移除`USER appuser`，改用`mkdir -p /var/cache/nginx && chown -R nginx:nginx /var/cache/nginx`
+2. **Docker Hub镜像拉取失败**：国内镜像加速registry-mirrors配置后仍无法拉取nginx镜像。解决：从本地导出nginx镜像tar文件传输到服务器加载
+3. **80端口被占用**：旧版gongchengguanli容器占用80端口。解决：停止并删除旧容器
+4. **daemon.json转义问题**：PowerShell通过SSH写入JSON文件时转义字符被破坏。解决：本地创建文件后通过scp传输
+
+### 明细
+- **文件**:
+  - `backend-python/.env.production` - 新建生产环境配置
+  - `docker/docker-compose-server.yml` - 更新版本v1.0.0，使用env_file，DNS改为223.5.5.5
+  - `docker/nginx-production.conf` - 新建IP访问nginx配置（无SSL）
+  - `Dockerfile` - 修复nginx权限问题
+  - `H5/Dockerfile` - 修复nginx权限问题
+  - `/etc/docker/daemon.json`（服务器）- 配置阿里云镜像加速
+- **改动**: 详见上方问题描述
+
+### 部署验证结果
+- 后端健康检查：✅ healthy，版本1.0.0，数据库连接正常
+- PC前端：✅ HTTP 200
+- H5前端：✅ HTTP 200
+- Nginx反向代理：✅ healthy
+- 资源使用：后端117MB，前端3MB×2，Nginx7MB
+
+### 访问地址
+- PC前端：http://8.153.93.123
+- H5前端：http://8.153.93.123/h5/
+- API健康检查：http://8.153.93.123/api/v1/health
+- 后端直连：http://8.153.93.123:8000
+
+---
+
 ## 目录
 
 1. [后端错误](#后端错误)

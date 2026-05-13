@@ -12,6 +12,7 @@ services:
     environment:
       - DEBUG=False
       - LOG_LEVEL=INFO
+      - ENVIRONMENT=production
     volumes:
       - backend-uploads:/app/uploads
       - backend-logs:/app/logs
@@ -46,7 +47,8 @@ services:
     ports:
       - "8081:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - sstcp-network
     healthcheck:
@@ -76,7 +78,8 @@ services:
     ports:
       - "8082:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - sstcp-network
     healthcheck:
@@ -108,9 +111,12 @@ services:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     depends_on:
-      - backend
-      - frontend-pc
-      - frontend-h5
+      backend:
+        condition: service_healthy
+      frontend-pc:
+        condition: service_started
+      frontend-h5:
+        condition: service_started
     networks:
       - sstcp-network
     healthcheck:

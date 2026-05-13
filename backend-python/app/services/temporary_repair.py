@@ -64,11 +64,12 @@ class TemporaryRepairService(BaseService):
         repair_id: str | None = None,
         status: str | None = None,
         maintenance_personnel: str | None = None,
-        statuses: list[str] | None = None
+        statuses: list[str] | None = None,
+        created_by: str | None = None
     ) -> tuple[list[TemporaryRepair], int]:
         return self.repository.find_all(
             page, size, project_name, repair_id, status, maintenance_personnel,
-            statuses=statuses
+            statuses=statuses, created_by=created_by
         )
 
     def get_by_id(self, id: int) -> TemporaryRepair:
@@ -158,6 +159,7 @@ class TemporaryRepairService(BaseService):
             client_contact=dto.client_contact if hasattr(dto, 'client_contact') else None,
             client_contact_info=dto.client_contact_info if hasattr(dto, 'client_contact_info') else None,
             maintenance_personnel=maintenance_personnel,
+            created_by=operator_name,
             status=dto.status or default_status,
             remarks=dto.remarks
         )

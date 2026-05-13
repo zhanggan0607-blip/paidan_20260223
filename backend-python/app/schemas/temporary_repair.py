@@ -53,7 +53,7 @@ class TemporaryRepairCreate(BaseModel):
     client_name: str | None = Field(None, max_length=100, description="客户单位")
     client_contact: str | None = Field(None, max_length=100, description="客户联系人")
     client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
-    maintenance_personnel: str = Field(..., max_length=100, description="运维人员")
+    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
     status: str | None = Field(None, max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
     fault_description: str | None = Field(None, description="故障描述")
@@ -136,6 +136,7 @@ class TemporaryRepairResponse(BaseModel):
     address: str | None
     client_contact_position: str | None
     maintenance_personnel: str | None
+    created_by: str | None = None
     status: str
     remarks: str | None
     fault_description: str | None

@@ -2,7 +2,8 @@
  * WebSocket连接composable
  * 用于实时接收用户在线状态变化
  */
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { useUserStore } from '../stores/userStore'
 
 interface OnlineStatusData {
   user_id: number
@@ -30,14 +31,19 @@ interface WebSocketMessage {
   data: OnlineStatusData | OnlineUsersListData | null
 }
 
-function getWebSocketUrl(): string {
+function getWebSocketUrl(token: string | null): string {
   const protocol =
     typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   const host = typeof window !== 'undefined' ? window.location.host : 'localhost:8000'
-  return `${protocol}//${host}/api/v1/ws/online-status`
+  const baseUrl = `${protocol}//${host}/api/v1/ws/online-status`
+  if (token) {
+    return `${baseUrl}?token=${encodeURIComponent(token)}`
+  }
+  return baseUrl
 }
 
 export function useOnlineStatusWebSocket() {
+  const userStore = useUserStore()
   const ws = ref<WebSocket | null>(null)
   const isConnected = ref(false)
   const onlineUsers = ref<Map<number, { is_online: boolean; device_type: string | null }>>(
@@ -54,8 +60,13 @@ export function useOnlineStatusWebSocket() {
       return
     }
 
+    const token = userStore.getToken()
+    if (!token) {
+      return
+    }
+
     try {
-      const wsUrl = getWebSocketUrl()
+      const wsUrl = getWebSocketUrl(token)
       ws.value = new WebSocket(wsUrl)
 
       ws.value.onopen = () => {
@@ -73,9 +84,13 @@ export function useOnlineStatusWebSocket() {
         }
       }
 
-      ws.value.onclose = () => {
+      ws.value.onclose = (event) => {
         isConnected.value = false
         stopPing()
+        if (event.code === 4001) {
+          console.warn('[WebSocket] 认证失败，token可能已过期')
+          return
+        }
         attemptReconnect()
       }
 
@@ -170,6 +185,17 @@ export function useOnlineStatusWebSocket() {
   const getUserOnlineStatus = (userId: number) => {
     return onlineUsers.value.get(userId) || { is_online: false, device_type: null }
   }
+
+  watch(() => userStore.token, (newToken, oldToken) => {
+    if (newToken && newToken !== oldToken) {
+      disconnect()
+      reconnectAttempts.value = 0
+      connect()
+    } else if (!newToken) {
+      disconnect()
+      onlineUsers.value = new Map()
+    }
+  })
 
   onMounted(() => {
     connect()

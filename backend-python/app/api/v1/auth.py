@@ -35,7 +35,10 @@ from app.services.auth import (
     generate_tokens,
 )
 from app.services.personnel import PersonnelService
+from app.utils.logging_config import get_logger
 from app.websocket import manager
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 

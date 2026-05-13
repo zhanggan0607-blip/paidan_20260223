@@ -1,13 +1,14 @@
 @import '../../packages/shared/src/styles/variables.css';
 
 :root {
-  --color-sidebar-bg: #1d3a3a;
-  --color-sidebar-text: #c8d6d6;
-  --color-sidebar-active: #ffffff;
-  --color-sidebar-hover-bg: rgba(255, 255, 255, 0.08);
-  --color-sidebar-active-bg: rgba(255, 255, 255, 0.15);
-  --color-sidebar-border: rgba(255, 255, 255, 0.06);
-  --topbar-height: 56px;
+  --color-sidebar-bg: #1a2332;
+  --color-sidebar-text: #c8cdd5;
+  --color-sidebar-text-active: #ffffff;
+  --color-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --color-sidebar-active: rgba(42, 122, 122, 0.25);
+  --color-sidebar-border: rgba(255, 255, 255, 0.08);
+  --topbar-height: 52px;
+  --sidebar-width: 220px;
 
-  --shadow-xl: 0 20px 25px rgba(20, 25, 18, 0.08), 0 8px 10px rgba(20, 25, 18, 0.04);
+  --shadow-xl: 0 20px 25px rgba(20, 25, 18, 0.1), 0 8px 10px rgba(20, 25, 18, 0.04);
 }

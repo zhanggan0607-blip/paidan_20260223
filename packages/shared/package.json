@@ -1,12 +1,13 @@
 {
   "name": "@sstcp/shared",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "description": "SSTCP维保管理系统共享代码库",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "src/components"
   ],
   "scripts": {
     "build": "tsup",
@@ -77,6 +78,22 @@
       "types": "./dist/api/request.d.ts",
       "import": "./dist/api/request.mjs",
       "require": "./dist/api/request.js"
+    },
+    "./components/*": "./src/components/*",
+    "./utils/apiCache": {
+      "types": "./dist/utils/apiCache.d.ts",
+      "import": "./dist/utils/apiCache.mjs",
+      "require": "./dist/utils/apiCache.js"
+    },
+    "./utils/jwt": {
+      "types": "./dist/utils/jwt.d.ts",
+      "import": "./dist/utils/jwt.mjs",
+      "require": "./dist/utils/jwt.js"
+    },
+    "./utils/idCardValidator": {
+      "types": "./dist/utils/idCardValidator.d.ts",
+      "import": "./dist/utils/idCardValidator.mjs",
+      "require": "./dist/utils/idCardValidator.js"
     }
   },
   "dependencies": {},

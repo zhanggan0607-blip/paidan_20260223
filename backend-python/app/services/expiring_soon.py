@@ -58,7 +58,8 @@ class ExpiringSoonService:
                 SELECT id, inspection_id AS order_no, project_id, project_name, client_name,
                        '定期巡检' AS work_order_type, plan_start_date, plan_end_date, status,
                        maintenance_personnel,
-                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining
+                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining,
+                       created_at
                 FROM periodic_inspection WHERE {filter_sql}
             """)
         if work_order_type is None or work_order_type == '临时维修':
@@ -66,7 +67,8 @@ class ExpiringSoonService:
                 SELECT id, repair_id AS order_no, project_id, project_name, client_name,
                        '临时维修' AS work_order_type, plan_start_date, plan_end_date, status,
                        maintenance_personnel,
-                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining
+                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining,
+                       created_at
                 FROM temporary_repair WHERE {filter_sql}
             """)
         if work_order_type is None or work_order_type == '零星用工':
@@ -74,7 +76,8 @@ class ExpiringSoonService:
                 SELECT id, work_id AS order_no, project_id, project_name, client_name,
                        '零星用工' AS work_order_type, plan_start_date, plan_end_date, status,
                        maintenance_personnel,
-                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining
+                       (CAST(plan_start_date AS date) - CURRENT_DATE) AS days_remaining,
+                       created_at
                 FROM spot_work WHERE {filter_sql}
             """)
 
@@ -103,6 +106,9 @@ class ExpiringSoonService:
             plan_end = row.plan_end_date
             if plan_end and isinstance(plan_end, datetime):
                 plan_end = plan_end.date()
+            created_at = row.created_at
+            if created_at and isinstance(created_at, datetime):
+                created_at = created_at.isoformat()
             items.append({
                 'id': str(row.id),
                 'workOrderNo': row.order_no,
@@ -114,7 +120,8 @@ class ExpiringSoonService:
                 'planEndDate': plan_end.isoformat() if plan_end else None,
                 'workOrderStatus': row.status,
                 'daysRemaining': int(row.days_remaining) if row.days_remaining else 0,
-                'executor': row.maintenance_personnel
+                'executor': row.maintenance_personnel,
+                'created_at': created_at
             })
 
         return items, total
@@ -132,7 +139,8 @@ class ExpiringSoonService:
             and_(
                 PeriodicInspection.plan_start_date >= today_datetime,
                 PeriodicInspection.plan_start_date <= end_datetime,
-                PeriodicInspection.status.in_(valid_statuses)
+                PeriodicInspection.status.in_(valid_statuses),
+                PeriodicInspection.is_deleted == False
             )
         )
         if maintenance_personnel:
@@ -145,7 +153,8 @@ class ExpiringSoonService:
             and_(
                 TemporaryRepair.plan_start_date >= today_datetime,
                 TemporaryRepair.plan_start_date <= end_datetime,
-                TemporaryRepair.status.in_(valid_statuses)
+                TemporaryRepair.status.in_(valid_statuses),
+                TemporaryRepair.is_deleted == False
             )
         )
         if maintenance_personnel:
@@ -158,7 +167,8 @@ class ExpiringSoonService:
             and_(
                 SpotWork.plan_start_date >= today_datetime,
                 SpotWork.plan_start_date <= end_datetime,
-                SpotWork.status.in_(valid_statuses)
+                SpotWork.status.in_(valid_statuses),
+                SpotWork.is_deleted == False
             )
         )
         if maintenance_personnel:

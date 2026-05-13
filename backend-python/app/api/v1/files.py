@@ -17,7 +17,7 @@ from app.models.uploaded_file import UploadedFile
 from app.utils.logging_config import get_logger
 from app.utils import get_inline_content_disposition
 from app.utils.oss_service import get_oss_service, OSSService
-from app.dependencies import get_current_user_required, UserInfo
+from app.dependencies import get_current_user_required, get_current_user_info, UserInfo
 
 logger = get_logger(__name__)
 
@@ -27,6 +27,19 @@ UPLOAD_DIR = "/app/uploads"
 
 THUMBNAIL_CACHE = {}
 THUMBNAIL_MAX_CACHE_SIZE = 100
+
+
+def _parse_token_from_query(token: str) -> UserInfo | None:
+    from app.dependencies import _parse_jwt_token
+    user_data = _parse_jwt_token(token)
+    if not user_data:
+        return None
+    return UserInfo(
+        id=user_data.get('user_id') or user_data.get('id'),
+        name=user_data.get('sub') or user_data.get('name'),
+        role=user_data.get('role', '运维人员'),
+        token=token
+    )
 
 
 def _try_recover_from_oss(file_path: str, upload_date: str, filename: str, db: Session) -> UploadedFile | None:
@@ -146,9 +159,21 @@ async def get_file(
     upload_date: str,
     filename: str,
     request: Request,
+    token: str | None = Query(None, description="Access token for img tag authentication"),
     db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_required)
+    user_info: UserInfo = Depends(get_current_user_info)
 ):
+    if not user_info.is_authenticated and token:
+        user_data = _parse_token_from_query(token)
+        if user_data:
+            user_info = user_data
+
+    if not user_info.is_authenticated:
+        from fastapi import HTTPException, status as http_status
+        raise HTTPException(
+            status_code=http_status.HTTP_401_UNAUTHORIZED,
+            detail="未登录或登录已过期"
+        )
     file_path = f"/uploads/{upload_date}/{filename}"
 
     logger.info(f"文件访问: {file_path}, user={user_info.name}, ip={request.client.host if request.client else 'unknown'}")

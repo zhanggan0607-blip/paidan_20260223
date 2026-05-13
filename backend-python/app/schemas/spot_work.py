@@ -131,7 +131,7 @@ class QuickFillRequest(BaseModel):
     remark: str | None = None
     client_contact: str | None = None
     client_contact_info: str | None = None
-    photos: str | None = None
+    photos: list[str] | None = None
     signature: str | None = None
     worker_count: int | None = 0
 

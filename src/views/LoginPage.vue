@@ -125,8 +125,9 @@ export default defineComponent({
 
     onMounted(() => {
       const token = userStore.token
-      if (token) {
-        router.push('/')
+      const currentUser = userStore.currentUser
+      if (token && currentUser) {
+        router.replace('/')
       }
     })
 
@@ -169,20 +170,24 @@ export default defineComponent({
             })
 
             if ((user as { must_change_password?: boolean }).must_change_password) {
-              router.push('/change-password')
+              router.replace('/change-password')
             } else {
               const redirect = (route.query.redirect as string) || getDefaultPath(user.role)
-              router.push(redirect)
+              router.replace(redirect)
             }
           } else {
-            router.push(getDefaultPath(undefined))
+            router.replace(getDefaultPath(undefined))
           }
         } else {
           errorMessage.value = response.message || '登录失败，请重试'
         }
       } catch (error: unknown) {
-        const err = error as { message?: string }
-        errorMessage.value = err.message || '登录失败，请检查网络连接'
+        const err = error as { message?: string; status?: number }
+        if (err.status === 429) {
+          errorMessage.value = err.message || '请求过于频繁，请稍后再试'
+        } else {
+          errorMessage.value = err.message || '登录失败，请检查网络连接'
+        }
       } finally {
         loading.value = false
       }

@@ -17,6 +17,7 @@ const userStore = useUserStore()
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import { copyOrderId } from '../utils/clipboard'
+import { getUploadUrl } from '../utils/uploadUrl'
 import type { TemporaryRepair } from '../types/api'
 
 const router = useRouter()
@@ -50,11 +51,17 @@ const isApproveMode = computed(() => {
 const isWorker = computed(() => {
   const user = userStore.currentUser
   if (!user || !detail.value) return false
-  const workerName = detail.value.maintenance_personnel
-  return workerName === user.name
+  const workerName = detail.value.maintenance_personnel?.trim()
+  const userName = user.name?.trim()
+  if (!workerName || !userName) return false
+  if (workerName === userName) return true
+  if (workerName.toLowerCase() === userName.toLowerCase()) return true
+  const normalize = (s: string) => s.replace(/\s+/g, '').toLowerCase()
+  return normalize(workerName) === normalize(userName)
 })
 
 const isEditable = computed(() => {
+  if (!isWorker.value && !userStore.isManager()) return false
   const status = detail.value?.status
   if (status === WORK_STATUS.COMPLETED) return false
   return (
@@ -66,12 +73,12 @@ const isEditable = computed(() => {
 
 const canSubmit = computed(() => {
   if (currentPhotos.value.length === 0 || !formData.value.signature) return false
-  if (!isWorker.value) return false
+  if (!isWorker.value && !userStore.isManager()) return false
   return detail.value?.status === WORK_STATUS.IN_PROGRESS
 })
 
 const canUpdate = computed(() => {
-  if (!isWorker.value) return false
+  if (!isWorker.value && !userStore.isManager()) return false
   const status = detail.value?.status
   return status === WORK_STATUS.PENDING_CONFIRM || status === WORK_STATUS.RETURNED
 })
@@ -228,7 +235,7 @@ const handlePhotoCapture = () => {
   const ua = navigator.userAgent.toLowerCase()
   const isIOS =
     /iphone|ipad|ipod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
@@ -510,24 +517,48 @@ const handleRemovePhoto = async (index: number) => {
       message: '是否要删除，新增的图片会重新打水印',
     })
     currentPhotos.value.splice(index, 1)
+    const detailId = detail.value?.id
+    if (detailId) {
+      try {
+        await temporaryRepairService.patch(detailId, {
+          photos: currentPhotos.value,
+          signature: formData.value.signature,
+          remarks: formData.value.remarks,
+        })
+      } catch (saveError) {
+        console.error('删除照片后保存失败:', saveError)
+      }
+    }
   } catch {}
 }
 
-const handlePhotoSave = () => {
-  showPhotoPopup.value = false
-  showSuccessToast('保存成功')
+const handlePhotoSave = async () => {
+  const detailId = detail.value?.id
+  if (detailId) {
+    try {
+      showLoadingToast({ message: '保存中...', forbidClick: true })
+      const saveData = {
+        photos: currentPhotos.value,
+        signature: formData.value.signature,
+        remarks: formData.value.remarks,
+        fault_description: formData.value.fault_description,
+        solution: formData.value.solution,
+      }
+      await temporaryRepairService.patch(detailId, saveData)
+      showPhotoPopup.value = false
+      showSuccessToast('保存成功')
+    } catch (error) {
+      console.error('保存失败:', error)
+      showFailToast('保存失败')
+    } finally {
+      closeToast()
+    }
+  } else {
+    showPhotoPopup.value = false
+  }
 }
 
-/**
- * 获取完整图片URL
- */
-const getFullImageUrl = (url: string): string => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-    return url
-  }
-  return window.location.origin + url
-}
+const getFullImageUrl = (url: string): string => getUploadUrl(url) || ''
 
 /**
  * 预览图片
@@ -611,22 +642,28 @@ const handleSubmit = async () => {
 
     showLoadingToast({ message: '提交中...', forbidClick: true })
 
-    const submitData = {
+    const patchData = {
       photos: currentPhotos.value,
       signature: formData.value.signature,
       remarks: formData.value.remarks,
       fault_description: formData.value.fault_description,
       solution: formData.value.solution,
-      status: WORK_STATUS.PENDING_CONFIRM,
     }
 
-    const response = await temporaryRepairService.patch(detail.value?.id!, submitData)
+    const patchResponse = await temporaryRepairService.patch(detail.value?.id!, patchData)
+
+    if (patchResponse.code !== 200) {
+      showFailToast('保存工单数据失败')
+      return
+    }
+
+    const response = await temporaryRepairService.submit(detail.value?.id!)
 
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('temporary_repair_signature')
       showSuccessToast('提交成功')
-      router.push({ path: '/work-list', query: { type: 'repair' } })
+      router.push('/temporary-repair')
     }
   } catch (error: any) {
     console.error('提交失败:', error)
@@ -710,6 +747,67 @@ const handleUpdate = async () => {
     if (error !== 'cancel') {
       console.error('Failed to update:', error)
       showFailToast('更新失败')
+    }
+  } finally {
+    closeToast()
+  }
+}
+
+const handleResubmit = async () => {
+  if (!canUpdate.value) {
+    showFailToast('当前状态不允许重新提交')
+    return
+  }
+
+  if (currentPhotos.value.length === 0) {
+    showFailToast('请上传现场图片')
+    return
+  }
+
+  if (!formData.value.signature) {
+    showFailToast('请完成用户签字确认')
+    return
+  }
+
+  try {
+    await showConfirmDialog({
+      title: '提示',
+      message: '确认重新提交工单吗？提交后将进入审批流程。',
+    })
+
+    showLoadingToast({ message: '提交中...', forbidClick: true })
+
+    const patchData = {
+      photos: currentPhotos.value,
+      signature: formData.value.signature,
+      remarks: formData.value.remarks,
+      fault_description: formData.value.fault_description,
+      solution: formData.value.solution,
+    }
+
+    const patchResponse = await temporaryRepairService.patch(detail.value?.id!, patchData)
+
+    if (patchResponse.code !== 200) {
+      showFailToast('保存工单数据失败')
+      return
+    }
+
+    const response = await temporaryRepairService.submit(detail.value?.id!)
+
+    if (response.code === 200) {
+      await addOperationLog('resubmit', '员工修改后重新提交工单')
+      localStorage.removeItem('temporary_repair_signature')
+      showSuccessToast('重新提交成功，等待审批')
+      router.push('/temporary-repair')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('重新提交失败:', error)
+      if (error.response?.data?.detail) {
+        showFailToast(error.response.data.detail)
+      } else {
+        showFailToast('重新提交失败')
+      }
     }
   } finally {
     closeToast()
@@ -812,16 +910,12 @@ const handleApprovePass = async () => {
     isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
-    const submitData = {
-      status: '已完成',
-    }
-
-    const response = await temporaryRepairService.patch(detail.value?.id!, submitData)
+    const response = await temporaryRepairService.approve(detail.value?.id!, true)
 
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      router.push({ path: '/work-list', query: { type: 'repair' } })
+      router.push('/temporary-repair')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -881,17 +975,12 @@ const confirmReject = async () => {
     isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
-    const submitData = {
-      status: '已退回',
-      reject_reason: reason,
-    }
-
-    const response = await temporaryRepairService.patch(detail.value?.id!, submitData)
+    const response = await temporaryRepairService.reject(detail.value?.id!, reason)
 
     if (response.code === 200) {
       await addOperationLog('reject', `部门经理退回工单，原因：${reason}`)
       showSuccessToast('已退回')
-      router.push({ path: '/work-list', query: { type: 'repair' } })
+      router.push('/temporary-repair')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -1123,7 +1212,34 @@ watch(
       />
 
       <div v-if="canUpdate" class="action-buttons">
-        <van-button type="primary" size="large" @click="handleUpdate">更新</van-button>
+        <van-notice-bar
+          v-if="detail?.status === WORK_STATUS.RETURNED"
+          left-icon="warning-o"
+          text="工单已退回，请修改内容后点击重新提交"
+          color="#ed6a0c"
+          background="#fffbe8"
+          style="margin-bottom: 12px;"
+        />
+        <van-notice-bar
+          v-else-if="detail?.status === WORK_STATUS.PENDING_CONFIRM"
+          left-icon="info-o"
+          text="工单待审批中，可修改内容后点击更新"
+          color="#1989fa"
+          background="#e8f4ff"
+          style="margin-bottom: 12px;"
+        />
+        <van-button
+          v-if="detail?.status === WORK_STATUS.RETURNED"
+          type="primary"
+          size="large"
+          @click="handleResubmit"
+        >重新提交</van-button>
+        <van-button
+          v-else
+          type="primary"
+          size="large"
+          @click="handleUpdate"
+        >更新</van-button>
       </div>
 
       <div
@@ -1166,7 +1282,7 @@ watch(
                 class="photo-item"
                 @click="handlePreviewPhoto(index)"
               >
-                <img :src="photo" alt="现场照片" loading="lazy" />
+                <img :src="getUploadUrl(photo)" alt="现场照片" loading="lazy" />
                 <van-icon
                   v-if="isEditable"
                   name="delete"

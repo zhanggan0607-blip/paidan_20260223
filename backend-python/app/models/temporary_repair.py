@@ -30,6 +30,7 @@ class TemporaryRepair(Base, SoftDeleteMixin, SerializationMixin):
     client_contact = Column(String(100), comment="客户联系人")
     client_contact_info = Column(String(50), comment="客户联系电话")
     maintenance_personnel = Column(String(100), comment="运维人员")
+    created_by = Column(String(100), comment="创建人")
     status = Column(String(20), nullable=False, default="执行中", comment="状态")
     remarks = Column(String(500), comment="备注")
     fault_description = Column(Text, comment="故障描述")
@@ -60,5 +61,6 @@ class TemporaryRepair(Base, SoftDeleteMixin, SerializationMixin):
         Index('idx_temp_plan_start_date', 'plan_start_date'),
         Index('idx_temp_project_status', 'project_name', 'status'),
         Index('idx_temp_created_status', 'created_at', 'status'),
+        Index('idx_temp_created_by', 'created_by'),
         {'comment': '临时维修单表'}
     )

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class InspectionItemBase(BaseModel):
@@ -12,6 +12,13 @@ class InspectionItemBase(BaseModel):
     check_content: str | None = Field(None, description='检查内容')
     check_standard: str | None = Field(None, description='检查标准')
     sort_order: int = Field(0, description='排序')
+
+    @field_validator('item_type', 'item_name', 'item_code')
+    @classmethod
+    def validate_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError('该字段不能为空')
+        return v.strip()
 
 class InspectionItemCreate(InspectionItemBase):
     pass

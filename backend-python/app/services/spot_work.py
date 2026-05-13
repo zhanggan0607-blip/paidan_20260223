@@ -3,6 +3,7 @@
 提供零星用工业务逻辑处理
 """
 import json
+import re
 from app.utils.logging_config import get_logger
 from datetime import datetime
 from typing import Any
@@ -252,7 +253,7 @@ class SpotWorkService(BaseService):
             existing_work.maintenance_personnel = dto.maintenance_personnel
         if dto.work_content is not None:
             existing_work.work_content = dto.work_content
-        if dto.photos is not None and len(dto.photos) > 0:
+        if dto.photos is not None:
             existing_work.photos = dto.photos
         if dto.signature is not None:
             existing_work.signature = dto.signature
@@ -395,7 +396,7 @@ class SpotWorkService(BaseService):
             NotFoundException: 工单不存在
         """
         work = self.get_by_id(id)
-        work_dict = work.to_dict()
+        work_dict = work.to_dict(use_detail_overrides=True)
 
         plan_start = work.plan_start_date.date() if work.plan_start_date else None
         plan_end = work.plan_end_date.date() if work.plan_end_date else None
@@ -513,16 +514,26 @@ class SpotWorkService(BaseService):
                 )
 
             birth_date = worker_data.get('birthDate')
-            if birth_date_from_id and birth_date and birth_date != birth_date_from_id:
-                raise ValidationException(
-                    f"施工人员'{worker_data.get('name')}'的身份证号码与出生日期不匹配，根据身份证应为{birth_date_from_id}"
-                )
+            if birth_date_from_id and birth_date:
+                normalized_birth = birth_date.replace('年', '-').replace('月', '-').replace('日', '').replace('/', '-').strip()
+                if re.match(r'^\d{8}$', normalized_birth):
+                    normalized_birth = f"{normalized_birth[:4]}-{normalized_birth[4:6]}-{normalized_birth[6:8]}"
+                if normalized_birth != birth_date_from_id:
+                    raise ValidationException(
+                        f"施工人员'{worker_data.get('name')}'的身份证号码与出生日期不匹配，根据身份证应为{birth_date_from_id}"
+                    )
 
             gender = worker_data.get('gender')
-            if gender_from_id and gender and gender != gender_from_id:
-                raise ValidationException(
-                    f"施工人员'{worker_data.get('name')}'的身份证号码与性别不匹配，根据身份证应为{gender_from_id}"
-                )
+            if gender_from_id and gender:
+                normalized_gender = gender.strip()
+                if normalized_gender in ('M', '1'):
+                    normalized_gender = '男'
+                elif normalized_gender in ('F', '0', '2'):
+                    normalized_gender = '女'
+                if normalized_gender != gender_from_id:
+                    raise ValidationException(
+                        f"施工人员'{worker_data.get('name')}'的身份证号码与性别不匹配，根据身份证应为{gender_from_id}"
+                    )
 
             id_card_number = worker_data.get('idCardNumber', '')
             masked_id_card = self._mask_id_card(id_card_number)
@@ -636,7 +647,7 @@ class SpotWorkService(BaseService):
         remark: str | None = None,
         client_contact: str | None = None,
         client_contact_info: str | None = None,
-        photos: str | None = None,
+        photos: list[str] | str | None = None,
         signature: str | None = None,
         maintenance_personnel: str | None = None,
         operator_id: int | None = None,
@@ -667,11 +678,14 @@ class SpotWorkService(BaseService):
 
         photos_list = None
         if photos:
-            try:
-                photos_list = json.loads(photos) if isinstance(photos, str) else photos
-            except (json.JSONDecodeError, TypeError) as e:
-                logger.warning(f"Failed to parse photos JSON: {e}")
-                photos_list = None
+            if isinstance(photos, str):
+                try:
+                    photos_list = json.loads(photos)
+                except (json.JSONDecodeError, TypeError) as e:
+                    logger.warning(f"Failed to parse photos JSON: {e}")
+                    photos_list = None
+            elif isinstance(photos, list):
+                photos_list = photos
 
         create_dto = SpotWorkCreate(
             work_id=work_id,

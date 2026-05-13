@@ -6,6 +6,7 @@ import { maintenanceLogService } from '../services'
 import type { MaintenanceLog, OperationLog } from '../types/api'
 import { formatDate, formatDateTime } from '@sstcp/shared'
 import { useNavigation } from '../composables'
+import { getUploadUrl } from '../utils/uploadUrl'
 
 const route = useRoute()
 const { goBack } = useNavigation()
@@ -102,16 +103,7 @@ const fetchOperationLogs = async (logId: number) => {
   }
 }
 
-/**
- * 获取完整图片URL
- */
-const getFullImageUrl = (url: string): string => {
-  if (!url) return ''
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url
-  }
-  return window.location.origin + url
-}
+const getFullImageUrl = (url: string): string => getUploadUrl(url) || ''
 
 /**
  * 预览图片
@@ -198,7 +190,7 @@ watch(
               class="image-item"
               @click="handlePreviewImage(index)"
             >
-              <img :src="img" alt="现场照片" loading="lazy" />
+              <img :src="getUploadUrl(img)" alt="现场照片" loading="lazy" />
             </div>
           </div>
         </div>

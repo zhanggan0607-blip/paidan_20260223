@@ -11,6 +11,9 @@ class SpotWork(Base, SoftDeleteMixin, SerializationMixin):
     __tablename__ = "spot_work"
 
     _relation_overrides = {
+        'client_name': ('project', 'client_name'),
+    }
+    _detail_relation_overrides = {
         'project_name': ('project', 'project_name'),
         'client_name': ('project', 'client_name'),
     }

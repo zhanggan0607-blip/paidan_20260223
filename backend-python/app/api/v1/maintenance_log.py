@@ -15,7 +15,7 @@ from app.dependencies import (
 from app.models.maintenance_log import MaintenanceLog
 from app.models.personnel import Personnel
 from app.models.work_order_operation_log import WorkOrderOperationLog
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, PaginatedResponse
 
 router = APIRouter(prefix="/maintenance-log", tags=["Maintenance Log Management"])
 

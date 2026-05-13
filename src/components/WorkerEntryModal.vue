@@ -398,6 +398,7 @@ import { request } from '@/api/request'
 import type { ApiResponse } from '@/types/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { maskIdCard, compressImage, blobToFile } from '@sstcp/shared'
+import { API_ENDPOINTS } from '@/api/endpoints'
 
 interface WorkerInfo {
   id?: number
@@ -531,7 +532,7 @@ export default defineComponent({
 
         const ocrPromise = (async () => {
           try {
-            const ocrResponse = (await request.post('/ocr/idcard', {
+            const ocrResponse = (await request.post(API_ENDPOINTS.OCR.IDCARD, {
               imageBase64: compressedBase64,
               side: side === 'front' ? 'face' : 'back',
             })) as unknown as ApiResponse<{
@@ -554,10 +555,15 @@ export default defineComponent({
                 if (ocrData.address) currentWorker.value.address = ocrData.address
                 if (ocrData.idCardNumber) {
                   currentWorker.value.idCardNumber = ocrData.idCardNumber
-                  handleIdCardChange()
+                  if ((ocrData as any).validationWarning) {
+                    idCardError.value = (ocrData as any).validationWarning
+                    ElMessage.warning(`身份证识别有误：${(ocrData as any).validationWarning}，请核实后手动修改`)
+                  } else {
+                    handleIdCardChange()
+                  }
                   
                   request.get(
-                    `/spot-work/workers/check-id-card?id_card_number=${ocrData.idCardNumber}&project_id=${props.projectId}&start_date=${props.workDateStart}&end_date=${props.workDateEnd}`
+                    `${API_ENDPOINTS.SPOT_WORK.CHECK_ID_CARD}?id_card_number=${ocrData.idCardNumber}&project_id=${props.projectId}&start_date=${props.workDateStart}&end_date=${props.workDateEnd}`
                   ).then((checkResponse) => {
                     const resp = checkResponse as unknown as ApiResponse<{
                       exists: boolean
@@ -685,7 +691,7 @@ export default defineComponent({
       if (worker.id) {
         try {
           const response = (await request.delete(
-            `/spot-work/workers/${worker.id}`
+            API_ENDPOINTS.SPOT_WORK.WORKER_DETAIL(worker.id)
           )) as unknown as ApiResponse<null>
           if (response.code !== 200) {
             ElMessage.error(response.message || '删除失败')

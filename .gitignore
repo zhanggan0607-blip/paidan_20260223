@@ -55,3 +55,14 @@ env/
 .mypy_cache/
 .ruff_cache/
 uploads/
+check_db*.py
+check_owner.py
+migrate_db*.py
+test_apis.py
+test_results.txt
+test_token.txt
+check_all_columns.py
+check_columns.py
+fix_columns.py
+test_issues.py
+deploy-tars/

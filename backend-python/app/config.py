@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     rate_limit_per_hour: int = 10000
     get_rate_limit_per_minute: int = 1200
     get_rate_limit_per_hour: int = 30000
+    login_rate_limit_per_minute: int = 200
+    login_rate_limit_per_hour: int = 10000
+    ocr_rate_limit_per_minute: int = 10
+    ocr_rate_limit_per_hour: int = 100
 
     aliyun_access_key_id: str = ""
     aliyun_access_key_secret: str = ""

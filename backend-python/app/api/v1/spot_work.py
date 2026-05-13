@@ -72,6 +72,7 @@ def get_spot_works_list(
     project_name: str | None = Query(None, description="Project name (fuzzy search)"),
     work_id: str | None = Query(None, description="Work ID (fuzzy search)"),
     status: str | None = Query(None, description="Status"),
+    statuses: str | None = Query(None, description="Multiple statuses (comma-separated)"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_required)
 ):
@@ -84,9 +85,14 @@ def get_spot_works_list(
 
     logger.info(f"[PC端零星用工] user={user_info.name}, is_manager={user_info.is_manager}, filter={maintenance_personnel}")
 
+    status_list = None
+    if statuses:
+        status_list = [s.strip() for s in statuses.split(',') if s.strip()]
+
     items_dict, total = service.get_all_with_workers(
         page=page, size=size, project_name=project_name, work_id=work_id,
-        status=status, maintenance_personnel=maintenance_personnel
+        status=status, maintenance_personnel=maintenance_personnel,
+        statuses=status_list
     )
 
     return PaginatedResponse.success(items_dict, total, page, size)
@@ -382,6 +388,18 @@ def update_spot_work(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="工单审批需要管理员或部门经理权限"
+        )
+
+    if dto.status == '待确认' and existing.status == '执行中':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请使用提交接口(/submit)提交工单，不能通过更新接口直接修改状态"
+        )
+
+    if dto.status == '待确认' and existing.status == '已退回':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请使用提交接口(/submit)重新提交工单，不能通过更新接口直接修改状态"
         )
 
     work = service.update(id, dto)

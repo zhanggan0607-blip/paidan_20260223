@@ -24,12 +24,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         requests_per_hour: int = 1000,
         get_requests_per_minute: int = 200,
         get_requests_per_hour: int = 20000,
+        login_rate_limit_per_minute: int = 200,
+        login_rate_limit_per_hour: int = 10000,
+        ocr_rate_limit_per_minute: int = 10,
+        ocr_rate_limit_per_hour: int = 100,
     ):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.requests_per_hour = requests_per_hour
         self.get_requests_per_minute = get_requests_per_minute
         self.get_requests_per_hour = get_requests_per_hour
+        self.login_rate_limit_per_minute = login_rate_limit_per_minute
+        self.login_rate_limit_per_hour = login_rate_limit_per_hour
+        self.ocr_rate_limit_per_minute = ocr_rate_limit_per_minute
+        self.ocr_rate_limit_per_hour = ocr_rate_limit_per_hour
         self.request_counts: dict[str, dict[str, list[float]]] = defaultdict(
             lambda: {"minute": [], "hour": []}
         )
@@ -155,10 +163,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     }
 
     STRICT_RATE_LIMIT_PATHS = {
-        "/api/v1/auth/login": (5, 20),
-        "/api/v1/auth/login-json": (5, 20),
-        "/api/v1/ocr/idcard": (3, 30),
+        "/api/v1/auth/login": None,
+        "/api/v1/auth/login-json": None,
+        "/api/v1/ocr/idcard": None,
     }
+
+    def _get_strict_limits(self, path: str) -> tuple[int, int] | None:
+        if path not in self.STRICT_RATE_LIMIT_PATHS:
+            return None
+        if path.startswith("/api/v1/auth/login"):
+            return (self.login_rate_limit_per_minute, self.login_rate_limit_per_hour)
+        if path == "/api/v1/ocr/idcard":
+            return (self.ocr_rate_limit_per_minute, self.ocr_rate_limit_per_hour)
+        return None
 
     async def dispatch(self, request: Request, call_next):
         if request.url.path in self.EXCLUDED_PATHS:
@@ -170,7 +187,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         client_id = self._get_client_id(request)
         is_get = request.method == "GET"
 
-        strict_limits = self.STRICT_RATE_LIMIT_PATHS.get(request.url.path)
+        strict_limits = self._get_strict_limits(request.url.path)
         if strict_limits:
             per_minute, per_hour = strict_limits
             minute_exceeded, hour_exceeded = self._check_rate_limit_redis(
@@ -185,8 +202,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={
                     "code": 429,
-                    "message": "请求过于频繁，请稍后再试",
-                    "data": None
+                    "message": "请求过于频繁，请1分钟后再试",
+                    "data": None,
+                    "retry_after": 60
                 }
             )
 
@@ -196,8 +214,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 content={
                     "code": 429,
-                    "message": "小时请求次数已达上限，请稍后再试",
-                    "data": None
+                    "message": "小时请求次数已达上限，请1小时后再试",
+                    "data": None,
+                    "retry_after": 3600
                 }
             )
 

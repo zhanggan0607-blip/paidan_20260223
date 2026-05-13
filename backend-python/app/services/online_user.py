@@ -78,9 +78,18 @@ class OnlineUserService:
             return {"code": 500, "message": f"获取失败，错误ID: {error_id}"}
 
     def get_online_status_map(self, user_ids: list[int]) -> dict[int, dict]:
+        from datetime import datetime, timedelta
         from app.models.online_user import OnlineUser
+        timeout_threshold = datetime.utcnow() - timedelta(minutes=5)
         online_users = self._db.query(OnlineUser).filter(
             OnlineUser.user_id.in_(user_ids),
-            OnlineUser.is_active == True
+            OnlineUser.is_active == True,
+            OnlineUser.last_activity >= timeout_threshold
         ).all()
-        return {ou.user_id: ou.to_dict() for ou in online_users}
+        return {
+            ou.user_id: {
+                "is_online": True,
+                "device_type": ou.device_type,
+            }
+            for ou in online_users
+        }

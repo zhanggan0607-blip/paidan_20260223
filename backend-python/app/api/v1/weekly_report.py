@@ -17,7 +17,7 @@ from app.dependencies import (
 )
 from app.models.weekly_report import WeeklyReport
 from app.models.work_order_operation_log import WorkOrderOperationLog
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.weekly_report import (
     WeeklyReportApprove,
     WeeklyReportCreate,

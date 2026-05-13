@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { User } from '@sstcp/shared'
 import { decodeJwtPayload, isTokenExpired, fetchCurrentUser, refreshAccessToken } from '@sstcp/shared'
-import { COMMON_PERMISSION_CONFIGS, hasPermission as sharedHasPermission } from '@sstcp/shared'
+import { hasPermission as sharedHasPermission } from '@sstcp/shared'
+import { PERMISSION_CONFIGS } from '../config/permission'
 
 const TOKEN_KEY = 'h5_token'
 const REFRESH_TOKEN_KEY = 'h5_refresh_token'
@@ -142,7 +143,7 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function isWorker(): boolean {
-    return currentUser.value?.role === '维保人员'
+    return currentUser.value?.role === '运维人员'
   }
 
   function isMaterialManager(): boolean {
@@ -150,75 +151,147 @@ export const useUserStore = defineStore('user', () => {
   }
 
   function canViewStatistics(): boolean {
-    return sharedHasPermission('view_statistics', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_statistics', PERMISSION_CONFIGS)
   }
 
   function canViewPersonnel(): boolean {
-    return sharedHasPermission('view_personnel', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_personnel', PERMISSION_CONFIGS)
   }
 
   function canViewSpareParts(): boolean {
-    return sharedHasPermission('view_spare_parts_stock', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_spare_parts_stock', PERMISSION_CONFIGS)
   }
 
   function canViewRepairTools(): boolean {
-    return sharedHasPermission('view_repair_tools_stock', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_repair_tools_stock', PERMISSION_CONFIGS)
   }
 
   function canViewWorkOrder(): boolean {
-    return sharedHasPermission('view_work_order', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_work_order', PERMISSION_CONFIGS)
   }
 
   function canApprovePeriodicInspection(): boolean {
-    return sharedHasPermission('approve_periodic_inspection', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'approve_periodic_inspection', PERMISSION_CONFIGS)
   }
 
   function canApproveTemporaryRepair(): boolean {
-    return sharedHasPermission('approve_temporary_repair', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'approve_temporary_repair', PERMISSION_CONFIGS)
   }
 
   function canApproveSpotWork(): boolean {
-    return sharedHasPermission('approve_spot_work', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'approve_spot_work', PERMISSION_CONFIGS)
   }
 
   function canFillMaintenanceLog(): boolean {
-    return sharedHasPermission('fill_maintenance_log', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'fill_maintenance_log', PERMISSION_CONFIGS)
   }
 
   function canViewMaintenanceLog(): boolean {
-    return sharedHasPermission('view_maintenance_log', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_maintenance_log', PERMISSION_CONFIGS)
   }
 
   function canViewAllMaintenanceLog(): boolean {
-    return sharedHasPermission('view_all_maintenance_log', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_all_maintenance_log', PERMISSION_CONFIGS)
   }
 
   function canFillWeeklyReport(): boolean {
-    return sharedHasPermission('fill_weekly_report', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'fill_weekly_report', PERMISSION_CONFIGS)
   }
 
   function canViewWeeklyReport(): boolean {
-    return sharedHasPermission('view_weekly_report', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_weekly_report', PERMISSION_CONFIGS)
   }
 
   function canViewAlerts(): boolean {
-    return sharedHasPermission('view_alerts', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_alerts', PERMISSION_CONFIGS)
   }
 
   function canViewSystemManagement(): boolean {
-    return sharedHasPermission('view_system_management', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_system_management', PERMISSION_CONFIGS)
   }
 
   function canDeletePersonnel(): boolean {
-    return sharedHasPermission('delete_personnel', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'delete_personnel', PERMISSION_CONFIGS)
   }
 
   function canEditPersonnelRole(): boolean {
-    return sharedHasPermission('edit_personnel_role', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'edit_personnel_role', PERMISSION_CONFIGS)
   }
 
   function canViewProjectManagement(): boolean {
-    return sharedHasPermission('view_project_management', currentUser.value?.role, COMMON_PERMISSION_CONFIGS)
+    return sharedHasPermission(currentUser.value?.role, 'view_project_management', PERMISSION_CONFIGS)
+  }
+
+  function canViewPeriodicInspection(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_periodic_inspection', PERMISSION_CONFIGS)
+  }
+
+  function canViewTemporaryRepair(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_temporary_repair', PERMISSION_CONFIGS)
+  }
+
+  function canViewSpotWork(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_spot_work', PERMISSION_CONFIGS)
+  }
+
+  function canApplySpotWork(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'apply_spot_work', PERMISSION_CONFIGS)
+  }
+
+  function canQuickFillSpotWork(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'quick_fill_spot_work', PERMISSION_CONFIGS)
+  }
+
+  function canViewProjectInfo(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_project_info', PERMISSION_CONFIGS)
+  }
+
+  function canViewWorkList(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_work_list', PERMISSION_CONFIGS)
+  }
+
+  function canViewSignature(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_signature', PERMISSION_CONFIGS)
+  }
+
+  function canViewMaintenanceLogDetail(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_maintenance_log_detail', PERMISSION_CONFIGS)
+  }
+
+  function canViewDepartmentWeeklyReport(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_department_weekly_report', PERMISSION_CONFIGS)
+  }
+
+  function canViewAllWeeklyReport(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_all_weekly_report', PERMISSION_CONFIGS)
+  }
+
+  function canViewAllWorkOrders(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_all_work_orders', PERMISSION_CONFIGS)
+  }
+
+  function canCreateTemporaryRepair(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'create_temporary_repair', PERMISSION_CONFIGS)
+  }
+
+  function canViewSparePartsIssue(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_spare_parts_issue', PERMISSION_CONFIGS)
+  }
+
+  function canViewSparePartsStock(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_spare_parts_stock', PERMISSION_CONFIGS)
+  }
+
+  function canViewRepairToolsIssue(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_repair_tools_issue', PERMISSION_CONFIGS)
+  }
+
+  function canViewRepairToolsInbound(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_repair_tools_inbound', PERMISSION_CONFIGS)
+  }
+
+  function canViewRepairToolsStock(): boolean {
+    return sharedHasPermission(currentUser.value?.role, 'view_repair_tools_stock', PERMISSION_CONFIGS)
   }
 
   return {
@@ -259,5 +332,23 @@ export const useUserStore = defineStore('user', () => {
     canDeletePersonnel,
     canEditPersonnelRole,
     canViewProjectManagement,
+    canViewPeriodicInspection,
+    canViewTemporaryRepair,
+    canViewSpotWork,
+    canApplySpotWork,
+    canQuickFillSpotWork,
+    canViewProjectInfo,
+    canViewWorkList,
+    canViewSignature,
+    canViewMaintenanceLogDetail,
+    canViewDepartmentWeeklyReport,
+    canViewAllWeeklyReport,
+    canViewAllWorkOrders,
+    canCreateTemporaryRepair,
+    canViewSparePartsIssue,
+    canViewSparePartsStock,
+    canViewRepairToolsIssue,
+    canViewRepairToolsInbound,
+    canViewRepairToolsStock,
   }
 })

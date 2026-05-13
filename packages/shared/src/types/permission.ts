@@ -23,15 +23,15 @@ export const PERSONNEL_MANAGEMENT_ROLES: string[] = ['管理员', '部门经理'
 
 export const SPARE_PARTS_MANAGEMENT_ROLES: string[] = ['管理员', '部门经理', '材料员']
 
-export const WORK_ORDER_VIEW_ROLES: string[] = ['管理员', '部门经理', '运维人员']
+export const WORK_ORDER_VIEW_ROLES: string[] = ['管理员', '部门经理', '主管', '运维人员']
 
 export const WORK_ORDER_APPROVE_ROLES: string[] = ['管理员', '部门经理']
 
-export const STATISTICS_VIEW_ROLES: string[] = ['管理员', '部门经理', '运维人员']
+export const STATISTICS_VIEW_ROLES: string[] = ['管理员', '部门经理', '主管', '运维人员']
 
-export const MAINTENANCE_LOG_FILL_ROLES: string[] = ['管理员', '部门经理', '运维人员']
+export const MAINTENANCE_LOG_FILL_ROLES: string[] = ['管理员', '部门经理', '主管', '运维人员']
 
-export const MAINTENANCE_LOG_VIEW_ROLES: string[] = ['管理员', '部门经理', '运维人员']
+export const MAINTENANCE_LOG_VIEW_ROLES: string[] = ['管理员', '部门经理', '主管', '运维人员']
 
 export const WEEKLY_REPORT_FILL_ROLES: string[] = ['管理员', '部门经理']
 

@@ -20,10 +20,10 @@ from app.config import get_settings
 logger = get_logger(__name__)
 
 _runtime_options = RuntimeOptions(
-    connect_timeout=5,
-    read_timeout=10,
+    connect_timeout=10,
+    read_timeout=20,
     autoretry=True,
-    max_attempts=2,
+    max_attempts=3,
 )
 
 
@@ -36,41 +36,43 @@ class AliyunOCRService:
 
     _instance: Optional['AliyunOCRService'] = None
     _client: Client | None = None
+    _initialized: bool = False
 
     def __new__(cls):
-        """
-        单例模式，确保只有一个客户端实例
-        """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self):
-        """
-        初始化阿里云OCR客户端
-        """
-        if self._client is None:
-            settings = get_settings()
-            access_key_id = settings.aliyun_access_key_id
-            access_key_secret = settings.aliyun_access_key_secret
-            region_id = settings.aliyun_ocr_region_id
+        if not self._initialized:
+            self._init_client()
+            self._initialized = True
 
-            if not access_key_id or not access_key_secret:
-                logger.warning("阿里云OCR配置未设置，请检查ALIYUN_ACCESS_KEY_ID和ALIYUN_ACCESS_KEY_SECRET")
+    def _init_client(self):
+        settings = get_settings()
+        access_key_id = settings.aliyun_access_key_id
+        access_key_secret = settings.aliyun_access_key_secret
+        region_id = settings.aliyun_ocr_region_id
+
+        if not access_key_id or not access_key_secret:
+            logger.warning("阿里云OCR配置未设置，请检查ALIYUN_ACCESS_KEY_ID和ALIYUN_ACCESS_KEY_SECRET")
+            self._client = None
+        else:
+            try:
+                config = Config(
+                    access_key_id=access_key_id,
+                    access_key_secret=access_key_secret,
+                    endpoint='ocr.cn-shanghai.aliyuncs.com',
+                    region_id=region_id
+                )
+                self._client = Client(config)
+                logger.info(f"阿里云OCR客户端初始化成功，区域: {region_id}")
+            except Exception as e:
+                logger.error(f"阿里云OCR客户端初始化失败: {str(e)}")
                 self._client = None
-            else:
-                try:
-                    config = Config(
-                        access_key_id=access_key_id,
-                        access_key_secret=access_key_secret,
-                        endpoint='ocr.cn-shanghai.aliyuncs.com',
-                        region_id=region_id
-                    )
-                    self._client = Client(config)
-                    logger.info(f"阿里云OCR客户端初始化成功，区域: {region_id}")
-                except Exception as e:
-                    logger.error(f"阿里云OCR客户端初始化失败: {str(e)}")
-                    self._client = None
+
+    def reinitialize(self):
+        self._init_client()
 
     def is_configured(self) -> bool:
         """

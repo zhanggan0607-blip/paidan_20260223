@@ -31,9 +31,14 @@ class InspectionItemRepository:
             logger.error(f"查询巡检事项失败 (id={item_id}): {str(e)}")
             raise
 
-    def get_by_code(self, item_code: str) -> InspectionItem | None:
+    def get_by_code(self, item_code: str, include_deleted: bool = False) -> InspectionItem | None:
         try:
-            return self.db.query(InspectionItem).filter(InspectionItem.item_code == item_code).first()
+            query = self.db.query(InspectionItem).filter(
+                InspectionItem.item_code == item_code
+            )
+            if not include_deleted:
+                query = query.filter(InspectionItem.deleted_at.is_(None))
+            return query.first()
         except Exception as e:
             logger.error(f"查询巡检事项失败 (code={item_code}): {str(e)}")
             raise

@@ -44,20 +44,6 @@ def get_work_order_list(
     return PaginatedResponse.success(all_orders, total, page, size)
 
 
-@router.get("/{order_id}", response_model=ApiResponse)
-def get_work_order_detail(
-    order_id: int,
-    type: str = Query(..., description="工单类型: inspection/repair/spotwork"),
-    db: Session = Depends(get_db),
-    user_info: UserInfo = Depends(get_current_user_required),
-):
-    service = WorkOrderService(db)
-    detail = service.get_work_order_detail(order_id, type)
-    if not detail:
-        raise HTTPException(status_code=404, detail="工单不存在")
-    return ApiResponse.success(detail)
-
-
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_work_orders(
     db: Session = Depends(get_db),
@@ -87,3 +73,17 @@ def get_completed_this_year(
         size=size,
     )
     return PaginatedResponse.success(all_orders, total, page, size)
+
+
+@router.get("/{order_id}", response_model=ApiResponse)
+def get_work_order_detail(
+    order_id: int,
+    type: str = Query(..., description="工单类型: inspection/repair/spotwork"),
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required),
+):
+    service = WorkOrderService(db)
+    detail = service.get_work_order_detail(order_id, type)
+    if not detail:
+        raise HTTPException(status_code=404, detail="工单不存在")
+    return ApiResponse.success(detail)

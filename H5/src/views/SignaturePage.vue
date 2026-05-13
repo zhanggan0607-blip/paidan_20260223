@@ -26,7 +26,7 @@ const isIOS = ref(false)
 const isIPhone = () => {
   return (
     /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   )
 }
 

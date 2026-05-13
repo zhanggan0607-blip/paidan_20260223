@@ -23,6 +23,7 @@ export interface RequestConfig {
   onUnauthorized?: () => void
   onNetworkError?: (error: ApiError) => void
   onServerError?: (error: ApiError) => void
+  onRateLimited?: (error: ApiError) => void
   refreshEndpoint?: string
   enableLogger?: boolean
   proactiveRefreshBufferMinutes?: number
@@ -275,6 +276,10 @@ export function createRequest(config: RequestConfig): RequestInstance {
 
       if (error.response.status >= 500) {
         config.onServerError?.(apiError)
+      }
+
+      if (error.response?.status === 429) {
+        config.onRateLimited?.(apiError)
       }
 
       if (error.response?.status === 401 && !originalRequest._retry) {

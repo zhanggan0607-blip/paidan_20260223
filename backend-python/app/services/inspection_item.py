@@ -25,7 +25,7 @@ class InspectionItemService(BaseService):
         return self.repository.search(keyword)
 
     def create_item(self, item_data: InspectionItemCreate) -> InspectionItem:
-        existing_item = self.repository.get_by_code(item_data.item_code)
+        existing_item = self.repository.get_by_code(item_data.item_code, include_deleted=True)
         if existing_item:
             raise ValueError(f"事项编码 '{item_data.item_code}' 已存在")
         item = self.repository.create(item_data)
@@ -34,7 +34,7 @@ class InspectionItemService(BaseService):
 
     def update_item(self, item_id: int, item_data: InspectionItemUpdate) -> InspectionItem | None:
         if item_data.item_code:
-            existing_item = self.repository.get_by_code(item_data.item_code)
+            existing_item = self.repository.get_by_code(item_data.item_code, include_deleted=True)
             if existing_item and existing_item.id != item_id:
                 raise ValueError(f"事项编码 '{item_data.item_code}' 已存在")
         item = self.repository.update(item_id, item_data)

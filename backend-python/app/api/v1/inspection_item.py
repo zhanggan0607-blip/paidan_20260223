@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import UserInfo, get_manager_user
+from app.dependencies import UserInfo, get_manager_user, get_current_user_required
 from app.schemas.common import ApiResponse, PaginatedResponse
 from app.schemas.inspection_item import InspectionItemCreate, InspectionItemUpdate
 from app.services.inspection_item import InspectionItemService
@@ -12,7 +12,8 @@ router = APIRouter(prefix="/inspection-item", tags=["巡检事项管理"])
 
 @router.get("/tree", response_model=ApiResponse)
 def get_inspection_item_tree(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     service = InspectionItemService(db)
     tree = service.get_tree()
@@ -20,7 +21,8 @@ def get_inspection_item_tree(
 
 @router.get("/all/list", response_model=ApiResponse)
 def get_all_inspection_items(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     service = InspectionItemService(db)
     items = service.get_all_items()
@@ -31,7 +33,8 @@ def get_inspection_item_list(
     page: int = 0,
     size: int = 10,
     keyword: str | None = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     service = InspectionItemService(db)
     if keyword:
@@ -48,7 +51,8 @@ def get_inspection_item_list(
 @router.get("/{id}", response_model=ApiResponse)
 def get_inspection_item_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
 ):
     service = InspectionItemService(db)
     item = service.get_item_by_id(id)

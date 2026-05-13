@@ -41,6 +41,7 @@ const handleLogin = async () => {
     if (response.code === 200 && response.data) {
       const user = response.data.user
       if (!user) {
+        closeToast()
         showToast('登录失败：用户信息为空')
         return
       }
@@ -58,8 +59,9 @@ const handleLogin = async () => {
         must_change_password: (user as { must_change_password?: boolean }).must_change_password,
       })
 
-      await onlineUserService.recordLogin('h5', user.id, user.name)
+      onlineUserService.recordLogin('h5', user.id, user.name).catch(() => {})
 
+      closeToast()
       showToast({
         type: 'success',
         message: '登录成功',
@@ -72,14 +74,19 @@ const handleLogin = async () => {
         router.replace(redirect)
       }
     } else {
+      closeToast()
       showToast(response.message || '登录失败')
     }
   } catch (error: any) {
     console.error('登录失败:', error)
-    showToast(error.message || '登录失败，请重试')
+    closeToast()
+    if (error?.status === 429) {
+      showToast(error.message || '请求过于频繁，请稍后再试')
+    } else {
+      showToast(error.message || '登录失败，请重试')
+    }
   } finally {
     loading.value = false
-    closeToast()
   }
 }
 </script>

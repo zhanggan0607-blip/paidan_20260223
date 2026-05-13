@@ -53,14 +53,14 @@ class SerializationMixin:
       当关联对象存在时，用关联对象的字段值覆盖当前字段值
     """
 
-    _JSON_LIKE_FIELDS = {'photos', 'images', 'inspection_items', 'work_content', 'check_items'}
+    _JSON_LIKE_FIELDS = {'photos', 'images', 'inspection_items', 'check_items'}
 
     _exclude_from_dict: set = set()
     _date_only_fields: set = set()
     _relation_extras: dict = {}
     _relation_overrides: dict = {}
 
-    def to_dict(self, exclude: set | None = None, extra: dict | None = None) -> dict:
+    def to_dict(self, exclude: set | None = None, extra: dict | None = None, use_detail_overrides: bool = False) -> dict:
         result = {}
         exclude_set = _EXCLUDE_COLUMNS | set(self._exclude_from_dict) | (exclude or set())
 
@@ -93,7 +93,11 @@ class SerializationMixin:
             else:
                 result[key] = value
 
-        for field_name, (relation_attr, source_field) in self._relation_overrides.items():
+        overrides = self._relation_overrides
+        if use_detail_overrides and hasattr(self, '_detail_relation_overrides'):
+            overrides = {**self._relation_overrides, **self._detail_relation_overrides}
+
+        for field_name, (relation_attr, source_field) in overrides.items():
             relation_obj = getattr(self, relation_attr, None)
             if relation_obj:
                 override_value = getattr(relation_obj, source_field, None)

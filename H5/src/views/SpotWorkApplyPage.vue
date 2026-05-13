@@ -1,6 +1,6 @@
 <script setup lang="ts">
 defineOptions({ name: 'SpotWorkApplyPage' })
-import { ref, onMounted, computed, onActivated } from 'vue'
+import { ref, onMounted, computed, onActivated, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   showLoadingToast,
@@ -23,6 +23,7 @@ import { useUserStore } from '../stores/userStore'
 const userStore = useUserStore()
 import { useNavigation } from '../composables/useNavigation'
 import { copyOrderId } from '../utils/clipboard'
+import { getUploadUrl } from '../utils/uploadUrl'
 import type { ProjectInfo } from '../types/api'
 
 const router = useRouter()
@@ -137,7 +138,7 @@ const fetchWorkList = async () => {
       size: 100,
     })
     if (response.code === 200) {
-      const allItems = response.data?.items || []
+      const allItems = (response.data as any)?.items || []
       const filteredItems = allItems.filter((item: any) =>
         currentTab.value?.statuses.includes(item.status)
       )
@@ -329,9 +330,9 @@ const handleSubmit = async () => {
       worker_count: workerCount.value,
       client_contact: applyFormData.value.clientContact,
       client_contact_info: applyFormData.value.clientContactInfo,
-      photos: JSON.stringify(currentPhotos.value),
+      photos: currentPhotos.value,
       signature: signature.value,
-    } as any)
+    })
     if (response.code === 200) {
       generatedWorkId.value = response.data?.work_id || ''
       showSuccessToast({
@@ -401,22 +402,15 @@ const projectColumns = computed(() => {
 const fetchWorkerCount = async () => {
   if (!applyFormData.value.projectId) {
     workerCount.value = 0
-    console.log('[fetchWorkerCount] projectId为空，workerCount设为0')
     return
   }
 
   try {
-    console.log('[fetchWorkerCount] 请求参数:', {
-      projectId: applyFormData.value.projectId,
-      workDateStart: applyFormData.value.workDateStart,
-      workDateEnd: applyFormData.value.workDateEnd,
-    })
     const response = await spotWorkService.getWorkersByProject(
       applyFormData.value.projectId,
       applyFormData.value.workDateStart,
       applyFormData.value.workDateEnd
     )
-    console.log('[fetchWorkerCount] 响应:', response.code, '数据量:', response.data?.length)
     if (response.code === 200) {
       workerCount.value = response.data?.length || 0
     }
@@ -439,7 +433,7 @@ const handlePhotoCapture = () => {
   const ua = navigator.userAgent.toLowerCase()
   const isIOS =
     /iphone|ipad|ipod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
@@ -623,82 +617,6 @@ const handlePhotoCapture = () => {
  * @param maxSizeKB 最大大小（KB）
  * @returns 压缩后的Blob
  */
-const compressImage = (file: File, maxSizeKB: number): Promise<Blob> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    const reader = new FileReader()
-
-    reader.onload = (e) => {
-      img.src = e.target?.result as string
-    }
-
-    img.onload = () => {
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')!
-
-      let width = img.width
-      let height = img.height
-
-      const maxDimension = 1920
-      if (width > maxDimension || height > maxDimension) {
-        if (width > height) {
-          height = Math.round((height * maxDimension) / width)
-          width = maxDimension
-        } else {
-          width = Math.round((width * maxDimension) / height)
-          height = maxDimension
-        }
-      }
-
-      canvas.width = width
-      canvas.height = height
-      ctx.drawImage(img, 0, 0, width, height)
-
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            reject(new Error('图片压缩失败'))
-            return
-          }
-
-          if (blob.size <= maxSizeKB * 1024) {
-            resolve(blob)
-            return
-          }
-
-          const quality = Math.sqrt((maxSizeKB * 1024) / blob.size)
-          canvas.toBlob(
-            (compressedBlob) => {
-              if (compressedBlob) {
-                resolve(compressedBlob)
-              } else {
-                resolve(blob)
-              }
-            },
-            'image/jpeg',
-            Math.max(0.1, Math.min(quality, 0.9))
-          )
-        },
-        'image/jpeg',
-        0.9
-      )
-    }
-
-    img.onerror = () => {
-      reject(new Error('图片加载失败'))
-    }
-
-    reader.onerror = () => {
-      reject(new Error('文件读取失败'))
-    }
-
-    reader.readAsDataURL(file)
-  })
-}
-
-/**
- * 删除图片
- */
 const handleRemovePhoto = async (index: number) => {
   try {
     await showConfirmDialog({
@@ -713,8 +631,12 @@ const handleRemovePhoto = async (index: number) => {
  * 保存图片
  */
 const handlePhotoSave = () => {
+  if (currentPhotos.value.length === 0) {
+    showFailToast('请至少上传一张现场照片')
+    return
+  }
   showPhotoPopup.value = false
-  showSuccessToast('保存成功')
+  showSuccessToast(`已保存${currentPhotos.value.length}张照片`)
 }
 
 /**
@@ -740,6 +662,22 @@ const loadSignature = () => {
     signature.value = signatureData
   }
 }
+
+// 自动保存表单数据到 sessionStorage
+watch(
+  () => [
+    applyFormData.value,
+    selectedProjectName.value,
+    currentPhotos.value,
+    workerCount.value,
+    startDatePickerValue.value,
+    endDatePickerValue.value,
+  ],
+  () => {
+    saveFormToStorage()
+  },
+  { deep: true }
+)
 
 onMounted(() => {
   userReady.value = true
@@ -1008,7 +946,7 @@ onActivated(() => {
           <div class="photo-section">
             <div class="photo-grid">
               <div v-for="(photo, index) in currentPhotos" :key="index" class="photo-item">
-                <img :src="photo" alt="现场照片" loading="lazy" />
+                <img :src="getUploadUrl(photo)" alt="现场照片" loading="lazy" />
                 <van-icon
                   name="delete"
                   class="delete-icon"

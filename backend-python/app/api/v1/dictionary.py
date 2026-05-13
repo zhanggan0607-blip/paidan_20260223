@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.common import ApiResponse
+from app.schemas.common import ApiResponse, PaginatedResponse
 from app.services.dictionary import DictionaryService
 
 router = APIRouter(prefix="/dictionary", tags=["Dictionary Management"])

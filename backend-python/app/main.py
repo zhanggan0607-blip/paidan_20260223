@@ -143,7 +143,7 @@ async def lifespan(app: FastAPI):
             conn.commit()
         logger.info("工单编号序列创建成功")
     except Exception as e:
-        logger.warning(f"创建工单编号序列失败（可能已存在）: {str(e)}")
+        logger.warning(f"创建工单编号序列失败，将使用表查询方式生成编号: {str(e)}")
 
     yield
 
@@ -207,6 +207,10 @@ app.add_middleware(
     requests_per_hour=settings.rate_limit_per_hour,
     get_requests_per_minute=settings.get_rate_limit_per_minute,
     get_requests_per_hour=settings.get_rate_limit_per_hour,
+    login_rate_limit_per_minute=settings.login_rate_limit_per_minute,
+    login_rate_limit_per_hour=settings.login_rate_limit_per_hour,
+    ocr_rate_limit_per_minute=settings.ocr_rate_limit_per_minute,
+    ocr_rate_limit_per_hour=settings.ocr_rate_limit_per_hour,
 )
 
 app.include_router(auth.router, prefix=settings.api_prefix)

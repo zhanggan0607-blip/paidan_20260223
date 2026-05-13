@@ -52,9 +52,11 @@ def recognize_idcard(
     ocr_service = get_ocr_service()
 
     if not ocr_service.is_configured():
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="OCR服务未配置，请联系管理员配置阿里云AccessKey"
+        logger.warning("OCR服务未配置，返回503")
+        return ApiResponse(
+            code=503,
+            message="OCR服务未配置，请联系管理员配置阿里云AccessKey",
+            data=None
         )
 
     if not request.imageUrl and not request.imageBase64:

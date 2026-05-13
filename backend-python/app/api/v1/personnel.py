@@ -79,14 +79,23 @@ def get_personnel_list(
     )
     
     user_ids = [item.id for item in items]
-    online_status_map = _get_online_status_map(db, user_ids) if user_ids else {}
+    online_status_map = {}
+    if user_ids:
+        try:
+            online_status_map = _get_online_status_map(db, user_ids)
+        except Exception as e:
+            logger.warning(f"获取在线状态失败，将使用默认离线状态: {e}")
     
     items_dict = []
     for item in items:
-        item_dict = item.to_dict()
+        try:
+            item_dict = item.to_dict()
+        except Exception as e:
+            logger.warning(f"序列化人员信息失败 (id={item.id}): {e}")
+            item_dict = {"id": item.id, "name": getattr(item, 'name', ''), "is_online": False, "device_type": None}
         online_info = online_status_map.get(item.id, {"is_online": False, "device_type": None})
-        item_dict["is_online"] = online_info["is_online"]
-        item_dict["device_type"] = online_info["device_type"]
+        item_dict["is_online"] = online_info.get("is_online", False)
+        item_dict["device_type"] = online_info.get("device_type")
         items_dict.append(item_dict)
     
     return PaginatedResponse.success(items_dict, total, page, size)

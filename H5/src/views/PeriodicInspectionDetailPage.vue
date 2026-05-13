@@ -23,6 +23,7 @@ const userStore = useUserStore()
 import OperationLogTimeline from '../components/OperationLogTimeline.vue'
 import { useNavigation } from '../composables'
 import { copyOrderId } from '../utils/clipboard'
+import { getUploadUrl } from '../utils/uploadUrl'
 
 const router = useRouter()
 const route = useRoute()
@@ -115,11 +116,17 @@ const canApprove = computed(() => {
 const isWorker = computed(() => {
   const user = userStore.currentUser
   if (!user || !detail.value) return false
-  return detail.value.maintenance_personnel === user.name
+  const workerName = detail.value.maintenance_personnel?.trim()
+  const userName = user.name?.trim()
+  if (!workerName || !userName) return false
+  if (workerName === userName) return true
+  if (workerName.toLowerCase() === userName.toLowerCase()) return true
+  const normalize = (s: string) => s.replace(/\s+/g, '').toLowerCase()
+  return normalize(workerName) === normalize(userName)
 })
 
 const isEditable = computed(() => {
-  if (!isWorker.value) return false
+  if (!isWorker.value && !userStore.isManager()) return false
   const status = detail.value?.status
   if (status === WORK_STATUS.COMPLETED) return false
   return (
@@ -143,12 +150,12 @@ const canSign = computed(() => {
 
 const canSubmit = computed(() => {
   if (!canSign.value || !formData.value.signature) return false
-  if (!isWorker.value) return false
+  if (!isWorker.value && !userStore.isManager()) return false
   return detail.value?.status === WORK_STATUS.IN_PROGRESS
 })
 
 const canUpdate = computed(() => {
-  if (!isWorker.value) return false
+  if (!isWorker.value && !userStore.isManager()) return false
   const status = detail.value?.status
   return status === WORK_STATUS.PENDING_CONFIRM || status === WORK_STATUS.RETURNED
 })
@@ -165,10 +172,13 @@ const handleBackToList = () => {
   goBack()
 }
 
+const getFullImageUrl = (url: string): string => getUploadUrl(url) || ''
+
 const previewPhoto = (photos: string[], startIndex: number) => {
   if (!photos || photos.length === 0) return
+  const fullUrls = photos.map((url) => getFullImageUrl(url))
   showImagePreview({
-    images: photos,
+    images: fullUrls,
     startPosition: startIndex,
     closeable: true,
     showIndex: true,
@@ -374,8 +384,9 @@ const saveRecordToBackend = async (system: InspectionSystem) => {
     }
 
     await periodicInspectionService.createRecord(recordData)
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to save record:', error)
+    showFailToast('巡检记录保存失败，请重试')
   }
 }
 
@@ -446,7 +457,7 @@ const handlePhotoCaptureForItem = (system: InspectionSystem, markAsInspected: bo
   const ua = navigator.userAgent.toLowerCase()
   const isIOS =
     /iphone|ipad|ipod/.test(ua) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/mac/i.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
   const isDingTalk = /dingtalk|ddwebview|dd/.test(ua)
   const isMobile = /mobile|android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(ua)
   const useBase64Upload = isIOS || isDingTalk || isMobile || navigator.maxTouchPoints > 1
@@ -824,8 +835,7 @@ const handleSubmit = async () => {
 
     showLoadingToast({ message: '提交中...', forbidClick: true })
 
-    const submitData = {
-      status: '待确认',
+    const patchData = {
       execution_result: formData.value.execution_result,
       remarks: formData.value.remarks,
       signature: formData.value.signature,
@@ -833,13 +843,20 @@ const handleSubmit = async () => {
       filled_count: filledCount.value,
     }
 
-    const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
+    const patchResponse = await periodicInspectionService.patch(detail.value?.id!, patchData)
+
+    if (patchResponse.code !== 200) {
+      showFailToast('保存工单数据失败')
+      return
+    }
+
+    const response = await periodicInspectionService.submit(detail.value?.id!)
 
     if (response.code === 200) {
       await addOperationLog('submit', '员工提交工单')
       localStorage.removeItem('periodic_inspection_signature')
       showSuccessToast('提交成功')
-      router.push({ path: '/work-list', query: { type: 'periodic' } })
+      router.push('/periodic-inspection')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -927,6 +944,72 @@ const handleUpdate = async () => {
   }
 }
 
+const handleResubmit = async () => {
+  if (!canUpdate.value) {
+    showFailToast('当前状态不允许重新提交')
+    return
+  }
+
+  if (!allInspected.value) {
+    showFailToast('请完成所有巡检项')
+    return
+  }
+
+  if (!allPhotosUploaded.value) {
+    showFailToast('请上传所有巡检项照片')
+    return
+  }
+
+  if (!formData.value.signature) {
+    showFailToast('请完成用户签字确认')
+    return
+  }
+
+  try {
+    await showConfirmDialog({
+      title: '提示',
+      message: '确认重新提交工单吗？提交后将进入审批流程。',
+    })
+
+    showLoadingToast({ message: '提交中...', forbidClick: true })
+
+    const patchData = {
+      execution_result: formData.value.execution_result,
+      remarks: formData.value.remarks,
+      signature: formData.value.signature,
+      total_count: totalCount.value,
+      filled_count: filledCount.value,
+    }
+
+    const patchResponse = await periodicInspectionService.patch(detail.value?.id!, patchData)
+
+    if (patchResponse.code !== 200) {
+      showFailToast('保存工单数据失败')
+      return
+    }
+
+    const response = await periodicInspectionService.submit(detail.value?.id!)
+
+    if (response.code === 200) {
+      await addOperationLog('resubmit', '员工修改后重新提交工单')
+      localStorage.removeItem('periodic_inspection_signature')
+      showSuccessToast('重新提交成功，等待审批')
+      router.push('/periodic-inspection')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('重新提交失败:', error)
+      if (error.response?.data?.detail) {
+        showFailToast(error.response.data.detail)
+      } else {
+        showFailToast('重新提交失败')
+      }
+    }
+  } finally {
+    closeToast()
+  }
+}
+
 /**
  * 审批通过
  */
@@ -947,16 +1030,12 @@ const handleApprovePass = async () => {
     isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
-    const submitData = {
-      status: '已完成',
-    }
-
-    const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
+    const response = await periodicInspectionService.approve(detail.value?.id!, true)
 
     if (response.code === 200) {
       await addOperationLog('approve', '部门经理审批通过')
       showSuccessToast('审批通过')
-      router.push({ path: '/work-list', query: { type: 'periodic' } })
+      router.push('/periodic-inspection')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -1016,17 +1095,12 @@ const confirmReject = async () => {
     isSubmitting.value = true
     showLoadingToast({ message: '处理中...', forbidClick: true })
 
-    const submitData = {
-      status: '已退回',
-      reject_reason: reason,
-    }
-
-    const response = await periodicInspectionService.patch(detail.value?.id!, submitData)
+    const response = await periodicInspectionService.reject(detail.value?.id!, reason)
 
     if (response.code === 200) {
       await addOperationLog('reject', `部门经理退回工单，原因：${reason}`)
       showSuccessToast('已退回')
-      router.push({ path: '/work-list', query: { type: 'periodic' } })
+      router.push('/periodic-inspection')
     }
   } catch (error) {
     if (error !== 'cancel') {
@@ -1286,7 +1360,7 @@ watch(
                   class="photo-item-inline"
                   @click="previewPhoto(system.photos, photoIdx)"
                 >
-                  <img :src="photo" alt="现场照片" loading="lazy" />
+                  <img :src="getUploadUrl(photo)" alt="现场照片" loading="lazy" />
                   <van-icon
                     v-if="isEditable"
                     name="delete"
@@ -1295,9 +1369,9 @@ watch(
                   />
                 </div>
                 <div
-                  v-if="isEditable && system.inspected && system.photos.length < 9"
+                  v-if="isEditable && system.photos.length < 9"
                   class="photo-add-inline"
-                  @click="handlePhotoCaptureForItem(system)"
+                  @click="handlePhotoCaptureForItem(system, true)"
                 >
                   <van-icon name="photograph" size="24" />
                   <span>拍照</span>
@@ -1364,11 +1438,38 @@ watch(
       />
 
       <div v-if="canUpdate" class="action-buttons">
-        <van-button type="primary" size="large" @click="handleUpdate">更新</van-button>
+        <van-notice-bar
+          v-if="detail?.status === WORK_STATUS.RETURNED"
+          left-icon="warning-o"
+          text="工单已退回，请修改内容后点击重新提交"
+          color="#ed6a0c"
+          background="#fffbe8"
+          style="margin-bottom: 12px;"
+        />
+        <van-notice-bar
+          v-else-if="detail?.status === WORK_STATUS.PENDING_CONFIRM"
+          left-icon="info-o"
+          text="工单待审批中，可修改内容后点击更新"
+          color="#1989fa"
+          background="#e8f4ff"
+          style="margin-bottom: 12px;"
+        />
+        <van-button
+          v-if="detail?.status === WORK_STATUS.RETURNED"
+          type="primary"
+          size="large"
+          @click="handleResubmit"
+        >重新提交</van-button>
+        <van-button
+          v-else
+          type="primary"
+          size="large"
+          @click="handleUpdate"
+        >更新</van-button>
       </div>
 
       <div
-        v-else-if="isWorker && detail?.status === WORK_STATUS.IN_PROGRESS"
+        v-else-if="(isWorker || userStore.isManager()) && detail?.status === WORK_STATUS.IN_PROGRESS"
         class="action-buttons"
       >
         <van-button type="primary" size="large" :disabled="!canSubmit" @click="handleSubmit"

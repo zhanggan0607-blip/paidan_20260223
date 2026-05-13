@@ -6,6 +6,7 @@ import { projectInfoService, temporaryRepairService, personnelService } from '..
 import { formatDate } from '@sstcp/shared'
 import { useNavigation } from '../composables/useNavigation'
 import { useUserStore } from '../stores/userStore'
+import { WORK_STATUS } from '../config/constants'
 const userStore = useUserStore()
 import type { ProjectInfo } from '../types/api'
 
@@ -177,6 +178,10 @@ const handleDateRangeConfirm = (values: Date[]) => {
  * 提交临时维修单
  */
 const handleSubmit = async () => {
+  if (!formData.value?.projectId) {
+    showFailToast('请选择项目名称')
+    return
+  }
   if (!formData.value?.projectName) {
     showFailToast('请选择项目名称')
     return
@@ -194,7 +199,7 @@ const handleSubmit = async () => {
   showLoadingToast({ message: '提交中...', forbidClick: true })
 
   try {
-    const response = await temporaryRepairService.create({
+    const submitData: Record<string, unknown> = {
       project_id: formData.value.projectId,
       project_name: formData.value.projectName,
       plan_start_date: formData.value.planStartDate,
@@ -204,12 +209,15 @@ const handleSubmit = async () => {
       client_contact_info: formData.value.clientContactInfo,
       remarks: formData.value.remarks,
       maintenance_personnel: formData.value.maintenancePersonnel,
-      status: '执行中',
-    } as any)
+      status: WORK_STATUS.IN_PROGRESS,
+    }
 
-    if (response.code === 200) {
+    const response = await temporaryRepairService.create(submitData as any)
+
+    if (response.code === 200 || response.code === 201) {
       const repairId = response.data?.repair_id || '已生成'
       generatedWorkId.value = repairId
+      closeToast()
       showSuccessToast({
         message: `提交成功\n工单号：${repairId}`,
         duration: 3000,
@@ -229,16 +237,18 @@ const handleSubmit = async () => {
       selectedProjectName.value = ''
       selectedMaintenancePersonnelName.value = ''
 
-      router.push('/temporary-repair')
+      router.replace('/temporary-repair')
     } else {
+      closeToast()
       showFailToast(response.message || '提交失败')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to submit:', error)
-    showFailToast('提交失败，请重试')
+    closeToast()
+    const errorMsg = error?.message || '提交失败，请重试'
+    showFailToast(errorMsg)
   } finally {
     submitLoading.value = false
-    closeToast()
   }
 }
 

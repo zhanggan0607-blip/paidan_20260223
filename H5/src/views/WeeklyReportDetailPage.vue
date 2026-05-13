@@ -7,6 +7,7 @@ import { formatDate, formatDateTime } from '@sstcp/shared'
 import { useUserStore } from '../stores/userStore'
 const userStore = useUserStore()
 import type { WeeklyReport, OperationLog } from '../types/api'
+import { getUploadUrl } from '../utils/uploadUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -239,7 +240,7 @@ watch(
               class="image-item"
               @click="handlePreviewImage(index)"
             >
-              <img :src="img" alt="现场照片" loading="lazy" />
+              <img :src="getUploadUrl(img)" alt="现场照片" loading="lazy" />
             </div>
           </div>
         </div>
@@ -248,7 +249,7 @@ watch(
       <van-cell-group v-if="reportDetail.manager_signature" inset title="签字信息">
         <van-cell title="部门经理签字">
           <template #value>
-            <img :src="reportDetail.manager_signature" class="signature-img" loading="lazy" />
+            <img :src="getUploadUrl(reportDetail.manager_signature)" class="signature-img" loading="lazy" />
           </template>
         </van-cell>
         <van-cell

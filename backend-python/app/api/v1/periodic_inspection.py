@@ -61,6 +61,7 @@ def get_periodic_inspection_list(
     client_name: str | None = Query(None, description="Client name (fuzzy search)"),
     inspection_id: str | None = Query(None, description="Inspection ID (fuzzy search)"),
     status: str | None = Query(None, description="Status"),
+    statuses: str | None = Query(None, description="Multiple statuses (comma-separated)"),
     db: Session = Depends(get_db),
     user_info: UserInfo = Depends(get_current_user_required)
 ):
@@ -73,8 +74,13 @@ def get_periodic_inspection_list(
 
     logger.info(f"[PC端定期巡检] user={user_info.name}, is_manager={user_info.is_manager}, filter={maintenance_personnel}")
 
+    status_list = None
+    if statuses:
+        status_list = [s.strip() for s in statuses.split(',') if s.strip()]
+
     items, total = service.get_all(
-        page, size, project_name, client_name, inspection_id, status, maintenance_personnel
+        page, size, project_name, client_name, inspection_id, status, maintenance_personnel,
+        statuses=status_list
     )
 
     if not items:
@@ -174,6 +180,18 @@ def partial_update_periodic_inspection(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="工单审批需要管理员或部门经理权限"
+        )
+
+    if dto.status == '待确认' and existing.status == '执行中':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请使用提交接口(/submit)提交工单，不能通过更新接口直接修改状态"
+        )
+
+    if dto.status == '待确认' and existing.status == '已退回':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="请使用提交接口(/submit)重新提交工单，不能通过更新接口直接修改状态"
         )
 
     if dto.status == '已退回':
