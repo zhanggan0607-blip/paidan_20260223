@@ -88,8 +88,9 @@ def _sql_filter_and_paginate(
         query = query.filter(f)
     total = query.count()
     needed_ids = {pid for pid, in query.with_entities(model.project_id).distinct().all() if pid}
-    if needed_ids and not project_dict:
-        project_dict.update(_load_project_dict(db, needed_ids))
+    missing_ids = needed_ids - set(project_dict.keys())
+    if missing_ids:
+        project_dict.update(_load_project_dict(db, missing_ids))
     items = [_format_work_order(item, order_type_str, project_dict) for item in query.all()]
     return items, total, project_dict
 
