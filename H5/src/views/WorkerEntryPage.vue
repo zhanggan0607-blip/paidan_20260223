@@ -16,6 +16,7 @@ import {
   maskIdCard,
 } from '@sstcp/shared'
 import { useNavigation } from '../composables'
+import { getUploadUrl } from '../utils/uploadUrl'
 
 interface WorkerInfo {
   id?: number
@@ -731,7 +732,7 @@ onActivated(() => {
             <div class="worker-photos">
               <img
                 v-if="worker.idCardFront"
-                :src="worker.idCardFront"
+                :src="getUploadUrl(worker.idCardFront)"
                 class="photo-thumb"
                 @error="
                   (e: Event) => {
@@ -742,7 +743,7 @@ onActivated(() => {
               <van-icon v-else name="idcard" class="photo-icon pending" />
               <img
                 v-if="worker.idCardBack"
-                :src="worker.idCardBack"
+                :src="getUploadUrl(worker.idCardBack)"
                 class="photo-thumb"
                 @error="
                   (e: Event) => {
@@ -794,7 +795,7 @@ onActivated(() => {
                 <div class="id-card-preview">
                   <img
                     v-if="currentWorker.idCardFront"
-                    :src="currentWorker.idCardFront"
+                    :src="getUploadUrl(currentWorker.idCardFront)"
                     alt="正面"
                     loading="lazy"
                     @error="onIdCardImageError($event, 'idCardFront')"
@@ -811,7 +812,7 @@ onActivated(() => {
                 <div class="id-card-preview">
                   <img
                     v-if="currentWorker.idCardBack"
-                    :src="currentWorker.idCardBack"
+                    :src="getUploadUrl(currentWorker.idCardBack)"
                     alt="反面"
                     loading="lazy"
                     @error="onIdCardImageError($event, 'idCardBack')"

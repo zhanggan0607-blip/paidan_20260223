@@ -1301,7 +1301,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
               <div class="id-card-preview-large">
                 <img
                   v-if="currentWorker.id_card_front"
-                  :src="currentWorker.id_card_front"
+                  :src="getUploadUrl(currentWorker.id_card_front)"
                   alt="身份证正面"
                   loading="lazy"
                   @error="onIdCardError($event)"
@@ -1314,7 +1314,7 @@ const addOperationLog = async (operationTypeCode: string, operationRemark?: stri
               <div class="id-card-preview-large">
                 <img
                   v-if="currentWorker.id_card_back"
-                  :src="currentWorker.id_card_back"
+                  :src="getUploadUrl(currentWorker.id_card_back)"
                   alt="身份证反面"
                   loading="lazy"
                   @error="onIdCardError($event)"

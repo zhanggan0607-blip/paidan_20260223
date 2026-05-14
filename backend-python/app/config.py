@@ -9,7 +9,7 @@ ENV_FILE_PATH = Path(__file__).parent.parent / ".env"
 
 class Settings(BaseSettings):
     app_name: str = "SSTCP Maintenance System"
-    app_version: str = "2.2.1"
+    app_version: str = "2.3.0"
     debug: bool = False
     secret_key: str | None = None
 
