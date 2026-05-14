@@ -93,7 +93,7 @@ function Build-BackendImage {
     Write-Log "========== Building Backend Image =========="
     Push-Location "$PROJECT_ROOT\backend-python"
     try {
-        docker build -t "sstcp-backend:$VERSION" -t "sstcp-backend:latest" -f Dockerfile .
+        docker build --no-cache -t "sstcp-backend:$VERSION" -t "sstcp-backend:latest" -f Dockerfile .
         if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
         Write-Log "Backend image built successfully: sstcp-backend:$VERSION"
     } finally {
@@ -105,7 +105,7 @@ function Build-PCFrontendImage {
     Write-Log "========== Building PC Frontend Image =========="
     Push-Location $PROJECT_ROOT
     try {
-        docker build -t "sstcp-frontend-pc:$VERSION" -t "sstcp-frontend-pc:latest" -f Dockerfile .
+        docker build --no-cache -t "sstcp-frontend-pc:$VERSION" -t "sstcp-frontend-pc:latest" -f Dockerfile .
         if ($LASTEXITCODE -ne 0) { throw "PC Frontend build failed" }
         Write-Log "PC Frontend image built successfully: sstcp-frontend-pc:$VERSION"
     } finally {
@@ -117,7 +117,7 @@ function Build-H5FrontendImage {
     Write-Log "========== Building H5 Frontend Image =========="
     Push-Location $PROJECT_ROOT
     try {
-        docker build -t "sstcp-frontend-h5:$VERSION" -t "sstcp-frontend-h5:latest" -f H5\Dockerfile .
+        docker build --no-cache -t "sstcp-frontend-h5:$VERSION" -t "sstcp-frontend-h5:latest" -f H5\Dockerfile .
         if ($LASTEXITCODE -ne 0) { throw "H5 Frontend build failed" }
         Write-Log "H5 Frontend image built successfully: sstcp-frontend-h5:$VERSION"
     } finally {

@@ -5,6 +5,26 @@
 
 ---
 
+## 2026-05-14 修复：H5端施工人员删除确认后无反应
+
+### 类型
+修复
+
+### 概要
+手机端施工人员列表点击删除，确认后未执行删除操作
+
+### 核心根因
+1. 后端API路由缺少 `DELETE /spot-work/workers/{id}` 端点，前端调用该接口返回404/405
+2. H5前端 `handleDeleteWorker` 的 catch 块仅调用 `closeToast()`，静默吞掉了API错误，用户看不到任何反馈
+
+### 明细
+- **文件**: `backend-python/app/api/v1/spot_work.py`, `H5/src/views/WorkerEntryPage.vue`
+- **改动**: 
+  - 后端新增 `DELETE /workers/{worker_id}` 路由，调用已有的 `SpotWorkService.delete_worker` 方法
+  - H5前端将确认对话框和API调用分离到两个 try-catch 块，用户取消时直接 return，API失败时显示 `showFailToast('删除失败，请重试')`
+
+---
+
 ## 2026-05-13 修复：H5端apiCache模块getCache未定义运行时错误
 
 ### 类型

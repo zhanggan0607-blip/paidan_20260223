@@ -362,8 +362,7 @@ export default defineComponent({
   padding: var(--space-2) var(--space-3);
   background: var(--color-danger-subtle);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--color-danger);
-  border-opacity: 0.2;
+  border: 1px solid rgba(220, 38, 38, 0.2);
 }
 
 .login__submit {

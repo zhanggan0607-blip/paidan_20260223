@@ -200,7 +200,11 @@ const handleDeleteWorker = async (index: number) => {
       title: '提示',
       message: '请确认是否要删除该施工人员？',
     })
+  } catch {
+    return
+  }
 
+  try {
     const worker = workerList.value[index]
     if (worker.id) {
       showLoadingToast({ message: '删除中...', forbidClick: true })
@@ -214,7 +218,7 @@ const handleDeleteWorker = async (index: number) => {
     workerList.value.splice(index, 1)
     showSuccessToast('删除成功')
   } catch {
-    closeToast()
+    showFailToast('删除失败，请重试')
   }
 }
 

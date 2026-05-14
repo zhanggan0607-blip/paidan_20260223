@@ -296,6 +296,28 @@ def save_workers(
     )
 
 
+@router.delete("/workers/{worker_id}", response_model=ApiResponse)
+def delete_worker(
+    worker_id: int,
+    db: Session = Depends(get_db),
+    user_info: UserInfo = Depends(get_current_user_required)
+):
+    """
+    删除施工人员
+    已关联工单的施工人员不允许删除
+    """
+    from app.exceptions import ValidationException
+
+    service = SpotWorkService(db)
+    try:
+        deleted = service.delete_worker(worker_id)
+        if not deleted:
+            return ApiResponse(code=404, message="施工人员不存在", data=None)
+        return ApiResponse(code=200, message="删除成功", data=None)
+    except ValidationException:
+        raise
+
+
 @router.get("/{id}", response_model=ApiResponse)
 def get_spot_work_by_id(
     id: int,
