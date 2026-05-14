@@ -405,7 +405,9 @@ const selectImage = async (side: 'front' | 'back', useCamera: boolean) => {
         console.error('OCR识别失败:', ocrError)
         const errorStatus = ocrError?.status
         const errorMessage = ocrError?.message
-        if (errorStatus === 503) {
+        if (errorStatus === 429) {
+          showFailToast('操作过于频繁，请稍后再试')
+        } else if (errorStatus === 503) {
           showFailToast('OCR服务暂未配置，请手动填写信息')
         } else if (errorStatus === 422) {
           showFailToast('身份证图片格式不正确，请重新拍照')

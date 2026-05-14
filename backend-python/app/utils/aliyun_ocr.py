@@ -20,8 +20,8 @@ from app.config import get_settings
 logger = get_logger(__name__)
 
 _runtime_options = RuntimeOptions(
-    connect_timeout=10,
-    read_timeout=20,
+    connect_timeout=10000,
+    read_timeout=20000,
     autoretry=True,
     max_attempts=3,
 )

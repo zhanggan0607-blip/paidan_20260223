@@ -26,8 +26,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         get_requests_per_hour: int = 20000,
         login_rate_limit_per_minute: int = 200,
         login_rate_limit_per_hour: int = 10000,
-        ocr_rate_limit_per_minute: int = 10,
-        ocr_rate_limit_per_hour: int = 100,
+        ocr_rate_limit_per_minute: int = 30,
+        ocr_rate_limit_per_hour: int = 200,
     ):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
