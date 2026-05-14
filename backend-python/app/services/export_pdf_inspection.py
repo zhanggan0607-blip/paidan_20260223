@@ -14,11 +14,12 @@ from app.services.export_pdf_base import (
     _get_table_styles, resolve_field_value, render_section, calculate_remaining_time,
     _get_project_info, LAYOUT_CONFIG, INFO_TABLE_COL_WIDTHS, NO_DATA_TEXT,
 )
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, log_performance
 
 logger = get_logger(__name__)
 
 
+@log_performance(2000)
 def generate_periodic_inspection_pdf(inspection: PeriodicInspection, db: Session) -> bytes:
     from app.repositories.periodic_inspection_record import PeriodicInspectionRecordRepository
     from app.repositories.work_order_operation_log import WorkOrderOperationLogRepository

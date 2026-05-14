@@ -1,4 +1,4 @@
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, log_performance
 from datetime import datetime, date, timedelta
 from typing import Any
 
@@ -99,6 +99,7 @@ class StatisticsService:
     def __init__(self, db: Session):
         self._db = db
 
+    @log_performance(500)
     def get_detail(
         self,
         year: int,

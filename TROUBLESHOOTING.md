@@ -25,6 +25,28 @@
 
 ---
 
+## 2026-05-14 修复：部署脚本缺少 --no-cache 及服务器缺少 .env.production 和 SSL 证书
+
+### 类型
+修复
+
+### 概要
+部署到生产服务器时失败，原因有三：部署脚本未使用 --no-cache、服务器缺少 .env.production 文件、服务器缺少 SSL 证书导致 Nginx 无法启动
+
+### 核心根因
+1. `deploy-docker-all.ps1` 中 `docker build` 未添加 `--no-cache` 参数，违反项目规则
+2. 服务器 `/opt/sstcp/.env.production` 文件不存在，后端容器无法获取环境变量（DATABASE_URL等），启动失败
+3. 服务器 `/etc/letsencrypt/live/paidan.sstcp.top/` SSL 证书不存在，Nginx 容器启动失败不断重启
+
+### 明细
+- **文件**: `scripts/deploy-docker-all.ps1`
+- **改动**: 
+  - 三个 `docker build` 命令均添加 `--no-cache` 参数
+  - 手动上传 `.env.production` 到服务器 `/opt/sstcp/` 目录
+  - 在服务器上生成自签名 SSL 证书解决 Nginx 启动问题
+
+---
+
 ## 2026-05-13 修复：H5端apiCache模块getCache未定义运行时错误
 
 ### 类型

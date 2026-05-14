@@ -1,4 +1,4 @@
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, log_performance
 from datetime import date, datetime
 
 from sqlalchemy import and_, func, text
@@ -17,6 +17,7 @@ class OverdueAlertService:
     def __init__(self, db: Session):
         self.db = db
 
+    @log_performance(500)
     def get_overdue_items(
         self,
         project_name: str | None = None,

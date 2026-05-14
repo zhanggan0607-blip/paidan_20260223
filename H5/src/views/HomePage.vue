@@ -10,9 +10,22 @@ import { version as appVersion } from '../../package.json'
 
 const router = useRouter()
 
+const serverVersion = ref(appVersion)
+
 onMounted(() => {
   fetchStatistics()
+  fetchServerVersion()
 })
+
+async function fetchServerVersion() {
+  try {
+    const res = await fetch('/api/v1/health')
+    const data = await res.json()
+    if (data.version) {
+      serverVersion.value = data.version
+    }
+  } catch {}
+}
 
 interface Statistics {
   expiringSoon: number
@@ -286,7 +299,7 @@ const handleRefresh = () => {
         </div>
         <div class="header-year">{{ currentYear }} 年度概览</div>
       </div>
-      <div class="header-version">V{{ appVersion }}</div>
+      <div class="header-version">V{{ serverVersion }}</div>
     </div>
 
     <van-pull-refresh v-model="loading" @refresh="handleRefresh">

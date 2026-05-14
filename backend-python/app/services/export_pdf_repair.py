@@ -12,11 +12,12 @@ from app.services.export_pdf_base import (
     NumberedCanvas, get_styles, build_info_table, render_section,
     _get_project_info, LAYOUT_CONFIG, NO_DATA_TEXT,
 )
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, log_performance
 
 logger = get_logger(__name__)
 
 
+@log_performance(2000)
 def generate_temporary_repair_pdf(repair: TemporaryRepair, db: Session) -> bytes:
     from app.repositories.work_order_operation_log import WorkOrderOperationLogRepository
 

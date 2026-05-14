@@ -1,0 +1,71 @@
+services:
+  paidan-backend:
+    image: sstcp-backend:v2.3.0
+    container_name: paidan-backend
+    restart: always
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      REDIS_ENABLED: "false"
+      ALIYUN_ACCESS_KEY_ID: ${ALIYUN_ACCESS_KEY_ID}
+      ALIYUN_ACCESS_KEY_SECRET: ${ALIYUN_ACCESS_KEY_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      APP_VERSION: ${APP_VERSION:-2.3.4}
+      TZ: Asia/Shanghai
+    volumes:
+      - paidan_uploads:/app/uploads
+    networks:
+      - paidan-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  paidan-frontend-h5:
+    image: sstcp-frontend-h5:v2.3.0
+    container_name: paidan-frontend-h5
+    restart: always
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx/h5.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      paidan-backend:
+        condition: service_healthy
+    networks:
+      - paidan-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  paidan-frontend-pc:
+    image: sstcp-frontend-pc:v2.3.0
+    container_name: paidan-frontend-pc
+    restart: always
+    ports:
+      - "8082:80"
+    volumes:
+      - ./nginx/pc.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      paidan-backend:
+        condition: service_healthy
+    networks:
+      - paidan-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  paidan_uploads:
+
+networks:
+  paidan-net:
+    driver: bridge

@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from app.config import get_settings
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, log_external_call
 
 logger = get_logger(__name__)
 
@@ -56,6 +56,7 @@ class OSSService:
     def is_available(self) -> bool:
         return self._enabled and self._bucket is not None
 
+    @log_external_call("阿里云OSS-上传")
     def upload_file(
         self,
         file_data: bytes,

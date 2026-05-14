@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { MenuItem } from '@/types'
+import { ref, onMounted } from 'vue'
 import { version as appVersion } from '../../package.json'
 
 defineProps<{
@@ -12,6 +13,18 @@ const emit = defineEmits<{
   toggleMenu: [menuId: string]
   handleMenuClick: [item: MenuItem]
 }>()
+
+const serverVersion = ref(appVersion)
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/v1/health')
+    const data = await res.json()
+    if (data.version) {
+      serverVersion.value = data.version
+    }
+  } catch {}
+})
 </script>
 
 <template>
@@ -96,7 +109,7 @@ const emit = defineEmits<{
     </nav>
     <div class="sidebar__footer">
       <div class="sidebar__version">
-        V{{ appVersion }}
+        V{{ serverVersion }}
       </div>
     </div>
   </aside>

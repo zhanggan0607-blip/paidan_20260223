@@ -17,7 +17,7 @@ from app.auth import (
 )
 from app.models.online_user import OnlineUser
 from app.models.personnel import Personnel
-from app.utils.logging_config import logger
+from app.utils.logging_config import logger, log_business_operation
 
 
 MAX_LOGIN_ATTEMPTS = 5
@@ -167,6 +167,7 @@ def record_online_status(db: Session, user: Personnel, device_type: str, ip_addr
         db.add(online_user)
 
 
+@log_business_operation("用户认证")
 def authenticate_user(db: Session, username: str, password: str) -> tuple[Personnel, bool]:
     user = db.query(Personnel).filter(Personnel.name == username).first()
     if not user:
@@ -208,6 +209,7 @@ def set_user_offline(db: Session, user_id: int) -> str | None:
     return None
 
 
+@log_business_operation("修改密码")
 def change_user_password(db: Session, user_id: int, old_password: str, new_password: str) -> Personnel:
     user = db.query(Personnel).filter(Personnel.id == user_id).first()
     if not user:
@@ -228,6 +230,7 @@ def change_user_password(db: Session, user_id: int, old_password: str, new_passw
     return user
 
 
+@log_business_operation("重置密码")
 def reset_user_password(db: Session, user_id: int, new_password: str) -> Personnel:
     user = db.query(Personnel).filter(Personnel.id == user_id).first()
     if not user:

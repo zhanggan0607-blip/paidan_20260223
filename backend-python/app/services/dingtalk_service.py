@@ -8,6 +8,7 @@ from typing import Any
 import requests
 
 from app.config import get_settings
+from app.utils.logging_config import log_external_call
 
 
 class DingTalkService:
@@ -24,6 +25,7 @@ class DingTalkService:
         self._access_token: str | None = None
         self._token_expire_time: int = 0
 
+    @log_external_call("钉钉-获取Token")
     def get_access_token(self) -> str:
         """
         获取企业access_token
@@ -57,6 +59,7 @@ class DingTalkService:
 
         return self._access_token
 
+    @log_external_call("钉钉-用户信息")
     def get_user_info_by_code(self, auth_code: str) -> dict[str, Any]:
         """
         通过免登授权码获取用户信息
@@ -84,6 +87,7 @@ class DingTalkService:
 
         return result.get("result", {})
 
+    @log_external_call("钉钉-用户详情")
     def get_user_detail(self, userid: str) -> dict[str, Any]:
         """
         获取用户详细信息

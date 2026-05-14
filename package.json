@@ -1,6 +1,6 @@
 {
   "name": "sstcp-pc-frontend",
-  "version": "2.2.2",
+  "version": "2.3.4",
   "private": true,
   "type": "module",
   "scripts": {

@@ -6,7 +6,7 @@
 
 import base64
 import io
-from app.utils.logging_config import get_logger
+from app.utils.logging_config import get_logger, log_performance
 import time
 from typing import Any, Optional
 
@@ -83,6 +83,7 @@ class AliyunOCRService:
         """
         return self._client is not None
 
+    @log_performance(3000)
     def recognize_idcard_base64(self, image_base64: str, side: str = 'face') -> dict[str, Any]:
         if not self._client:
             return {
@@ -136,6 +137,7 @@ class AliyunOCRService:
                 'message': f'识别异常: {error_msg}'
             }
 
+    @log_performance(5000)
     def recognize_idcard(self, image_url: str, side: str = 'face') -> dict[str, Any]:
         if not self._client:
             return {
