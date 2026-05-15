@@ -113,6 +113,7 @@ export interface SpotWorkQueryParams {
   project_name?: string
   work_id?: string
   status?: string
+  statuses?: string
 }
 
 /**

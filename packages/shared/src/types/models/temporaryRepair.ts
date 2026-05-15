@@ -93,4 +93,5 @@ export interface TemporaryRepairQueryParams {
   client_name?: string
   repair_id?: string
   status?: string
+  statuses?: string
 }

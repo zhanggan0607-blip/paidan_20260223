@@ -257,7 +257,7 @@ const fetchWorkList = async (isLoadMore = false) => {
         const response = await periodicInspectionService.getList({
           page: 0,
           size: 100,
-          status: validStatuses,
+          statuses: validStatuses,
         })
         if (response.code === 200) {
           items = (response.data?.items || response.data?.content || []).map((item: any) => ({
@@ -277,7 +277,7 @@ const fetchWorkList = async (isLoadMore = false) => {
         const response = await temporaryRepairService.getList({
           page: 0,
           size: 100,
-          status: validStatuses,
+          statuses: validStatuses,
         })
         if (response.code === 200) {
           items = (response.data?.items || response.data?.content || []).map((item: any) => ({
@@ -297,7 +297,7 @@ const fetchWorkList = async (isLoadMore = false) => {
         const response = await spotWorkService.getList({
           page: 0,
           size: 100,
-          status: validStatuses,
+          statuses: validStatuses,
         })
         if (response.code === 200) {
           const pageData = response.data as { items?: any[]; content?: any[] } | undefined

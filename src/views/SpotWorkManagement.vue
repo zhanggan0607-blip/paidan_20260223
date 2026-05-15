@@ -626,6 +626,18 @@
               maxlength="500"
             />
           </div>
+          <div class="form-item-full">
+            <span class="form-label">施工人员</span>
+            <div class="worker-section">
+              <button
+                type="button"
+                class="btn btn-worker"
+                @click="showEditWorkerModal = true"
+              >
+                {{ editWorkerCount > 0 ? `已录入 ${editWorkerCount} 人` : '录入施工人员' }}
+              </button>
+            </div>
+          </div>
         </div>
         <div class="modal-footer">
           <button
@@ -680,6 +692,17 @@
       :initial-workers="workers"
       @close="showWorkerModal = false"
       @confirm="handleWorkerConfirm"
+    />
+
+    <WorkerEntryModal
+      v-if="showEditWorkerModal"
+      :project-id="editFormData.project_id"
+      :project-name="editFormData.project_name"
+      :work-date-start="editFormData.plan_start_date"
+      :work-date-end="editFormData.plan_end_date"
+      :initial-workers="editWorkers"
+      @close="showEditWorkerModal = false"
+      @confirm="handleEditWorkerConfirm"
     />
 
     <div
@@ -810,6 +833,9 @@ export default defineComponent({
     const editingId = ref<number | null>(null)
     const showSignatureModal = ref(false)
     const showWorkerModal = ref(false)
+    const showEditWorkerModal = ref(false)
+    const editWorkers = ref<WorkerInfo[]>([])
+    const editWorkerCount = computed(() => editWorkers.value.length)
 
     const isAdmin = ref(userStore.isAdmin())
     const isDepartmentManager = ref(userStore.isDepartmentManager?.() || false)
@@ -1085,6 +1111,11 @@ export default defineComponent({
       showWorkerModal.value = false
     }
 
+    const handleEditWorkerConfirm = (workerList: WorkerInfo[]) => {
+      editWorkers.value = workerList
+      showEditWorkerModal.value = false
+    }
+
     const handleSave = async () => {
       if (!formData.value.project_name) {
         showToast('请选择项目名称', 'error')
@@ -1204,6 +1235,18 @@ export default defineComponent({
             signature: data.signature || '',
           }
           editingId.value = data.id
+          editWorkers.value = (data.workers || []).map((w: any) => ({
+            id: w.id,
+            name: w.name || '',
+            gender: w.gender || '',
+            birthDate: w.birth_date || '',
+            address: w.address || '',
+            idCardNumber: w.id_card_number || '',
+            issuingAuthority: w.issuing_authority || '',
+            validPeriod: w.valid_period || '',
+            idCardFront: w.id_card_front || '',
+            idCardBack: w.id_card_back || '',
+          }))
           isEditModalOpen.value = true
         }
       } catch (error) {
@@ -1215,6 +1258,7 @@ export default defineComponent({
     const closeEditModal = () => {
       isEditModalOpen.value = false
       editingId.value = null
+      editWorkers.value = []
     }
 
     const handleUpdate = async () => {
@@ -1247,6 +1291,31 @@ export default defineComponent({
         })
 
         if (response.code === 200) {
+          if (editWorkers.value.length > 0) {
+            try {
+              await spotWorkService.saveWorkers({
+                project_id: editFormData.value.project_id,
+                project_name: editFormData.value.project_name,
+                start_date: editFormData.value.plan_start_date,
+                end_date: editFormData.value.plan_end_date,
+                workers: editWorkers.value.map(w => ({
+                  name: w.name,
+                  gender: w.gender || null,
+                  birthDate: w.birthDate || null,
+                  address: w.address || null,
+                  idCardNumber: w.idCardNumber,
+                  issuingAuthority: w.issuingAuthority || null,
+                  validPeriod: w.validPeriod || null,
+                  idCardFront: w.idCardFront || null,
+                  idCardBack: w.idCardBack || null,
+                  ...(w.id ? { id: w.id } : {}),
+                })),
+              })
+            } catch (workerError) {
+              console.error('施工人员保存失败:', workerError)
+              showToast('工单更新成功，但施工人员保存失败', 'warning')
+            }
+          }
           showToast('更新成功', 'success')
           await loadData()
           closeEditModal()
@@ -1483,6 +1552,9 @@ export default defineComponent({
       workerCount,
       showSignatureModal,
       showWorkerModal,
+      showEditWorkerModal,
+      editWorkers,
+      editWorkerCount,
       showRejectModal,
       rejectReason,
       pendingRejectItem,
@@ -1514,6 +1586,7 @@ export default defineComponent({
       handleSignatureConfirm,
       openWorkerModal,
       handleWorkerConfirm,
+      handleEditWorkerConfirm,
     }
   },
 })

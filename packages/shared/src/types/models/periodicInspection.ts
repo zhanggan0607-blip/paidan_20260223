@@ -109,4 +109,5 @@ export interface PeriodicInspectionQueryParams {
   client_name?: string
   inspection_id?: string
   status?: string
+  statuses?: string
 }
