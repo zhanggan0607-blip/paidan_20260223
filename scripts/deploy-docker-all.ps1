@@ -273,9 +273,9 @@ function Test-Deployment {
     }
 
     Write-Log "Checking PC frontend..."
-    $pcCheck = Invoke-SSHCommand "curl -sf http://localhost:8081/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'PC_CHECK_FAILED'"
+    $pcCheck = Invoke-SSHCommand "curl -sf http://localhost/ -o /dev/null -w '%{http_code}' -H 'Host: www.paidan.sstcp.top' 2>&1 || echo 'PC_CHECK_FAILED'"
     $pcStr = $pcCheck | Out-String
-    if ($pcStr -match "PC_CHECK_FAILED" -or $pcStr -notmatch "200") {
+    if ($pcStr -match "PC_CHECK_FAILED" -or ($pcStr -notmatch "200" -and $pcStr -notmatch "301")) {
         Write-Log "PC frontend check FAILED" "ERROR"
         $issues += "pc_frontend_failed"
     } else {
@@ -283,9 +283,9 @@ function Test-Deployment {
     }
 
     Write-Log "Checking H5 frontend..."
-    $h5Check = Invoke-SSHCommand "curl -sf http://localhost:8082/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'H5_CHECK_FAILED'"
+    $h5Check = Invoke-SSHCommand "curl -sf http://localhost/h5/ -o /dev/null -w '%{http_code}' -H 'Host: www.paidan.sstcp.top' 2>&1 || echo 'H5_CHECK_FAILED'"
     $h5Str = $h5Check | Out-String
-    if ($h5Str -match "H5_CHECK_FAILED" -or $h5Str -notmatch "200") {
+    if ($h5Str -match "H5_CHECK_FAILED" -or ($h5Str -notmatch "200" -and $h5Str -notmatch "301")) {
         Write-Log "H5 frontend check FAILED" "ERROR"
         $issues += "h5_frontend_failed"
     } else {
@@ -370,21 +370,23 @@ function Invoke-AutoFix {
                 Invoke-SSHCommand "docker restart sstcp-frontend-pc"
                 Start-Sleep -Seconds 15
 
-                $recheck = Invoke-SSHCommand "curl -sf http://localhost:8081/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'STILL_FAILED'"
-                if ($recheck | Out-String | Select-String -Pattern "STILL_FAILED" -Quiet) {
+                $recheck = Invoke-SSHCommand "docker inspect --format='{{.State.Health.Status}}' sstcp-frontend-pc 2>/dev/null || echo 'not_found'"
+                $recheckStr = $recheck | Out-String
+                if ($recheckStr -match "healthy") {
+                    Write-Log "Auto-fix SUCCEEDED for pc_frontend_failed (restart helped)"
+                } else {
                     Write-Log "Fix: Recreating PC frontend container..."
                     Invoke-SSHCommand "cd $DEPLOY_PATH && docker compose up -d --force-recreate frontend-pc"
                     Start-Sleep -Seconds 15
 
-                    $recheck2 = Invoke-SSHCommand "curl -sf http://localhost:8081/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'STILL_FAILED'"
-                    if ($recheck2 | Out-String | Select-String -Pattern "STILL_FAILED" -Quiet) {
+                    $recheck2 = Invoke-SSHCommand "docker inspect --format='{{.State.Health.Status}}' sstcp-frontend-pc 2>/dev/null || echo 'not_found'"
+                    $recheck2Str = $recheck2 | Out-String
+                    if ($recheck2Str -match "healthy") {
+                        Write-Log "Auto-fix SUCCEEDED for pc_frontend_failed"
+                    } else {
                         Write-Log "Auto-fix FAILED for pc_frontend_failed" "ERROR"
                         $fixSuccess = $false
-                    } else {
-                        Write-Log "Auto-fix SUCCEEDED for pc_frontend_failed"
                     }
-                } else {
-                    Write-Log "Auto-fix SUCCEEDED for pc_frontend_failed"
                 }
             }
 
@@ -393,21 +395,23 @@ function Invoke-AutoFix {
                 Invoke-SSHCommand "docker restart sstcp-frontend-h5"
                 Start-Sleep -Seconds 15
 
-                $recheck = Invoke-SSHCommand "curl -sf http://localhost:8082/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'STILL_FAILED'"
-                if ($recheck | Out-String | Select-String -Pattern "STILL_FAILED" -Quiet) {
+                $recheck = Invoke-SSHCommand "docker inspect --format='{{.State.Health.Status}}' sstcp-frontend-h5 2>/dev/null || echo 'not_found'"
+                $recheckStr = $recheck | Out-String
+                if ($recheckStr -match "healthy") {
+                    Write-Log "Auto-fix SUCCEEDED for h5_frontend_failed (restart helped)"
+                } else {
                     Write-Log "Fix: Recreating H5 frontend container..."
                     Invoke-SSHCommand "cd $DEPLOY_PATH && docker compose up -d --force-recreate frontend-h5"
                     Start-Sleep -Seconds 15
 
-                    $recheck2 = Invoke-SSHCommand "curl -sf http://localhost:8082/ -o /dev/null -w '%{http_code}' 2>&1 || echo 'STILL_FAILED'"
-                    if ($recheck2 | Out-String | Select-String -Pattern "STILL_FAILED" -Quiet) {
+                    $recheck2 = Invoke-SSHCommand "docker inspect --format='{{.State.Health.Status}}' sstcp-frontend-h5 2>/dev/null || echo 'not_found'"
+                    $recheck2Str = $recheck2 | Out-String
+                    if ($recheck2Str -match "healthy") {
+                        Write-Log "Auto-fix SUCCEEDED for h5_frontend_failed"
+                    } else {
                         Write-Log "Auto-fix FAILED for h5_frontend_failed" "ERROR"
                         $fixSuccess = $false
-                    } else {
-                        Write-Log "Auto-fix SUCCEEDED for h5_frontend_failed"
                     }
-                } else {
-                    Write-Log "Auto-fix SUCCEEDED for h5_frontend_failed"
                 }
             }
 
