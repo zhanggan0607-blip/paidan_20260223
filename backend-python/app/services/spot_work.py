@@ -135,7 +135,7 @@ class SpotWorkService(BaseService):
 
         default_status = get_default_spot_work_status(self._db)
 
-        photos_value = dto.photos if dto.photos else None
+        photos_value = dto.photos if dto.photos is not None else None
 
         work = SpotWork(
             work_id=work_id,
@@ -192,7 +192,7 @@ class SpotWorkService(BaseService):
         if existing_work.work_id != dto.work_id and self.repository.exists_by_work_id(dto.work_id):
             raise DuplicateException("用工单编号已存在")
 
-        photos_value = dto.photos if dto.photos else None
+        photos_value = dto.photos if dto.photos is not None else None
 
         existing_work.work_id = dto.work_id
         existing_work.project_id = dto.project_id

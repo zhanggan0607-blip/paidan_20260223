@@ -83,15 +83,19 @@ const checkTodayLog = async () => {
       selectedProjectName.value = response.data.project_name || ''
 
       if (response.data.images) {
-        const imageUrls =
-          typeof response.data.images === 'string'
-            ? JSON.parse(response.data.images)
-            : response.data.images
-        images.value = imageUrls.map((url: string) => ({
-          url,
-          file: null,
-          description: '',
-        }))
+        try {
+          const imageUrls =
+            typeof response.data.images === 'string'
+              ? JSON.parse(response.data.images)
+              : response.data.images
+          images.value = imageUrls.map((url: string) => ({
+            url,
+            file: null,
+            description: '',
+          }))
+        } catch {
+          images.value = []
+        }
       }
     }
   } catch (error) {

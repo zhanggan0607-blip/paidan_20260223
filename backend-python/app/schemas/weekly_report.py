@@ -1,5 +1,18 @@
 
-from pydantic import BaseModel
+import json
+from pydantic import BaseModel, field_validator
+
+
+def _parse_images(v):
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return parsed
+        except (json.JSONDecodeError, TypeError):
+            pass
+        return []
+    return v
 
 
 class WeeklyReportCreate(BaseModel):
@@ -17,6 +30,11 @@ class WeeklyReportCreate(BaseModel):
     images: list[str] | None = None
     manager_signature: str | None = None
 
+    @field_validator('images', mode='before')
+    @classmethod
+    def validate_images(cls, v):
+        return _parse_images(v)
+
 
 class WeeklyReportUpdate(BaseModel):
     project_id: str | None = None
@@ -32,6 +50,11 @@ class WeeklyReportUpdate(BaseModel):
     images: list[str] | None = None
     manager_signature: str | None = None
     status: str | None = None
+
+    @field_validator('images', mode='before')
+    @classmethod
+    def validate_images(cls, v):
+        return _parse_images(v)
 
 
 class WeeklyReportApprove(BaseModel):

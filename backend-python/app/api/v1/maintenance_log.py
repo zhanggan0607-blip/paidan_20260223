@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,6 +28,19 @@ class MaintenanceLogCreate(BaseModel):
     work_content: str | None = None
     images: list[str] | None = None
     remark: str | None = None
+
+    @field_validator('images', mode='before')
+    @classmethod
+    def parse_images(cls, v):
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return []
+        return v
 
 
 def get_log_type_prefix(log_type: str) -> str:
@@ -276,7 +289,7 @@ def create_maintenance_log(
     
     log_id = generate_log_id(dto.project_id, dto.log_type, db)
 
-    images_value = dto.images if dto.images else None
+    images_value = dto.images if dto.images is not None else None
 
     project_id = dto.project_id if dto.project_id else None
     project_name = dto.project_name if dto.project_name else None
@@ -355,7 +368,7 @@ def update_maintenance_log(
     log.log_type = dto.log_type
     log.log_date = datetime.strptime(dto.log_date, "%Y-%m-%d")
     log.work_content = dto.work_content
-    log.images = dto.images if dto.images else None
+    log.images = dto.images if dto.images is not None else None
     log.remark = dto.remark
 
     db.commit()

@@ -243,7 +243,7 @@ def admin_delete_photo(
     
     if dto.photo_url in photos:
         photos.remove(dto.photo_url)
-        work_order.photos = photos if photos else None
+        work_order.photos = photos if photos is not None else None
         
         remark = "删除照片"
         if dto.remark:

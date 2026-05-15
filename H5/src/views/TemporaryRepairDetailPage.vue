@@ -182,7 +182,11 @@ const fetchDetail = async () => {
       formData.value.fault_description = response.data.fault_description || ''
       formData.value.solution = response.data.solution || ''
       const photosData = response.data.photos
-      currentPhotos.value = Array.isArray(photosData) ? photosData : (photosData ? JSON.parse(photosData) : [])
+      try {
+        currentPhotos.value = Array.isArray(photosData) ? photosData : (photosData ? JSON.parse(photosData) : [])
+      } catch {
+        currentPhotos.value = []
+      }
     } else {
       console.error('API returned non-200:', response)
       showFailToast(response.message || '加载数据失败')
