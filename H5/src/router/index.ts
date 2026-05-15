@@ -9,6 +9,7 @@
  */
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/userStore'
+import { useDingtalkAuth } from '../composables/useDingtalkAuth'
 
 const routes = [
   {
@@ -209,6 +210,11 @@ router.beforeEach(async (to, _from, next) => {
   const userStore = useUserStore()
 
   if (!userStore.isLoggedIn) {
+    const { dingtalkAuthReady, isDingtalkEnv } = useDingtalkAuth()
+    if (isDingtalkEnv.value && !dingtalkAuthReady.value) {
+      next(false)
+      return
+    }
     next({ name: 'Login', query: { redirect: to.fullPath } })
     return
   }

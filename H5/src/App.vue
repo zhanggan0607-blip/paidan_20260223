@@ -7,12 +7,15 @@ import { dingtalkService } from './services/dingtalk'
 import { onlineUserService } from './services/onlineUser'
 import { showLoadingToast, closeToast, showSuccessToast, showFailToast } from 'vant'
 import { useHeartbeatControl } from './composables/useHeartbeatControl'
+import { useDingtalkAuth } from './composables/useDingtalkAuth'
 
 const router = useRouter()
 const userStore = useUserStore()
 const isInitialized = ref(false)
 let heartbeatTimer: number | null = null
 const HEARTBEAT_INTERVAL = 2 * 60 * 1000
+
+const { dingtalkAuthReady, isDingtalkEnv } = useDingtalkAuth()
 
 const heartbeatControl = useHeartbeatControl()
 
@@ -56,6 +59,7 @@ onMounted(async () => {
   }
 
   if (dingtalkService.isInDingTalk()) {
+    isDingtalkEnv.value = true
     showLoadingToast({
       message: '钉钉登录中...',
       forbidClick: true,
@@ -74,14 +78,19 @@ onMounted(async () => {
         userStore.setUser(response.data.user)
         showSuccessToast('登录成功')
         startHeartbeat()
+        router.replace('/')
       } else {
         showFailToast(response.message || '钉钉登录失败')
         router.replace('/login')
       }
     } catch (error: any) {
       console.error('钉钉免登失败:', error)
-      showFailToast(error.message || '钉钉登录失败，请刷新重试')
-      router.replace('/login')
+      if (error?.status === 403) {
+        showFailToast(error.message || '您未在系统中注册，请联系管理员')
+      } else {
+        showFailToast(error.message || '钉钉登录失败，请刷新重试')
+        router.replace('/login')
+      }
     } finally {
       closeToast()
     }
@@ -90,6 +99,7 @@ onMounted(async () => {
   }
 
   isInitialized.value = true
+  dingtalkAuthReady.value = true
 })
 
 onUnmounted(() => {

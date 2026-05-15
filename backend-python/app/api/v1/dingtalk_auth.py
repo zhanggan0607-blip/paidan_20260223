@@ -95,7 +95,7 @@ async def dingtalk_login(
         dingtalk_service = get_dingtalk_service()
 
         user_info = dingtalk_service.get_user_info_by_code(login_req.auth_code)
-        userid = user_info.get("userid")
+        userid = user_info.get("userid") or user_info.get("user_id")
 
         if not userid:
             raise HTTPException(
@@ -124,22 +124,11 @@ async def dingtalk_login(
                 user.dingtalk_title = dingtalk_title
                 user.is_synced = True
             else:
-                system_role = DingTalkService.map_role_to_system(dingtalk_title)
-
-                user = Personnel(
-                    name=dingtalk_name,
-                    gender="男",
-                    phone=dingtalk_mobile,
-                    department=dingtalk_dept,
-                    role=system_role,
-                    dingtalk_userid=userid,
-                    dingtalk_unionid=dingtalk_unionid,
-                    dingtalk_avatar=dingtalk_avatar,
-                    dingtalk_title=dingtalk_title,
-                    is_synced=True,
-                    must_change_password=True
+                logger.warning(f"钉钉用户未在系统中注册: name={dingtalk_name}, phone={dingtalk_mobile}, userid={userid}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"用户 {dingtalk_name} 未在系统中注册，请联系管理员添加账号"
                 )
-                db.add(user)
 
         if not user.department and dingtalk_dept:
             user.department = dingtalk_dept

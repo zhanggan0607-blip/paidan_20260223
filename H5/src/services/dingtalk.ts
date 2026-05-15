@@ -77,19 +77,37 @@ export const dingtalkService = {
       }
 
       const script = document.createElement('script')
-      script.src = 'https://g.alicdn.com/dingding/dingtalk-jsapi/2.10.3/dingtalk.open.js'
+      script.src = 'https://g.alicdn.com/dingding/dingtalk-jsapi/3.0.12/dingtalk.open.js'
       script.onload = () => {
         if ((window as any).dd) {
           const dd = (window as any).dd
-          dd.runtime.permission.requestAuthCode({
-            clientId: import.meta.env.VITE_DINGTALK_CLIENT_ID || '',
-            onSuccess: (result: { code: string }) => {
-              resolve(result.code)
-            },
-            onFail: (err: Error) => {
-              reject(new Error(`获取钉钉授权码失败: ${err.message || JSON.stringify(err)}`))
-            },
-          })
+          const corpId = import.meta.env.VITE_DINGTALK_CORP_ID || ''
+          const clientId = import.meta.env.VITE_DINGTALK_CLIENT_ID || ''
+
+          if (dd.requestAuthCode) {
+            dd.requestAuthCode({
+              corpId,
+              clientId,
+              onSuccess: (result: { code: string }) => {
+                resolve(result.code)
+              },
+              onFail: (err: Error) => {
+                reject(new Error(`获取钉钉授权码失败: ${err.message || JSON.stringify(err)}`))
+              },
+            })
+          } else if (dd.runtime && dd.runtime.permission && dd.runtime.permission.requestAuthCode) {
+            dd.runtime.permission.requestAuthCode({
+              corpId,
+              onSuccess: (result: { code: string }) => {
+                resolve(result.code)
+              },
+              onFail: (err: Error) => {
+                reject(new Error(`获取钉钉授权码失败: ${err.message || JSON.stringify(err)}`))
+              },
+            })
+          } else {
+            reject(new Error('钉钉JSAPI不支持免登接口'))
+          }
         } else {
           reject(new Error('钉钉JSAPI加载失败'))
         }
