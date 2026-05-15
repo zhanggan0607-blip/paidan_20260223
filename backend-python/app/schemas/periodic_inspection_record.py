@@ -1,6 +1,7 @@
 from datetime import datetime
+import json
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PeriodicInspectionRecordBase(BaseModel):
@@ -17,6 +18,19 @@ class PeriodicInspectionRecordBase(BaseModel):
     photos: list[str] | None = Field(default=[], description="照片URL列表")
     inspection_result: str | None = Field(None, description="巡检结果")
 
+    @field_validator('photos', mode='before')
+    @classmethod
+    def parse_photos(cls, v):
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return []
+        return v
+
 
 class PeriodicInspectionRecordCreate(PeriodicInspectionRecordBase):
     pass
@@ -26,6 +40,19 @@ class PeriodicInspectionRecordUpdate(BaseModel):
     inspected: bool | None = Field(None, description="是否已处理")
     photos: list[str] | None = Field(None, description="照片URL列表")
     inspection_result: str | None = Field(None, description="巡检结果")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def parse_photos(cls, v):
+        if isinstance(v, str):
+            try:
+                parsed = json.loads(v)
+                if isinstance(parsed, list):
+                    return parsed
+            except (json.JSONDecodeError, TypeError):
+                pass
+            return []
+        return v
 
 
 class PeriodicInspectionRecordResponse(PeriodicInspectionRecordBase):

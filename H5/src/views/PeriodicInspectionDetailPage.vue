@@ -348,7 +348,8 @@ const loadSavedRecords = async () => {
         if (index !== -1) {
           const sysItem = inspectionSystems.value[index]!
           sysItem.inspected = savedRecord.inspected
-          sysItem.photos = savedRecord.photos || []
+          const savedPhotos = savedRecord.photos
+          sysItem.photos = Array.isArray(savedPhotos) ? savedPhotos : (savedPhotos ? JSON.parse(savedPhotos) : [])
           sysItem.photos_uploaded =
             savedRecord.photos_uploaded || (savedRecord.photos && savedRecord.photos.length > 0)
           sysItem.inspection_result = savedRecord.inspection_result || ''
@@ -790,9 +791,16 @@ const handleRemovePhotoForItem = async (system: InspectionSystem, photoIndex: nu
     const index = inspectionSystems.value.findIndex((s) => s.id === system.id)
     if (index !== -1) {
       const item = inspectionSystems.value[index]!
+      const removedPhoto = item.photos[photoIndex]
       item.photos.splice(photoIndex, 1)
       item.photos_uploaded = item.photos.length > 0
-      await saveRecordToBackend(item)
+      try {
+        await saveRecordToBackend(item)
+      } catch (saveError) {
+        item.photos.splice(photoIndex, 0, removedPhoto)
+        item.photos_uploaded = item.photos.length > 0
+        showFailToast('删除失败，请重试')
+      }
     }
   } catch {}
 }

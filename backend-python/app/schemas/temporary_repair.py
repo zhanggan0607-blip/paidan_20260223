@@ -1,8 +1,21 @@
 from datetime import datetime
+import json
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.enums import VALID_WORK_ORDER_STATUSES
+
+
+def _parse_photos(v):
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return parsed
+        except (json.JSONDecodeError, TypeError):
+            pass
+        return []
+    return v
 
 
 class TemporaryRepairBase(BaseModel):
@@ -24,6 +37,11 @@ class TemporaryRepairBase(BaseModel):
     signature: str | None = Field(None, description="用户签字Base64")
     customer_signature: str | None = Field(None, description="客户签字Base64")
     execution_date: str | datetime | None = Field(None, description="执行日期")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
 
     @model_validator(mode='after')
     def validate_dates(self):
@@ -63,6 +81,11 @@ class TemporaryRepairCreate(BaseModel):
     customer_signature: str | None = Field(None, description="客户签字Base64")
     execution_date: str | datetime | None = Field(None, description="执行日期")
 
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
+
 
 class TemporaryRepairUpdate(BaseModel):
     repair_id: str = Field(..., max_length=50, description="维修单编号")
@@ -83,6 +106,11 @@ class TemporaryRepairUpdate(BaseModel):
     signature: str | None = Field(None, description="用户签字Base64")
     customer_signature: str | None = Field(None, description="客户签字Base64")
     execution_date: str | datetime | None = Field(None, description="执行日期")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
 
 
 class TemporaryRepairPartialUpdate(BaseModel):
@@ -105,6 +133,11 @@ class TemporaryRepairPartialUpdate(BaseModel):
     customer_signature: str | None = Field(None, description="客户签字Base64")
     execution_date: str | datetime | None = Field(None, description="执行日期")
     reject_reason: str | None = Field(None, max_length=500, description="退回原因")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
 
     @field_validator('status')
     @classmethod

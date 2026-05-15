@@ -1,8 +1,21 @@
 from datetime import datetime
+import json
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.models.enums import VALID_WORK_ORDER_STATUSES
+
+
+def _parse_photos(v):
+    if isinstance(v, str):
+        try:
+            parsed = json.loads(v)
+            if isinstance(parsed, list):
+                return parsed
+        except (json.JSONDecodeError, TypeError):
+            pass
+        return []
+    return v
 
 
 class SpotWorkBase(BaseModel):
@@ -21,6 +34,11 @@ class SpotWorkBase(BaseModel):
     signature: str | None = Field(None, description="班组签字图片")
     status: str = Field("执行中", max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
 
     @model_validator(mode='after')
     def validate_dates(self):
@@ -58,6 +76,29 @@ class SpotWorkCreate(BaseModel):
     remarks: str | None = Field(None, max_length=500, description="备注")
 
 
+class SpotWorkCreate(BaseModel):
+    work_id: str | None = Field(None, max_length=50, description="工单编号（可选，不传则自动生成）")
+    plan_id: str | None = Field(None, max_length=50, description="关联维保计划编号")
+    project_id: str = Field(..., max_length=50, description="项目编号")
+    project_name: str = Field(..., max_length=200, description="项目名称")
+    plan_start_date: str | datetime = Field(..., description="计划开始日期")
+    plan_end_date: str | datetime = Field(..., description="计划结束日期")
+    client_name: str | None = Field(None, max_length=100, description="客户单位")
+    client_contact: str | None = Field(None, max_length=100, description="客户联系人")
+    client_contact_info: str | None = Field(None, max_length=50, description="客户联系电话")
+    maintenance_personnel: str | None = Field(None, max_length=100, description="运维人员")
+    work_content: str | None = Field(None, max_length=800, description="工作内容")
+    photos: list[str] | None = Field(None, description="现场图片列表")
+    signature: str | None = Field(None, description="班组签字图片")
+    status: str | None = Field(None, max_length=20, description="状态")
+    remarks: str | None = Field(None, max_length=500, description="备注")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
+
+
 class SpotWorkUpdate(BaseModel):
     work_id: str = Field(..., max_length=50, description="工单编号")
     plan_id: str | None = Field(None, max_length=50, description="关联维保计划编号")
@@ -74,6 +115,11 @@ class SpotWorkUpdate(BaseModel):
     signature: str | None = Field(None, description="班组签字图片")
     status: str = Field(..., max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
 
 
 class SpotWorkPartialUpdate(BaseModel):
@@ -93,6 +139,11 @@ class SpotWorkPartialUpdate(BaseModel):
     status: str | None = Field(None, max_length=20, description="状态")
     remarks: str | None = Field(None, max_length=500, description="备注")
     reject_reason: str | None = Field(None, max_length=500, description="退回原因")
+
+    @field_validator('photos', mode='before')
+    @classmethod
+    def validate_photos(cls, v):
+        return _parse_photos(v)
 
     @field_validator('status')
     @classmethod

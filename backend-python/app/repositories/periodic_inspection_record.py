@@ -96,7 +96,7 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
         equipment_name: str | None = None,
         equipment_location: str | None = None,
         inspected: bool = False,
-        photos: str | None = None,
+        photos: list | str | None = None,
         inspection_result: str | None = None
     ) -> PeriodicInspectionRecord:
         """
@@ -131,13 +131,28 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
                 if inspected is not None:
                     existing.inspected = inspected
                 if photos is not None:
-                    existing.photos = photos
+                    if isinstance(photos, str):
+                        try:
+                            import json
+                            existing.photos = json.loads(photos)
+                        except (json.JSONDecodeError, TypeError):
+                            existing.photos = []
+                    else:
+                        existing.photos = photos
                 if inspection_result is not None:
                     existing.inspection_result = inspection_result
                 self.db.flush()
                 self.db.refresh(existing)
                 return existing
             else:
+                if isinstance(photos, str):
+                    try:
+                        import json
+                        photos = json.loads(photos)
+                    except (json.JSONDecodeError, TypeError):
+                        photos = []
+                if photos is None:
+                    photos = []
                 record = PeriodicInspectionRecord(
                     inspection_id=inspection_id,
                     item_id=item_id,
@@ -149,7 +164,7 @@ class PeriodicInspectionRecordRepository(BaseRepository[PeriodicInspectionRecord
                     equipment_name=equipment_name,
                     equipment_location=equipment_location,
                     inspected=inspected,
-                    photos=photos or '[]',
+                    photos=photos,
                     inspection_result=inspection_result
                 )
                 return self.create(record)

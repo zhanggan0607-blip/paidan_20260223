@@ -233,7 +233,7 @@ class TemporaryRepairService(BaseService):
         existing_repair.remarks = dto.remarks
         existing_repair.fault_description = dto.fault_description
         existing_repair.solution = dto.solution
-        existing_repair.photos = dto.photos if dto.photos else None
+        existing_repair.photos = dto.photos if dto.photos is not None else None
         existing_repair.signature = dto.signature
         existing_repair.customer_signature = dto.customer_signature
         existing_repair.execution_date = parse_datetime(dto.execution_date)
