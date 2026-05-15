@@ -1,6 +1,6 @@
 services:
   backend:
-    image: sstcp-backend:v1.0.0
+    image: sstcp-backend:v2.3.4
     container_name: sstcp-backend
     restart: unless-stopped
     ports:
@@ -42,7 +42,7 @@ services:
         max-file: "5"
 
   frontend-pc:
-    image: sstcp-frontend-pc:v1.0.0
+    image: sstcp-frontend-pc:v2.3.4
     container_name: sstcp-frontend-pc
     restart: unless-stopped
     ports:
@@ -70,7 +70,7 @@ services:
         max-file: "3"
 
   frontend-h5:
-    image: sstcp-frontend-h5:v1.0.0
+    image: sstcp-frontend-h5:v2.3.4
     container_name: sstcp-frontend-h5
     restart: unless-stopped
     ports:

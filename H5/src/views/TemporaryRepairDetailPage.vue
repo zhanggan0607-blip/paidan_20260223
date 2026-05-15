@@ -516,6 +516,7 @@ const handleRemovePhoto = async (index: number) => {
       title: '提示',
       message: '是否要删除，新增的图片会重新打水印',
     })
+    const removedPhoto = currentPhotos.value[index]
     currentPhotos.value.splice(index, 1)
     const detailId = detail.value?.id
     if (detailId) {
@@ -524,9 +525,12 @@ const handleRemovePhoto = async (index: number) => {
           photos: currentPhotos.value,
           signature: formData.value.signature,
           remarks: formData.value.remarks,
+          fault_description: formData.value.fault_description,
+          solution: formData.value.solution,
         })
       } catch (saveError) {
-        console.error('删除照片后保存失败:', saveError)
+        currentPhotos.value.splice(index, 0, removedPhoto)
+        showFailToast('删除失败，请重试')
       }
     }
   } catch {}
@@ -839,13 +843,11 @@ const autoSaveContent = async () => {
     }
     try {
       const saveData: Record<string, any> = {
+        photos: currentPhotos.value,
         signature: formData.value.signature,
         remarks: formData.value.remarks,
         fault_description: formData.value.fault_description,
         solution: formData.value.solution,
-      }
-      if (currentPhotos.value.length > 0) {
-        saveData.photos = currentPhotos.value
       }
 
       const response = await temporaryRepairService.patch(detail.value?.id!, saveData)

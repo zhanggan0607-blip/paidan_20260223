@@ -5,11 +5,21 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ENV_FILE_PATH = Path(__file__).parent.parent / ".env"
+VERSION_FILE_PATH = Path(__file__).parent.parent / "VERSION"
+
+
+def _read_version() -> str:
+    for path in [VERSION_FILE_PATH, Path(__file__).parent.parent.parent / "VERSION"]:
+        try:
+            return path.read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            continue
+    return "0.0.0"
 
 
 class Settings(BaseSettings):
     app_name: str = "SSTCP Maintenance System"
-    app_version: str = "2.3.4"
+    app_version: str = _read_version()
     debug: bool = False
     secret_key: str | None = None
 

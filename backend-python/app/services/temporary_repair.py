@@ -161,7 +161,13 @@ class TemporaryRepairService(BaseService):
             maintenance_personnel=maintenance_personnel,
             created_by=operator_name,
             status=dto.status or default_status,
-            remarks=dto.remarks
+            remarks=dto.remarks,
+            photos=dto.photos,
+            fault_description=dto.fault_description,
+            solution=dto.solution,
+            signature=dto.signature,
+            customer_signature=dto.customer_signature if hasattr(dto, 'customer_signature') else None,
+            execution_date=parse_datetime(dto.execution_date) if dto.execution_date else None,
         )
 
         result = self.repository.create(repair)
@@ -309,7 +315,7 @@ class TemporaryRepairService(BaseService):
             existing_repair.fault_description = dto.fault_description
         if hasattr(dto, 'solution') and dto.solution is not None:
             existing_repair.solution = dto.solution
-        if hasattr(dto, 'photos') and dto.photos is not None and len(dto.photos) > 0:
+        if hasattr(dto, 'photos') and dto.photos is not None:
             existing_repair.photos = dto.photos
         if hasattr(dto, 'signature') and dto.signature is not None:
             existing_repair.signature = dto.signature

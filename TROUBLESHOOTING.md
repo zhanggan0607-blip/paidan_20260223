@@ -5,6 +5,70 @@
 
 ---
 
+## 2026-05-15 修复：工单图片上传/删除多处Bug
+
+### 类型
+修复
+
+### 概要
+检查所有工单图片上传/删除功能，发现并修复5个Bug，通过端到端API测试验证
+
+### 核心根因
+1. 临时维修创建工单时未传入 photos、fault_description、solution、signature 等字段
+2. 临时维修和定期巡检的 partial_update 中 `len(dto.photos) > 0` 条件阻止了空数组的保存
+3. 前端删除图片后保存失败无用户反馈，且本地状态已修改导致数据不一致
+4. 前端自动保存中 `if (currentPhotos.value.length > 0)` 条件阻止了空数组同步到后端
+
+### 明细
+- **文件**: `backend-python/app/services/temporary_repair.py`
+  - 创建方法补全 photos、fault_description、solution、signature、customer_signature、execution_date 字段
+  - partial_update 移除 `len(dto.photos) > 0` 条件，允许空数组清空图片
+- **文件**: `backend-python/app/services/periodic_inspection_record.py`
+  - 移除 `len(dto.photos) > 0` 条件，允许空数组清空图片
+- **文件**: `H5/src/views/TemporaryRepairDetailPage.vue`
+  - handleRemovePhoto 补全 fault_description 和 solution 字段
+  - 保存失败时回滚本地状态 + showFailToast 反馈
+- **文件**: `H5/src/views/SpotWorkDetailPage.vue`
+  - handleRemovePhoto 保存失败时回滚本地状态 + showFailToast 反馈
+- **文件**: `H5/src/views/SpotWorkDetailPage.vue`、`H5/src/views/TemporaryRepairDetailPage.vue`
+  - autoSaveContent 移除 `if (currentPhotos.value.length > 0)` 条件，始终包含 photos 字段
+
+### 测试验证
+- 编写端到端API测试脚本 `tests/test_photo_upload_delete.py`
+- 测试覆盖：图片上传（FormData+Base64）、现场施工图片添加/删除/清空、临时维修图片添加/删除/清空、管理员照片添加/删除
+- 所有测试通过
+
+---
+
+## 2026-05-15 修复/共用提级：版本号集中管理
+
+### 类型
+修复 / 重复合并 / 共用提级
+
+### 概要
+版本号从11+个文件分散定义提级为项目根目录 VERSION 文件单一来源，消除版本不一致根因
+
+### 核心根因
+1. 版本号在 config.py、.env*（7个）、pyproject.toml、package.json（3处）、deploy脚本、docker-compose 等11+个位置分别定义
+2. pydantic-settings 优先级：OS环境变量 > .env文件 > config.py默认值，.env.production 中 APP_VERSION=1.0.0 覆盖了 config.py 的 2.3.4
+3. 每次发版需手动同步11+个文件，极易遗漏
+
+### 明细
+- **新建**: `VERSION`（项目根目录，唯一版本号来源，内容 `2.3.4`）
+- **改动**: `backend-python/app/config.py` → `_read_version()` 从 VERSION 文件读取，支持本地和Docker两种目录结构
+- **删除**: `backend-python/.env`、`.env.production`、`.env.local`、`.env.development`、`.env.staging`、`.env.sqlite`、`.env.example`、根目录 `.env` 中的 `APP_VERSION` 行（共8处）
+- **改动**: `backend-python/Dockerfile` → 构建上下文改为项目根目录，新增 `COPY VERSION ./VERSION`
+- **改动**: `scripts/deploy-docker-all.ps1` → `$VERSION` 从 VERSION 文件动态读取
+- **改动**: `docker-compose.yml`、`docker-compose.production.yml` → 后端构建上下文改为项目根目录
+- **保留**: `pyproject.toml`、`package.json`（3处）中的版本号为 npm/poetry 元数据，不影响运行时版本显示
+
+### 版本号管理规范
+- **唯一来源**: 项目根目录 `VERSION` 文件
+- **修改方式**: 只需修改 `VERSION` 文件，所有环境自动同步
+- **读取链路**: `VERSION` → `config.py._read_version()` → `Settings.app_version` → `/api/v1/health` → 前端页面显示
+
+---
+
 ## 2026-05-14 修复：H5端施工人员删除确认后无反应
 
 ### 类型

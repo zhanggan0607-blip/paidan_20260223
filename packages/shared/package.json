@@ -1,6 +1,6 @@
 {
   "name": "@sstcp/shared",
-  "version": "2.2.2",
+  "version": "2.3.4",
   "description": "SSTCP维保管理系统共享代码库",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

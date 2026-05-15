@@ -29,8 +29,8 @@ services:
 
   backend:
     build:
-      context: ./backend-python
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend-python/Dockerfile
     container_name: sstcp-backend
     restart: unless-stopped
     ports:

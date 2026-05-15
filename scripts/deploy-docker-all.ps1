@@ -7,7 +7,9 @@ if (-not $SERVER_IP) { throw "请设置环境变量 DEPLOY_SERVER_IP (服务器I
 $SERVER_USER = if ($env:DEPLOY_SERVER_USER) { $env:DEPLOY_SERVER_USER } else { "root" }
 $DEPLOY_PATH = "/opt/sstcp"
 $TIMESTAMP = Get-Date -Format "yyyyMMdd-HHmmss"
-$VERSION = "v2.2.0"
+$VERSION_FILE = "$PROJECT_ROOT\VERSION"
+$RAW_VERSION = if (Test-Path $VERSION_FILE) { (Get-Content $VERSION_FILE -Raw).Trim() } else { "0.0.0" }
+$VERSION = "v$RAW_VERSION"
 $LOG_FILE = "$PROJECT_ROOT\deploy-log-$TIMESTAMP.txt"
 
 function Write-Log {
@@ -91,9 +93,9 @@ function Invoke-SSHCommand {
 
 function Build-BackendImage {
     Write-Log "========== Building Backend Image =========="
-    Push-Location "$PROJECT_ROOT\backend-python"
+    Push-Location $PROJECT_ROOT
     try {
-        docker build --no-cache -t "sstcp-backend:$VERSION" -t "sstcp-backend:latest" -f Dockerfile .
+        docker build --no-cache -t "sstcp-backend:$VERSION" -t "sstcp-backend:latest" -f backend-python/Dockerfile .
         if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
         Write-Log "Backend image built successfully: sstcp-backend:$VERSION"
     } finally {

@@ -80,7 +80,7 @@ class PeriodicInspectionRecordService:
 
         if dto.inspected is not None:
             record.inspected = dto.inspected
-        if dto.photos is not None and len(dto.photos) > 0:
+        if dto.photos is not None:
             record.photos = dto.photos
         if dto.inspection_result is not None:
             record.inspection_result = dto.inspection_result

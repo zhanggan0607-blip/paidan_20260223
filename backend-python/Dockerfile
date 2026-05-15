@@ -7,7 +7,7 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
         sed -i "s@http://deb.debian.org@https://mirrors.aliyun.com@g" /etc/apt/sources.list && \
         sed -i "s@http://security.debian.org@https://mirrors.aliyun.com@g" /etc/apt/sources.list; \
     fi
-COPY requirements.txt .
+COPY backend-python/requirements.txt .
 RUN apt-get update && apt-get install -y --no-install-recommends gcc libpq-dev libheif-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     pip install --prefix=/install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
@@ -25,7 +25,8 @@ RUN if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
     libpq5 fonts-wqy-zenhei curl libheif1 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /install /usr/local
-COPY . .
+COPY backend-python/ .
+COPY VERSION ./VERSION
 ENV PYTHONUNBUFFERED=1
 
 RUN groupadd -g 1001 appgroup && \
