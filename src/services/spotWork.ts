@@ -27,10 +27,10 @@ class SpotWorkService extends CrudService<SpotWork> {
   }
 
   async saveWorkers(data: {
-    project_id: string
-    project_name: string
-    start_date: string
-    end_date: string
+    project_id?: string
+    project_name?: string
+    start_date?: string
+    end_date?: string
     workers: Array<{
       name: string
       gender?: string | null
@@ -39,8 +39,9 @@ class SpotWorkService extends CrudService<SpotWork> {
       idCardNumber: string
       issuingAuthority?: string | null
       validPeriod?: string | null
-      idCardFront: string
-      idCardBack: string
+      idCardFront?: string | null
+      idCardBack?: string | null
+      id?: number | null
     }>
   }): Promise<ApiResponse<{ saved_count: number; skipped_count: number }>> {
     return await this.http.post(API_ENDPOINTS.SPOT_WORK.WORKERS, data)

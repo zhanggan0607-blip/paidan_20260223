@@ -76,44 +76,63 @@ export const dingtalkService = {
         return
       }
 
+      const corpId = import.meta.env.VITE_DINGTALK_CORP_ID || ''
+      const clientId = import.meta.env.VITE_DINGTALK_CLIENT_ID || ''
+
+      if (!corpId) {
+        reject(new Error('钉钉企业ID未配置'))
+        return
+      }
+
+      const tryRequestAuthCode = (dd: any) => {
+        if (dd.requestAuthCode) {
+          dd.requestAuthCode({
+            corpId,
+            clientId,
+            onSuccess: (result: { code: string }) => {
+              resolve(result.code)
+            },
+            onFail: (err: any) => {
+              reject(new Error(`获取钉钉授权码失败: ${err.message || err.errorMessage || JSON.stringify(err)}`))
+            },
+          })
+        } else if (dd.runtime && dd.runtime.permission && dd.runtime.permission.requestAuthCode) {
+          dd.runtime.permission.requestAuthCode({
+            corpId,
+            onSuccess: (result: { code: string }) => {
+              resolve(result.code)
+            },
+            onFail: (err: any) => {
+              reject(new Error(`获取钉钉授权码失败: ${err.message || err.errorMessage || JSON.stringify(err)}`))
+            },
+          })
+        } else {
+          reject(new Error('钉钉JSAPI不支持免登接口'))
+        }
+      }
+
+      if ((window as any).dd) {
+        tryRequestAuthCode((window as any).dd)
+        return
+      }
+
+      const timeout = setTimeout(() => {
+        reject(new Error('钉钉JSAPI加载超时'))
+      }, 10000)
+
       const script = document.createElement('script')
       script.src = 'https://g.alicdn.com/dingding/dingtalk-jsapi/3.0.12/dingtalk.open.js'
       script.onload = () => {
+        clearTimeout(timeout)
         if ((window as any).dd) {
-          const dd = (window as any).dd
-          const corpId = import.meta.env.VITE_DINGTALK_CORP_ID || ''
-          const clientId = import.meta.env.VITE_DINGTALK_CLIENT_ID || ''
-
-          if (dd.requestAuthCode) {
-            dd.requestAuthCode({
-              corpId,
-              clientId,
-              onSuccess: (result: { code: string }) => {
-                resolve(result.code)
-              },
-              onFail: (err: Error) => {
-                reject(new Error(`获取钉钉授权码失败: ${err.message || JSON.stringify(err)}`))
-              },
-            })
-          } else if (dd.runtime && dd.runtime.permission && dd.runtime.permission.requestAuthCode) {
-            dd.runtime.permission.requestAuthCode({
-              corpId,
-              onSuccess: (result: { code: string }) => {
-                resolve(result.code)
-              },
-              onFail: (err: Error) => {
-                reject(new Error(`获取钉钉授权码失败: ${err.message || JSON.stringify(err)}`))
-              },
-            })
-          } else {
-            reject(new Error('钉钉JSAPI不支持免登接口'))
-          }
+          tryRequestAuthCode((window as any).dd)
         } else {
-          reject(new Error('钉钉JSAPI加载失败'))
+          reject(new Error('钉钉JSAPI加载失败：dd对象不可用'))
         }
       }
       script.onerror = () => {
-        reject(new Error('钉钉JSAPI加载失败'))
+        clearTimeout(timeout)
+        reject(new Error('钉钉JSAPI脚本加载失败，请检查网络连接'))
       }
       document.head.appendChild(script)
     })

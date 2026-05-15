@@ -136,11 +136,24 @@ export interface QuickFillRequest {
 /**
  * 工人信息保存请求
  */
+export interface WorkerInfoRequest {
+  name: string
+  gender?: string | null
+  birthDate?: string | null
+  address?: string | null
+  idCardNumber: string
+  issuingAuthority?: string | null
+  validPeriod?: string | null
+  idCardFront?: string | null
+  idCardBack?: string | null
+  id?: number | null
+}
+
 export interface WorkersSaveRequest {
   spot_work_id?: number
   project_id?: string
   project_name?: string
   start_date?: string
   end_date?: string
-  workers: Partial<SpotWorkWorker>[]
+  workers: WorkerInfoRequest[]
 }

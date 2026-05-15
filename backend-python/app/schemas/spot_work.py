@@ -169,8 +169,9 @@ class WorkerInfo(BaseModel):
     idCardNumber: str
     issuingAuthority: str | None = None
     validPeriod: str | None = None
-    idCardFront: str
-    idCardBack: str
+    idCardFront: str | None = None
+    idCardBack: str | None = None
+    id: int | None = None
 
 
 class QuickFillRequest(BaseModel):

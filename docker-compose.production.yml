@@ -3,10 +3,11 @@ services:
     build:
       context: .
       dockerfile: backend-python/Dockerfile
+    image: sstcp-backend:${APP_VERSION:-latest}
     container_name: sstcp-backend-prod
     restart: always
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - backend-python/.env.production
     environment:
@@ -42,10 +43,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: sstcp-frontend-pc:${APP_VERSION:-latest}
     container_name: sstcp-frontend-pc-prod
     restart: always
-    ports:
-      - "8081:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -73,10 +73,9 @@ services:
     build:
       context: .
       dockerfile: H5/Dockerfile
+    image: sstcp-frontend-h5:${APP_VERSION:-latest}
     container_name: sstcp-frontend-h5-prod
     restart: always
-    ports:
-      - "8082:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -109,7 +108,8 @@ services:
       - "443:443"
     volumes:
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - certbot-webroot:/var/www/certbot
     depends_on:
       backend:
         condition: service_healthy
@@ -120,7 +120,7 @@ services:
     networks:
       - sstcp-network
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "-q", "--spider", "http://0.0.0.0:80/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -144,3 +144,4 @@ networks:
 volumes:
   backend-uploads:
   backend-logs:
+  certbot-webroot:

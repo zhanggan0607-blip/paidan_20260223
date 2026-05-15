@@ -58,9 +58,13 @@ export interface RequestInstance {
   delete: <T = unknown>(url: string, config?: RequestOptions) => Promise<ApiResponse<T>>
 }
 
+type RefreshResult =
+  | { success: true; token: string }
+  | { success: false; reason: 'network_error' | 'auth_error' | 'no_token' }
+
 let isRefreshing = false
 let refreshSubscribers: ((token: string) => void)[] = []
-let proactiveRefreshPromise: Promise<string | null> | null = null
+let proactiveRefreshPromise: Promise<RefreshResult> | null = null
 
 function subscribeTokenRefresh(callback: (token: string) => void) {
   refreshSubscribers.push(callback)
@@ -82,13 +86,13 @@ function shouldRefreshToken(token: unknown, bufferMinutes: number = 5): boolean 
 async function refreshToken(
   axiosInstance: AxiosInstance,
   config: RequestConfig
-): Promise<string | null> {
+): Promise<RefreshResult> {
   const refreshEndpoint = config.refreshEndpoint || '/auth/refresh'
   
   const getRefreshTokenFn = config.getRefreshToken || config.getToken
   const refreshTokenValue = getRefreshTokenFn ? getRefreshTokenFn() : null
   if (!refreshTokenValue) {
-    return null
+    return { success: false, reason: 'no_token' }
   }
 
   try {
@@ -115,11 +119,17 @@ async function refreshToken(
       if (newRefreshToken && config.setRefreshToken) {
         config.setRefreshToken(newRefreshToken)
       }
-      return newToken
+      return { success: true, token: newToken }
     }
-    return null
-  } catch {
-    return null
+    return { success: false, reason: 'auth_error' }
+  } catch (error) {
+    if (axios.isAxiosError(error) && !error.response) {
+      return { success: false, reason: 'network_error' }
+    }
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      return { success: false, reason: 'auth_error' }
+    }
+    return { success: false, reason: 'auth_error' }
   }
 }
 
@@ -199,10 +209,12 @@ export function createRequest(config: RequestConfig): RequestInstance {
             proactiveRefreshPromise = refreshToken(instance, config)
           }
           try {
-            const newToken = await proactiveRefreshPromise
-            if (newToken) {
-              onTokenRefreshed(newToken)
-              axiosConfig.headers['Authorization'] = `Bearer ${newToken}`
+            const result = await proactiveRefreshPromise
+            if (result.success) {
+              onTokenRefreshed(result.token)
+              axiosConfig.headers['Authorization'] = `Bearer ${result.token}`
+            } else if (result.reason === 'network_error') {
+              axiosConfig.headers['Authorization'] = `Bearer ${token}`
             } else {
               const payload = decodeJwtPayload(token)
               const isExpired = payload?.exp ? Date.now() >= payload.exp * 1000 : true
@@ -321,12 +333,12 @@ export function createRequest(config: RequestConfig): RequestInstance {
         originalRequest._retry = true
         isRefreshing = true
 
-        const newToken = await refreshToken(instance, config)
+        const result = await refreshToken(instance, config)
         isRefreshing = false
 
-        if (newToken) {
-          onTokenRefreshed(newToken)
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
+        if (result.success) {
+          onTokenRefreshed(result.token)
+          originalRequest.headers.Authorization = `Bearer ${result.token}`
           return instance(originalRequest)
         }
 
@@ -335,6 +347,16 @@ export function createRequest(config: RequestConfig): RequestInstance {
         failedSubscribers.forEach((callback) => {
           callback('')
         })
+
+        if (result.reason === 'network_error') {
+          return Promise.reject({
+            status: 0,
+            message: '网络连接失败，请检查网络后重试',
+            errors: [],
+            data: null,
+          } as ApiError)
+        }
+
         config.onUnauthorized?.()
         return Promise.reject({
           status: 401,

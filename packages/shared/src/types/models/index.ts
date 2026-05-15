@@ -9,6 +9,7 @@ export type {
   SpotWorkUpdate,
   SpotWorkQueryParams,
   QuickFillRequest,
+  WorkerInfoRequest,
   WorkersSaveRequest
 } from './spotWork'
 

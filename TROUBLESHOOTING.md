@@ -1,7 +1,128 @@
 # 项目错误记录文档
 
-> 本文档记录项目开发过程中遇到的所有错误和解决方案，避免重复问题�?> 
-> **重要：每次开发新功能或修复问题前，请先查阅本文档�?*
+> 本文档记录项目开发过程中遇到的所有错误和解决方案，避免重复问题
+> **重要：每次开发新功能或修复问题前，请先查阅本文档**
+
+---
+
+## 2026-05-15 修复：钉钉手机端自动登录失效
+
+### 类型
+修复
+
+### 概要
+钉钉手机端H5应用自动登录（免登）功能失效，用户需要手动输入账号密码登录
+
+### 核心根因
+1. 服务器宿主机 `/opt/sstcp/nginx.conf` 中 `/h5/` location 的 CSP 策略缺少钉钉JSAPI所需域名，`script-src` 仅允许 `'self'`，阻止了 `https://g.alicdn.com/dingding/dingtalk-jsapi/3.0.12/dingtalk.open.js` 的加载
+2. `connect-src` 仅允许 `'self'`，阻止了钉钉API `https://oapi.dingtalk.com` 的请求
+3. `style-src` 缺少 `'unsafe-inline'`，Vant UI内联样式被阻止
+4. 之前修复时直接在容器内修改了nginx配置（`docker exec`），但未更新宿主机文件，容器重启后配置丢失
+
+### 明细
+- 文件: 服务器 `/opt/sstcp/nginx.conf`（宿主机文件）
+- 改动: `/h5/` location 的 CSP 策略更新为：
+  - `script-src 'self' https://g.alicdn.com`（允许钉钉JSAPI加载）
+  - `style-src 'self' 'unsafe-inline'`（允许Vant UI内联样式）
+  - `connect-src 'self' https://oapi.dingtalk.com https://g.alicdn.com`（允许钉钉API请求）
+- 文件: H5/src/services/dingtalk.ts
+- 改动: `getAuthCode()` 方法增加健壮性：检查dd对象是否已存在、增加10秒超时、校验corpId配置、更详细的错误信息
+- 文件: H5/src/App.vue
+- 改动: 修复错误提示被`finally`块中`closeToast()`立即关闭的bug，改为先关闭loading再显示错误提示，延迟1.5秒跳转登录页
+
+### 经验教训
+- **Docker绑定挂载 + sed -i 陷阱**：`sed -i` 会创建新文件替换旧文件（inode变化），导致Docker绑定挂载失效，容器内看不到更新。解决方案：修改宿主机文件后必须重启容器（`docker compose restart`），而非仅`nginx -s reload`
+- **容器内修改不持久**：通过`docker exec`修改容器内文件不会同步到宿主机，容器重启后修改丢失。正确做法是修改宿主机挂载的源文件
+
+---
+
+## 2026-05-15 修复：H5端卡片区点击看不到数据
+
+### 类型
+修复
+
+### 概要
+手机端首页卡片区的定期巡检单、临时维修单和零星用工单点击后显示"暂无数据"
+
+### 核心根因
+1. H5端 `WorkListPage.vue` 中使用 `status` 参数传递多状态值（如"执行中,待确认,已退回"），但后端 `status` 参数仅支持精确匹配（`==`），不支持逗号分隔的多状态值
+2. 后端已支持 `statuses` 参数进行 IN 查询（`.in_()`），但前端代码未使用该参数
+3. 修改代码后未重新构建和部署到生产服务器，导致服务器上运行的仍是旧版本代码
+
+### 明细
+- 文件: H5/src/views/WorkListPage.vue
+- 改动: 将 `status: validStatuses` 改为 `statuses: validStatuses`
+- 文件: packages/shared/src/types/models/periodicInspection.ts, temporaryRepair.ts, spotWork.ts
+- 改动: 添加 `statuses?: string` 字段到 QueryParams 类型
+- 文件: backend-python/app/schemas/spot_work.py
+- 改动: 将 `WorkerInfo` 中 `idCardFront` 和 `idCardBack` 改为可选字段（`str | None = None`）
+- 文件: src/services/spotWork.ts
+- 改动: 将 `saveWorkers` 方法中 `idCardFront` 和 `idCardBack` 改为可选类型
+- 文件: packages/shared/src/types/models/spotWork.ts
+- 改动: 新增 `WorkerInfoRequest` 接口，使用驼峰命名匹配后端 schema
+
+---
+
+## 2026-05-15 修复：PC端编辑模态框施工人员录入按钮无响应
+
+### 类型
+修复
+
+### 概要
+PC端零星用工管理页面，编辑模态框中施工人员录入按钮点击无反应
+
+### 核心根因
+1. 施工人员录入按钮和 `WorkerEntryModal` 组件仅存在于新增模态框，编辑模态框中缺失
+2. 编辑时未加载已有施工人员数据
+
+### 明细
+- 文件: src/views/SpotWorkManagement.vue
+- 改动: 在编辑模态框中添加施工人员按钮和 `WorkerEntryModal`，加载并保存施工人员数据
+
+---
+
+## 2026-05-15 修复：PC前端构建TypeScript错误
+
+### 类型
+修复
+
+### 概要
+PC前端构建时 `saveWorkers` 方法的参数类型不兼容，`idCardFront` 和 `idCardBack` 类型为 `string | undefined` 但目标类型要求 `string`
+
+### 核心根因
+1. `src/services/spotWork.ts` 中 `saveWorkers` 方法的内联类型定义将 `idCardFront` 和 `idCardBack` 定义为必填 `string`
+2. 后端 `WorkerInfo` schema 中这两个字段也是必填的
+3. 但编辑场景下身份证照片可能为空
+
+### 明细
+- 文件: src/services/spotWork.ts
+- 改动: 将 `idCardFront` 和 `idCardBack` 改为 `string | null | undefined` 可选类型
+- 文件: backend-python/app/schemas/spot_work.py
+- 改动: 将 `WorkerInfo` 中 `idCardFront` 和 `idCardBack` 改为 `str | None = None`
+
+---
+
+## 2026-05-15 修复：网络故障时误触发登出导致页面白屏
+
+### 类型
+修复
+
+### 概要
+用户网络切换（WiFi/移动数据/VPN）导致 DNS 暂时不可用时，`refreshToken()` 不区分网络错误和认证错误，统一返回 null，触发 `onUnauthorized()` 清除用户会话并跳转登录页。但登录页 JS 也因 DNS 不可用而加载失败，导致页面白屏和一连串 `ERR_NAME_NOT_RESOLVED` 错误。
+
+### 核心根因
+1. `packages/shared/src/api/request.ts` 中 `refreshToken()` 的 catch 块不区分网络错误（DNS 失败、连接拒绝）和认证错误（401），统一返回 null
+2. 主动刷新逻辑收到 null 后检查 token 是否过期，过期则触发 `onUnauthorized()`，但此时网络不可用无法刷新
+3. 401 响应拦截器中刷新失败也统一触发 `onUnauthorized()`，不区分失败原因
+
+### 修复方案
+1. 新增 `RefreshResult` 类型，区分 `success`/`network_error`/`auth_error`/`no_token` 四种结果
+2. `refreshToken()` 在 catch 中判断：无响应（`!error.response`）→ `network_error`，401 响应 → `auth_error`
+3. 主动刷新逻辑：网络错误时保留当前 token 继续使用，不触发 `onUnauthorized()`
+4. 401 响应拦截器：刷新因网络错误失败时，返回"网络连接失败"错误而非触发登出
+
+### 影响文件
+- `packages/shared/src/api/request.ts`
 
 ---
 

@@ -76,23 +76,24 @@ onMounted(async () => {
           userStore.setRefreshToken(response.data.refresh_token)
         }
         userStore.setUser(response.data.user)
+        closeToast()
         showSuccessToast('登录成功')
         startHeartbeat()
         router.replace('/')
       } else {
+        closeToast()
         showFailToast(response.message || '钉钉登录失败')
-        router.replace('/login')
+        setTimeout(() => router.replace('/login'), 1500)
       }
     } catch (error: any) {
       console.error('钉钉免登失败:', error)
+      closeToast()
       if (error?.status === 403) {
-        showFailToast(error.message || '您未在系统中注册，请联系管理员')
+        showFailToast('您未在系统中注册，请联系管理员')
       } else {
         showFailToast(error.message || '钉钉登录失败，请刷新重试')
-        router.replace('/login')
+        setTimeout(() => router.replace('/login'), 1500)
       }
-    } finally {
-      closeToast()
     }
   } else {
     router.replace('/login')
