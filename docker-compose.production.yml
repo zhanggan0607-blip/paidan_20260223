@@ -3,13 +3,13 @@ services:
     build:
       context: .
       dockerfile: backend-python/Dockerfile
-    image: sstcp-backend:${APP_VERSION:-latest}
+    image: sstcp-backend:${APP_VERSION:-v2.3.5}
     container_name: sstcp-backend-prod
     restart: always
     ports:
       - "127.0.0.1:8000:8000"
     env_file:
-      - backend-python/.env.production
+      - docker/.env
     environment:
       - DEBUG=False
       - LOG_LEVEL=INFO
@@ -43,7 +43,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sstcp-frontend-pc:${APP_VERSION:-latest}
+    image: sstcp-frontend-pc:${APP_VERSION:-v2.3.5}
     container_name: sstcp-frontend-pc-prod
     restart: always
     depends_on:
@@ -73,7 +73,7 @@ services:
     build:
       context: .
       dockerfile: H5/Dockerfile
-    image: sstcp-frontend-h5:${APP_VERSION:-latest}
+    image: sstcp-frontend-h5:${APP_VERSION:-v2.3.5}
     container_name: sstcp-frontend-h5-prod
     restart: always
     depends_on:

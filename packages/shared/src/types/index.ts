@@ -26,6 +26,7 @@ export type {
   SpotWorkUpdate,
   SpotWorkQueryParams,
   QuickFillRequest,
+  WorkerInfoRequest,
   WorkersSaveRequest,
   StatisticsOverview,
   WorkByPerson,

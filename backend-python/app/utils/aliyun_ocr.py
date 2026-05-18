@@ -235,51 +235,66 @@ class AliyunOCRService:
             masked['address'] = f"{val[:3]}***{val[-3:]}"
         return masked
 
+    @staticmethod
+    def _get_field(obj, attr_name: str, dict_key: str = '', default: str = '') -> str:
+        val = default
+        if isinstance(obj, dict):
+            val = obj.get(dict_key or attr_name, default)
+        else:
+            val = getattr(obj, attr_name, default)
+        return val or default
+
     def _parse_idcard_result(self, data, side: str) -> dict[str, Any]:
-        """
-        解析身份证识别结果
-
-        Args:
-            data: 阿里云返回的数据对象
-            side: 身份证面
-
-        Returns:
-            Dict[str, Any]: 解析后的结果
-        """
         result = {}
 
         if side == 'face':
-            front_data = data.front_result if hasattr(data, 'front_result') else None
+            front_data = None
+            if hasattr(data, 'front_result'):
+                front_data = data.front_result
+            elif isinstance(data, dict):
+                front_data = data.get('front_result') or data.get('FrontResult')
+
             if front_data:
-                birth_date = front_data.birth_date or ''
+                birth_date = self._get_field(front_data, 'birth_date', 'BirthDate')
                 if birth_date and len(birth_date) == 8:
                     birth_date = f"{birth_date[:4]}-{birth_date[4:6]}-{birth_date[6:8]}"
+                id_card_number = (
+                    self._get_field(front_data, 'idnumber', 'IDNumber')
+                    or self._get_field(front_data, 'id_number', 'IDNumber')
+                )
                 result = {
-                    'name': front_data.name or '',
-                    'gender': front_data.gender or '',
-                    'nationality': front_data.nationality or '',
+                    'name': self._get_field(front_data, 'name', 'Name'),
+                    'gender': self._get_field(front_data, 'gender', 'Gender'),
+                    'nationality': self._get_field(front_data, 'nationality', 'Nationality'),
                     'birthDate': birth_date,
-                    'address': front_data.address or '',
-                    'idCardNumber': front_data.idnumber or ''
+                    'address': self._get_field(front_data, 'address', 'Address'),
+                    'idCardNumber': id_card_number,
                 }
+                logger.debug(f"正面解析结果: name={result['name']}, idCardNumber={'***' if result['idCardNumber'] else '空'}")
             else:
-                logger.warning("正面识别结果为空")
+                logger.warning(f"正面识别结果为空, data type={type(data).__name__}")
         else:
-            back_data = data.back_result if hasattr(data, 'back_result') else None
+            back_data = None
+            if hasattr(data, 'back_result'):
+                back_data = data.back_result
+            elif isinstance(data, dict):
+                back_data = data.get('back_result') or data.get('BackResult')
+
             if back_data:
-                start_date = back_data.start_date or ''
-                end_date = back_data.end_date or ''
+                start_date = self._get_field(back_data, 'start_date', 'StartDate')
+                end_date = self._get_field(back_data, 'end_date', 'EndDate')
                 if start_date and len(start_date) == 8:
                     start_date = f"{start_date[:4]}.{start_date[4:6]}.{start_date[6:8]}"
                 if end_date and len(end_date) == 8:
                     end_date = f"{end_date[:4]}.{end_date[4:6]}.{end_date[6:8]}"
                 valid_period = f"{start_date}-{end_date}" if start_date and end_date else (start_date or end_date)
                 result = {
-                    'issuingAuthority': back_data.issue or '',
-                    'validPeriod': valid_period
+                    'issuingAuthority': self._get_field(back_data, 'issue', 'Issue'),
+                    'validPeriod': valid_period,
                 }
+                logger.debug(f"反面解析结果: issuingAuthority={'有值' if result['issuingAuthority'] else '空'}")
             else:
-                logger.warning("反面识别结果为空")
+                logger.warning(f"反面识别结果为空, data type={type(data).__name__}")
 
         return result
 

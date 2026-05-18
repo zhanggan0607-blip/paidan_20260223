@@ -5,6 +5,33 @@
 
 ---
 
+## 2026-05-17 修复：身份证照片不识别身份证号和签发机关
+
+### 类型
+修复
+
+### 概要
+零星用工单申报中施工人员录入身份证照片后，OCR不识别身份证号、签发机关等信息
+
+### 核心根因
+1. 生产服务器和测试服务器的 `.env.production` 文件中 `ALIYUN_ACCESS_KEY_ID` 和 `ALIYUN_ACCESS_KEY_SECRET` 为空，导致阿里云OCR服务客户端初始化失败
+2. OCR结果解析方法对SDK返回数据格式兼容性不足，可能因对象/字典格式差异导致字段提取失败
+
+### 明细
+- 文件: 服务器 `/opt/sstcp/.env.production`（生产8.153.93.123 + 测试8.153.95.31）
+- 改动: 配置 `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_ACCESS_KEY_SECRET`、`ALIYUN_OSS_ACCESS_KEY_ID`、`ALIYUN_OSS_ACCESS_KEY_SECRET` 凭证
+- 文件: `backend-python/app/utils/aliyun_ocr.py`
+- 改动: 新增 `_get_field` 通用方法兼容对象和字典格式；`_parse_idcard_result` 增加对 `idnumber`/`id_number`、`front_result`/`FrontResult`、`back_result`/`BackResult` 等字段名的兼容处理；增加详细日志记录
+- 文件: `docker/.env`、`backend-python/.env.production`（本地配置文件）
+- 改动: 同步配置阿里云OCR凭证
+- 部署: 后端镜像从v2.3.4升级到v2.3.5，生产+测试服务器均已部署并验证
+
+### 验证结果
+- 生产服务器：身份证正面识别成功（姓名、性别、民族、出生日期、地址、身份证号），反面识别成功（签发机关、有效期）
+- 测试服务器：后端健康检查通过，凭证已配置，OCR服务可用
+
+---
+
 ## 2026-05-15 修复：钉钉手机端自动登录失效
 
 ### 类型

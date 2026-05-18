@@ -66,3 +66,6 @@ check_columns.py
 fix_columns.py
 test_issues.py
 deploy-tars/
+deploy-report-*.txt
+vite.config.d.ts
+vite.config.js
